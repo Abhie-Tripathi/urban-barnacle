@@ -1,0 +1,551 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                         String                @id @default(uuid()) @db.Uuid
+  firstname                  String?
+  lastname                   String?
+  email                      String                @unique
+  role                       Role                  @default(CUSTOMER)
+  industry                   String?
+  category                   String?
+  subIndustry                String?
+  createdAt                  DateTime              @default(now())
+  updatedAt                  DateTime              @updatedAt
+  phoneNumber                String?               @unique
+  accounts                   Account[]
+  // aliasName              String? // discuss with gaurav
+  currentOnboardingState     OnboardingState       @default(VERIFICATION)
+  primaryLocation            Json?
+  imageUrl                   String?
+  profileImageId             String?
+  designation                String? // discuss with gaurav
+  department                 String? // discuss with gaurav
+  deleted                    Boolean               @default(false)
+  userInterests              UserEventInterest[]   @relation("interestedUser")
+  approvingInterests         UserEventInterest[]   @relation("approvedBy")
+  recommendingInterests      UserEventInterest[]   @relation("recommendedBy")
+  ownedEnquiries             Enquiry[]             @relation("owner")
+  initiatedEnquiries         Enquiry[]             @relation("initiatedBy")
+  comments                   Comment[]
+  intents                    Intent[]
+  enquiryActivities          EnquiryActivity[]
+  exports                    Export[]
+  userActivities             UserActivity[]
+  apiLogs                    ApiLogs[]
+  verificationPasskeys       Verification[]
+  accessProvided             Access[]              @relation("accessProvider")
+  accessReceived             Access[]              @relation("accessReceiver")
+  attachments                Attachment[]
+  createdTrackers            Tracker[]             @relation("createdByUser")
+  modifiedTrackers           Tracker[]             @relation("modifiedByUser")
+  savedLocations             SavedLocation[]
+  unlockedTransactions       UnlockedTransaction[]
+  createdEvents              Event[]
+  userConfigurations         UserConfiguration[]
+  createdConfigurations      Configuration[]       @relation("createdBy")
+  lastModifiedConfigurations Configuration[]       @relation("lastModifiedBy")
+}
+
+model Company {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String
+  imageUrl       String?
+  profileImageId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deleted        Boolean  @default(false)
+}
+
+model Account {
+  id                       String                 @id @default(uuid()) @db.Uuid
+  domain                   String                 @unique
+  website                  String?
+  membership               Int                    @default(0) @db.SmallInt // discuss with gaurav / vipul
+  imageUrl                 String?
+  profileImageId           String?
+  user                     User[]
+  pendingRequests          Int?                   @default(200)
+  pendingPocUnlockRequests Int?                   @default(4400)
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+  deleted                  Boolean                @default(false)
+  userInterests            UserEventInterest[]
+  enquiries                Enquiry[]
+  exports                  Export[]
+  unlockedTransactions     UnlockedTransaction[]
+  events                   Event[]
+  accountConfigurations    AccountConfiguration[]
+}
+
+model Attachment {
+  id              String                 @id @default(uuid()) @db.Uuid
+  fileUrl         String                 @unique
+  fileType        FileType
+  filename        String
+  fileSize        Float // kb
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  createdByUser   User                   @relation(fields: [createdByUserId], references: [id])
+  createdByUserId String
+  deleted         Boolean                @default(false)
+  sourceModule    AttachmentSourceModule
+  sourceId        String
+}
+
+enum AttachmentSourceModule {
+  COMMENT
+  TRACKER
+  USER
+  ACCOUNT
+}
+
+// discuss source : gtm geni usecase
+// discuss recommendation confirmation
+// discuss if we want to capture all recommendation for a given user interest
+// recommended array
+model UserEventInterest {
+  id               String               @id @default(uuid())
+  accountId        String
+  enquiryId        String?
+  eventId          String
+  note             String?
+  sourceModule     InterestSourceModule
+  sourceId         String?
+  status           InterestStatus       @default(PENDING)
+  interest         Interest
+  modifiedBy       String?
+  createdBy        String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  deleted          Boolean              @default(false)
+  account          Account?             @relation(fields: [accountId], references: [id])
+  approvingUser    User?                @relation("approvedBy", fields: [approvedBy], references: [id])
+  approvedBy       String?
+  recommendingUser User?                @relation("recommendedBy", fields: [recommendedBy], references: [id])
+  recommendedBy    String?
+  interestedUser   User                 @relation("interestedUser", fields: [interestedUserId], references: [id])
+  interestedUserId String
+  enquiry          Enquiry?             @relation(fields: [enquiryId], references: [id])
+
+  @@unique([accountId, eventId, interestedUserId, interest], name: "unique_user_interest") // adds constraint to the table to avoid duplicate entries for a given user interest for a given user of specific account
+}
+
+// discuss with vipul, if we want to create enquiry without creating user interest first
+model Enquiry {
+  id              String              @id @default(uuid()) @db.Uuid
+  status          EnquiryStatus       @default(PENDING)
+  eventId         String
+  accountId       String
+  account         Account?            @relation(fields: [accountId], references: [id])
+  initiatedBy     String
+  initiatedByUser User?               @relation("initiatedBy", fields: [initiatedBy], references: [id])
+  ownerId         String?
+  owner           User?               @relation("owner", fields: [ownerId], references: [id])
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  deleted         Boolean             @default(false)
+  userInterests   UserEventInterest[]
+  activities      EnquiryActivity[]
+
+  @@unique([accountId, eventId], name: "unique_enquiry") // adds constraint to the table to avoid duplicate entries for a given enquiry for a given user of specific account
+}
+
+model Comment {
+  id              String              @id @default(uuid()) @db.Uuid
+  content         String?
+  commentType     CommentType
+  user            User                @relation(fields: [userId], references: [id])
+  userId          String
+  sourceModule    CommentSourceModule
+  sourceId        String
+  parentCommentId String?
+  parentComment   Comment?            @relation("parentComment", fields: [parentCommentId], references: [id])
+  totalLikes      Int                 @default(0)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  deleted         Boolean             @default(false)
+  replies         Comment[]           @relation("parentComment")
+}
+
+model Intent {
+  id           String             @id @default(uuid()) @db.Uuid
+  targetModule IntentTargetModule
+  targetId     String
+  intentType   IntentType
+  userId       String
+  user         User               @relation(fields: [userId], references: [id])
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  deleted      Boolean            @default(false)
+
+  @@unique([targetModule, targetId, userId, intentType], name: "unique_intent")
+}
+
+enum IntentTargetModule {
+  COMMENT
+}
+
+enum IntentType {
+  UPVOTE
+}
+
+enum CommentType {
+  TEXT
+  RECOMMENDATION
+  INTEREST
+  // UPVOTE
+}
+
+enum CommentSourceModule {
+  TRACKER
+  COORDINATE
+  OUTREACH
+}
+
+// discuss comment likes : comment / intent 
+
+model EnquiryActivity {
+  id              String                  @id @default(uuid()) @db.Uuid
+  enquiryId       String
+  enquiry         Enquiry                 @relation(fields: [enquiryId], references: [id])
+  userId          String
+  user            User                    @relation(fields: [userId], references: [id])
+  activityType    EnquiryActivityType
+  activitySubType EnquiryActivitySubType?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  deleted         Boolean                 @default(false)
+}
+
+enum EnquiryActivityType {
+  FOLLOW
+  UPVOTE
+}
+
+enum EnquiryActivitySubType {
+  ATTEND
+  SPEAK
+  SPONSOR
+  EXHIBIT
+}
+
+model Export {
+  id             String         @id @default(uuid()) @db.Uuid
+  accountId      String
+  account        Account        @relation(fields: [accountId], references: [id])
+  userId         String
+  user           User           @relation(fields: [userId], references: [id])
+  exportFileType ExportFileType
+  exportStatus   ExportStatus   @default(PENDING)
+  inputData      Json
+  outputData     Json
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  deleted        Boolean        @default(false)
+}
+
+enum ExportFileType {
+  CSV
+  JSON
+}
+
+enum ExportStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+// discuss request table name
+model UserActivity {
+  id        String   @id @default(uuid()) @db.Uuid
+  request   Json
+  path      String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: NoAction)
+}
+
+model ApiLogs {
+  id        String   @id @default(uuid()) @db.Uuid
+  request   Json
+  path      String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: NoAction)
+}
+
+model Verification {
+  passkey   String
+  userId    String   @id @unique @db.Uuid
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiresAt DateTime
+  deleted   Boolean  @default(false)
+}
+
+// discuss if we want to expire access token after some time / after first use
+model Access {
+  id               String             @id @default(uuid()) @db.Uuid
+  sourceEntity     AccessSourceEntity
+  sourceEntityId   String
+  accessReceiverId String
+  accessReceiver   User               @relation(name: "accessReceiver", fields: [accessReceiverId], references: [id])
+  accessProviderId String
+  accessProvider   User               @relation(name: "accessProvider", fields: [accessProviderId], references: [id])
+  accessType       AccessType
+  token            String? // after first use token and expiry will be removed
+  expiry           DateTime? // 7 days 
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  deleted          Boolean            @default(false)
+}
+
+enum AccessSourceEntity {
+  TRACKER
+}
+
+enum AccessType {
+  READ
+  WRITE
+}
+
+model Tracker {
+  id             String      @id @default(uuid()) @db.Uuid
+  name           String?     @db.VarChar(200)
+  filterValue    Json
+  attachmentId   String?
+  type           TrackerType @default(T_CUSTOM)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  createdBy      String
+  deleted        Boolean     @default(false)
+  lastModifiedBy String?
+  createdByUser  User        @relation("createdByUser", fields: [createdBy], references: [id])
+  modifiedByUser User?       @relation("modifiedByUser", fields: [lastModifiedBy], references: [id])
+}
+
+enum TrackerType {
+  T_PEOPLE_FINDER
+  T_COMPETITOR
+  T_SPEAKING_OPPORTUNITY
+  T_PRODUCT_KEYWORDS
+  T_RECRUITMENT
+  T_LOCATION
+  T_VENUE
+  T_GEOTIME
+  T_CUSTOM
+  TR_CUSTOM
+}
+
+model SavedLocation {
+  id           String       @id @default(uuid()) @db.Uuid
+  userId       String
+  type         LocationType
+  locationId   String?
+  geomType     GeomType?
+  latitude     Float?
+  longitude    Float?
+  radius       Float?
+  radiusUnit   RadiusUnit?
+  locationName String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  area         Float?
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, locationId, latitude, longitude, radius, radiusUnit, geomType], map: "unique_saved_location_constraint")
+}
+
+enum LocationType {
+  GEO_JSON
+  LOCATION_ID
+}
+
+enum RadiusUnit {
+  KM
+  MI
+}
+
+enum GeomType {
+  POINT
+}
+
+model AccountConfiguration {
+  id              String        @id @default(uuid()) @db.Uuid
+  accountId       String
+  account         Account       @relation(fields: [accountId], references: [id])
+  configurationId String
+  configuration   Configuration @relation(fields: [configurationId], references: [id])
+  updatedAt       DateTime      @updatedAt
+}
+
+// discuss if separate account/user configuration key is required
+model Configuration {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  constraints           Json // outreach , interest, filterValue
+  createdById           String
+  lastModifiedById      String?
+  tag                   String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  createdBy             User                   @relation("createdBy", fields: [createdById], references: [id], onDelete: Cascade)
+  lastModifiedBy        User?                  @relation("lastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: Cascade)
+  accountConfigurations AccountConfiguration[]
+  userConfigurations    UserConfiguration[]
+}
+
+model UserConfiguration {
+  id              String        @id @default(uuid()) @db.Uuid
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  configurationId String
+  configuration   Configuration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+  updatedAt       DateTime      @updatedAt
+}
+
+model UnlockedTransaction {
+  id             String       @id @default(uuid()) @db.Uuid
+  accountId      String
+  unlockByUserId String
+  eventId        String
+  unlockType     UnlockType
+  unlockValue    UnlockValue
+  source         UnlockSource
+  createdAt      DateTime     @default(now())
+  account        Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  unlockedByUser User         @relation(fields: [unlockedById], references: [id], onDelete: Cascade)
+  unlockedById   String
+}
+
+enum UnlockSource {
+  CONTACT_DETAIL
+  EVENT_DETAIL
+}
+
+enum UnlockType {
+  USER
+  EVENT
+}
+
+enum UnlockValue {
+  EMAIL
+  PHONE
+  BASIC
+  ADVANCE
+}
+
+// EVENT GENI
+model Event {
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String
+  data          Json
+  deleted       Boolean  @default(false)
+  atachmentId   String?
+  createdAt     DateTime @default(now())
+  updateAt      DateTime @updatedAt
+  createdBy     String
+  // type                   EventType                @default(MAIN)
+  approval      Boolean  @default(true)
+  capacity      Int      @default(0)
+  registration  Boolean  @default(true)
+  waitlisting   Boolean  @default(false)
+  // Attachment             Attachment?              @relation(fields: [atachmentId], references: [id])
+  account       Account  @relation(fields: [accountId], references: [id])
+  accountId     String
+  User          User     @relation(fields: [createdBy], references: [id])
+  parentEventId String?
+  parentEvent   Event?   @relation(name: "parentEvent", fields: [parentEventId], references: [id])
+  subEvents     Event[]  @relation("parentEvent")
+  Widget        Widget[]
+}
+
+model Invitation {
+  id String @id @default(uuid()) @db.Uuid
+}
+
+model Allowance {
+  id String @id @default(uuid()) @db.Uuid
+}
+
+model Brand {
+  id String @id @default(uuid()) @db.Uuid
+}
+
+model CustomBrandKit {
+  id String @id @default(uuid()) @db.Uuid
+}
+
+model Widget {
+  id        String   @id @default(uuid()) @db.Uuid
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+}
+
+enum EnquiryStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum InterestSourceModule {
+  RESEARCH
+  TRACKER
+  COMMENT
+}
+
+enum InterestStatus {
+  CONFIRMED
+  PENDING
+  SHORTLISTED
+  REJECTED
+  CANCELLED
+}
+
+enum Interest {
+  BOOKMARK
+  ATTEND
+  SPEAK
+  SPONSOR
+  EXHIBIT
+}
+
+enum AttachmentEntityType {
+  USER
+  ACCOUNT
+}
+
+enum OnboardingState {
+  VERIFICATION
+  COMPLETED
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+}
+
+enum FileType {
+  IMAGE
+  PDF
+  CSV
+  JSON
+}
