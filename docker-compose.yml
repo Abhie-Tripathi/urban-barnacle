@@ -9,7 +9,8 @@ services:
     env_file:
       - .env
     volumes:
-      - /Users/sayyamaneja/Desktop/volumes/whr/whr-postgres-db:/var/lib/postgresql/data
+      # - /Users/sayyamaneja/Desktop/volumes/whr/whr-postgres-db:/var/lib/postgresql/data
+      - /home/dell-pc/Desktop/node/whr-backend/volumn/whr/whr-postgres-db:/var/lib/postgresql/data
 
   whr-redis:
     image: redis

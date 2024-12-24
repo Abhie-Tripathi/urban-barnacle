@@ -57,11 +57,16 @@ model User {
   userConfigurations         UserConfiguration[]
   createdConfigurations      Configuration[]       @relation("createdBy")
   lastModifiedConfigurations Configuration[]       @relation("lastModifiedBy")
+  Invitation                 Invitation[]
+  Widget                     Widget[]
+  CustomBrandKit             CustomBrandKit[]
 }
 
 model Company {
   id             String   @id @default(uuid()) @db.Uuid
   name           String
+  domain         String   @unique
+  website        String?
   imageUrl       String?
   profileImageId String?
   createdAt      DateTime @default(now())
@@ -71,11 +76,7 @@ model Company {
 
 model Account {
   id                       String                 @id @default(uuid()) @db.Uuid
-  domain                   String                 @unique
-  website                  String?
   membership               Int                    @default(0) @db.SmallInt // discuss with gaurav / vipul
-  imageUrl                 String?
-  profileImageId           String?
   user                     User[]
   pendingRequests          Int?                   @default(200)
   pendingPocUnlockRequests Int?                   @default(4400)
@@ -88,6 +89,9 @@ model Account {
   unlockedTransactions     UnlockedTransaction[]
   events                   Event[]
   accountConfigurations    AccountConfiguration[]
+  Invitation               Invitation[]
+  CustomBrandKit           CustomBrandKit?
+  Widget                   Widget[]
 }
 
 model Attachment {
@@ -99,10 +103,11 @@ model Attachment {
   createdAt       DateTime               @default(now())
   updatedAt       DateTime               @updatedAt
   createdByUser   User                   @relation(fields: [createdByUserId], references: [id])
-  createdByUserId String
+  createdByUserId String                 @db.Uuid
   deleted         Boolean                @default(false)
   sourceModule    AttachmentSourceModule
   sourceId        String
+  Event           Event[]
 }
 
 enum AttachmentSourceModule {
@@ -118,8 +123,8 @@ enum AttachmentSourceModule {
 // recommended array
 model UserEventInterest {
   id               String               @id @default(uuid())
-  accountId        String
-  enquiryId        String?
+  accountId        String               @db.Uuid
+  enquiryId        String?              @db.Uuid
   eventId          String
   note             String?
   sourceModule     InterestSourceModule
@@ -133,11 +138,11 @@ model UserEventInterest {
   deleted          Boolean              @default(false)
   account          Account?             @relation(fields: [accountId], references: [id])
   approvingUser    User?                @relation("approvedBy", fields: [approvedBy], references: [id])
-  approvedBy       String?
+  approvedBy       String?              @db.Uuid
   recommendingUser User?                @relation("recommendedBy", fields: [recommendedBy], references: [id])
-  recommendedBy    String?
+  recommendedBy    String?              @db.Uuid
   interestedUser   User                 @relation("interestedUser", fields: [interestedUserId], references: [id])
-  interestedUserId String
+  interestedUserId String               @db.Uuid
   enquiry          Enquiry?             @relation(fields: [enquiryId], references: [id])
 
   @@unique([accountId, eventId, interestedUserId, interest], name: "unique_user_interest") // adds constraint to the table to avoid duplicate entries for a given user interest for a given user of specific account
@@ -148,11 +153,11 @@ model Enquiry {
   id              String              @id @default(uuid()) @db.Uuid
   status          EnquiryStatus       @default(PENDING)
   eventId         String
-  accountId       String
+  accountId       String              @db.Uuid
   account         Account?            @relation(fields: [accountId], references: [id])
-  initiatedBy     String
+  initiatedBy     String              @db.Uuid
   initiatedByUser User?               @relation("initiatedBy", fields: [initiatedBy], references: [id])
-  ownerId         String?
+  ownerId         String?             @db.Uuid
   owner           User?               @relation("owner", fields: [ownerId], references: [id])
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
@@ -168,10 +173,10 @@ model Comment {
   content         String?
   commentType     CommentType
   user            User                @relation(fields: [userId], references: [id])
-  userId          String
+  userId          String              @db.Uuid
   sourceModule    CommentSourceModule
   sourceId        String
-  parentCommentId String?
+  parentCommentId String?             @db.Uuid
   parentComment   Comment?            @relation("parentComment", fields: [parentCommentId], references: [id])
   totalLikes      Int                 @default(0)
   createdAt       DateTime            @default(now())
@@ -185,7 +190,7 @@ model Intent {
   targetModule IntentTargetModule
   targetId     String
   intentType   IntentType
-  userId       String
+  userId       String             @db.Uuid
   user         User               @relation(fields: [userId], references: [id])
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
@@ -219,9 +224,9 @@ enum CommentSourceModule {
 
 model EnquiryActivity {
   id              String                  @id @default(uuid()) @db.Uuid
-  enquiryId       String
+  enquiryId       String                  @db.Uuid
   enquiry         Enquiry                 @relation(fields: [enquiryId], references: [id])
-  userId          String
+  userId          String                  @db.Uuid
   user            User                    @relation(fields: [userId], references: [id])
   activityType    EnquiryActivityType
   activitySubType EnquiryActivitySubType?
@@ -244,12 +249,12 @@ enum EnquiryActivitySubType {
 
 model Export {
   id             String         @id @default(uuid()) @db.Uuid
-  accountId      String
+  accountId      String         @db.Uuid
   account        Account        @relation(fields: [accountId], references: [id])
-  userId         String
+  userId         String         @db.Uuid
   user           User           @relation(fields: [userId], references: [id])
   exportFileType ExportFileType
-  exportStatus   ExportStatus   @default(PENDING)
+  exportStatus   BullStatus     @default(PENDING)
   inputData      Json
   outputData     Json
   createdAt      DateTime       @default(now())
@@ -262,18 +267,12 @@ enum ExportFileType {
   JSON
 }
 
-enum ExportStatus {
-  PENDING
-  COMPLETED
-  FAILED
-}
-
 // discuss request table name
 model UserActivity {
   id        String   @id @default(uuid()) @db.Uuid
   request   Json
   path      String
-  userId    String
+  userId    String   @db.Uuid
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: NoAction)
@@ -283,7 +282,7 @@ model ApiLogs {
   id        String   @id @default(uuid()) @db.Uuid
   request   Json
   path      String
-  userId    String
+  userId    String   @db.Uuid
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: NoAction)
@@ -304,9 +303,9 @@ model Access {
   id               String             @id @default(uuid()) @db.Uuid
   sourceEntity     AccessSourceEntity
   sourceEntityId   String
-  accessReceiverId String
+  accessReceiverId String             @db.Uuid
   accessReceiver   User               @relation(name: "accessReceiver", fields: [accessReceiverId], references: [id])
-  accessProviderId String
+  accessProviderId String             @db.Uuid
   accessProvider   User               @relation(name: "accessProvider", fields: [accessProviderId], references: [id])
   accessType       AccessType
   token            String? // after first use token and expiry will be removed
@@ -333,9 +332,9 @@ model Tracker {
   type           TrackerType @default(T_CUSTOM)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
-  createdBy      String
+  createdBy      String      @db.Uuid
   deleted        Boolean     @default(false)
-  lastModifiedBy String?
+  lastModifiedBy String?     @db.Uuid
   createdByUser  User        @relation("createdByUser", fields: [createdBy], references: [id])
   modifiedByUser User?       @relation("modifiedByUser", fields: [lastModifiedBy], references: [id])
 }
@@ -355,7 +354,7 @@ enum TrackerType {
 
 model SavedLocation {
   id           String       @id @default(uuid()) @db.Uuid
-  userId       String
+  userId       String       @db.Uuid
   type         LocationType
   locationId   String?
   geomType     GeomType?
@@ -388,9 +387,9 @@ enum GeomType {
 
 model AccountConfiguration {
   id              String        @id @default(uuid()) @db.Uuid
-  accountId       String
+  accountId       String        @db.Uuid
   account         Account       @relation(fields: [accountId], references: [id])
-  configurationId String
+  configurationId String        @db.Uuid
   configuration   Configuration @relation(fields: [configurationId], references: [id])
   updatedAt       DateTime      @updatedAt
 }
@@ -399,8 +398,8 @@ model AccountConfiguration {
 model Configuration {
   id                    String                 @id @default(uuid()) @db.Uuid
   constraints           Json // outreach , interest, filterValue
-  createdById           String
-  lastModifiedById      String?
+  createdById           String                 @db.Uuid
+  lastModifiedById      String?                @db.Uuid
   tag                   String?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
@@ -412,16 +411,16 @@ model Configuration {
 
 model UserConfiguration {
   id              String        @id @default(uuid()) @db.Uuid
-  userId          String
+  userId          String        @db.Uuid
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  configurationId String
+  configurationId String        @db.Uuid
   configuration   Configuration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
   updatedAt       DateTime      @updatedAt
 }
 
 model UnlockedTransaction {
   id             String       @id @default(uuid()) @db.Uuid
-  accountId      String
+  accountId      String       @db.Uuid
   unlockByUserId String
   eventId        String
   unlockType     UnlockType
@@ -430,7 +429,7 @@ model UnlockedTransaction {
   createdAt      DateTime     @default(now())
   account        Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
   unlockedByUser User         @relation(fields: [unlockedById], references: [id], onDelete: Cascade)
-  unlockedById   String
+  unlockedById   String       @db.Uuid
 }
 
 enum UnlockSource {
@@ -452,52 +451,112 @@ enum UnlockValue {
 
 // EVENT GENI
 model Event {
-  id            String   @id @default(uuid()) @db.Uuid
+  id            String      @id @default(uuid()) @db.Uuid
   name          String
   data          Json
-  deleted       Boolean  @default(false)
-  atachmentId   String?
-  createdAt     DateTime @default(now())
-  updateAt      DateTime @updatedAt
-  createdBy     String
-  // type                   EventType                @default(MAIN)
-  approval      Boolean  @default(true)
-  capacity      Int      @default(0)
-  registration  Boolean  @default(true)
-  waitlisting   Boolean  @default(false)
-  // Attachment             Attachment?              @relation(fields: [atachmentId], references: [id])
-  account       Account  @relation(fields: [accountId], references: [id])
-  accountId     String
-  User          User     @relation(fields: [createdBy], references: [id])
-  parentEventId String?
-  parentEvent   Event?   @relation(name: "parentEvent", fields: [parentEventId], references: [id])
-  subEvents     Event[]  @relation("parentEvent")
+  deleted       Boolean     @default(false)
+  atachmentId   String?     @db.Uuid
+  createdAt     DateTime    @default(now())
+  updateAt      DateTime    @updatedAt
+  createdBy     String      @db.Uuid
+  approval      Boolean     @default(true)
+  capacity      Int         @default(0)
+  registration  Boolean     @default(true)
+  waitlisting   Boolean     @default(false)
+  Attachment    Attachment? @relation(fields: [atachmentId], references: [id])
+  account       Account     @relation(fields: [accountId], references: [id])
+  accountId     String      @db.Uuid
+  User          User        @relation(fields: [createdBy], references: [id])
+  parentEventId String?     @db.Uuid
+  parentEvent   Event?      @relation(name: "parentEvent", fields: [parentEventId], references: [id])
+  subEvents     Event[]     @relation("parentEvent")
   Widget        Widget[]
 }
 
 model Invitation {
-  id String @id @default(uuid()) @db.Uuid
+  id         String           @id @default(uuid()) @db.Uuid
+  email      String           @db.VarChar(50)
+  entityType InvitationEntity @default(EVENT)
+  entityId   String
+  accountId  String           @db.Uuid
+  userId     String           @db.Uuid
+  createdAt  DateTime         @default(now())
+  updateAt   DateTime         @updatedAt
+  status     BullStatus       @default(PENDING)
+  account    Account          @relation(fields: [accountId], references: [id])
+  user       User             @relation(fields: [userId], references: [id])
 }
 
-model Allowance {
-  id String @id @default(uuid()) @db.Uuid
+enum BullStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum InvitationEntity {
+  EVENT
+}
+
+model Credit {
+  id         String             @id @default(uuid()) @db.Uuid
+  entityId   String             @db.VarChar(50)
+  entityType UsageTrackerEntity @default(USER)
+  creditType CreditType
+  count      Int                @default(15)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  @@index([entityId])
+}
+
+enum UsageTrackerEntity {
+  USER
+}
+
+enum CreditType {
+  INVITAION
 }
 
 model Brand {
-  id String @id @default(uuid()) @db.Uuid
+  domain    String    @unique
+  name      String    @unique
+  logoUrl   String
+  deleted   Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updateAt  DateTime?
 }
 
 model CustomBrandKit {
-  id String @id @default(uuid()) @db.Uuid
+  id         String   @id @default(uuid()) @db.Uuid
+  data       Json?
+  deleted    Boolean  @default(false)
+  accountId  String   @unique @db.Uuid
+  createdAt  DateTime @default(now())
+  updateAt   DateTime @updatedAt
+  color      String?
+  fontFamily String?
+  logoUrl    String?
+  otherData  Json?
+  createdBy  String   @db.Uuid
+  user       User     @relation(references: [id], fields: [createdBy])
+  widgets    Widget[]
+  account    Account  @relation(fields: [accountId], references: [id])
 }
 
 model Widget {
-  id        String   @id @default(uuid()) @db.Uuid
-  eventId   String
-  event     Event    @relation(fields: [eventId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deleted   Boolean  @default(false)
+  id               String          @id @default(uuid()) @db.Uuid
+  eventId          String          @db.Uuid
+  event            Event           @relation(fields: [eventId], references: [id])
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  deleted          Boolean         @default(false)
+  CustomBrandKit   CustomBrandKit? @relation(fields: [customBrandKitId], references: [id])
+  customBrandKitId String?         @db.Uuid
+  createdBy        String          @db.Uuid
+  user             User            @relation(fields: [createdBy], references: [id])
+  accountId        String          @db.Uuid
+  account          Account         @relation(fields: [accountId], references: [id])
 }
 
 enum EnquiryStatus {
