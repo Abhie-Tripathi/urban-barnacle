@@ -69,6 +69,8 @@ model Company {
   website        String?
   imageUrl       String?
   profileImageId String?
+  accountId      String   @db.Uuid
+  accounts       Account  @relation(references: [id], fields: [accountId])
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   deleted        Boolean  @default(false)
@@ -92,13 +94,14 @@ model Account {
   Invitation               Invitation[]
   CustomBrandKit           CustomBrandKit?
   Widget                   Widget[]
+  Company                  Company[]
 }
 
 model Attachment {
   id              String                 @id @default(uuid()) @db.Uuid
   fileUrl         String                 @unique
   fileType        FileType
-  filename        String
+  fileName        String
   fileSize        Float // kb
   createdAt       DateTime               @default(now())
   updatedAt       DateTime               @updatedAt
@@ -282,20 +285,21 @@ model ApiLogs {
   id        String   @id @default(uuid()) @db.Uuid
   request   Json
   path      String
-  userId    String   @db.Uuid
+  userId    String?  @db.Uuid
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: NoAction)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: NoAction)
 }
 
 model Verification {
   passkey   String
-  userId    String   @id @unique @db.Uuid
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId    String     @id @unique @db.Uuid
+  user      User       @relation(fields: [userId], references: [id])
+  status    BullStatus @default(PENDING)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
   expiresAt DateTime
-  deleted   Boolean  @default(false)
+  deleted   Boolean    @default(false)
 }
 
 // discuss if we want to expire access token after some time / after first use
