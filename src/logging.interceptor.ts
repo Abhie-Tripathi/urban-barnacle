@@ -44,7 +44,7 @@ export class LoggingMiddleware implements NestMiddleware {
   async getUser(request: FastifyRequest) {
     const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
     const requestToken =
-      request?.unsignCookie(request.cookies[key] as string).value ?? undefined;
+      request.unsignCookie(request.cookies[key] as string).value ?? undefined;
 
     if (!requestToken) {
       return null;
