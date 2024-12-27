@@ -12,7 +12,10 @@ import { RequestLoggingMiddleware } from './request-logging.middleware';
 import { EmailModule } from './email/email.module';
 import { OtpEmailWorkerClass } from './bull-service/otp.service';
 import { EmailService } from './email/email.service';
-import { LoggingMiddleware } from './logging.guard';
+import { LoggingMiddleware } from './logging.interceptor';
+import { CategoryModule } from './category/category.module';
+import { CompanyModule } from './company/company.module';
+import { UserInterestModule } from './user-interest/user-interest.module';
 
 @Module({
   imports: [
@@ -48,6 +51,9 @@ import { LoggingMiddleware } from './logging.guard';
     SharedModule,
     EmailModule,
     BullModule,
+    CategoryModule,
+    CompanyModule,
+    UserInterestModule,
   ],
   controllers: [AppController],
   providers: [AppService, OtpEmailWorkerClass, EmailService],

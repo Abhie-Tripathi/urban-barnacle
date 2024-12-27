@@ -17,7 +17,7 @@ export class LoggingMiddleware implements NestMiddleware {
   }
 
   async use(req: FastifyRequest, res: FastifyReply, next: NextFunction) {
-    const { method, url, body, headers } = req;
+    const { method, url, body, headers, originalUrl, query } = req;
 
     try {
       // Retrieve userId from cache
@@ -26,12 +26,12 @@ export class LoggingMiddleware implements NestMiddleware {
       // Log request to database
       await this.prisma.apiLogs.create({
         data: {
-          path: url,
+          path: originalUrl,
           request: {
-            query: req.query ?? null,
-            method: req.method,
-            body: req.body ?? null,
-            headers: req.headers,
+            query: query ?? null,
+            method: method,
+            body: body ?? null,
+            headers: headers,
           } as any,
           // userId: userId,
         },

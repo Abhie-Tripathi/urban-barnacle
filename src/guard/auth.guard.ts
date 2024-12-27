@@ -11,7 +11,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Cache } from 'cache-manager';
 import { FastifyRequest } from 'fastify';
-import { CachedUser } from 'src/shared/types';
+import { CachedUser, TCachedUser } from 'src/shared/types';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -20,7 +20,7 @@ export class AuthGuard implements CanActivate {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private configService: ConfigService,
   ) {
-    this.cookiePrefix = this.configService.get('COOKIE_PREFIX');
+    this.cookiePrefix = process.env.COOKIE_PREFIX;
   }
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request: FastifyRequest = context.switchToHttp().getRequest();
@@ -45,7 +45,7 @@ export class AuthGuard implements CanActivate {
     if (!requestToken) {
       return null;
     }
-    const user: CachedUser | undefined =
+    const user: TCachedUser | undefined =
       await this.cacheManager.get(requestToken);
     if (!user) {
       return null;

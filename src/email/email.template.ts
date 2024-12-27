@@ -1,4 +1,4 @@
-export const emailSenderAddress: string = 'mail@10times.com';
+export const emailSenderAddress: string = 'no-reply@eventgtm.com';
 
 export const signUpEmail = {
   to: `{to}`,

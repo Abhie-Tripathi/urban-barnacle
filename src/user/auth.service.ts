@@ -7,7 +7,7 @@ import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { SignUpDto } from './dto/signup.dto';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
-import { OtpDto } from './dto';
+import { OtpCreateDto, OtpDto } from './dto';
 
 @Injectable()
 export class AuthService {
@@ -88,20 +88,45 @@ export class AuthService {
           userId: checkUserExist.id,
         },
       });
-      if (parseInt(passKeyData.passkey) !== body.otp)
+      console.log(passKeyData, new Date().toISOString());
+
+      if (
+        passKeyData.expiresAt.getTime() < Date.now() ||
+        parseInt(passKeyData.passkey) !== body.otp
+      ) {
         return {
           error: new HttpException(
-            'Wrong email or password',
-            HttpStatus.CONFLICT,
+            'Invalid OTP or OTP expired',
+            HttpStatus.UNAUTHORIZED,
           ),
         };
+      }
       const userData = CachedUserSchema.parse(checkUserExist);
       userData['accountId'] = checkUserExist.accounts.filter(
         (accountInfo) => accountInfo.id === companyDataExist.accountId,
-      )[0];
+      )[0].id;
       const token = await this.signToken(userData);
       if (checkUserExist.imageUrl)
         userData['imageUrl'] = checkUserExist.imageUrl;
+      return {
+        data: UserResponseSchema.parse({ userData, token }),
+      };
+    } catch (error) {
+      console.log(error + '');
+      console.error(error);
+      return {
+        error: new HttpException(
+          'something went wrong',
+          HttpStatus.BAD_REQUEST,
+        ),
+      };
+    }
+  }
+  async createOtp(body: OtpCreateDto) {
+    try {
+      const { checkUserExist, companyDataExist } = await this.userBasicInfo(
+        body.email,
+      );
       const { jobStatus } = await this.optGenrationProcess(
         checkUserExist,
         'sign-in',
@@ -115,9 +140,7 @@ export class AuthService {
           ),
         };
       }
-      return {
-        data: UserResponseSchema.parse({ userData, token }),
-      };
+      return { data: { message: 'otp sent successfully.' } };
     } catch (error) {
       console.log(error + '');
       console.error(error);
@@ -143,6 +166,7 @@ export class AuthService {
         },
         update: {
           passkey: verificationCode(),
+          expiresAt: expiryDateTime,
         },
         create: {
           userId: user.id,
@@ -336,7 +360,7 @@ export class AuthService {
       });
       // console.log(verifyOtp, verifyOtp.expiresAt > new Date());
 
-      if (!verifyOtp || verifyOtp?.expiresAt?.getTime() > Date.now()) {
+      if (!verifyOtp || verifyOtp?.expiresAt?.getTime() < Date.now()) {
         return {
           error: new HttpException(
             'Invalid OTP or OTP expired',
