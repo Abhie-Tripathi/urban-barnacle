@@ -60,6 +60,7 @@ model User {
   Invitation                 Invitation[]
   Widget                     Widget[]
   CustomBrandKit             CustomBrandKit[]
+  requestedJobs              RequestedJob[]
 }
 
 model Company {
@@ -561,6 +562,28 @@ model Widget {
   user             User            @relation(fields: [createdBy], references: [id])
   accountId        String          @db.Uuid
   account          Account         @relation(fields: [accountId], references: [id])
+}
+
+model RequestedJob {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id])
+  source    JobSource
+  status    JobStatus @default(PENDING)
+  inputData Json
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+enum JobSource {
+  SEND_OTP
+  SEND_ACCESS
+}
+
+enum JobStatus {
+  PENDING
+  COMPLETED
+  FAILED
 }
 
 enum EnquiryStatus {
