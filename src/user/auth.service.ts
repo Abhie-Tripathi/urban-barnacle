@@ -104,9 +104,13 @@ export class AuthService {
         };
       }
       const userData = CachedUserSchema.parse(checkUserExist);
-      userData['accountId'] = checkUserExist.accounts.filter(
-        (accountInfo) => accountInfo.id === companyDataExist.accountId,
-      )[0].id;
+      userData['accountId'] =
+        checkUserExist.accounts.filter(
+          (accountInfo) => accountInfo.id === companyDataExist.accountId,
+        )[0]?.id ?? '';
+      if (userData['accountId'].length === 0) {
+        userData['accountId'] = checkUserExist.accounts[0].id;
+      }
       const token = await this.signToken(userData);
       if (checkUserExist.imageUrl)
         userData['imageUrl'] = checkUserExist.imageUrl;
@@ -196,7 +200,7 @@ export class AuthService {
           otp: generateOtpForVerify.passkey,
           userInfo: user,
           process: process,
-          jobRequestId: job.id
+          jobRequestId: job.id,
         },
         { priority: 1 },
       );
