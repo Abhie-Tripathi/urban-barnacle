@@ -68,6 +68,6 @@ export class AuthController {
     if (error) {
       return { error };
     }
-    return { data };
+    return  data ;
   }
 }

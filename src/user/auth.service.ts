@@ -196,7 +196,7 @@ export class AuthService {
           otp: generateOtpForVerify.passkey,
           userInfo: user,
           process: process,
-          jobRequestId: job.id,
+          jobRequestId: job.id
         },
         { priority: 1 },
       );
