@@ -1,10 +1,6 @@
-export const emailSenderAddress: string = 'no-reply@eventgtm.com';
+export const emailSenderAddress: string = process.env.EMAIL_SENDER_ADDRESS;
 
-export const signUpEmail = {
-  to: `{to}`,
-  from: `{from}`,
-  subject: 'OTP',
-  html: `
+export const signUpINEmailHtml = `
      <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -26,5 +22,20 @@ export const signUpEmail = {
         <p><em>Note:</em> This is an automated email, please do not reply directly to this message.</p>
     </body>
     </html>
-    `,
-};
+    `;
+export const trackerAccessHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <p>Hi {givenToUserName},</p>
+    <p>I hope you're well.</p>
+    <p>I'm excited to invite you to use a tracker created to monitor event trends.</p>
+    <p>Access the tracker: <a href="{redirectUrl}">link</a></p>
+    <p>Thanks,<br>
+  {givenByUserName}<br>
+    {givenByUserDesignation}<br>
+</body>
+</html>
+`;

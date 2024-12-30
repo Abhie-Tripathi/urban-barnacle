@@ -9,9 +9,12 @@ import { BullModule } from '@nestjs/bull';
 
 @Module({
   imports: [
-    BullModule.registerQueue({
-      name: 'otpProcessor',
-    }),
+    BullModule.registerQueue(
+      {
+        name: 'otpProcessor',
+      },
+      { name: 'accessProcessor' },
+    ),
   ],
   controllers: [UserController, MeController, AuthController],
   providers: [UserService, MeService, AuthService],

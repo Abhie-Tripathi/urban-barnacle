@@ -8,11 +8,13 @@ import { SignUpDto } from './dto/signup.dto';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { OtpCreateDto, OtpDto } from './dto';
+import { SharedService } from 'src/shared/shared.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly sharedService: SharedService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     @InjectQueue('otpProcessor') private readonly otpEmailQueue: Queue,
   ) {}
@@ -176,13 +178,25 @@ export class AuthService {
         },
       });
       console.log(generateOtpForVerify);
-
+      const { error, job } = await this.sharedService.jobCreation(
+        user.id,
+        {
+          otp: generateOtpForVerify.passkey,
+          userInfo: user,
+          process: process,
+        },
+        'SEND_OTP',
+      );
+      if (error) {
+        return error;
+      }
       const jobadded = await this.otpEmailQueue.add(
         'signUp/InEmail',
         {
           otp: generateOtpForVerify.passkey,
           userInfo: user,
           process: process,
+          jobRequestId: job.id,
         },
         { priority: 1 },
       );

@@ -1,30 +1,18 @@
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Inject, Logger, Scope } from '@nestjs/common';
-import { BullStatus, User } from '@prisma/client';
+import { BullStatus, JobStatus, User } from '@prisma/client';
 import { CachedUser, LastActive, TrackerParamsOptions } from 'src/shared/types';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
-import { EmailService } from 'src/email/email.service';
-import { emailSenderAddress, signUpEmail } from 'src/email/email.template';
 import { Job } from 'bull';
 import { Processor, Process, JOB_REF } from '@nestjs/bull';
+import { EmailService } from '../email/email.service';
+import { emailSenderAddress, signUpINEmailHtml } from '../email/email.template';
 interface OtpEmailData {
   otp: string;
   userInfo: any;
   process: string;
-}
-interface Rest {
-  token: string;
-  user: CachedUser;
-  from: string;
-}
-interface AccessTracker {
-  givenBy: string;
-  givenTo: string;
-  trackerId: string;
-  accessType: string;
-  redirect: string;
-  token: string;
+  jobRequestId: string;
 }
 @Processor({ name: 'otpProcessor', scope: Scope.REQUEST })
 export class OtpEmailWorkerClass {
@@ -43,33 +31,33 @@ export class OtpEmailWorkerClass {
   async handleEmailJob(job: Job<OtpEmailData>) {
     try {
       const jobdata = job.data;
-      const upadte = await this.prisma.verification.update({
+      const upadte = await this.prisma.requestedJob.update({
         where: {
-          userId: jobdata.userInfo.id,
+          id: jobdata.jobRequestId,
         },
         data: {
           status: 'PROCESSING',
         },
       });
       const userData = jobdata.userInfo;
-      const signUpEmailTemplate = JSON.stringify(signUpEmail)
-        .replace('{to}', userData.email)
-        .replace('{from}', emailSenderAddress)
-        .replace('{user.firstname}', userData.firstname)
-        .replace('{otp}', jobdata.otp)
-        .replace('{sign}', jobdata.process);
-
-      const { data, error } = await this.email.otpMail(
-        jobdata.otp,
-        JSON.parse(signUpEmailTemplate),
+      const signUpEmailTemplate = signUpINEmailHtml.replace(
+        '{sign}',
+        jobdata.process,
       );
-      let status = 'COMPLETED' as BullStatus;
+
+      const { data, error } = await this.email.mailSender(
+        userData.email,
+        emailSenderAddress,
+        'OTP',
+        { html: signUpEmailTemplate },
+      );
+      let status = 'COMPLETED' as JobStatus;
       if (error) {
-        status = 'FAILED' as BullStatus;
+        status = 'FAILED' as JobStatus;
       }
-      const completeOrnot = await this.prisma.verification.update({
+      const completeOrnot = await this.prisma.requestedJob.update({
         where: {
-          userId: userData.userId,
+          id: jobdata.jobRequestId,
         },
         data: {
           status: status,
@@ -78,10 +66,9 @@ export class OtpEmailWorkerClass {
       return {};
     } catch (error) {
       console.log(JSON.stringify(error));
-
-      const data = await this.prisma.verification.update({
+      const data = await this.prisma.requestedJob.update({
         where: {
-          userId: job.data.userInfo.id,
+          id: job.data.jobRequestId,
         },
         data: {
           status: 'FAILED',

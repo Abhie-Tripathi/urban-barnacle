@@ -584,6 +584,7 @@ enum JobStatus {
   PENDING
   COMPLETED
   FAILED
+  PROCESSING
 }
 
 enum EnquiryStatus {
