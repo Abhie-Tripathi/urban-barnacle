@@ -49,7 +49,7 @@ export class OtpEmailWorkerClass {
         userData.email,
         emailSenderAddress,
         'OTP',
-        { html: signUpEmailTemplate },
+        signUpEmailTemplate,
       );
       let status = 'COMPLETED' as JobStatus;
       if (error) {

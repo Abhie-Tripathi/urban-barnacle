@@ -61,7 +61,7 @@ export class AccessEmailWorkerClass {
         userData.givenToUserEmail,
         emailSenderAddress,
         `Invitation to use tracker - ${jobdata.trackerName}`,
-        { html: trackerAccessTemplate },
+        trackerAccessTemplate ,
       );
       let status = 'COMPLETED' as JobStatus;
       if (error) {
