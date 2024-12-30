@@ -40,10 +40,12 @@ export class OtpEmailWorkerClass {
         },
       });
       const userData = jobdata.userInfo;
-      const signUpEmailTemplate = signUpINEmailHtml.replace(
-        '{sign}',
-        jobdata.process,
-      );
+      const signUpEmailTemplate = signUpINEmailHtml
+        .replace('{to}', userData.email)
+        .replace('{from}', emailSenderAddress)
+        .replace('{user.firstname}', userData.firstname)
+        .replace('{otp}', jobdata.otp)
+        .replace('{sign}', jobdata.process);
 
       const { data, error } = await this.email.mailSender(
         userData.email,
