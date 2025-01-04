@@ -119,6 +119,8 @@ enum AttachmentSourceModule {
   TRACKER
   USER
   ACCOUNT
+  EVENT
+  BRANDKIT
 }
 
 // discuss source : gtm geni usecase
@@ -460,7 +462,7 @@ model Event {
   name          String
   data          Json
   deleted       Boolean     @default(false)
-  atachmentId   String?     @db.Uuid
+  attachmentId  String?     @db.Uuid
   createdAt     DateTime    @default(now())
   updateAt      DateTime    @updatedAt
   createdBy     String      @db.Uuid
@@ -468,14 +470,16 @@ model Event {
   capacity      Int         @default(0)
   registration  Boolean     @default(true)
   waitlisting   Boolean     @default(false)
-  Attachment    Attachment? @relation(fields: [atachmentId], references: [id])
+  Attachment    Attachment? @relation(fields: [attachmentId], references: [id])
   account       Account     @relation(fields: [accountId], references: [id])
   accountId     String      @db.Uuid
   User          User        @relation(fields: [createdBy], references: [id])
   parentEventId String?     @db.Uuid
   parentEvent   Event?      @relation(name: "parentEvent", fields: [parentEventId], references: [id])
   subEvents     Event[]     @relation("parentEvent")
-  Widget        Widget[]
+  WidgetEvents  Widget[]    @relation("EventToWidget")
+  // Widget        Widget?     @relation(fields: [widgetId], references: [id])
+  // widgetId      String?     @db.Uuid
 }
 
 model Invitation {
@@ -524,12 +528,12 @@ enum CreditType {
 }
 
 model Brand {
-  domain    String    @unique
-  name      String    @unique
+  domain    String   @unique
+  name      String   @unique
   logoUrl   String
-  deleted   Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updateAt  DateTime?
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updateAt  DateTime @updatedAt
 }
 
 model CustomBrandKit {
@@ -550,18 +554,38 @@ model CustomBrandKit {
 }
 
 model Widget {
-  id               String          @id @default(uuid()) @db.Uuid
-  eventId          String          @db.Uuid
-  event            Event           @relation(fields: [eventId], references: [id])
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  deleted          Boolean         @default(false)
-  CustomBrandKit   CustomBrandKit? @relation(fields: [customBrandKitId], references: [id])
-  customBrandKitId String?         @db.Uuid
-  createdBy        String          @db.Uuid
-  user             User            @relation(fields: [createdBy], references: [id])
-  accountId        String          @db.Uuid
-  account          Account         @relation(fields: [accountId], references: [id])
+  id                String          @id @default(uuid()) @db.Uuid
+  customizationData Json?
+  otherData         Json?
+  domain            String?
+  templatePublicId  Int
+  type              WidgetType
+  status            WidgetStatus
+  eventId           Event[]         @relation("EventToWidget")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  deleted           Boolean         @default(false)
+  CustomBrandKit    CustomBrandKit? @relation(fields: [customBrandKitId], references: [id])
+  customBrandKitId  String?         @db.Uuid
+  createdBy         String          @db.Uuid
+  user              User            @relation(fields: [createdBy], references: [id])
+  accountId         String          @db.Uuid
+  account           Account         @relation(fields: [accountId], references: [id])
+}
+
+enum WidgetType {
+  Page
+  Section
+  StickyTop
+  StickyFooter
+  pop
+  Pop
+}
+
+enum WidgetStatus {
+  active
+  draft
+  deactivate
 }
 
 model RequestedJob {
@@ -578,6 +602,7 @@ model RequestedJob {
 enum JobSource {
   SEND_OTP
   SEND_ACCESS
+  EVENT_CANCEl
 }
 
 enum JobStatus {

@@ -30,9 +30,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   async onModuleInit() {
     await this.$connect();
     this.$on('query' as never,(event: { query: string; params: string; duration: number }) => {
-      // console.log('Query:', event.query);
-      // console.log('Params:', event.params);
-      // console.log('Duration:', event.duration, 'ms');
+      console.log('Query:', event.query);
+      console.log('Params:', event.params);
+      console.log('Duration:', event.duration, 'ms');
     //   logger.info(`Query: ${event.query}`);
     //   logger.info(`Params: ${event.params}`);
     //   logger.info(`Duration: ${event.duration}ms`);

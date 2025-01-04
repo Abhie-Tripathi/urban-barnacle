@@ -29,4 +29,32 @@ export class EmailService {
       html: html,
     });
   }
+  private async multiMailSending(msg: {
+    from: string;
+    to: string[];
+    subject: string;
+    html: any;
+  }) {
+    try {
+      await sgMail.sendMultiple(msg);
+      console.log('Email sent successfully');
+      return { data: { message: 'OTP send' } };
+    } catch (error) {
+      console.error('Error sending email:', error);
+      return { error: JSON.stringify(error) };
+    }
+  }
+  async multiMailSender(
+    to: string[],
+    from: string,
+    subject: string,
+    html: any,
+  ) {
+    return await this.multiMailSending({
+      to: to,
+      from: from,
+      subject: subject,
+      html: html,
+    });
+  }
 }

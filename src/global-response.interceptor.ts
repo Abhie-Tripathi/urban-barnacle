@@ -37,11 +37,11 @@ export class GlobalResponseInterceptor implements NestInterceptor {
             });
         } else {
           // Handle successful responses
-          response.status(HttpStatus.OK).send({
+          response.status(HttpStatus.OK).send(
             // statusCode: HttpStatus.OK,
             // success: true,
             data,
-          });
+          );
         }
       }),
     );

@@ -547,7 +547,7 @@ export const eventCancelMailToUsersHtml = `<!DOCTYPE html>
         <p>Hello there,</p>
         <p>
           We want to let you know that the host of
-          <strong>{evenName}</strong> has canceled the event.
+          <strong>{eventName}</strong> has canceled the event.
         </p>
         <p>See you next time!</p>
       </div>
@@ -672,9 +672,9 @@ export const eventCancelMailToAdminHtml = `<!DOCTYPE html>
 
       <!-- Main content section -->
       <div class="content">
-        <h1>{evenName} was Canceled</h1>
+        <h1>{eventName} was Canceled</h1>
         <p>
-         {evenName} has been canceled. We have notified guests with the
+         {eventName} has been canceled. We have notified guests with the
           following email:
         </p>
 
@@ -682,7 +682,7 @@ export const eventCancelMailToAdminHtml = `<!DOCTYPE html>
         <div class="reply-text">
           <p>Hello there,</p>
           <p>
-            We want to let you know that the host of {evenName} has canceled
+            We want to let you know that the host of {eventName} has canceled
             the event.
           </p>
           <p>See you next time!</p>

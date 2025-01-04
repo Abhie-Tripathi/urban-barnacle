@@ -17,6 +17,10 @@ import { EmailModule } from './communication/email/email.module';
 import { OtpEmailWorkerClass } from './communication/bull-service/bull-otp.service';
 import { EmailService } from './communication/email/email.service';
 import { AccessEmailWorkerClass } from './communication/bull-service/bull-access.service';
+import { EventModule } from './event/event.module';
+import { WidgetsModule } from './widgets/widgets.module';
+import { EventWorkerClass } from './communication/bull-service/bull-event.service';
+import { InviteModule } from './invite/invite.module';
 
 @Module({
   imports: [
@@ -55,9 +59,18 @@ import { AccessEmailWorkerClass } from './communication/bull-service/bull-access
     CategoryModule,
     CompanyModule,
     UserInterestModule,
+    EventModule,
+    WidgetsModule,
+    InviteModule,
   ],
   controllers: [AppController],
-  providers: [AppService, OtpEmailWorkerClass, EmailService,AccessEmailWorkerClass],
+  providers: [
+    AppService,
+    OtpEmailWorkerClass,
+    EmailService,
+    AccessEmailWorkerClass,
+    EventWorkerClass,
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

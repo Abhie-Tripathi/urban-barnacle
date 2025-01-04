@@ -12,7 +12,7 @@ import { join } from 'path';
 import * as fastifyCookie from '@fastify/cookie';
 import { CorsGaurd } from './guard/corsgaurd';
 import { GlobalResponseInterceptor } from './global-response.interceptor';
-
+import multipart from '@fastify/multipart';
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
@@ -43,7 +43,7 @@ async function bootstrap() {
 
   // Cookie parser setup (needed for general cookie support)
   app.use(cookieParser(configService.get('COOKIE_SECRET')));
-
+  await app.register(multipart);
   // Register fastifyCookie with the correct type
   await app.register(fastifyCookie, {
     secret: JSON.stringify(configService.get('COOKIE_SECRET')) || 'My-Key',
