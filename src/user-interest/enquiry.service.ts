@@ -8,14 +8,14 @@ export class EnquiryService {
   constructor(private readonly prisma: PrismaService) {}
   async createEnquiry(body: EnquirycreateDto, userData: TCachedUser) {
     try {
-      const createEnquiry = await this.prisma.enquiry.create({
-        data: {
-          account: { connect: { id: String(userData.accountId) } },
-          initiatedByUser: { connect: { id: userData.id } },
-          eventId: body.eventId,
-        },
-      });
-      return { data: createEnquiry };
+      // const createEnquiry = await this.prisma.enquiry.create({
+      //   data: {
+      //     account: { connect: { id: String(userData.accountId) } },
+      //     initiatedByUser: { connect: { id: userData.id } },
+      //     eventId: body.eventId,
+      //   },
+      // });
+      // return { data: createEnquiry };
     } catch (error) {
       console.log(error + '');
       return {

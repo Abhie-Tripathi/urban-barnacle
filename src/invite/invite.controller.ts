@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { InviteService } from './invite.service';
-import { AuthGuard } from 'src/guard';
 import { TCachedUser } from 'src/shared/types';
-import { GetUser } from 'src/decorator';
 import { BodyInviteDto, QueryInvite_Dto } from './dto';
+import { AuthGuard } from 'src/user/auth/guard';
+import { GetUser } from 'src/user/decorator';
 
 @Controller('invite')
 export class InviteController {

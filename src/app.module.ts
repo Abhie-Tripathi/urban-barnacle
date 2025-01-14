@@ -10,8 +10,6 @@ import { SharedModule } from './shared/shared.module';
 import { BullModule } from '@nestjs/bull';
 import { RequestLoggingMiddleware } from './request-logging.middleware';
 import { LoggingMiddleware } from './logging.interceptor';
-import { CategoryModule } from './category/category.module';
-import { CompanyModule } from './company/company.module';
 import { UserInterestModule } from './user-interest/user-interest.module';
 import { EmailModule } from './communication/email/email.module';
 import { OtpEmailWorkerClass } from './communication/bull-service/bull-otp.service';
@@ -60,8 +58,6 @@ import { EnquiryModule } from './enquiry/enquiry.module';
     SharedModule,
     EmailModule,
     BullModule,
-    CategoryModule,
-    CompanyModule,
     UserInterestModule,
     EventModule,
     WidgetsModule,

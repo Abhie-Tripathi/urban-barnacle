@@ -1,5 +1,5 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+// import { PrismaService } from 'src/prisma/prisma.service';
 import { SharedService } from 'src/shared/shared.service';
 import { ConfigService } from '@nestjs/config';
 import { microserviceEndpoints } from 'src/utils/endpoints';
@@ -25,7 +25,7 @@ import { TagDto, TagResponseDto, TagResponseSchema } from './dto/tags.dto';
 @Injectable()
 export class SuggestionDataService {
   constructor(
-    private readonly prisma: PrismaService,
+    // private readonly prisma: PrismaService,
     private readonly sharedService: SharedService,
     private readonly configService: ConfigService,
   ) {}

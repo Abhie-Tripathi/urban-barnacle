@@ -15,8 +15,8 @@ import { CreateDto, Query_Dto, UpdateWidgetKitDto, URL_Dto } from './dto';
 import { File, FileInterceptor } from '@nest-lab/fastify-multer';
 import { WidgetsService } from './widgets.service';
 import { TCachedUser } from 'src/shared/types';
-import { AuthGuard } from 'src/guard';
-import { GetUser } from 'src/decorator';
+import { AuthGuard } from 'src/user/auth/guard';
+import { GetUser } from 'src/user/decorator';
 
 @Controller('widget')
 export class WidgetsController {
