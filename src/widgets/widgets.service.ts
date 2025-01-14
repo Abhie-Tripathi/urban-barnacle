@@ -88,7 +88,7 @@ export class WidgetsService {
           data: {
             account: { connect: { id: user.accountId } },
             user: { connect: { id: user.id } },
-            CustomBrandKit: { connect: { id: dataKit.id ?? '' } },
+            CustomBrandKit: { connect: { id: dataKit?.id ?? '' } },
             status: dto.status,
             templatePublicId: dto.templatePublicId,
             type: dto.type,

@@ -1,7 +1,6 @@
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Inject, Logger, Scope } from '@nestjs/common';
 import { BullStatus, JobStatus, User } from '@prisma/client';
-import { CachedUser, LastActive, TrackerParamsOptions } from 'src/shared/types';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { Job } from 'bull';
@@ -49,7 +48,7 @@ export class EventWorkerClass {
       const eventCancelAdminEmailTemplate = eventCancelMailToAdminHtml
         .replace('{to}', jobdata.userEmail)
         .replace('{from}', emailSenderAddress)
-        .replace('{FRONTEND_URL}', process.env.FRONTEND_URL)
+        .replace('{FRONTEND_URL}', process.env.FRONTEND_URL ?? '')
         .replaceAll('{eventName}', jobdata.eventName);
       const { data, error } = await this.email.mailSender(
         jobdata.userEmail,
@@ -83,7 +82,7 @@ export class EventWorkerClass {
           },
         });
         const eventCancelEmailTemplate = eventCancelMailToUsersHtml
-          .replace('{FRONTEND_URL}', process.env.FRONTEND_URL)
+          .replace('{FRONTEND_URL}', process.env.FRONTEND_URL ?? '')
           .replaceAll('{eventName}', jobdata.eventName);
         const { data, error } = await this.email.multiMailSender(
           jobdata.email,

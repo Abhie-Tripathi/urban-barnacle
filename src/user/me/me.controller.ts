@@ -8,11 +8,10 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { MeService } from './me.service';
-import { AdminGuard } from 'src/guard';
 import { TCachedUser } from 'src/shared/types';
-import { GetUser } from 'src/decorator';
 import { File, FileInterceptor } from '@nest-lab/fastify-multer';
-import { UpdateProfileDto } from './dto';
+import { AdminGuard } from '../auth/guard';
+import { GetUser } from '../decorator';
 
 @Controller('me')
 export class MeController {
@@ -28,7 +27,7 @@ export class MeController {
   async updateProfileData(
     @GetUser() userData: TCachedUser,
     @UploadedFile() file: File,
-    @Body() body: UpdateProfileDto,
+    @Body() body: any,
   ) {
     return await this.meService.updateProfile(body, userData.id, file);
   }

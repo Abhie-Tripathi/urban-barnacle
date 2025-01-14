@@ -130,14 +130,14 @@ export class KitService {
       const [checkBrandKitExist, checkBrandKitupdate] = await Promise.all([
         this.prisma.brand.findFirst({
           where: {
-            domain:  extractDomain.split('/')[0],
+            domain: extractDomain.split('/')[0],
             deleted: false,
             updateAt: { gte: threeMonthsAgo },
           },
         }),
         this.prisma.brand.findFirst({
           where: {
-            domain:  extractDomain.split('/')[0],
+            domain: extractDomain.split('/')[0],
             deleted: false,
           },
         }),
@@ -148,7 +148,7 @@ export class KitService {
       }
       let logoUrl: string = '';
       if (flagForBrand) {
-        logoUrl = checkBrandKitExist.logoUrl;
+        logoUrl = checkBrandKitExist?.logoUrl ?? '';
       } else {
         const response = await fetch(url, {
           method: 'GET',

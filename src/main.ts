@@ -10,9 +10,9 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import fastifyStatic from '@fastify/static';
 import { join } from 'path';
 import * as fastifyCookie from '@fastify/cookie';
-import { CorsGaurd } from './guard/corsgaurd';
 import { GlobalResponseInterceptor } from './global-response.interceptor';
 import multipart from '@fastify/multipart';
+import { CorsGaurd } from './corsgaurd';
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,

@@ -13,8 +13,8 @@ import { File, FileInterceptor } from '@nest-lab/fastify-multer';
 import { TCachedUser } from 'src/shared/types';
 import { CreateWidgetKitDto, UpdateWidgetKitDto } from './dto';
 import { KitService } from './kit.service';
-import { AuthGuard } from 'src/guard';
-import { GetUser } from 'src/decorator';
+import { AuthGuard } from 'src/user/auth/guard';
+import { GetUser } from 'src/user/decorator';
 
 @Controller('kit')
 export class KitController {

@@ -2,7 +2,6 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { TCachedUser } from 'src/shared/types';
-import { UpdateProfileDto } from './dto';
 import { File } from '@nest-lab/fastify-multer';
 import { FileCreationService } from 'src/shared/file-creation.service';
 
@@ -61,7 +60,7 @@ export class MeService {
       };
     }
   }
-  async updateProfile(body: UpdateProfileDto, userId: string, file: File) {
+  async updateProfile(body: any, userId: string, file: File) {
     try {
       const user = await this.prisma.user.findUnique({
         where: {
@@ -93,8 +92,8 @@ export class MeService {
         if (error) {
           return error;
         }
-        userDataForUpdate['imageUrl'] = fileData.fileUrl;
-        userDataForUpdate['profileImageId'] = fileData.id;
+        userDataForUpdate['imageUrl'] = fileData?.fileUrl;
+        userDataForUpdate['profileImageId'] = fileData?.id;
       }
       if (body.phoneNumber) {
         userDataForUpdate['phoneNumber'] = body.phoneNumber;
