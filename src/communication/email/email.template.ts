@@ -1,4 +1,4 @@
-export const emailSenderAddress: string = process.env.EMAIL_SENDER_ADDRESS;
+export const emailSenderAddress: string = process.env.EMAIL_SENDER_ADDRESS??'';
 
 export const signUpINEmailHtml = `
      <!DOCTYPE html>
