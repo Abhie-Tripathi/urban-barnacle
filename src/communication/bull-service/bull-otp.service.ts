@@ -1,7 +1,6 @@
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Inject, Logger, Scope } from '@nestjs/common';
 import { BullStatus, JobStatus, User } from '@prisma/client';
-import { CachedUser, LastActive, TrackerParamsOptions } from 'src/shared/types';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { Job } from 'bull';

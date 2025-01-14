@@ -25,7 +25,7 @@ import { TCachedUser } from 'src/utils/types';
 import { AuthGuard } from '../user/auth/guard';
 import { GetUser } from '../user/decorator';
 
-@Controller('event')
+@Controller('proevent')
 export class EventController {
   constructor(private eventService: EventService) {}
 
