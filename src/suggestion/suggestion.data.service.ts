@@ -25,11 +25,7 @@ import { getNonEmptyParams } from 'src/utils';
 
 @Injectable()
 export class SuggestionDataService {
-  constructor(
-    // private readonly prisma: PrismaService,
-    private readonly sharedService: SharedService,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly configService: ConfigService) {}
 
   async getLocations(dto: LocationDto): Promise<LocationResponseDto> {
     const params = {

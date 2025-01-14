@@ -46,7 +46,7 @@ import { EnquiryModule } from './enquiry/enquiry.module';
       store: redisStore,
       socket: {
         host: '0.0.0.0',
-        port: 6379,
+        port: process.env.REDIS_PORT,
       },
       isGlobal: true,
       password: process.env.REDIS_PASSWORD,
