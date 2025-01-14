@@ -18,7 +18,7 @@ model User {
   firstname                  String?
   lastname                   String?
   email                      String                @unique
-  role                       Role                  @default(CUSTOMER)
+  role                       UserRole              @default(CUSTOMER)
   industry                   String?
   category                   String?
   subIndustry                String?
@@ -26,6 +26,8 @@ model User {
   updatedAt                  DateTime              @updatedAt
   phoneNumber                String?               @unique
   accounts                   Account[]
+  companyId                  String?               @db.Uuid
+  company                    Company?              @relation(fields: [companyId], references: [id])
   // aliasName              String? // discuss with gaurav
   currentOnboardingState     OnboardingState       @default(VERIFICATION)
   primaryLocation            Json?
@@ -70,11 +72,12 @@ model Company {
   website        String?
   imageUrl       String?
   profileImageId String?
-  accountId      String   @db.Uuid
+  accountId      String   @unique @db.Uuid
   accounts       Account  @relation(references: [id], fields: [accountId])
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   deleted        Boolean  @default(false)
+  users          User[]
 }
 
 model Account {
@@ -92,10 +95,11 @@ model Account {
   unlockedTransactions     UnlockedTransaction[]
   events                   Event[]
   accountConfigurations    AccountConfiguration[]
-  Invitation               Invitation[]
-  CustomBrandKit           CustomBrandKit?
-  Widget                   Widget[]
-  Company                  Company[]
+  invitations              Invitation[]
+  trackers                 Tracker[]
+  customBrandKit           CustomBrandKit?
+  widgets                  Widget[]
+  company                  Company?
 }
 
 model Attachment {
@@ -160,6 +164,7 @@ model Enquiry {
   status          EnquiryStatus       @default(PENDING)
   eventId         String
   accountId       String              @db.Uuid
+  eventData       Json
   account         Account?            @relation(fields: [accountId], references: [id])
   initiatedBy     String              @db.Uuid
   initiatedByUser User?               @relation("initiatedBy", fields: [initiatedBy], references: [id])
@@ -327,8 +332,9 @@ enum AccessSourceEntity {
 }
 
 enum AccessType {
-  READ
-  WRITE
+  SUPER_ADMIN
+  ADMIN
+  USER
 }
 
 model Tracker {
@@ -344,6 +350,8 @@ model Tracker {
   lastModifiedBy String?     @db.Uuid
   createdByUser  User        @relation("createdByUser", fields: [createdBy], references: [id])
   modifiedByUser User?       @relation("modifiedByUser", fields: [lastModifiedBy], references: [id])
+  accountId      String?     @db.Uuid
+  account        Account?    @relation(fields: [accountId], references: [id])
 }
 
 enum TrackerType {
@@ -650,7 +658,7 @@ enum OnboardingState {
   COMPLETED
 }
 
-enum Role {
+enum UserRole {
   ADMIN
   CUSTOMER
 }

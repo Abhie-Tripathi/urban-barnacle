@@ -1,0 +1,259 @@
+import {
+  GeomType,
+  LocationType,
+  OnboardingState,
+  RadiusUnit,
+  User,
+} from '@prisma/client';
+import { query, Request, request } from 'express';
+import { z } from 'zod';
+
+export const GeoJsonSchema = z.object({
+  geometry: z.object({
+    type: z
+      .string()
+      .transform((data) =>
+        data.toUpperCase() in GeomType ? data.toUpperCase() : null,
+      ),
+    coordinates: z.array(z.number()).length(2),
+  }),
+  properties: z.object({
+    radius: z.number().positive(),
+    radiusUnit: z
+      .string()
+      .transform((data) =>
+        data.toUpperCase() in RadiusUnit ? data.toUpperCase() : null,
+      ),
+  }),
+});
+export type GeoJson = z.infer<typeof GeoJsonSchema>;
+
+export type SelectedUserDetails = Pick<
+  User,
+  | 'id'
+  | 'email'
+  | 'firstname'
+  | 'lastname'
+  | 'phoneNumber'
+  | 'currentOnboardingState'
+  | 'imageUrl'
+  | 'industry'
+  | 'subIndustry'
+  | 'primaryLocation'
+  | 'category'
+  | 'companyId'
+  | 'department'
+  | 'designation'
+> & {
+  accountId: string;
+};
+
+export type TCachedUser = SelectedUserDetails & {
+  token: string;
+};
+
+export const PrimaryLocationSchema = z.object({
+  locationType: z.nativeEnum(LocationType).optional(),
+  geoJson: GeoJsonSchema.optional(),
+  locationId: z.string().optional(),
+});
+
+export const CachedUserSchema: z.ZodType<SelectedUserDetails> = z.object({
+  id: z.string(),
+  email: z.string(),
+  firstname: z.string().nullable(),
+  lastname: z.string().nullable(),
+  phoneNumber: z.string().nullable(),
+  currentOnboardingState: z.nativeEnum(OnboardingState),
+  imageUrl: z.string().nullable(),
+  industry: z.string().nullable(),
+  subIndustry: z.string().nullable(),
+  primaryLocation: PrimaryLocationSchema.nullable(),
+  category: z.string().nullable(),
+  companyId: z.string().nullable(),
+  designation: z.string().nullable(),
+  department: z.string().nullable(),
+  accountId: z.string(),
+});
+
+export const Industries = {
+  eventeli: {
+    Accomodation: 'Accomodation',
+    Restaurants: 'Restaurants',
+    Retail: 'Retail',
+    Parking: 'Parking',
+    Hospitality: 'Hospitality',
+    Local_Commerce: 'Local_Commerce',
+    Real_Estate: 'Real_Estate',
+    Travel: 'Travel',
+    Venue: 'Venue',
+    Event_Planner: 'Event_Planner',
+    Event_Supplier: 'Event_Supplier',
+    DMO: 'DMO',
+    Activity_Planner: 'Activity_Planner',
+    Local_Government: 'Local_Government',
+    Others: 'Others',
+    Hotel: 'Hotel',
+  },
+  eventgtm: {
+    others: 'others',
+    media_agency: 'media_agency',
+    research: 'research',
+    industry_partners: 'industry_partners',
+    event_participant: 'event_participant',
+  },
+};
+
+export const SubIndustries = {
+  Retail: 'Retail',
+  Quick_Commerce: 'Quick_Commerce',
+  Parking: 'Parking',
+  Others: 'Others',
+};
+export const RequestJsonSchema = z.object({
+  id: z.string(),
+  path: z.string(),
+  request: z.object({
+    method: z.string(),
+    body: z.record(z.unknown()),
+    query: z.record(z.unknown()),
+  }),
+  createdAt: z.date(),
+});
+
+export const phoneNumberRegex =
+  /^[+]{1}[0-9]{1,3}(?:[0-9\-\(\)\/\.]\s?){6,14}[0-9]{1}$/;
+
+export const passwordRegex =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*d)(?=.*[@$!%*?&])[A-Za-zd@$!%*?&]{8,}$/;
+
+export type RequestWithUser = Request & { user: TCachedUser };
+
+export enum EventStatus {
+  ACTIVE = 'ACTIVE',
+  CANCELLED = 'CANCELLED',
+  POSTPONED = 'POSTPONED',
+  PREDICTED = 'PREDICTED',
+  UNVERIFIED = 'UNVERIFIED',
+}
+
+export enum VisitorRangeTag {
+  NANO = 'NANO',
+  MICRO = 'MICRO',
+  SMALL = 'SMALL',
+  MEDIUM = 'MEDIUM',
+  LARGE = 'LARGE',
+  MEGA = 'MEGA',
+  ULTRA = 'ULTRA',
+}
+
+export enum EventTypeGroup {
+  'business' = 'business',
+  'social' = 'social',
+  'unattended' = 'unattended',
+}
+
+export enum CategoryType {
+  ATTENDED = 'ATTENDED',
+  NON_ATTENDED = 'NON_ATTENDED',
+  UNSCHEDULED = 'UNSCHEDULED',
+}
+
+export const TrackerTypes = {
+  trackers: {
+    T_PEOPLE_FINDER: 'T_PEOPLE_FINDER',
+    T_COMPETITOR: 'T_COMPETITOR',
+    T_SPEAKING_OPPORTUNITY: 'T_SPEAKING_OPPORTUNITY',
+    T_PRODUCT_KEYWORDS: 'T_PRODUCT_KEYWORDS',
+    T_RECRUITMENT: 'T_RECRUITMENT',
+    T_LOCATION: 'T_LOCATION',
+    T_VENUE: 'T_VENUE',
+    T_GEOTIME: 'T_GEOTIME',
+    T_CUSTOM: 'T_CUSTOM',
+  },
+  trends: {
+    TR_CUSTOM: 'TR_CUSTOM',
+  },
+};
+
+// export type TrackerParams = {
+//   category: string[];
+//   labels: string[];
+//   city: string[];
+//   active_gte: string;
+//   active_lte: string;
+//   event_rank_lte: number;
+//   event_rank_gte: number;
+//   local_rank_lte: number;
+//   local_rank_gte: number;
+//   aviation_rank_lte: number;
+//   aviation_rank_gte: number;
+//   total_attendance_lte: number;
+//   total_attendance_gte: number;
+//   status: EventStatus[];
+// };
+
+// export interface LastActive {
+//   last_active_gte: string;
+//   last_active_lte: string;
+// }
+
+export interface LastActive {
+  last_active_gte: string;
+  last_active_lte: string;
+}
+
+// export interface TrackerParamsOptions extends LastActive, TrackerParams {}
+
+export const blackListDomain = [
+  'gmail.com',
+  'yahoo.com',
+  'hotmail.com',
+  'outlook.com',
+  'aol.com',
+  'icloud.com',
+  'live.com',
+  'protonmail.com',
+  'zoho.com',
+  'mail.com',
+  'yandex.com',
+  'gmx.com',
+  'inbox.com',
+  'me.com',
+  'msn.com',
+  'qq.com',
+  'rediffmail.com',
+  'rocketmail.com',
+  'hushmail.com',
+  'lycos.com',
+  'fastmail.com',
+  'tutanota.com',
+  'gmx.net',
+  'verizon.net',
+  'comcast.net',
+  'cox.net',
+  'btinternet.com',
+  'sbcglobal.net',
+  'bellsouth.net',
+  'charter.net',
+  'earthlink.net',
+  'att.net',
+  'frontier.com',
+  'shaw.ca',
+  'rogers.com',
+  'telus.net',
+  'virginmedia.com',
+  'blueyonder.co.uk',
+  'ntlworld.com',
+  'wanadoo.fr',
+  'orange.fr',
+  'sky.com',
+  'tiscali.co.uk',
+  'talktalk.net',
+  'ntl.com',
+  'o2.co.uk',
+  'eircom.net',
+  'freenet.de',
+  'web.de',
+  'alice.it',
+];

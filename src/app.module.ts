@@ -17,10 +17,14 @@ import { EmailModule } from './communication/email/email.module';
 import { OtpEmailWorkerClass } from './communication/bull-service/bull-otp.service';
 import { EmailService } from './communication/email/email.service';
 import { AccessEmailWorkerClass } from './communication/bull-service/bull-access.service';
-import { EventModule } from './event/event.module';
+import { EventModule } from './promotedEvent/event.module';
 import { WidgetsModule } from './widgets/widgets.module';
 import { EventWorkerClass } from './communication/bull-service/bull-event.service';
 import { InviteModule } from './invite/invite.module';
+import { SuggestionModule } from './suggestion/suggestion.module';
+import { EventsModule } from './events/events.module';
+import { TrackerModule } from './tracker/tracker.module';
+import { EnquiryModule } from './enquiry/enquiry.module';
 
 @Module({
   imports: [
@@ -62,6 +66,10 @@ import { InviteModule } from './invite/invite.module';
     EventModule,
     WidgetsModule,
     InviteModule,
+    SuggestionModule,
+    EventsModule,
+    TrackerModule,
+    EnquiryModule,
   ],
   controllers: [AppController],
   providers: [

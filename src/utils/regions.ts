@@ -1,0 +1,16 @@
+export const Regions = {
+  Antarctica: 'Antarctica',
+  'East Asia': 'East Asia',
+  'Eastern Europe': 'Eastern Europe',
+  'India Subcontinent': 'India Subcontinent',
+  'Latin America': 'Latin America',
+  'Middle East': 'Middle East',
+  'North America': 'North America',
+  'Northern Africa': 'Northern Africa',
+  'Northern Europe': 'Northern Europe',
+  Oceania: 'Oceania',
+  'SouthEast Asia': 'SouthEast Asia',
+  'Southern Africa': 'Southern Africa',
+  UK: 'UK',
+  'Western Europe': 'Western Europe',
+};
