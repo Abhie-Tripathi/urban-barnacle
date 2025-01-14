@@ -10,8 +10,12 @@ const CreateUserSchema = SignUpSchema.extend({
   lastname: z.string().optional(),
   role: z.nativeEnum(UserRole),
   imageUrl: z.string().optional(),
-  accountId: z.string().uuid(),
+  accountId: z.string().uuid().optional(),
   companyId: z.string().uuid().optional(),
+  currentOnboardingState: z
+    .nativeEnum(OnboardingState)
+    .default('VERIFICATION')
+    .optional(),
 });
 
 export class CreateUserDto extends createZodDto(CreateUserSchema) {}

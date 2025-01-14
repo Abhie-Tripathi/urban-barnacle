@@ -630,6 +630,7 @@ enum InterestSourceModule {
   RESEARCH
   TRACKER
   COMMENT
+  PROMOTED_EVENT
 }
 
 enum InterestStatus {
@@ -656,6 +657,7 @@ enum AttachmentEntityType {
 enum OnboardingState {
   VERIFICATION
   COMPLETED
+  PROMOTED_USER
 }
 
 enum UserRole {

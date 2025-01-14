@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, GetUsersDto, UpdateUserDto } from './dto';
 
@@ -7,6 +7,21 @@ export class UserDataService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createUser(data: CreateUserDto) {
+    if (!data.accountId && data.currentOnboardingState !== 'PROMOTED_USER') {
+      throw new HttpException(
+        'account id is must be provided',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const account: object = data.accountId
+      ? {
+          accounts: {
+            connect: {
+              id: data.accountId,
+            },
+          },
+        }
+      : {};
     const user = await this.prisma.user.create({
       data: {
         firstname: data.firstname,
@@ -15,14 +30,11 @@ export class UserDataService {
         role: data.role,
         imageUrl: data.imageUrl,
         companyId: data.companyId,
-        accounts: {
-          connect: {
-            id: data.accountId,
-          },
-        },
         industry: data.industry,
         subIndustry: data.subIndustry,
         category: data.category,
+        currentOnboardingState: data.currentOnboardingState,
+        ...account,
       },
     });
     return user;
