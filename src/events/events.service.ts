@@ -3,6 +3,7 @@ import { EventsDataService } from './events.data.service';
 import { CountQueryDto, EventsTrendsDto, QueryDto } from './dto';
 import { SharedService } from '../shared/shared.service';
 import { TCachedUser } from 'src/utils/types';
+import { getNonEmptyParams } from 'src/utils';
 
 @Injectable()
 export class EventsService {
@@ -16,7 +17,7 @@ export class EventsService {
     query: QueryDto,
     validateIds: boolean = true,
   ) {
-    const nonEmptyParams = this.sharedService.getNonEmptyParams(query);
+    const nonEmptyParams = getNonEmptyParams(query);
     const convertedParams = await this.sharedService.convertSlugParamsToIds(
       nonEmptyParams,
       validateIds,

@@ -2,11 +2,18 @@ import { EnquiryActivitySubType, EnquiryStatus } from '@prisma/client';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
+const eventDataSchema = z.object({
+  eventId: z.string().uuid(),
+  name: z.string(),
+  startDate: z.string().datetime(),
+  endDate: z.string().datetime(),
+});
+
 const CreateEnquirySchema = z.object({
   eventId: z.string().uuid(),
   accountId: z.string().uuid(),
   initiatedBy: z.string().uuid(),
-  eventData: z.record(z.string(), z.any()),
+  eventData: eventDataSchema,
 });
 
 export class CreateEnquiryDto extends createZodDto(CreateEnquirySchema) {}

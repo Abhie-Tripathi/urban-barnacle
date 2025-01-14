@@ -38,24 +38,6 @@ export class SharedService {
     }
   }
 
-  getNonEmptyParams(params: any) {
-    return Object.keys(params).reduce(
-      (acc, key) => {
-        if (
-          (typeof params[key] === 'string' && params[key]) ||
-          (typeof params[key] === 'object' &&
-            Object.keys(params[key]).length > 0) ||
-          typeof params[key] === 'number' ||
-          typeof params[key] === 'boolean'
-        ) {
-          acc[key] = params[key];
-        }
-        return acc;
-      },
-      {} as Record<string, any>,
-    );
-  }
-
   async convertSlugParamsToIds(params: any, validateIds: boolean = true) {
     if (params.categories && params.categories.length > 0 && validateIds) {
       const categoriesSlug = params.categories as string[];

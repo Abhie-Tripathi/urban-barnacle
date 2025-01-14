@@ -21,6 +21,7 @@ import {
   CompanyResponseSchema,
 } from './dto/company.dto';
 import { TagDto, TagResponseDto, TagResponseSchema } from './dto/tags.dto';
+import { getNonEmptyParams } from 'src/utils';
 
 @Injectable()
 export class SuggestionDataService {
@@ -38,7 +39,7 @@ export class SuggestionDataService {
       offset: dto.offset,
       query: dto.query,
     };
-    const nonEmptyParams = this.sharedService.getNonEmptyParams(params);
+    const nonEmptyParams = getNonEmptyParams(params);
     const searchQuery = new URLSearchParams(
       nonEmptyParams as unknown as Record<string, any>,
     );
@@ -64,7 +65,7 @@ export class SuggestionDataService {
       query: dto.query,
       slugs: dto.slugs,
     };
-    const nonEmptyParams = this.sharedService.getNonEmptyParams(params);
+    const nonEmptyParams = getNonEmptyParams(params);
     const searchQuery = new URLSearchParams(
       nonEmptyParams as unknown as Record<string, any>,
     );
@@ -91,7 +92,7 @@ export class SuggestionDataService {
       query: dto.query,
       slugs: dto.slugs,
     };
-    const nonEmptyParams = this.sharedService.getNonEmptyParams(params);
+    const nonEmptyParams = getNonEmptyParams(params);
     const searchQuery = new URLSearchParams(
       nonEmptyParams as unknown as Record<string, any>,
     );
@@ -117,7 +118,7 @@ export class SuggestionDataService {
       slugs: dto.slugs,
       isDesignation: true,
     };
-    const nonEmptyParams = this.sharedService.getNonEmptyParams(params);
+    const nonEmptyParams = getNonEmptyParams(params);
     const searchQuery = new URLSearchParams(
       nonEmptyParams as unknown as Record<string, any>,
     );
@@ -143,7 +144,7 @@ export class SuggestionDataService {
       offset: dto.offset,
       query: dto.query,
     };
-    const nonEmptyParams = this.sharedService.getNonEmptyParams(params);
+    const nonEmptyParams = getNonEmptyParams(params);
     const searchQuery = new URLSearchParams(
       nonEmptyParams as unknown as Record<string, any>,
     );
@@ -168,7 +169,7 @@ export class SuggestionDataService {
       query: dto.query,
       slugs: dto.slugs,
     };
-    const nonEmptyParams = this.sharedService.getNonEmptyParams(params);
+    const nonEmptyParams = getNonEmptyParams(params);
     const searchQuery = new URLSearchParams(
       nonEmptyParams as unknown as Record<string, any>,
     );
