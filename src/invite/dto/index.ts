@@ -1,13 +1,13 @@
 import { createZodDto } from 'nestjs-zod';
+import { LimitSchema } from 'src/global_dto';
 import { z } from 'zod';
 
 const querySuggestion = z.strictObject({
   q: z.string().optional(),
-  take: z.string().optional().default('5'),
-  skip: z.string().optional().default('0'),
   invites: z.string().optional(),
 });
-export class QueryInvite_Dto extends createZodDto(querySuggestion) {}
+const QueryInviteSchema = querySuggestion.merge(LimitSchema);
+export class QueryInvite_Dto extends createZodDto(QueryInviteSchema) {}
 const queryInvite = z.strictObject({
   emails: z.string(),
   eventId: z.string(),

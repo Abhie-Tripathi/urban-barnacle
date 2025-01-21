@@ -89,6 +89,7 @@ export class AccessService {
         data.accountId
       )
     ) {
+      console.log(data);
       return [
         false,
         {

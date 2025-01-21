@@ -4,6 +4,7 @@ import {
   OnboardingState,
   RadiusUnit,
   User,
+  UserRole,
 } from '@prisma/client';
 import { query, Request, request } from 'express';
 import { z } from 'zod';
@@ -34,6 +35,7 @@ export type SelectedUserDetails = Pick<
   | 'email'
   | 'firstname'
   | 'lastname'
+  | 'role'
   | 'phoneNumber'
   | 'currentOnboardingState'
   | 'imageUrl'
@@ -74,6 +76,7 @@ export const CachedUserSchema: z.ZodType<SelectedUserDetails> = z.object({
   designation: z.string().nullable(),
   department: z.string().nullable(),
   accountId: z.string(),
+  role: z.nativeEnum(UserRole),
 });
 
 export const Industries = {
@@ -175,6 +178,17 @@ export const TrackerTypes = {
     TR_CUSTOM: 'TR_CUSTOM',
   },
 };
+
+export enum QueueActionOptions {
+  SEND_SIGN_UP_IN_EMAIL = 'SEND_SIGN_UP_IN_EMAIL',
+  SEND_EVENT_CANCEL_EMAIL = 'SEND_EVENT_CANCEL_EMAIL',
+  SEND_PROMOTED_EVENT_INVITAION_EMAIL = 'SEND_PROMOTED_EVENT_INVITAION_EMAIL',
+  SEND_TRACKER_ACCESS_EMAIL = 'SEND_TRACKER_ACCESS_EMAIL',
+  SEND_EVENT_INTEND_CAPTURE_EMAIL = 'SEND_EVENT_INTEND_CAPTURE_EMAIL',
+  SEND_EVENT_INTEND_UPDATE_EMAIL = 'SEND_EVENT_INTEND_UPDATE_EMAIL',
+  SEND_INTEND_CAPTURE_EMAIL = 'SEND_INTEND_CAPTURE_EMAIL',
+  SEND_INTEND_UPDATE_EMAIL = 'SEND_INTEND_UPDATE_EMAIL',
+}
 
 // export type TrackerParams = {
 //   category: string[];

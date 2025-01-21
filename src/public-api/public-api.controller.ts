@@ -12,10 +12,24 @@ export class PublicApiController {
     @Req() req: FastifyRequest,
     @Query() query: Query_Dto,
   ) {
-    return this.service.getWidgetById(id, req, query);
+    try {
+      const result = this.service.getWidgetById(id, req, query);
+      return result;
+    } catch (error) {
+      return {
+        error,
+      };
+    }
   }
   @Get('event')
   async getWidgetEvents(@Param('id') id) {
-    return this.service.getWidgetEventById(id);
+    try {
+      const result = this.service.getWidgetEventById(id);
+      return result;
+    } catch (error) {
+      return {
+        error,
+      };
+    }
   }
 }

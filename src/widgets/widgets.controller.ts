@@ -14,9 +14,9 @@ import {
 import { CreateDto, Query_Dto, UpdateWidgetKitDto, URL_Dto } from './dto';
 import { File, FileInterceptor } from '@nest-lab/fastify-multer';
 import { WidgetsService } from './widgets.service';
-import { TCachedUser } from 'src/shared/types';
 import { AuthGuard } from 'src/user/auth/guard';
 import { GetUser } from 'src/user/decorator';
+import { SelectedUserDetails } from 'src/utils/types';
 
 @Controller('widget')
 export class WidgetsController {
@@ -26,15 +26,29 @@ export class WidgetsController {
   @Post()
   create(
     @Body() body: CreateDto,
-    @GetUser() user: TCachedUser,
+    @GetUser() user: SelectedUserDetails,
     @UploadedFile() file: File,
   ) {
-    return this.service.create(body, user, file);
+    try {
+      const result = this.service.create(body, user, file);
+      return result;
+    } catch (error) {
+      return {
+        error,
+      };
+    }
   }
   @UseGuards(AuthGuard)
   @Get()
-  getDraft(@Query() query: Query_Dto, @GetUser() user: TCachedUser) {
-    return this.service.getDraft(query, user);
+  getDraft(@Query() query: Query_Dto, @GetUser() user: SelectedUserDetails) {
+    try {
+      const result = this.service.getDraft(query, user);
+      return result;
+    } catch (error) {
+      return {
+        error,
+      };
+    }
   }
   @UseGuards(AuthGuard)
   @Get(':id')
@@ -43,6 +57,13 @@ export class WidgetsController {
     @Query() query,
     @GetUser('companyId') user: string,
   ) {
-    return this.service.getWidgetById(patram, query, user);
+    try {
+      const result = this.service.getWidgetById(patram, query, user);
+      return result;
+    } catch (error) {
+      return {
+        error,
+      };
+    }
   }
 }

@@ -22,7 +22,6 @@ export const UpdateeventDto = z.strictObject({
   id: z.string(),
   name: z.string().optional(),
   data: z.string().optional(),
-  deleted: z.string().optional(),
   logoUrl: z.string().optional(),
   interest: z.string().optional(),
   sourceId: z.string().optional(),

@@ -1,7 +1,11 @@
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { SignInDto, UserResponseSchema, SignUpDto, VerifyOtpDto } from './dto';
-import { CachedUserSchema, TCachedUser } from 'src/utils/types';
+import { SignInDto, SignUpDto, VerifyOtpDto } from './dto';
+import {
+  CachedUserSchema,
+  QueueActionOptions,
+  TCachedUser,
+} from 'src/utils/types';
 import { randomInt, randomUUID } from 'crypto';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { InjectQueue } from '@nestjs/bull';
@@ -15,6 +19,8 @@ import { SelectedUserDetails } from 'src/utils/types';
 import { OnboardingState, User } from '@prisma/client';
 import { CookieSerializeOptions } from '@fastify/cookie';
 import { ConfigService } from '@nestjs/config';
+import { CommunicationService } from 'src/communication/communication.service';
+import { UserResponseSchema } from '../me/dto';
 
 @Injectable()
 export class AuthService {
@@ -26,10 +32,11 @@ export class AuthService {
     private readonly companyDataService: CompanyDataService,
     private readonly authDataService: AuthDataService,
     private readonly configService: ConfigService,
+    private readonly communicationService: CommunicationService,
   ) {}
 
   cookieOptions: CookieSerializeOptions = {
-    maxAge: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).valueOf(),
+    maxAge: 60 * 60 * 24 * 365,
     httpOnly: true,
     sameSite: 'none',
     secure: true,
@@ -93,12 +100,9 @@ export class AuthService {
           pendingRequests: domain === '10times' ? 1000 : 200,
           pendingPocUnlockRequests: domain === '10times' ? 10000 : 4400,
         };
-        account = await this.accountDataService.createAccount(
-          {
-            ...accountDefault,
-          },
-          user,
-        );
+        account = await this.accountDataService.createAccount({
+          ...accountDefault,
+        });
         console.log(account);
         company = await this.companyDataService.createCompany({
           name: domain,
@@ -125,7 +129,7 @@ export class AuthService {
         });
       }
 
-      // send otp
+      await this.authDataService.createVerificationToken(user, 'sign-up');
       return {
         message: 'otp sent successfully',
       };
@@ -142,7 +146,8 @@ export class AuthService {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
     const user = users[0];
-    // send otp
+
+    await this.authDataService.createVerificationToken(user, 'sign-in');
     return {
       message: 'otp sent successfully',
     };
@@ -158,10 +163,14 @@ export class AuthService {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
     const user = users[0];
-    const verificationToken = await this.authDataService.getVerificationToken();
+    const verificationToken = await this.authDataService.getVerificationToken(
+      data.email,
+    );
     if (
-      verificationToken.passkey !== data.otp &&
-      verificationToken.expiresAt > new Date()
+      !verificationToken ||
+      (verificationToken &&
+        verificationToken.passkey !== data.otp &&
+        verificationToken.expiresAt > new Date())
     ) {
       throw new HttpException('Invalid OTP', HttpStatus.UNAUTHORIZED);
     }

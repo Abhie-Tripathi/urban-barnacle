@@ -39,15 +39,3 @@ const VerifyOtpSchema = z.object({
 });
 
 export class VerifyOtpDto extends createZodDto(VerifyOtpSchema) {}
-
-export const UserResponseSchema = z.object({
-  userData: z.object({
-    firstname: z.string(),
-    email: z.string(),
-    id: z.string().uuid(),
-    role: z.string(),
-    imageUrl: z.any().optional(),
-    accountId: z.string().uuid(),
-  }),
-  token: z.string(),
-});

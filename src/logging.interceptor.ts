@@ -2,7 +2,7 @@ import { Injectable, NestMiddleware, Inject } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
-import { TCachedUser } from './shared/types';
+import { TCachedUser } from './utils/types';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { PrismaService } from './prisma/prisma.service';
 

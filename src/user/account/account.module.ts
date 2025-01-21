@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { AccountController } from './account.controller';
 import { CompanyModule } from '../company/company.module';
 import { AccountDataService } from './account.data.service';
@@ -6,6 +6,7 @@ import { AccountService } from './account.service';
 import { UserModule } from '../user.module';
 import { EnquiryModule } from 'src/enquiry/enquiry.module';
 
+@Global()
 @Module({
   controllers: [AccountController],
   providers: [AccountService, AccountDataService],

@@ -16,7 +16,11 @@ import { File, FileInterceptor } from '@nest-lab/fastify-multer';
 import { AdminGuard, AuthGuard } from '../auth/guard';
 import { GetUser } from '../decorator';
 import { UpdateMeDto } from './dto/update.dto';
-import { GetMyExportsDto, GetRecentEventSearchesDto } from './dto';
+import {
+  GetMyExportsDto,
+  GetRecentEventSearchesDto,
+  UserDataSchema,
+} from './dto';
 import { GetTrackersHttpDto } from 'src/tracker/dto';
 import { GetSavedLocationsHttpDto } from 'src/saved-location/dto';
 
@@ -28,9 +32,10 @@ export class MeController {
   @Get()
   async getProfileData(@GetUser() userData: TCachedUser) {
     try {
-      const user = CachedUserSchema.parse(userData);
+      const user = UserDataSchema.parse(userData);
       return { data: user };
     } catch (error) {
+      console.log(error);
       return {
         error: new HttpException(
           error.message,
@@ -40,8 +45,8 @@ export class MeController {
     }
   }
 
-  @UseInterceptors(FileInterceptor('file'))
   @UseGuards(AuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
   @Patch()
   async updateProfileData(
     @GetUser() userData: TCachedUser,
@@ -52,7 +57,7 @@ export class MeController {
       const user = await this.meService.updateMe(userData.id, body);
       return {
         data: {
-          user: CachedUserSchema.parse(user),
+          user: UserDataSchema.parse(user),
         },
       };
     } catch (error) {

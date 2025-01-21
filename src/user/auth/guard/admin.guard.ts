@@ -10,7 +10,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Cache } from 'cache-manager';
 import { FastifyRequest } from 'fastify';
-import { CachedUser } from 'src/shared/types';
+import { TCachedUser } from 'src/utils/types';
 
 @Injectable()
 export class AdminGuard implements CanActivate {
@@ -46,7 +46,7 @@ export class AdminGuard implements CanActivate {
     if (!requestToken) {
       return null;
     }
-    const user: CachedUser | undefined =
+    const user: TCachedUser | undefined =
       await this.cacheManager.get(requestToken);
     if (!user) {
       return null;

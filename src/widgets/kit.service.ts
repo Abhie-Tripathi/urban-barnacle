@@ -1,22 +1,20 @@
 import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
-import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateWidgetKitDto, UpdateWidgetKitDto } from './dto';
-import { TCachedUser } from 'src/shared/types';
 import { File } from '@nest-lab/fastify-multer';
 import * as fs from 'fs';
 import * as getImageColors from 'get-image-colors';
 import puppeteer from 'puppeteer';
-import { FileCreationService } from 'src/shared/file-creation.service';
+import { WidgetDataService } from './widget.data.service';
+import { SelectedUserDetails } from 'src/utils/types';
 
 @Injectable()
 export class KitService {
   private userId: string;
   constructor(
-    private readonly prisma: PrismaService,
     private configService: ConfigService,
-    private readonly fileService: FileCreationService,
+    private readonly widgetDataService: WidgetDataService,
   ) {}
   async getFontFamily(url: string) {
     try {
@@ -81,19 +79,14 @@ export class KitService {
     if (picData !== undefined) {
       const buffer = Buffer.from(picData);
       await fs.promises.writeFile(dir + fileName, buffer);
-      const upload = await this.prisma.attachment.create({
-        data: {
-          fileName: fileName,
-          fileType: 'IMAGE',
-          fileUrl: mediaHost + '/public/' + fileName,
-          sourceId: 'kit',
-          fileSize: 0,
-          sourceModule: 'BRANDKIT',
-          createdByUser: { connect: { id: this.userId } },
-        },
-        select: {
-          id: true,
-        },
+      const upload = await this.widgetDataService.createAttachment({
+        fileName: fileName,
+        fileType: 'IMAGE',
+        fileUrl: mediaHost + '/public/' + fileName,
+        sourceId: 'kit',
+        fileSize: 0,
+        sourceModule: 'BRANDKIT',
+        createdByUser: { connect: { id: this.userId } },
       });
     }
     return mediaHost + '/public/' + fileName;
@@ -127,21 +120,12 @@ export class KitService {
       console.log(url);
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-      const [checkBrandKitExist, checkBrandKitupdate] = await Promise.all([
-        this.prisma.brand.findFirst({
-          where: {
-            domain: extractDomain.split('/')[0],
-            deleted: false,
-            updateAt: { gte: threeMonthsAgo },
-          },
-        }),
-        this.prisma.brand.findFirst({
-          where: {
-            domain: extractDomain.split('/')[0],
-            deleted: false,
-          },
-        }),
-      ]);
+
+      const { checkBrandKitExist, checkBrandKitupdate } =
+        await this.widgetDataService.checkBrandKitLog(
+          extractDomain.split('/')[0],
+          threeMonthsAgo,
+        );
       let flagForBrand: Boolean = false;
       if (checkBrandKitExist) {
         flagForBrand = true;
@@ -181,20 +165,11 @@ export class KitService {
           flag,
         );
         console.log('finalImagePath', finalImagePath);
-
-        await this.prisma.brand.upsert({
-          where: {
-            domain: extractDomain.split('/')[0],
-          },
-          create: {
-            domain: extractDomain.split('/')[0],
-            name: extractDomain.split('.')[0],
-            logoUrl: finalImagePath,
-          },
-          update: {
-            logoUrl: finalImagePath,
-          },
-        });
+        await this.widgetDataService.upsertBandKit(
+          extractDomain.split('/')[0],
+          finalImagePath,
+          extractDomain.split('.')[0],
+        );
         logoUrl = finalImagePath;
       }
       console.log('finalImagePath', logoUrl);
@@ -207,56 +182,38 @@ export class KitService {
   }
   async createWidgetKit(
     createWidgetKitDto: CreateWidgetKitDto,
-    user: TCachedUser,
+    user: SelectedUserDetails,
     file: File,
   ) {
     try {
       this.userId = user.id;
       console.time('start');
-      const [check0] = await Promise.all([
-        this.prisma.widget.count({
-          where: {
-            createdBy: user.id,
-            status: { in: ['active', 'draft'] },
-            deleted: false,
-          },
-        }),
-      ]);
+      const check0 = await this.widgetDataService.widgetCountForKit(user.id);
       if (check0 > 0) {
         console.log('check');
 
         return '';
       }
-      const check3 = await this.prisma.customBrandKit.findUnique({
-        where: {
-          accountId: user.accountId,
-        },
-        select: {
-          id: true,
-          otherData: true,
-        },
-      });
+      const check3 = await this.widgetDataService.findKit(
+        user.accountId,
+        false,
+      );
 
       let obj: any = {};
       obj = { ...(check3?.otherData as object) };
       console.table(check3);
 
       if (!check3) {
-        await this.prisma.customBrandKit.create({
+        await this.widgetDataService.createKit({
+          account: { connect: { id: user.accountId } },
           data: {
-            account: { connect: { id: user.accountId } },
-            data: {
-              domain: createWidgetKitDto.url,
-            },
-            user: { connect: { id: user.id } },
+            domain: createWidgetKitDto.url,
           },
+          user: { connect: { id: user.id } },
         });
       } else {
-        await this.prisma.customBrandKit.update({
-          where: {
-            accountId: user.accountId,
-          },
-          data: {
+        await this.widgetDataService.updateKit(
+          {
             color: null,
             fontFamily: null,
             logoUrl: null,
@@ -264,25 +221,9 @@ export class KitService {
             otherData: {},
             deleted: false,
           },
-        });
+          user.accountId,
+        );
       }
-
-      // if (check0 > 0) {
-      //   const check = await this.prisma.customBrandKit.findUnique({
-      //     where: {
-      //       companyId: user.companyId ?? '',
-      //       published: true,
-      //     },
-      //     select: {
-      //       id: true,
-      //       logoUrl: true,
-      //     },
-      //   });
-      //   if (check?.logoUrl) {
-      //     console.log('record alredy exists');
-      //     return '';
-      //   }
-      // }
       const [fetchFontFamily, fetchimage] = await Promise.all([
         this.getFontFamily(createWidgetKitDto.url),
         this.fetchColorsFromLogo(
@@ -293,13 +234,6 @@ export class KitService {
         ),
       ]);
       console.log('fetchimage', fetchimage);
-
-      // const fetchimage = await this.fetchColorsFromLogo(
-      //   createWidgetKitDto.url
-      //     .replace('https://', '')
-      //     .replace('http://', '')
-      //     .replace('www.', ''),
-      // );
       const colors: string[] = await this.extractColors(
         './public/temp' +
           fetchimage?.image?.substring(fetchimage?.image?.lastIndexOf('/')),
@@ -335,12 +269,8 @@ export class KitService {
       //   });
       //   console.log('updaet 1');
       // } else {
-      data = await this.prisma.customBrandKit.update({
-        where: {
-          accountId: user.accountId,
-        },
-        data: {
-          // companyId: user?.companyId ?? '',
+      data = await this.widgetDataService.updateKit(
+        {
           color: colors?.join(','),
           fontFamily: fetchFontFamily?.fontFamilies?.join(','),
           logoUrl: fetchimage?.image,
@@ -350,7 +280,8 @@ export class KitService {
             ...(obj || {}),
           },
         },
-      });
+        user.accountId,
+      );
       // }
       console.log(
         'updaet ',
@@ -366,18 +297,13 @@ export class KitService {
       return { data: { message: 'data inserted', data: data.id } };
     } catch (error) {
       console.error('' + error);
-      return {
-        error: new HttpException(
-          'Internal Server down',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        ),
-      };
+      return { error };
     }
   }
   // async updateWidgetKit(
   //   uopdateWidgetKitDto: UpdateWidgetKitDto,
   //   file: File,
-  //   user: TCachedUser,
+  //   user: SelectedUserDetails,
   // ) {
   //   try {
   //     const logodata = await this.prisma.customBrandKit.findFirst({
@@ -480,21 +406,9 @@ export class KitService {
   //     };
   //   }
   // }
-  async getKit(user: TCachedUser) {
+  async getKit(user: SelectedUserDetails) {
     try {
-      const data = await this.prisma.customBrandKit.findFirst({
-        where: {
-          accountId: user.accountId,
-          deleted: false,
-        },
-        select: {
-          color: true,
-          fontFamily: true,
-          logoUrl: true,
-          data: true,
-          otherData: true,
-        },
-      });
+      const data = await this.widgetDataService.findKit(user.accountId, true);
       return {
         data: {
           color: data?.color?.split(',').filter((val) => val.length > 0) ?? [],
@@ -506,12 +420,7 @@ export class KitService {
         },
       };
     } catch (error) {
-      return {
-        error: new HttpException(
-          'Internal Server down',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        ),
-      };
+      return { error };
     }
   }
 }

@@ -11,7 +11,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Cache } from 'cache-manager';
 import { FastifyRequest } from 'fastify';
-import { CachedUser, TCachedUser } from 'src/shared/types';
+import { TCachedUser } from 'src/utils/types';
 
 @Injectable()
 export class AuthGuard implements CanActivate {

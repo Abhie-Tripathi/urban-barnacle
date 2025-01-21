@@ -1,20 +1,58 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {} from './dto';
-import { Prisma } from '@prisma/client';
+import { Prisma, User } from '@prisma/client';
+import { randomInt } from 'crypto';
+import { CommunicationService } from 'src/communication/communication.service';
+import { QueueActionOptions } from 'src/utils/types';
 
 @Injectable()
 export class AuthDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly communicationService: CommunicationService,
+  ) {}
 
-  //   async createVerificationToken(data: CreateVerificationTokenDto) {
+  async createVerificationToken(user: User, process: string) {
+    const passkey = randomInt(100000, 1000000).toString();
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 5);
+    const verificationToken = await this.prisma.verification.create({
+      data: {
+        userId: user.id,
+        passkey: passkey,
+        expiresAt: expiresAt,
+      },
+    });
 
-  //   }
+    await this.communicationService.createJobForBull(
+      QueueActionOptions.SEND_SIGN_UP_IN_EMAIL,
+      {
+        otp: passkey,
+        userInfo: {
+          email: user.email,
+          firstname: user.firstname || user.email.split('@')[0],
+        },
+        process,
+      },
+      user.id,
+      1,
+    );
 
-  async getVerificationToken() {
-    return {
-      passkey: '000000',
-      expiresAt: new Date(Date.now() + 1000 * 60 * 5),
-    };
+    return;
+  }
+
+  async getVerificationToken(email: string) {
+    const verificationToken = await this.prisma.verification.findFirst({
+      where: {
+        user: {
+          email: email,
+        },
+      },
+    });
+    return verificationToken;
+    // return {
+    //   passkey: '000000',
+    //   expiresAt: new Date(Date.now() + 1000 * 60 * 5),
+    // };
   }
 }

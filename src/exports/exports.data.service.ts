@@ -38,7 +38,7 @@ export class ExportDataService {
     const exportData = await this.prisma.export.create({
       data: {
         ...dto,
-        exportStatus: 'PROCESSING',
+        // exportStatus: 'PROCESSING',
         userId: user.id,
         accountId: user.accountId,
         exportFileType: dto.format,

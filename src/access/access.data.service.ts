@@ -24,7 +24,7 @@ export class AccessDataService {
   }
 
   async getAccess(data: GetAccessDto) {
-    const { accessTypes, show, ...params } = data;
+    const { accessTypes, show, limit, offset, ...params } = data;
     if (accessTypes) {
       params['accessType'] = {
         in: accessTypes,
@@ -35,6 +35,8 @@ export class AccessDataService {
       include: {
         accessReceiver: (show && show.includes('user')) || false,
       },
+      take: limit,
+      skip: offset,
     });
     return access;
   }

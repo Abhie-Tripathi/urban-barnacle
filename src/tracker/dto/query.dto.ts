@@ -80,3 +80,7 @@ export const GetTrackerByIdSchema = z.object({
     .optional(),
 });
 export class GetTrackerByIdDto extends createZodDto(GetTrackerByIdSchema) {}
+
+const GetTrackerUsersSchema = LimitSchema.extend({});
+
+export class GetTrackerUsersDto extends createZodDto(GetTrackerUsersSchema) {}

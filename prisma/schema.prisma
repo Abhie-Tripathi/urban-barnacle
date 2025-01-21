@@ -280,7 +280,6 @@ model Export {
   userId         String         @db.Uuid
   user           User           @relation(fields: [userId], references: [id])
   exportFileType ExportFileType
-  exportStatus   BullStatus     @default(PENDING)
   inputData      Json
   outputData     Json?
   createdAt      DateTime       @default(now())
@@ -320,13 +319,12 @@ model ApiLogs {
 
 model Verification {
   passkey   String
-  userId    String     @id @unique @db.Uuid
-  user      User       @relation(fields: [userId], references: [id])
-  status    BullStatus @default(PENDING)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  userId    String   @id @unique @db.Uuid
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   expiresAt DateTime
-  deleted   Boolean    @default(false)
+  deleted   Boolean  @default(false)
 }
 
 // discuss if we want to expire access token after some time / after first use
@@ -524,16 +522,8 @@ model Invitation {
   userId     String           @db.Uuid
   createdAt  DateTime         @default(now())
   updateAt   DateTime         @updatedAt
-  status     BullStatus       @default(PENDING)
   account    Account          @relation(fields: [accountId], references: [id])
   user       User             @relation(fields: [userId], references: [id])
-}
-
-enum BullStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
 }
 
 enum InvitationEntity {
@@ -636,6 +626,9 @@ enum JobSource {
   SEND_OTP
   SEND_ACCESS
   EVENT_CANCEl
+  SEND_INVITE
+  SEND_INTEND_CREATE
+  SEND_INTEND_UPDATE
 }
 
 enum JobStatus {
@@ -668,6 +661,9 @@ enum InterestStatus {
   SHORTLISTED
   REJECTED
   CANCELLED
+  WAITLISTING
+  FOLLOWING
+  INVITATION
 }
 
 enum Interest {
@@ -676,6 +672,7 @@ enum Interest {
   SPEAK
   SPONSOR
   EXHIBIT
+  ORGANIZE
 }
 
 enum AttachmentEntityType {

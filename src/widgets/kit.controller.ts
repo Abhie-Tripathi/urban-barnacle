@@ -10,11 +10,11 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { File, FileInterceptor } from '@nest-lab/fastify-multer';
-import { TCachedUser } from 'src/shared/types';
 import { CreateWidgetKitDto, UpdateWidgetKitDto } from './dto';
 import { KitService } from './kit.service';
 import { AuthGuard } from 'src/user/auth/guard';
 import { GetUser } from 'src/user/decorator';
+import { SelectedUserDetails } from 'src/utils/types';
 
 @Controller('kit')
 export class KitController {
@@ -24,11 +24,15 @@ export class KitController {
   @Post()
   createWidgetKit(
     @Body() body: CreateWidgetKitDto,
-    @GetUser() user: TCachedUser,
+    @GetUser() user: SelectedUserDetails,
     @UploadedFile() file: File,
   ) {
-    this.service.createWidgetKit(body, user, file);
-    return { message: 'request processing, finding logo and other things' };
+    try {
+      this.service.createWidgetKit(body, user, file);
+      return { message: 'request processing, finding logo and other things' };
+    } catch (error) {
+      return { error };
+    }
   }
   // @UseGuards(AuthGuard)
   // @UseInterceptors(FileInterceptor('file'))
@@ -36,13 +40,17 @@ export class KitController {
   // updateWidgetKit(
   //   @Body() body: UpdateWidgetKitDto,
   //   @UploadedFile() file: File,
-  //   @GetUser() user: TCachedUser,
+  //   @GetUser() user: SelectedUserDetails,
   // ) {
   //   return this.service.updateWidgetKit(body, file, user);
   // }
   @UseGuards(AuthGuard)
   @Get()
-  getWidgetKit(@GetUser() user: TCachedUser) {
-    return this.service.getKit(user);
+  getWidgetKit(@GetUser() user: SelectedUserDetails) {
+    try {
+      return this.service.getKit(user);
+    } catch (error) {
+      return { error };
+    }
   }
 }

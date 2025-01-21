@@ -1,22 +1,21 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { CreateDto, CreateWidgetKitDto, Widget } from './dto/create-widget.dto';
-import { UpdateWidgetKitDto, WidgetUpdate } from './dto/update-widget.dto';
+import { CreateDto, Widget } from './dto/create-widget.dto';
+import { WidgetUpdate } from './dto/update-widget.dto';
 import { Query_Dto } from './dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { TCachedUser } from 'src/shared/types';
 import { File } from '@nest-lab/fastify-multer';
-import { randomUUID } from 'crypto';
 import { ConfigService } from '@nestjs/config';
-import * as fs from 'fs';
 import { Prisma, WidgetStatus, WidgetType } from '@prisma/client';
+import { WidgetDataService } from './widget.data.service';
+import { SelectedUserDetails } from 'src/utils/types';
 @Injectable()
 export class WidgetsService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private configService: ConfigService,
-  ) {}
+  constructor(private readonly widgetDataService: WidgetDataService) {}
 
-  async create(createWidgetDto: CreateDto, user: TCachedUser, file: File) {
+  async create(
+    createWidgetDto: CreateDto,
+    user: SelectedUserDetails,
+    file: File,
+  ) {
     try {
       if (createWidgetDto.widgetId) {
         // const updateKit = UpdateKitDto.parse(createWidgetDto);
@@ -30,40 +29,34 @@ export class WidgetsService {
           };
         }
         if (createWidgetDto.eventId && createWidgetDto.published === false) {
-          const deleteEvent = await this.prisma.$executeRaw(
-            Prisma.raw(
-              `
-            DELETE FROM "_EventToWidget" 
-  WHERE "A" IN ('${createWidgetDto.eventId.join("','")}') And
-  "B" = '${createWidgetDto.widgetId}';
-            `,
-            ),
-          );
+          const deleteEvent =
+            await this.widgetDataService.deleteEventFromWidget(
+              createWidgetDto.eventId,
+              createWidgetDto.widgetId,
+            );
           return {
             data: { message: 'data updated', id: createWidgetDto.widgetId },
           };
-        } else if (createWidgetDto.published === false) {
-          const deleteEvent = await this.prisma.$executeRaw(
-            Prisma.raw(
-              `
-            DELETE FROM "_EventToWidget" 
-  WHERE "B" = '${createWidgetDto.widgetId}';
-            `,
-            ),
-          );
         }
-        const updateWidget = await this.prisma.widget.update({
-          where: {
-            id: createWidgetDto.widgetId,
-          },
-          data: {
+        //       else if (createWidgetDto.published === false) {
+        //         const deleteEvent = await this.prisma.$executeRaw(
+        //           Prisma.raw(
+        //             `
+        //           DELETE FROM "_EventToWidget"
+        // WHERE "B" = '${createWidgetDto.widgetId}';
+        //           `,
+        //           ),
+        //         );
+        //       }
+
+        const updateWidget = await this.widgetDataService.updateWidget(
+          createWidgetDto.widgetId,
+          createWidgetDto.published ?? true,
+          {
             ...dataForWidget,
             ...eventId,
           },
-          select: {
-            id: true,
-          },
-        });
+        );
         return { data: { message: 'data updated', id: updateWidget.id } };
       } else {
         const dto = Widget.parse(createWidgetDto);
@@ -75,80 +68,46 @@ export class WidgetsService {
             }),
           };
         }
-        const dataKit = await this.prisma.customBrandKit.findFirst({
-          where: {
-            accountId: user.accountId,
-          },
-          select: {
-            id: true,
-          },
-        });
+        const dataKit = await this.widgetDataService.findKit(
+          user.accountId,
+          true,
+        );
         dto.type = dto.type as WidgetType;
-        const data = await this.prisma.widget.create({
-          data: {
-            account: { connect: { id: user.accountId } },
-            user: { connect: { id: user.id } },
-            CustomBrandKit: { connect: { id: dataKit?.id ?? '' } },
-            status: dto.status,
-            templatePublicId: dto.templatePublicId,
-            type: dto.type,
-            customizationData: dto.customizationData,
-            otherData: dto.otherdata,
-            domain: dto.domain,
-            ...eventId,
-          },
+        const data = await this.widgetDataService.createWidget({
+          account: { connect: { id: user.accountId } },
+          user: { connect: { id: user.id } },
+          CustomBrandKit: { connect: { id: dataKit?.id ?? '' } },
+          status: dto.status,
+          templatePublicId: dto.templatePublicId,
+          type: dto.type,
+          customizationData: dto.customizationData,
+          otherData: dto.otherdata,
+          domain: dto.domain,
+          ...eventId,
         });
 
         return { data: { message: 'data inserted', id: data.id } };
       }
     } catch (error) {
       console.error('' + error);
-      return {
-        error: new HttpException(
-          'Internal Server down',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        ),
-      };
+      return { error };
     }
   }
-  async getDraft(query: Query_Dto, userId: TCachedUser) {
+  async getDraft(query: Query_Dto, userId: SelectedUserDetails) {
     try {
       if (!query.status) {
         query.status = 'draft';
       }
-      const count = await this.prisma.widget.count({
-        where: {
-          accountId: userId.accountId,
-          status: query.status.toLowerCase() as WidgetStatus,
-          deleted: false,
-        },
-        select: {
-          id: true,
-        },
-      });
-      const data = await this.prisma.widget.findMany({
-        where: {
-          accountId: userId.accountId,
-          status: query.status.toLowerCase() as WidgetStatus,
-          deleted: false,
-        },
-        select: {
-          id: true,
-          type: true,
-          status: true,
-          customizationData: true,
-          templatePublicId: true,
-          otherData: true,
-          domain: true,
-          eventId: {
-            select: {
-              id: true,
-            },
-          },
-        },
-        take: query.limit,
-        skip: query.offset,
-      });
+      const count = await this.widgetDataService.getWidgetCount(
+        userId.accountId,
+        query.status.toLowerCase() as WidgetStatus,
+      );
+      const data = await this.widgetDataService.findManyWidget(
+        userId.accountId,
+        query.status.toLowerCase() as WidgetStatus,
+        Number(query.limit),
+        Number(query.offset),
+      );
       return {
         data: {
           totalCount: count.id,
@@ -160,12 +119,7 @@ export class WidgetsService {
       };
     } catch (error) {
       console.error('' + error);
-      return {
-        error: new HttpException(
-          'Internal Server down',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        ),
-      };
+      return { error };
     }
   }
   async getWidgetById(id: string, query, accountId: string) {
@@ -184,29 +138,15 @@ export class WidgetsService {
           },
         };
       }
-      const data = await this.prisma.widget.findUnique({
-        where: {
+      const data = await this.widgetDataService.findUniqueWidget(
+        {
           id: id,
           accountId: accountId,
           deleted: false,
           ...where,
         },
-        select: {
-          id: true,
-          type: true,
-          status: true,
-          customizationData: true,
-          templatePublicId: true,
-          otherData: true,
-          domain: true,
-          eventId: {
-            select: {
-              id: true,
-              ...dataEvent,
-            },
-          },
-        },
-      });
+        dataEvent,
+      );
       if (data?.otherData === null) {
         data.otherData = [];
       }
@@ -252,12 +192,7 @@ export class WidgetsService {
       return { data: data };
     } catch (error) {
       console.error('' + error);
-      return {
-        error: new HttpException(
-          'Internal Server down',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        ),
-      };
+      return { error };
     }
   }
 }

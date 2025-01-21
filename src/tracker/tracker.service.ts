@@ -5,8 +5,10 @@ import {
   CreateTrackerDto,
   GetTrackerByIdDto,
   GetTrackerCommentDto,
+  GetTrackerEventsCountDto,
   GetTrackerEventsDto,
   GetTrackersHttpDto,
+  GetTrackerUsersDto,
   UpdateTrackerHttpDto,
 } from './dto';
 import { AccessService } from 'src/access/access.service';
@@ -36,7 +38,13 @@ export class TrackerService {
   ) {}
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
-    const tracker = await this.trackerDataService.createTracker(user, data);
+    const nonEmptyParams = getNonEmptyParams(data.filterValue);
+    const convertedParams =
+      await this.sharedService.convertSlugParamsToIds(nonEmptyParams);
+    const tracker = await this.trackerDataService.createTracker(user, {
+      ...data,
+      filterValue: convertedParams,
+    });
     await this.accessDataService.createAccess({
       accessProviderId: user.id,
       accessReceiverId: user.id,
@@ -90,12 +98,12 @@ export class TrackerService {
     const groupBy = searchByEntity
       ? CountGroup.status
       : CountGroup.eventTypeGroup;
-    let { groupedEventsCount, filterValue } = (await this.cacheManager.get(
-      tracker.id,
-    )) as {
+    let cachedValues = (await this.cacheManager.get(tracker.id)) as {
       groupedEventsCount: object;
       filterValue: object;
     };
+    let { groupedEventsCount, filterValue } = cachedValues ?? {};
+
     if (!groupedEventsCount || !filterValue || query.refresh) {
       groupedEventsCount = await this.getGroupedEventsCount(
         {
@@ -124,7 +132,7 @@ export class TrackerService {
     };
     return {
       ...trackerValues,
-      ...groupedEventsCount,
+      groupedEventsCount,
       savedEventsCount,
     };
   }
@@ -141,6 +149,8 @@ export class TrackerService {
             : params.createdBy === 'others'
               ? ['ADMIN', 'USER']
               : ['SUPER_ADMIN', 'ADMIN', 'USER'],
+        limit: params.limit,
+        offset: params.offset,
       })
     ).map((access) => access.sourceEntityId);
     const trackerParams = {};
@@ -182,17 +192,19 @@ export class TrackerService {
   }
 
   async getGroupedEventsCount(params: CountQueryDto, groupBy: CountGroup) {
+    console.log(params);
     const data = await this.eventService.getEventsCount(params, false);
     if (groupBy === CountGroup.status) {
       return data.count;
     } else if (groupBy === CountGroup.eventTypeGroup) {
+      console.log(data);
       return data.reduce((acc, curr) => {
         acc[curr.group_name] = {
           total: curr.count,
           new: curr.new ?? 0,
         };
         return acc;
-      });
+      }, {});
     }
   }
 
@@ -238,6 +250,8 @@ export class TrackerService {
     const eventParams = {
       ...(tracker.filterValue as Object),
       ...convertedParams,
+      limit: params.limit,
+      offset: params.offset,
     } as QueryDto;
     const events = await this.eventService.getAllEvents(
       eventParams,
@@ -277,6 +291,8 @@ export class TrackerService {
     const eventParams = {
       eventIds: savedEventsIds,
       ...convertedParams,
+      limit: params.limit,
+      offset: params.offset,
     } as QueryDto;
 
     const events = await this.eventService.getAllEvents(
@@ -290,7 +306,7 @@ export class TrackerService {
   async getTrackerEventsCount(
     user: TCachedUser,
     trackerId: string,
-    params: GetTrackerEventsDto,
+    params: GetTrackerEventsCountDto,
   ) {
     const tracker = await this.hasTrackerAccess(user, trackerId, [
       'ADMIN',
@@ -312,7 +328,7 @@ export class TrackerService {
   async getTrackerSavedEventsCount(
     user: TCachedUser,
     trackerId: string,
-    params: GetTrackerEventsDto,
+    params: GetTrackerEventsCountDto,
   ) {
     const tracker = await this.hasTrackerAccess(user, trackerId, [
       'ADMIN',
@@ -366,7 +382,11 @@ export class TrackerService {
     return comments;
   }
 
-  async getTrackerUsers(user: TCachedUser, trackerId: string) {
+  async getTrackerUsers(
+    user: TCachedUser,
+    trackerId: string,
+    params: GetTrackerUsersDto,
+  ) {
     const tracker = await this.hasTrackerAccess(user, trackerId, [
       'ADMIN',
       'SUPER_ADMIN',
@@ -377,6 +397,8 @@ export class TrackerService {
         sourceEntity: 'TRACKER',
         sourceEntityId: tracker.id,
         accountId: user.accountId,
+        limit: params.limit,
+        offset: params.offset,
       })
     ).map((item) => {
       const user = item.accessReceiver;
@@ -412,6 +434,9 @@ export class TrackerService {
           accessTypes: accessTypes,
           sourceEntity: 'TRACKER',
           sourceEntityId: tracker.id,
+          accountId: user.accountId,
+          limit: 1,
+          offset: 0,
         })
       : [true, null];
     if (!hasAccess) {

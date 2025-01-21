@@ -31,6 +31,7 @@ export class AccountService {
   async getAccountEnquiries(user: TCachedUser, query: GetEnquiriesDto) {
     const enquiries = await this.enquiryService.getEnquiries({
       accountId: user.accountId,
+      ...query,
     });
     return enquiries;
   }

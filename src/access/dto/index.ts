@@ -48,7 +48,7 @@ const showAccess = {
 
 const GetAccessSchema = LimitSchema.extend({
   id: z.string().uuid().optional(),
-  accountId: z.string().uuid().optional(),
+  accountId: z.string().uuid(),
   userId: z.string().uuid().optional(),
   accessReceiverId: z.string().uuid().optional(),
   accessProviderId: z.string().uuid().optional(),

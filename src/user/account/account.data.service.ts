@@ -9,7 +9,7 @@ import { TCachedUser } from 'src/utils/types';
 export class AccountDataService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createAccount(data: CreateAccountDto, user: TCachedUser) {
+  async createAccount(data: CreateAccountDto) {
     const defaultConfig = accountConfig;
     const account = await this.prisma.account.create({
       data: {

@@ -10,8 +10,7 @@ import { SharedModule } from './shared/shared.module';
 import { BullModule } from '@nestjs/bull';
 import { RequestLoggingMiddleware } from './request-logging.middleware';
 import { LoggingMiddleware } from './logging.interceptor';
-import { UserInterestModule } from './user-interest/user-interest.module';
-import { EventModule } from './promotedEvent/event.module';
+import { PromotedEventsModule } from './promotedEvent/promoted-event.module';
 import { WidgetsModule } from './widgets/widgets.module';
 import { InviteModule } from './invite/invite.module';
 import { SuggestionModule } from './suggestion/suggestion.module';
@@ -26,20 +25,28 @@ import { SavedLocationModule } from './saved-location/saved-location.module';
 import { MeModule } from './user/me/me.module';
 import { CompanyModule } from './user/company/company.module';
 import { AccountModule } from './user/account/account.module';
+import { CommunicationModule } from './communication/communication.module';
+import { IntendModule } from './intend/intend.module';
+import { EmailService } from './communication/email/email.service';
+import { OtpEmailWorkerClass } from './communication/bull-service/bull-otp.service';
+import { AccessEmailWorkerClass } from './communication/bull-service/bull-access.service';
+import { EventWorkerClass } from './communication/bull-service/bull-event.service';
+import { IntendWorkerClass } from './communication/bull-service/bull-intend.service';
+import { InvitationWorkerClass } from './communication/bull-service/bull-invitation.service';
 
 @Module({
   imports: [
     // ConfigModule to manage environment variables
     ConfigModule.forRoot({ isGlobal: true }),
 
-    // BullModule for queue handling
-    BullModule.forRoot({
-      redis: {
-        host: '0.0.0.0',
-        port: 6379,
-        password: process.env.REDIS_PASSWORD,
-      },
-    }),
+    // // BullModule for queue handling
+    // BullModule.forRoot({
+    //   redis: {
+    //     host: '0.0.0.0',
+    //     port: 6379,
+    //     password: process.env.REDIS_PASSWORD,
+    //   },
+    // }),
 
     // PrismaModule for database handling
     PrismaModule,
@@ -60,8 +67,7 @@ import { AccountModule } from './user/account/account.module';
     UserModule,
     SharedModule,
     BullModule,
-    UserInterestModule,
-    EventModule,
+    PromotedEventsModule,
     WidgetsModule,
     InviteModule,
     SuggestionModule,
@@ -76,9 +82,19 @@ import { AccountModule } from './user/account/account.module';
     MeModule,
     CompanyModule,
     AccountModule,
+    CommunicationModule,
+    IntendModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    EmailService,
+    OtpEmailWorkerClass,
+    AccessEmailWorkerClass,
+    EventWorkerClass,
+    IntendWorkerClass,
+    InvitationWorkerClass,
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

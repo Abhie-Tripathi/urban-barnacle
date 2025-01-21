@@ -9,7 +9,7 @@ export const WidgetUpdate = z.object({
   customizationData: z.record(z.any(), z.any()).optional(),
   otherdata: z.record(z.any(), z.any()).optional(),
   domain: z.string().optional(),
-  published: z
+  deleted: z
     .boolean()
     .optional()
 });

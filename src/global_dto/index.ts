@@ -9,7 +9,8 @@ export const LimitSchema = z.object({
       message: 'Limit must be a number',
     })
     .transform((val) => parseInt(val))
-    .optional(),
+    .optional()
+    .default('10'),
   offset: z
     .string()
     .transform((val) => val || '0')
@@ -17,7 +18,8 @@ export const LimitSchema = z.object({
       message: 'Limit must be a number',
     })
     .transform((val) => parseInt(val))
-    .optional(),
+    .optional()
+    .default('0'),
 });
 
 export class LimitDto extends createZodDto(LimitSchema) {}

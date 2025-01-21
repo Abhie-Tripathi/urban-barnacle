@@ -1,10 +1,7 @@
-import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignInDto, SignUpDto, VerifyOtpDto } from './dto';
 import { FastifyReply } from 'fastify';
-import { GetUser } from '../decorator';
-import { TCachedUser } from 'src/shared/types';
-import { AuthGuard } from './guard';
 
 @Controller('auth')
 export class AuthController {
