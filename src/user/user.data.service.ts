@@ -1,6 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, GetUsersDto, UpdateUserDto } from './dto';
+import { TCachedUser } from 'src/utils/types';
 
 @Injectable()
 export class UserDataService {
@@ -62,12 +63,13 @@ export class UserDataService {
     if (data.companyId) {
       params['companyId'] = data.companyId;
     }
+    console.log(params);
     const users = await this.prisma.user.findMany({
       where: {
         ...params,
       },
-      skip: parseInt(data.offset),
-      take: parseInt(data.limit),
+      skip: data.offset,
+      take: data.limit,
     });
     return users;
   }
@@ -80,5 +82,26 @@ export class UserDataService {
       data,
     });
     return user;
+  }
+
+  async getUserLastActivity(user: TCachedUser, path: string) {
+    const lastRequest = await this.prisma.userActivity.findFirst({
+      where: {
+        userId: user.id,
+        path,
+        accountId: user.accountId,
+        request: {
+          path: ['method'],
+          string_contains: 'GET',
+        },
+        createdAt: {
+          lt: new Date(new Date().setHours(0, 0, 0, 0)),
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+    return lastRequest;
   }
 }

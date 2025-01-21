@@ -13,9 +13,9 @@ export class EventsService {
   ) {}
 
   async getAllEvents(
-    userId: string,
     query: QueryDto,
     validateIds: boolean = true,
+    userId?: string,
   ) {
     const nonEmptyParams = getNonEmptyParams(query);
     const convertedParams = await this.sharedService.convertSlugParamsToIds(
@@ -44,6 +44,8 @@ export class EventsService {
   async getEvent(userId: string, eventId: string) {
     const fetchedEvents = await this.eventsDataService.getEvents({
       eventIds: [eventId],
+      limit: 1,
+      offset: 0,
     });
     const isSaved = {};
     const event = {
@@ -53,8 +55,14 @@ export class EventsService {
     return event;
   }
 
-  async getEventsCount(query: CountQueryDto) {
-    return await this.eventsDataService.getEventsCount(query);
+  async getEventsCount(query: CountQueryDto, validateIds: boolean = true) {
+    const nonEmptyParams = getNonEmptyParams(query);
+    const convertedParams = await this.sharedService.convertSlugParamsToIds(
+      nonEmptyParams,
+      validateIds,
+    );
+    const count = await this.eventsDataService.getEventsCount(convertedParams);
+    return count;
   }
 
   async getEventPocs(eventId: string) {

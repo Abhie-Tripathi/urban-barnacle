@@ -76,13 +76,17 @@ const CreateTrackerSchema = z.object({
 
 export class CreateTrackerDto extends createZodDto(CreateTrackerSchema) {}
 
-const UpdateTrackerSchema = CreateTrackerSchema.partial()
-  .omit({
-    type: true,
-  })
-  .extend({
-    id: z.string().uuid(),
-    deleted: z.boolean().optional(),
-  });
+const UpdateTrackerHttpSchema = CreateTrackerSchema.partial().omit({
+  type: true,
+});
+
+export class UpdateTrackerHttpDto extends createZodDto(
+  UpdateTrackerHttpSchema,
+) {}
+
+const UpdateTrackerSchema = UpdateTrackerHttpSchema.extend({
+  id: z.string().uuid(),
+  deleted: z.boolean().optional(),
+});
 
 export class UpdateTrackerDto extends createZodDto(UpdateTrackerSchema) {}

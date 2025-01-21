@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { SortByOptions, Regions, timezones } from 'src/utils';
 import { EventStatus, EventTypeGroup, VisitorRangeTag } from 'src/utils/types';
+import { LimitSchema } from 'src/global_dto';
 
 const scoreRange = {
   lte: 100,
@@ -519,56 +520,48 @@ export const QueryFilter = z.object({
 
 export const FilterNames = Object.keys(QueryFilter.shape);
 
-export const QuerySchema = QueryFilter.extend({
-  take: z
-    .string()
-    .refine((take) => take && !(+take > 50), {
-      message: 'take can not be more than 50',
-    })
-    .transform(Number)
-    .optional(),
-  skip: z
-    .string()
-    .refine((data) => data && !isNaN(parseInt(data)))
-    .transform(Number)
-    .optional(),
-  sortBy: z
-    .string()
-    .refine((val) => val.split(',').every((item) => item in SortByOptions), {
-      message: 'Invalid sortBy option',
-      params: { validOptions: Object.keys(SortByOptions).join(', ') },
-    })
-    .transform((val) => val.split(','))
-    .optional(),
-  localTimezone: z
-    .nativeEnum(timezones)
-    .default(timezones['Asia/Kolkata'])
-    .optional(),
-  view: z.nativeEnum(View).default(View.list).optional(),
-  calendar_type: z.nativeEnum(CalendarViewType).optional(),
-}).transform((data) => {
-  const intersectedKeys = Object.keys(data).filter((key) =>
-    FilterNames.includes(key),
-  );
-  if (
-    !(intersectedKeys.length === 1 && intersectedKeys[0].trim() === 'query') &&
-    !(data.eventIds && data.eventIds.length)
-  ) {
-    const defaultStartDate = new Date().toISOString();
-    const defaultEndDate = new Date(
-      new Date().getTime() + (90 - 1) * 24 * 60 * 60 * 1000,
-    ).toISOString();
-    if (!data['active_gte'] && !data['active_lte']) {
-      data['active_gte'] = defaultStartDate;
-      data['active_lte'] = defaultEndDate;
-    } else if (!data['active_lte'] && data['active_gte']) {
-      data['active_gte'] = data['active_gte'];
-    } else if (!data['active_gte'] && data['active_lte']) {
-      data['active_lte'] = data['active_lte'];
+export const QuerySchema = LimitSchema.extend(QueryFilter.shape)
+  .extend({
+    sortBy: z
+      .string()
+      .refine((val) => val.split(',').every((item) => item in SortByOptions), {
+        message: 'Invalid sortBy option',
+        params: { validOptions: Object.keys(SortByOptions).join(', ') },
+      })
+      .transform((val) => val.split(','))
+      .optional(),
+    localTimezone: z
+      .nativeEnum(timezones)
+      .default(timezones['Asia/Kolkata'])
+      .optional(),
+    view: z.nativeEnum(View).default(View.list).optional(),
+    calendar_type: z.nativeEnum(CalendarViewType).optional(),
+  })
+  .transform((data) => {
+    const intersectedKeys = Object.keys(data).filter((key) =>
+      FilterNames.includes(key),
+    );
+    if (
+      !(
+        intersectedKeys.length === 1 && intersectedKeys[0].trim() === 'query'
+      ) &&
+      !(data.eventIds && data.eventIds.length)
+    ) {
+      const defaultStartDate = new Date().toISOString();
+      const defaultEndDate = new Date(
+        new Date().getTime() + (90 - 1) * 24 * 60 * 60 * 1000,
+      ).toISOString();
+      if (!data['active_gte'] && !data['active_lte']) {
+        data['active_gte'] = defaultStartDate;
+        data['active_lte'] = defaultEndDate;
+      } else if (!data['active_lte'] && data['active_gte']) {
+        data['active_gte'] = data['active_gte'];
+      } else if (!data['active_gte'] && data['active_lte']) {
+        data['active_lte'] = data['active_lte'];
+      }
     }
-  }
-  return data;
-});
+    return data;
+  });
 
 export class QueryDto extends createZodDto(QuerySchema) {}
 

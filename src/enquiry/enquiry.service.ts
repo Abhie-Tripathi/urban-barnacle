@@ -1,4 +1,24 @@
 import { Injectable } from '@nestjs/common';
+import { TCachedUser } from 'src/utils/types';
+import { CreateEnquiryDto, GetEnquiriesDto, UpdateEnquiryDto } from './dto';
+import { EnquiryDataService } from './enquiry.data.service';
 
 @Injectable()
-export class EnquiryService {}
+export class EnquiryService {
+  constructor(private readonly enquiryDataService: EnquiryDataService) {}
+
+  async createEnquiry(user: TCachedUser, data: CreateEnquiryDto) {
+    const enquiry = await this.enquiryDataService.createEnquiry(data);
+    return enquiry;
+  }
+
+  async getEnquiries(data: GetEnquiriesDto) {
+    const enquiries = await this.enquiryDataService.getEnquiries(data);
+    return enquiries;
+  }
+
+  async updateEnquiry(user: TCachedUser, data: UpdateEnquiryDto) {
+    const enquiry = await this.enquiryDataService.updateEnquiry(data);
+    return enquiry;
+  }
+}

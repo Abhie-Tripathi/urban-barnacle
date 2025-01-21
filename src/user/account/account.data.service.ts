@@ -1,14 +1,25 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateAccountDto, GetAccountDto, UpdateAccountDto } from './dto';
+import { Prisma } from '@prisma/client';
+import { accountConfig, AccountConfigDto } from './account.config';
+import { TCachedUser } from 'src/utils/types';
 
 @Injectable()
 export class AccountDataService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createAccount(data: CreateAccountDto) {
+  async createAccount(data: CreateAccountDto, user: TCachedUser) {
+    const defaultConfig = accountConfig;
     const account = await this.prisma.account.create({
-      data,
+      data: {
+        ...data,
+        accountConfiguration: {
+          create: {
+            config: Object.entries(defaultConfig),
+          },
+        },
+      },
     });
     return account;
   }
@@ -50,5 +61,16 @@ export class AccountDataService {
       data: { user: { connect: { id: userId } } },
     });
     return account;
+  }
+
+  async getAccountConfiguration(accountId: string) {
+    const account = await this.prisma.account.findUnique({
+      where: { id: accountId },
+      include: { accountConfiguration: true },
+    });
+    if (!account) {
+      throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
+    }
+    return account.accountConfiguration.config;
   }
 }

@@ -28,11 +28,41 @@ export class AuthController {
   //   return reply.send({ data: { user: data.userData } });
   // }
 
-  @Post('signup')
+  @Post('sign-up')
   async signUp(@Body() body: SignUpDto) {
-    console.log(await this.authService.signUp(body));
+    try {
+      const user = await this.authService.signUp(body);
+      return { data: user };
+    } catch (error) {
+      throw error;
+      return { error: error };
+    }
+  }
 
-    return await this.authService.signUp(body);
+  @Post('sign-in')
+  async signIn(@Body() body: SignInDto) {
+    try {
+      const user = await this.authService.signIn(body);
+      return { data: user };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+
+  @Post('verify-otp')
+  async verifyOtp(
+    @Body() body: VerifyOtpDto,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    try {
+      const data = await this.authService.verifyOtp(body);
+
+      const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
+      reply.cookie(key, data.user.token, this.authService.cookieOptions);
+      return { data: { user: data.user.userData } };
+    } catch (error) {
+      return { error: error };
+    }
   }
 
   // @UseGuards(AuthGuard)

@@ -2,6 +2,7 @@
 
 import { HttpException, Injectable } from '@nestjs/common';
 import { JobSource } from '@prisma/client';
+import { FeatureCollection } from 'geojson';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   CategoryDto,
@@ -45,7 +46,7 @@ export class SharedService {
         'categories',
         {
           slugs: categoriesSlug,
-          limit: categoriesSlug.length.toString(),
+          limit: categoriesSlug.length,
         } as CategoryDto,
       )) as CategoryResponseDto[];
       if (
@@ -63,7 +64,7 @@ export class SharedService {
         'locations',
         {
           ids: locationIds,
-          limit: locationIds.length.toString(),
+          limit: locationIds.length,
         } as LocationDto,
       )) as LocationResponseDto;
 
@@ -83,7 +84,7 @@ export class SharedService {
         'designations',
         {
           slugs: designationsSlugs,
-          limit: designationsSlugs.length.toString(),
+          limit: designationsSlugs.length,
         } as CategoryDto,
       )) as CategoryResponseDto[];
       if (
@@ -102,7 +103,7 @@ export class SharedService {
     if (tagsSlug && tagsSlug.length > 0 && validateIds) {
       const tags = (await this.suggestionService.getSuggestions('tags', {
         slugs: tagsSlug,
-        limit: tagsSlug.length.toString(),
+        limit: tagsSlug.length,
       })) as TagResponseDto[];
 
       if (tags && (tags.length === 0 || tags.length !== tagsSlug.length)) {
@@ -117,7 +118,7 @@ export class SharedService {
         'event-types',
         {
           slugs: eventTypesSlug,
-          limit: eventTypesSlug.length.toString(),
+          limit: eventTypesSlug.length,
         } as EventTypeDto,
       )) as EventTypeResponseDto[];
       if (
@@ -145,7 +146,7 @@ export class SharedService {
           'categories',
           {
             ids: categoriesIds,
-            limit: categoriesIds.length.toString(),
+            limit: categoriesIds.length,
           } as CategoryDto,
         )) as CategoryResponseDto[];
 
@@ -172,7 +173,7 @@ export class SharedService {
           'designations',
           {
             ids: designationsIds,
-            limit: designationsIds.length.toString(),
+            limit: designationsIds.length,
           } as CategoryDto,
         )) as CategoryResponseDto[];
 
@@ -200,7 +201,7 @@ export class SharedService {
       if (tagsSlug && tagsSlug.length > 0) {
         const tags = (await this.suggestionService.getSuggestions('tags', {
           slugs: tagsSlug,
-          limit: tagsSlug.length.toString(),
+          limit: tagsSlug.length,
         })) as TagResponseDto[];
 
         if (tags && (tags.length === 0 || tags.length !== tagsSlug.length)) {
@@ -222,7 +223,7 @@ export class SharedService {
           'event-types',
           {
             ids: eventTypesIds,
-            limit: eventTypesIds.length.toString(),
+            limit: eventTypesIds.length,
           } as EventTypeDto,
         )) as EventTypeResponseDto[];
 
@@ -248,7 +249,7 @@ export class SharedService {
           'locations',
           {
             ids: locationIds,
-            limit: locationIds.length.toString(),
+            limit: locationIds.length,
           } as LocationDto,
         )) as LocationResponseDto;
 
@@ -283,5 +284,22 @@ export class SharedService {
       console.log(error);
       return params;
     }
+  }
+
+  async getArea(geoJson: FeatureCollection) {
+    let totalArea = 0;
+    geoJson!.features!.forEach((feature) => {
+      if (feature.geometry.type === 'MultiPolygon') {
+        const multiPolygon = turf.multiPolygon(feature.geometry.coordinates);
+        totalArea += turf.area(multiPolygon) / 1000000;
+      } else if (feature.geometry.type === 'Polygon') {
+        const polygon = turf.polygon(feature.geometry.coordinates);
+        totalArea += turf.area(polygon) / 1000000;
+      }
+      if (totalArea > 0) {
+        return;
+      }
+    });
+    return Number(totalArea.toFixed(2));
   }
 }

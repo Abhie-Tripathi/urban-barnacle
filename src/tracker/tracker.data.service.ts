@@ -10,23 +10,20 @@ import { TCachedUser, TrackerTypes } from 'src/utils/types';
 export class TrackerDataService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createTracker(userId: string, data: CreateTrackerDto) {
+  async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const tracker = await this.prisma.tracker.create({
       data: {
         name: data.name,
         filterValue: data.filterValue,
         type: data.type,
-        createdByUser: {
-          connect: {
-            id: userId,
-          },
-        },
+        createdBy: user.id,
+        accountId: user.accountId,
       },
     });
     return tracker;
   }
 
-  async getTrackers(user: TCachedUser, data: GetTrackersDto) {
+  async getTrackers(data: GetTrackersDto, userId?: string) {
     const params = {};
     if (data.ids) params['id'] = { in: data.ids };
     if (data.name)
@@ -36,15 +33,21 @@ export class TrackerDataService {
         in: Object.values(TrackerTypes[data.type]) as TrackerType[],
       };
     if (data.accountId) params['accountId'] = data.accountId;
-    if (data.createdBy === 'me')
-      params['createdByUser'] = { createdBy: user.id };
+    if (data.createdBy && !userId) {
+      throw new HttpException(
+        'User id is required to filter by createdBy',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    if (data.createdBy === 'me' && userId)
+      params['createdByUser'] = { createdBy: userId };
     const trackers = await this.prisma.tracker.findMany({
       where: {
         ...params,
         deleted: false,
       },
-      skip: parseInt(data.offset),
-      take: parseInt(data.limit),
+      skip: data.offset,
+      take: data.limit,
       orderBy: {
         createdAt: 'desc',
       },
@@ -70,10 +73,13 @@ export class TrackerDataService {
     return count;
   }
 
-  async updateTracker(data: UpdateTrackerDto) {
+  async updateTracker(user: TCachedUser, data: UpdateTrackerDto) {
     const tracker = await this.prisma.tracker.update({
       where: { id: data.id },
-      data,
+      data: {
+        ...data,
+        lastModifiedBy: user.id,
+      },
     });
     return tracker;
   }

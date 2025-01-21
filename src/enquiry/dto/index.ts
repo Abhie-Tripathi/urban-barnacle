@@ -1,5 +1,6 @@
 import { EnquiryActivitySubType, EnquiryStatus } from '@prisma/client';
 import { createZodDto } from 'nestjs-zod';
+import { LimitSchema } from 'src/global_dto';
 import { z } from 'zod';
 
 const eventDataSchema = z.object({
@@ -18,16 +19,24 @@ const CreateEnquirySchema = z.object({
 
 export class CreateEnquiryDto extends createZodDto(CreateEnquirySchema) {}
 
+const UpdateEnquiryHttpSchema = z.object({
+  status: z.nativeEnum(EnquiryStatus).optional(),
+  ownerId: z.string().uuid().optional(),
+});
+
+export class UpdateEnquiryHttpDto extends createZodDto(
+  UpdateEnquiryHttpSchema,
+) {}
+
 const UpdateEnquirySchema = z.object({
   id: z.string().uuid(),
   status: z.nativeEnum(EnquiryStatus).optional(),
   ownerId: z.string().uuid().optional(),
-  deleted: z.boolean().optional(),
 });
 
 export class UpdateEnquiryDto extends createZodDto(UpdateEnquirySchema) {}
 
-const GetEnquiriesSchema = z.object({
+const GetEnquiriesSchema = LimitSchema.extend({
   ids: z.array(z.string().uuid()).optional(),
   eventId: z.string().uuid().optional(),
   accountId: z.string().uuid().optional(),
@@ -35,6 +44,8 @@ const GetEnquiriesSchema = z.object({
   type: z.nativeEnum(EnquiryActivitySubType).optional(),
   event_active_lte: z.string().datetime().optional(),
   event_active_gte: z.string().datetime().optional(),
+  upvotedBy: z.enum(['me', 'others']).optional(),
+  userId: z.string().uuid().optional(),
 });
 
 export class GetEnquiriesDto extends createZodDto(GetEnquiriesSchema) {}

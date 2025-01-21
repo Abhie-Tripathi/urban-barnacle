@@ -1,6 +1,7 @@
 import { createZodDto } from 'nestjs-zod';
 import { LimitSchema } from 'src/global_dto';
 import { z } from 'zod';
+import { AccountConfigSchema } from '../account.config';
 
 const CreateAccountSchema = z.strictObject({
   membership: z.number().optional(),
@@ -15,6 +16,9 @@ const UpdateAccountSchema = z.strictObject({
   membership: z.number().optional(),
   pendingRequests: z.number().optional(),
   pendingPocUnlockRequests: z.number().optional(),
+  configuration: AccountConfigSchema.extend({
+    lastModifiedById: z.string().uuid(),
+  }).optional(),
 });
 
 export class UpdateAccountDto extends createZodDto(UpdateAccountSchema) {}

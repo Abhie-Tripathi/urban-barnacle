@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { SignUpSchema } from '../auth/dto';
-import { OnboardingState, UserRole } from '@prisma/client';
+import { LocationType, OnboardingState, UserRole } from '@prisma/client';
 import { LimitSchema } from 'src/global_dto';
 import { UpdateMeSchema } from '../me/dto/update.dto';
+import { GeoJsonSchema } from 'src/utils/types';
 
 const CreateUserSchema = SignUpSchema.extend({
   firstname: z.string().optional(),
@@ -12,6 +13,7 @@ const CreateUserSchema = SignUpSchema.extend({
   imageUrl: z.string().optional(),
   accountId: z.string().uuid().optional(),
   companyId: z.string().uuid().optional(),
+  primaryAccountId: z.string().uuid().optional(),
   currentOnboardingState: z
     .nativeEnum(OnboardingState)
     .default('VERIFICATION')
@@ -20,7 +22,11 @@ const CreateUserSchema = SignUpSchema.extend({
 
 export class CreateUserDto extends createZodDto(CreateUserSchema) {}
 
-const GetUsersSchema = LimitSchema.extend({
+const GetUserHttpSchema = LimitSchema.extend({});
+
+export class GetUserHttpDto extends createZodDto(GetUserHttpSchema) {}
+
+const GetUsersSchema = GetUserHttpSchema.extend({
   email: z.array(z.string().email()).optional(),
   id: z.array(z.string().uuid()).optional(),
   accountId: z.string().uuid().optional(),
@@ -35,6 +41,13 @@ const UpdateUserSchema = UpdateMeSchema.extend({
   imageUrl: z.string().optional(),
   deleted: z.boolean().optional(),
   currentOnboardingState: z.nativeEnum(OnboardingState).optional(),
+  primaryLocation: z
+    .object({
+      locationType: z.nativeEnum(LocationType),
+      locationId: z.string().uuid().optional(),
+      geoJson: GeoJsonSchema.optional(),
+    })
+    .optional(),
 });
 
 export class UpdateUserDto extends createZodDto(UpdateUserSchema) {}

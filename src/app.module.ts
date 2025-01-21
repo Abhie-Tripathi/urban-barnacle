@@ -11,18 +11,21 @@ import { BullModule } from '@nestjs/bull';
 import { RequestLoggingMiddleware } from './request-logging.middleware';
 import { LoggingMiddleware } from './logging.interceptor';
 import { UserInterestModule } from './user-interest/user-interest.module';
-import { EmailModule } from './communication/email/email.module';
-import { OtpEmailWorkerClass } from './communication/bull-service/bull-otp.service';
-import { EmailService } from './communication/email/email.service';
-import { AccessEmailWorkerClass } from './communication/bull-service/bull-access.service';
 import { EventModule } from './promotedEvent/event.module';
 import { WidgetsModule } from './widgets/widgets.module';
-import { EventWorkerClass } from './communication/bull-service/bull-event.service';
 import { InviteModule } from './invite/invite.module';
 import { SuggestionModule } from './suggestion/suggestion.module';
 import { EventsModule } from './events/events.module';
 import { TrackerModule } from './tracker/tracker.module';
 import { EnquiryModule } from './enquiry/enquiry.module';
+import { IntentModule } from './intent/intent.module';
+import { CommentModule } from './comment/comment.module';
+import { AccessModule } from './access/access.module';
+import { ExportsModule } from './exports/exports.module';
+import { SavedLocationModule } from './saved-location/saved-location.module';
+import { MeModule } from './user/me/me.module';
+import { CompanyModule } from './user/company/company.module';
+import { AccountModule } from './user/account/account.module';
 
 @Module({
   imports: [
@@ -56,7 +59,6 @@ import { EnquiryModule } from './enquiry/enquiry.module';
     // Other application modules
     UserModule,
     SharedModule,
-    EmailModule,
     BullModule,
     UserInterestModule,
     EventModule,
@@ -66,15 +68,17 @@ import { EnquiryModule } from './enquiry/enquiry.module';
     EventsModule,
     TrackerModule,
     EnquiryModule,
+    IntentModule,
+    CommentModule,
+    AccessModule,
+    ExportsModule,
+    SavedLocationModule,
+    MeModule,
+    CompanyModule,
+    AccountModule,
   ],
   controllers: [AppController],
-  providers: [
-    AppService,
-    OtpEmailWorkerClass,
-    EmailService,
-    AccessEmailWorkerClass,
-    EventWorkerClass,
-  ],
+  providers: [AppService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

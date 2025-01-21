@@ -13,18 +13,35 @@ import { CompanyDataService } from '../company/company.data.service';
 import { AuthDataService } from './auth.data.service.dto';
 import { SelectedUserDetails } from 'src/utils/types';
 import { OnboardingState, User } from '@prisma/client';
+import { CookieSerializeOptions } from '@fastify/cookie';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly sharedService: SharedService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-    @InjectQueue('otpProcessor') private readonly otpEmailQueue: Queue,
+    // @InjectQueue('otpProcessor') private readonly otpEmailQueue: Queue,
     private readonly userDataService: UserDataService,
     private readonly accountDataService: AccountDataService,
     private readonly companyDataService: CompanyDataService,
     private readonly authDataService: AuthDataService,
+    private readonly configService: ConfigService,
   ) {}
+
+  cookieOptions: CookieSerializeOptions = {
+    maxAge: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).valueOf(),
+    httpOnly: true,
+    sameSite: 'none',
+    secure: true,
+    signed: true,
+    domain: this.configService.get('COOKIE_DOMAIN'),
+    // expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
+    // httpOnly: true,
+    // sameSite: 'none',
+    // secure: true,
+    // signed: true,
+    // domain: this.config.get('COOKIE_DOMAIN'),
+  };
 
   async signToken(user: SelectedUserDetails, token: string) {
     const tokenData: TCachedUser = { ...user, token };
@@ -46,21 +63,22 @@ export class AuthService {
     let [user, company] = await Promise.all([
       await this.userDataService.getUsers({
         email: [data.email],
-        limit: '1',
-        offset: '0',
+        limit: 1,
+        offset: 0,
       })[0],
       await this.companyDataService.getCompany({
         domain: domain,
       }),
     ]);
-    let account;
+    console.log(user, company);
+    let account = company ? { id: company.accountId } : null;
     if (user && company) {
       account = (
         await this.accountDataService.getAccounts({
           id: company.accountId,
           userId: user.id,
-          limit: '1',
-          offset: '0',
+          limit: 1,
+          offset: 0,
         })
       )[0];
 
@@ -75,10 +93,14 @@ export class AuthService {
           pendingRequests: domain === '10times' ? 1000 : 200,
           pendingPocUnlockRequests: domain === '10times' ? 10000 : 4400,
         };
-        const account = await this.accountDataService.createAccount({
-          ...accountDefault,
-        });
-        const company = await this.companyDataService.createCompany({
+        account = await this.accountDataService.createAccount(
+          {
+            ...accountDefault,
+          },
+          user,
+        );
+        console.log(account);
+        company = await this.companyDataService.createCompany({
           name: domain,
           domain: domain,
           accountId: account.id,
@@ -98,7 +120,8 @@ export class AuthService {
           ...data,
           role: 'CUSTOMER',
           companyId: company.id,
-          accountId: account.id,
+          accountId: account!.id,
+          primaryAccountId: account!.id,
         });
       }
 
@@ -110,14 +133,15 @@ export class AuthService {
   }
 
   async signIn(data: SignInDto) {
-    const user = await this.userDataService.getUsers({
+    const users = await this.userDataService.getUsers({
       email: [data.email],
-      limit: '1',
-      offset: '0',
-    })[0];
-    if (!user) {
+      limit: 1,
+      offset: 0,
+    });
+    if (users.length === 0) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
+    const user = users[0];
     // send otp
     return {
       message: 'otp sent successfully',
@@ -125,14 +149,15 @@ export class AuthService {
   }
 
   async verifyOtp(data: VerifyOtpDto) {
-    const user = await this.userDataService.getUsers({
+    const users = await this.userDataService.getUsers({
       email: [data.email],
-      limit: '1',
-      offset: '0',
-    })[0];
-    if (!user) {
+      limit: 1,
+      offset: 0,
+    });
+    if (users.length === 0) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
+    const user = users[0];
     const verificationToken = await this.authDataService.getVerificationToken();
     if (
       verificationToken.passkey !== data.otp &&
@@ -142,8 +167,8 @@ export class AuthService {
     }
     const accounts = await this.accountDataService.getAccounts({
       userId: user.id,
-      limit: '10',
-      offset: '0',
+      limit: 10,
+      offset: 0,
     });
     let currentAccount = accounts[0];
     const domain = data.email.split('@')[1].split('.')[0];
@@ -183,8 +208,8 @@ export class AuthService {
     const account = await this.accountDataService.getAccounts({
       id: accountId,
       userId: user.id,
-      limit: '1',
-      offset: '0',
+      limit: 1,
+      offset: 0,
     })[0];
     if (!account) {
       throw new HttpException('Account not found', HttpStatus.NOT_FOUND);

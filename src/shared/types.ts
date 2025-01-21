@@ -1,23 +1,24 @@
-import {  User, UserRole } from '@prisma/client';
+import { User, UserRole } from '@prisma/client';
 import { object, z } from 'zod';
 import { FastifyRequest } from 'fastify';
+import { TCachedUser } from 'src/utils/types';
 
-export type CachedUser = Pick<
-  User,
-  'id' | 'email' | 'role' | 'firstname'
->;
+// export type CachedUser = Pick<
+//   User,
+//   'id' | 'email' | 'role' | 'firstname'
+// >;
 
-export const CachedUserSchema = z.object({
-  id: z.string(),
-  email: z.string(),
-  role: z.nativeEnum(UserRole),
-  firstname: z.string().optional(),
-}) as z.ZodType<CachedUser>;
+// export const CachedUserSchema = z.object({
+//   id: z.string(),
+//   email: z.string(),
+//   role: z.nativeEnum(UserRole),
+//   firstname: z.string().optional(),
+// }) as z.ZodType<CachedUser>;
 
-export type TCachedUser = CachedUser & {
-  accountId: string;
-  token: string;
-};
+// export type TCachedUser = CachedUser & {
+//   accountId: string;
+//   token: string;
+// };
 export type RequestWithUser = FastifyRequest & { user: TCachedUser };
 export type TrackerParams = {
   orgName?: string;

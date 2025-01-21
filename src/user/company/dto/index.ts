@@ -27,6 +27,17 @@ const GetCompanySchema = z.strictObject({
     .string()
     .transform((domain) => domain.toLowerCase())
     .optional(),
+  accountId: z.string().uuid().optional(),
 });
 
 export class GetCompanyDto extends createZodDto(GetCompanySchema) {}
+
+export const CompanyResponseSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  domain: z.string(),
+  website: z.string().optional(),
+  imageUrl: z.string().optional(),
+});
+
+export class CompanyResponseDto extends createZodDto(CompanyResponseSchema) {}
