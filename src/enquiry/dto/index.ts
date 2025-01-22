@@ -6,6 +6,7 @@ import { z } from 'zod';
 const eventDataSchema = z.object({
   eventId: z.string().uuid(),
   name: z.string(),
+  name_lower: z.string(),
   startDate: z.string().datetime(),
   endDate: z.string().datetime(),
 });
@@ -46,6 +47,7 @@ const GetEnquiriesSchema = LimitSchema.extend({
   event_active_gte: z.string().datetime().optional(),
   upvotedBy: z.enum(['me', 'others']).optional(),
   userId: z.string().uuid().optional(),
+  name: z.string().optional(),
 });
 
 export class GetEnquiriesDto extends createZodDto(GetEnquiriesSchema) {}

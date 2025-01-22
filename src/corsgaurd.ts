@@ -21,6 +21,7 @@ export class CorsGaurd implements CanActivate {
       this.config.get('ORIGIN') ?? '[]',
     );
     const url = request.originalUrl;
+    console.log({ url });
     const origin: string | undefined = request.headers.origin;
     response.header('Access-Control-Allow-Origin', origin);
     response.header('access-control-allow-credentials', true);
@@ -41,6 +42,7 @@ export class CorsGaurd implements CanActivate {
       if (url.includes('/event') && url.includes('/public/widget'))
         return false;
       if (isPublic) return true;
-    }return false;
+    }
+    return false;
   }
 }

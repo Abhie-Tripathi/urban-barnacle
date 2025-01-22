@@ -70,7 +70,7 @@ export interface TrackerParamsOptions extends LastActive, TrackerParams {}
 
 const CreateTrackerSchema = z.object({
   name: z.string(),
-  filterValue: ParamsSchema,
+  filterValues: ParamsSchema,
   type: z.nativeEnum(TrackerType),
 });
 

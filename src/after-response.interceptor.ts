@@ -19,6 +19,7 @@ export class AfterResponseInterceptor implements NestInterceptor {
       tap(async () => {
         const res: FastifyReply = context.switchToHttp().getResponse();
         const req: RequestWithUser = context.switchToHttp().getRequest();
+        console.log(res.raw.statusMessage);
         const path = req.originalUrl.split('?')[0];
         const pathBreakdown = path.split('/').filter((p) => p !== '');
         const status = res.statusCode;

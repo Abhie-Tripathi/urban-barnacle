@@ -9,7 +9,7 @@ import { redisStore } from 'cache-manager-redis-yet';
 import { SharedModule } from './shared/shared.module';
 import { BullModule } from '@nestjs/bull';
 import { RequestLoggingMiddleware } from './request-logging.middleware';
-import { LoggingMiddleware } from './logging.interceptor';
+// import { LoggingMiddleware } from './logging.interceptor';
 import { PromotedEventsModule } from './promotedEvent/promoted-event.module';
 import { WidgetsModule } from './widgets/widgets.module';
 import { InviteModule } from './invite/invite.module';
@@ -33,6 +33,7 @@ import { AccessEmailWorkerClass } from './communication/bull-service/bull-access
 import { EventWorkerClass } from './communication/bull-service/bull-event.service';
 import { IntendWorkerClass } from './communication/bull-service/bull-intend.service';
 import { InvitationWorkerClass } from './communication/bull-service/bull-invitation.service';
+import { AfterResponseInterceptor } from './after-response.interceptor';
 
 @Module({
   imports: [
@@ -94,11 +95,12 @@ import { InvitationWorkerClass } from './communication/bull-service/bull-invitat
     EventWorkerClass,
     IntendWorkerClass,
     InvitationWorkerClass,
+    AfterResponseInterceptor,
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(RequestLoggingMiddleware).forRoutes('*');
-    consumer.apply(LoggingMiddleware).forRoutes('*');
+    // consumer.apply(LoggingMiddleware).forRoutes('*');
   }
 }

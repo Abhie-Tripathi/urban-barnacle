@@ -17,10 +17,12 @@ import {
   GetTrackerEventsDto,
   GetTrackerUsersDto,
   UpdateTrackerDto,
+  UpdateTrackerHttpDto,
 } from './dto';
 import { GetUser } from 'src/user/decorator';
 import { TCachedUser } from 'src/utils/types';
 import { AuthGuard } from 'src/user/auth/guard';
+import { GetCommentsDto } from 'src/comment/dto';
 
 @Controller('trackers')
 export class TrackerController {
@@ -45,14 +47,14 @@ export class TrackerController {
   @Patch(':id')
   async updateTracker(
     @Param('id') id: string,
-    @Body() data: UpdateTrackerDto,
+    @Body() data: UpdateTrackerHttpDto,
     @GetUser() user: TCachedUser,
   ) {
     try {
       const tracker = await this.trackerService.updateTracker(user, id, data);
       return { data: tracker };
     } catch (error) {
-      return { error: error.message };
+      return { error: error };
     }
   }
 
@@ -63,7 +65,7 @@ export class TrackerController {
       const tracker = await this.trackerService.deleteTracker(user, id);
       return { data: tracker };
     } catch (error) {
-      return { error: error.message };
+      return { error: error };
     }
   }
 
@@ -82,7 +84,7 @@ export class TrackerController {
       );
       return { data: events };
     } catch (error) {
-      return { error: error.message };
+      return { error: error };
     }
   }
 
@@ -101,7 +103,7 @@ export class TrackerController {
       );
       return { data: events };
     } catch (error) {
-      return { error: error.message };
+      return { error: error };
     }
   }
 
@@ -112,7 +114,16 @@ export class TrackerController {
     @GetUser() user: TCachedUser,
     @Query() query: GetTrackerEventsDto,
   ) {
-    return this.trackerService.getTrackerSavedEvents(user, id, query);
+    try {
+      const events = await this.trackerService.getTrackerSavedEvents(
+        user,
+        id,
+        query,
+      );
+      return { data: events };
+    } catch (error) {
+      return { error: error };
+    }
   }
 
   @UseGuards(AuthGuard)
@@ -122,7 +133,16 @@ export class TrackerController {
     @GetUser() user: TCachedUser,
     @Query() query: GetTrackerEventsCountDto,
   ) {
-    return this.trackerService.getTrackerSavedEventsCount(user, id, query);
+    try {
+      const events = await this.trackerService.getTrackerSavedEventsCount(
+        user,
+        id,
+        query,
+      );
+      return { data: events };
+    } catch (error) {
+      return { error: error };
+    }
   }
 
   @UseGuards(AuthGuard)
@@ -132,7 +152,12 @@ export class TrackerController {
     @GetUser() user: TCachedUser,
     @Query() query: GetTrackerByIdDto,
   ) {
-    return this.trackerService.getTracker(user, id, query);
+    try {
+      const tracker = await this.trackerService.getTracker(user, id, query);
+      return { data: tracker };
+    } catch (error) {
+      return { error: error };
+    }
   }
 
   @UseGuards(AuthGuard)
@@ -142,6 +167,30 @@ export class TrackerController {
     @GetUser() user: TCachedUser,
     @Query() query: GetTrackerUsersDto,
   ) {
-    return this.trackerService.getTrackerUsers(user, id, query);
+    try {
+      const users = await this.trackerService.getTrackerUsers(user, id, query);
+      return { data: users };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get(':id/comments')
+  async getTrackerComments(
+    @Param('id') id: string,
+    @GetUser() user: TCachedUser,
+    @Query() query: GetCommentsDto,
+  ) {
+    try {
+      const comments = await this.trackerService.getTrackerComments(
+        user,
+        id,
+        query,
+      );
+      return { data: comments };
+    } catch (error) {
+      return { error: error };
+    }
   }
 }

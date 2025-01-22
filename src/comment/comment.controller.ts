@@ -6,30 +6,35 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import { CommentService } from './comment.service';
 import { TCachedUser } from 'src/utils/types';
 import { GetUser } from 'src/user/decorator';
 import { CreateCommentHttpDto, UpdateCommentHttpDto } from './dto';
+import { AuthGuard } from 'src/user/auth/guard';
 
 @Controller('comment')
 export class CommentController {
   constructor(private readonly commentService: CommentService) {}
 
   @Post()
+  @UseGuards(AuthGuard)
   async createComment(
     @Body() data: CreateCommentHttpDto,
     @GetUser() user: TCachedUser,
   ) {
     try {
+      console.log(data);
       const comment = await this.commentService.createComment(user, data);
       return { data: comment };
     } catch (error) {
-      return { error: new HttpException(error.message, error.status) };
+      return { error: error };
     }
   }
 
   @Patch(':id')
+  @UseGuards(AuthGuard)
   async updateComment(
     @Param('id') id: string,
     @Body() data: UpdateCommentHttpDto,
@@ -39,6 +44,7 @@ export class CommentController {
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuard)
   async deleteComment(@Param('id') id: string, @GetUser() user: TCachedUser) {
     return this.commentService.deleteComment(user, { id });
   }

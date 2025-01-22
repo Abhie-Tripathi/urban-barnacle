@@ -7,7 +7,6 @@ export * from './userEventInterest.dto';
 const CreateIntentHttpSchema = z.object({
   targetModule: z.nativeEnum(IntentTargetModule),
   targetId: z.string().uuid(),
-  intentType: z.nativeEnum(IntentType),
 });
 
 export class CreateIntentHttpDto extends createZodDto(CreateIntentHttpSchema) {}
@@ -15,6 +14,7 @@ export class CreateIntentHttpDto extends createZodDto(CreateIntentHttpSchema) {}
 const CreateIntentSchema = CreateIntentHttpSchema.extend({
   userId: z.string().uuid(),
   accountId: z.string().uuid(),
+  intentType: z.nativeEnum(IntentType),
 });
 
 export class CreateIntentDto extends createZodDto(CreateIntentSchema) {}

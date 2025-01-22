@@ -147,7 +147,6 @@ export class AuthService {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
     const user = users[0];
-
     await this.authDataService.createVerificationToken(user, 'sign-in');
     return {
       message: 'otp sent successfully',

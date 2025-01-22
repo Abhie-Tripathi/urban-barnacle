@@ -23,9 +23,16 @@ export class IntentDataService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createUserEventInterest(data: CreateUserEventInterestDto) {
+    if (!data.eventId) {
+      throw new HttpException('Event id is required', HttpStatus.BAD_REQUEST);
+    }
+    if (data.sourceModule !== 'RESEARCH' && !data.sourceId) {
+      throw new HttpException('Source id is required ', HttpStatus.BAD_REQUEST);
+    }
     const userEventInterest = await this.prisma.userEventInterest.create({
       data: {
         ...data,
+        eventId: data.eventId,
         modifiedBy: data.recommendedBy || data.interestedUserId,
         status: InterestStatus.PENDING,
       },
@@ -90,8 +97,38 @@ export class IntentDataService {
   }
 
   async createIntent(data: CreateIntentDto) {
-    const intent = await this.prisma.intent.create({
-      data,
+    const previousIntent = await this.prisma.intent.findUnique({
+      where: {
+        unique_intent: data,
+        deleted: false,
+      },
+    });
+    if (previousIntent) {
+      throw new HttpException(
+        `${data.intentType.toLowerCase()} already exists`,
+        HttpStatus.CONFLICT,
+      );
+    }
+    const intent = await this.prisma.intent.upsert({
+      where: {
+        unique_intent: data,
+      },
+      update: {
+        deleted: false,
+      },
+      create: {
+        ...data,
+      },
+    });
+    await this.prisma.comment.update({
+      where: {
+        id: intent.targetId,
+      },
+      data: {
+        totalLikes: {
+          increment: 1,
+        },
+      },
     });
     return intent;
   }
@@ -101,6 +138,18 @@ export class IntentDataService {
       where: { id: data.id },
       data,
     });
+    if (data.deleted && intent.targetModule === 'COMMENT') {
+      await this.prisma.comment.update({
+        where: {
+          id: intent.targetId,
+        },
+        data: {
+          totalLikes: {
+            decrement: 1,
+          },
+        },
+      });
+    }
     return intent;
   }
 

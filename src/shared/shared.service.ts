@@ -125,7 +125,18 @@ export class SharedService {
         eventTypes &&
         (eventTypes.length === 0 || eventTypes.length !== eventTypesSlug.length)
       ) {
-        throw new HttpException('Invalid event type', 400);
+        throw new HttpException(
+          {
+            message: 'Invalid event type',
+            issues: [
+              {
+                message: 'Invalid event type',
+                code: 'invalid_event_type',
+              },
+            ],
+          },
+          400,
+        );
       }
       params['eventTypes'] = eventTypes.map((eventType) => eventType.id);
     }

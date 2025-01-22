@@ -11,15 +11,16 @@ import { AccessService } from 'src/access/access.service';
 import { IntentService } from 'src/intent/intent.service';
 import { EnquiryService } from 'src/enquiry/enquiry.service';
 import { IntentDataService } from 'src/intent/intent.data.service';
-import { InterestSourceModule } from '@prisma/client';
+import { IntentTargetModule, InterestSourceModule } from '@prisma/client';
 
 @Injectable()
 export class CommentService {
   constructor(
     private readonly commentDataService: CommentDataService,
     private readonly accessService: AccessService,
-    private readonly intentDataService: IntentDataService,
-    private readonly enquiryService: EnquiryService,
+    private readonly intentService: IntentService,
+    // private readonly intentDataService: IntentDataService,
+    // private readonly enquiryService: EnquiryService,
   ) {}
 
   async createComment(user: TCachedUser, data: CreateCommentHttpDto) {
@@ -57,29 +58,30 @@ export class CommentService {
         data.interest &&
         data.interestedUserId
       ) {
-        let enquiry = (
-          await this.enquiryService.getEnquiries({
-            ids: [data.sourceId],
-            accountId: user.accountId,
-            limit: 1,
-            offset: 0,
-          })
-        )[0];
-        if (!enquiry) {
-          throw new HttpException('Enquiry not found', HttpStatus.NOT_FOUND);
-        }
+        // let enquiry = (
+        //   await this.enquiryService.getEnquiries({
+        //     ids: [data.sourceId],
+        //     accountId: user.accountId,
+        //     limit: 1,
+        //     offset: 0,
+        //   })
+        // )[0];
+        // if (!enquiry) {
+        //   throw new HttpException('Enquiry not found', HttpStatus.NOT_FOUND);
+        // }
         const userInterestParams = {
           sourceModule: InterestSourceModule.COMMENT,
           interest: data.interest,
           accountId: user.accountId,
-          enquiry: enquiry.id,
-          eventId: enquiry.eventId,
+          enquiry: data.sourceId,
+          // eventId: enquiry.eventId,
           interestedUserId: data.interestedUserId,
         };
         if (data.commentType === 'RECOMMENDATION' && data.interestedUserId) {
           userInterestParams['recommendedBy'] = user.id;
         }
-        await this.intentDataService.createUserEventInterest(
+        await this.intentService.createUserEventInterest(
+          user,
           userInterestParams,
         );
       } else if (
@@ -106,7 +108,22 @@ export class CommentService {
 
   async getComments(user: TCachedUser, data: GetCommentsDto) {
     const comments = await this.commentDataService.getComments(data);
-    return comments;
+    const commentsWithUserUpvoted = await Promise.all(
+      comments.map(async (comment) => {
+        const userUpvoted = await this.intentService.checkUserUpvote({
+          userId: user.id,
+          targetModule: IntentTargetModule.COMMENT,
+          targetId: comment.id,
+          accountId: user.accountId,
+        });
+        return {
+          ...comment,
+          userUpvoted,
+        };
+      }),
+    );
+
+    return commentsWithUserUpvoted;
   }
 
   async updateComment(user: TCachedUser, data: UpdateCommentDto) {
@@ -127,21 +144,11 @@ export class CommentService {
     const updatedComment = await this.commentDataService.updateComment(data);
     if (updatedComment.sourceModule === 'COORDINATE') {
       if (data.interest && data.interestedUserId) {
-        const enquiry = await this.enquiryService.getEnquiries({
-          ids: [comment[0].sourceId],
-          accountId: user.accountId,
-          limit: 1,
-          offset: 0,
-        });
-        if (enquiry.length === 0) {
-          throw new HttpException('Enquiry not found', HttpStatus.NOT_FOUND);
-        }
-        await this.intentDataService.createUserEventInterest({
+        await this.intentService.createUserEventInterest(user, {
           sourceModule: InterestSourceModule.COMMENT,
           interest: data.interest,
           accountId: user.accountId,
-          enquiryId: enquiry[0].id,
-          eventId: enquiry[0].eventId,
+          enquiryId: comment[0].sourceId,
           interestedUserId: data.interestedUserId,
         });
       }

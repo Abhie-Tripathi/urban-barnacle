@@ -14,7 +14,7 @@ export class CreateUserEventInterestHttpDto extends createZodDto(
 ) {}
 
 const CreateUserEventInterestSchema = CreateUserEventInterestHttpSchema.extend({
-  eventId: z.string().uuid(),
+  eventId: z.string().uuid().optional(),
   accountId: z.string().uuid(),
   interestedUserId: z.string().uuid(),
   recommendedBy: z.string().uuid().optional(),

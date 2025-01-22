@@ -19,9 +19,9 @@ import { EventsService } from 'src/events/events.service';
 import { CountGroup, CountQueryDto, QueryDto } from 'src/events/dto';
 import { IntentDataService } from 'src/intent/intent.data.service';
 import { AccessType, Prisma, Tracker } from '@prisma/client';
-import { CommentDataService } from 'src/comment/comment.data.service';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { UserDataService } from 'src/user/user.data.service';
+import { CommentService } from 'src/comment/comment.service';
 
 @Injectable()
 export class TrackerService {
@@ -32,18 +32,18 @@ export class TrackerService {
     private readonly sharedService: SharedService,
     private readonly eventService: EventsService,
     private readonly intentDataService: IntentDataService,
-    private readonly commentDataService: CommentDataService,
+    private readonly commentService: CommentService,
     private readonly userDataService: UserDataService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
-    const nonEmptyParams = getNonEmptyParams(data.filterValue);
+    const nonEmptyParams = getNonEmptyParams(data.filterValues);
     const convertedParams =
       await this.sharedService.convertSlugParamsToIds(nonEmptyParams);
     const tracker = await this.trackerDataService.createTracker(user, {
       ...data,
-      filterValue: convertedParams,
+      filterValues: convertedParams,
     });
     await this.accessDataService.createAccess({
       accessProviderId: user.id,
@@ -80,9 +80,9 @@ export class TrackerService {
           : tracker.type === 'T_SPEAKING_OPPORTUNITY'
             ? 'speaker'
             : undefined;
-    tracker.filterValue = tracker.filterValue
+    tracker.filterValues = tracker.filterValues
       ? {
-          ...(tracker.filterValue as Record<string, any>),
+          ...(tracker.filterValues as Record<string, any>),
           searchByEntity,
         }
       : { searchByEntity };
@@ -107,20 +107,20 @@ export class TrackerService {
     if (!groupedEventsCount || !filterValue || query.refresh) {
       groupedEventsCount = await this.getGroupedEventsCount(
         {
-          ...tracker.filterValue,
+          ...tracker.filterValues,
           createdAt: lastActive.last_active_gte,
           groupBy: [groupBy],
         } as CountQueryDto,
         groupBy,
       );
 
-      tracker.filterValue = await this.sharedService.convertIdParamsToSlug(
-        tracker.filterValue,
+      tracker.filterValues = await this.sharedService.convertIdParamsToSlug(
+        tracker.filterValues,
       );
 
       await this.cacheManager.set(
         tracker.id,
-        { groupedEventsCount, filterValue: tracker.filterValue },
+        { groupedEventsCount, filterValues: tracker.filterValues },
         82800000,
       );
     }
@@ -128,7 +128,7 @@ export class TrackerService {
       id: tracker.id,
       name: tracker.name,
       type: tracker.type,
-      filterValue: tracker.filterValue,
+      filterValues: tracker.filterValues,
     };
     return {
       ...trackerValues,
@@ -217,10 +217,19 @@ export class TrackerService {
       'ADMIN',
       'SUPER_ADMIN',
     ]);
-    return this.trackerDataService.updateTracker(user, {
+
+    const updateParams = {
       ...data,
       id: tracker.id,
-    });
+    };
+    if (data.filterValues) {
+      const nonEmptyParams = getNonEmptyParams(data.filterValues);
+      const convertedParams =
+        await this.sharedService.convertSlugParamsToIds(nonEmptyParams);
+      updateParams['filterValues'] = convertedParams;
+    }
+    console.log(updateParams);
+    return await this.trackerDataService.updateTracker(user, updateParams);
   }
 
   async deleteTracker(user: TCachedUser, trackerId: string) {
@@ -248,7 +257,7 @@ export class TrackerService {
     const convertedParams =
       this.sharedService.convertSlugParamsToIds(newParams);
     const eventParams = {
-      ...(tracker.filterValue as Object),
+      ...(tracker.filterValues as Object),
       ...convertedParams,
       limit: params.limit,
       offset: params.offset,
@@ -279,7 +288,7 @@ export class TrackerService {
         interestedUserId: user.id,
         accountId: user.accountId,
       })
-    ).map((item) => item.id);
+    ).map((item) => item.eventId);
 
     if (savedEventsIds.length === 0) {
       return [];
@@ -295,11 +304,14 @@ export class TrackerService {
       offset: params.offset,
     } as QueryDto;
 
+    console.log({ eventParams });
+
     const events = await this.eventService.getAllEvents(
       eventParams,
       false,
       user.id,
     );
+
     return events;
   }
 
@@ -317,7 +329,7 @@ export class TrackerService {
     const convertedParams =
       this.sharedService.convertSlugParamsToIds(newParams);
     const eventParams = {
-      ...(tracker.filterValue as Object),
+      ...(tracker.filterValues as Object),
       ...convertedParams,
     } as CountQueryDto;
 
@@ -344,7 +356,7 @@ export class TrackerService {
         interestedUserId: user.id,
         accountId: user.accountId,
       })
-    ).map((item) => item.id);
+    ).map((item) => item.eventId);
 
     if (savedEventsIds.length === 0) {
       return [];
@@ -372,7 +384,7 @@ export class TrackerService {
       'SUPER_ADMIN',
       'USER',
     ]);
-    const comments = await this.commentDataService.getComments({
+    const comments = await this.commentService.getComments(user, {
       accountId: user.accountId,
       sourceModule: 'TRACKER',
       sourceId: tracker.id,
@@ -399,6 +411,7 @@ export class TrackerService {
         accountId: user.accountId,
         limit: params.limit,
         offset: params.offset,
+        show: 'user',
       })
     ).map((item) => {
       const user = item.accessReceiver;

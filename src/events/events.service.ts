@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { EventsDataService } from './events.data.service';
 import { CountQueryDto, EventsTrendsDto, QueryDto } from './dto';
 import { SharedService } from '../shared/shared.service';
@@ -42,17 +42,26 @@ export class EventsService {
   }
 
   async getEvent(userId: string, eventId: string) {
-    const fetchedEvents = await this.eventsDataService.getEvents({
+    const data = await this.eventsDataService.getEvents({
       eventIds: [eventId],
       limit: 1,
       offset: 0,
     });
+    if (
+      !data ||
+      (data && !data.events) ||
+      (data && data.events && data.events.length === 0)
+    ) {
+      throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
+    }
+    const event = data.events[0];
+    console.log(event);
     const isSaved = {};
-    const event = {
-      ...fetchedEvents[0],
-      isSaved: isSaved[fetchedEvents[0]?.id],
+    const eventResponse = {
+      ...event,
+      isSaved: isSaved[event.id],
     };
-    return { data: event };
+    return eventResponse;
   }
 
   async getEventsCount(query: CountQueryDto, validateIds: boolean = true) {
