@@ -220,7 +220,7 @@ model Intent {
   updatedAt    DateTime           @updatedAt
   deleted      Boolean            @default(false)
 
-  @@unique([targetModule, targetId, userId, intentType], name: "unique_intent")
+  @@unique([targetModule, targetId, userId, intentType, accountId], name: "unique_intent")
 }
 
 enum IntentTargetModule {
@@ -360,7 +360,7 @@ enum AccessType {
 model Tracker {
   id             String      @id @default(uuid()) @db.Uuid
   name           String?     @db.VarChar(200)
-  filterValue    Json
+  filterValues   Json
   attachmentId   String?
   type           TrackerType @default(T_CUSTOM)
   createdAt      DateTime    @default(now())

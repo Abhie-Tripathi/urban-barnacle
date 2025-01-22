@@ -16,8 +16,15 @@ export class AuthDataService {
   async createVerificationToken(user: User, process: string) {
     const passkey = randomInt(100000, 1000000).toString();
     const expiresAt = new Date(Date.now() + 1000 * 60 * 5);
-    const verificationToken = await this.prisma.verification.create({
-      data: {
+    await this.prisma.verification.upsert({
+      where: {
+        userId: user.id,
+      },
+      update: {
+        passkey: passkey,
+        expiresAt: expiresAt,
+      },
+      create: {
         userId: user.id,
         passkey: passkey,
         expiresAt: expiresAt,

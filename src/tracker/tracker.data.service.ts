@@ -14,7 +14,7 @@ export class TrackerDataService {
     const tracker = await this.prisma.tracker.create({
       data: {
         name: data.name,
-        filterValue: data.filterValue,
+        filterValues: data.filterValues,
         type: data.type,
         createdBy: user.id,
         accountId: user.accountId,

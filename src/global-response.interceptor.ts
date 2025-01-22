@@ -4,10 +4,14 @@ import {
   ExecutionContext,
   CallHandler,
   HttpStatus,
+  HttpException,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { FastifyReply } from 'fastify';
+import { error } from 'console';
+import { ZodValidationException } from 'nestjs-zod';
+import { PrismaClientValidationError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class GlobalResponseInterceptor implements NestInterceptor {
@@ -17,31 +21,62 @@ export class GlobalResponseInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       catchError((err) => {
+        if (err instanceof ZodValidationException) {
+          response.status(HttpStatus.BAD_REQUEST).send({
+            error: {
+              statusCode: HttpStatus.BAD_REQUEST,
+              message: err.message,
+              issues: err.getZodError().issues,
+            },
+          });
+        } else {
+          response.status(err.status || HttpStatus.INTERNAL_SERVER_ERROR).send({
+            error: {
+              statusCode: err.status || HttpStatus.INTERNAL_SERVER_ERROR,
+              message: err.message || 'Internal Server Error',
+              issues: err.issues || [],
+            },
+          });
+        }
         // Handle unexpected errors
-        response.status(err.status || HttpStatus.INTERNAL_SERVER_ERROR).send({
-          statusCode: err.status || HttpStatus.INTERNAL_SERVER_ERROR,
-          message: err.message || 'Internal Server Error',
-        });
+        console.log(err);
         throw err;
       }),
       tap((data) => {
-        if (data?.error) {
+        let errorResponse: any;
+        console.log({ error: data.error });
+        const error: HttpException = data.error;
+
+        if (data && data.error) {
+          if (data.error instanceof PrismaClientValidationError) {
+            errorResponse = {
+              message: 'Invalid input',
+              issues: data.error,
+              statusCode: HttpStatus.BAD_REQUEST,
+            };
+          }
           // Check if the response contains an error property
-          const error = data.error;
+          else {
+            errorResponse = error.getResponse() as unknown as {
+              message: string;
+              issues: any[];
+              statusCode: number;
+            };
+            console.log({ errorResponse });
+          }
           response
             .status(error.getStatus?.() || HttpStatus.INTERNAL_SERVER_ERROR)
             .send({
-              statusCode:
-                error.getStatus?.() || HttpStatus.INTERNAL_SERVER_ERROR,
-              message: error.message || 'An error occurred',
+              error: {
+                statusCode:
+                  error.getStatus?.() || HttpStatus.INTERNAL_SERVER_ERROR,
+                message: errorResponse.message || errorResponse,
+                issues: errorResponse.issues || [],
+              },
             });
         } else {
           // Handle successful responses
-          response.status(HttpStatus.OK).send(
-            // statusCode: HttpStatus.OK,
-            // success: true,
-            data,
-          );
+          response.status(HttpStatus.OK).send(data);
         }
       }),
     );

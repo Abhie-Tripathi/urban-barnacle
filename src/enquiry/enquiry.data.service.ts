@@ -15,7 +15,7 @@ export class EnquiryDataService {
   }
 
   async getEnquiries(data: GetEnquiriesDto) {
-    const params = {};
+    const params: Prisma.EnquiryWhereInput = {};
     if (data.accountId) params['accountId'] = data.accountId;
     if (data.eventId) params['eventId'] = data.eventId;
     if (data.initiatedBy) params['initiatedBy'] = data.initiatedBy;
@@ -25,29 +25,41 @@ export class EnquiryDataService {
           interest: data.type,
         },
       };
+
     const endDate = data.event_active_gte
       ? {
-          path: ['startDate'],
-          lte: data.event_active_lte,
+          eventData: {
+            path: ['startDate'],
+            lte: data.event_active_lte,
+          },
         }
-      : {};
+      : null;
     const startDate = data.event_active_lte
       ? {
-          path: ['endDate'],
-          gte: data.event_active_gte,
+          eventData: {
+            path: ['endDate'],
+            gte: data.event_active_gte,
+          },
         }
-      : {};
-    if (data.event_active_gte && data.event_active_gte) {
-      params['AND'] = [
-        {
-          eventData: startDate,
-        },
-        {
-          eventData: endDate,
-        },
-      ];
-    } else if (data.event_active_lte) params['eventData'] = endDate;
-    else if (data.event_active_gte) params['eventData'] = startDate;
+      : null;
+    const name = data.name
+      ? {
+          eventData: {
+            path: ['name_lower'],
+            string_contains: data.name.toLowerCase(),
+          },
+        }
+      : null;
+
+    if (endDate || startDate || name) {
+      params['AND'] = [];
+      if (endDate) params['AND'].push(endDate);
+      if (startDate) params['AND'].push(startDate);
+      if (name) params['AND'].push(name);
+    }
+    // } else if (data.event_active_lte) params['eventData'] = endDate;
+    // else if (data.event_active_gte) params['eventData'] = startDate;
+    // else if (data.name) params['name'] = name;
     if (
       (data.upvotedBy === 'me' || data.upvotedBy === 'others') &&
       !data.userId

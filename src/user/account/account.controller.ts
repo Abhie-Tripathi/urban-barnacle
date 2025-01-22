@@ -35,6 +35,7 @@ export class AccountController {
       );
       return { data: enquiries };
     } catch (error) {
+      console.log(error);
       return { error: error.message };
     }
   }

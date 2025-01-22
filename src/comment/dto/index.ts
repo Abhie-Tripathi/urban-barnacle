@@ -4,11 +4,18 @@ import { CommentType, CommentSourceModule, Interest } from '@prisma/client';
 import { LimitDto, LimitSchema } from 'src/global_dto';
 
 const CreateCommentHttpSchema = z.object({
-  content: z.string().min(3).max(255).optional(),
+  content: z
+    .string()
+    .min(1, 'Content can not be empty')
+    .max(255, 'Content can not be more than 255 characters')
+    .optional(),
   commentType: z.nativeEnum(CommentType),
   interest: z
     .nativeEnum(Interest)
-    .refine((data) => data !== Interest.BOOKMARK)
+    .refine(
+      (data) => data !== Interest.BOOKMARK && data !== Interest.ORGANIZE,
+      'Invalid interest',
+    )
     .optional(),
   sourceModule: z.nativeEnum(CommentSourceModule),
   sourceId: z.string(),
