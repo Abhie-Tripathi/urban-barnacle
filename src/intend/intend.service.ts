@@ -53,12 +53,12 @@ export class IntendService {
         userid = userCreate.id;
         // userAccountId = userCreate.accountId;
       } else if (usercheck.currentOnboardingState === 'PROMOTED_USER') {
-        const userCreate = await this.intendDataService.updateUser({
+        const userUpdate= await this.intendDataService.updateUser({
           id: usercheck.id,
           firstname: body.firstname,
           lastname: body.lastname,
         });
-        userid = userCreate.id;
+        userid = userUpdate.id;
       }
       if (
         body.status &&
@@ -91,6 +91,7 @@ export class IntendService {
             interest: body.interest as Interest,
             status: status,
             note: body.note,
+            modifiedBy: userid,
           });
         interestId = userInteres.id;
       } else if (body.note !== 'admin@eventgeni.admin.com') {

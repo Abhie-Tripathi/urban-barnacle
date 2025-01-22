@@ -16,14 +16,20 @@ export class AuthDataService {
   async createVerificationToken(user: User, process: string) {
     const passkey = randomInt(100000, 1000000).toString();
     const expiresAt = new Date(Date.now() + 1000 * 60 * 5);
-    const verificationToken = await this.prisma.verification.create({
-      data: {
+    await this.prisma.verification.upsert({
+      where: {
+        userId: user.id,
+      },
+      update: {
+        passkey: passkey,
+        expiresAt: expiresAt,
+      },
+      create: {
         userId: user.id,
         passkey: passkey,
         expiresAt: expiresAt,
       },
     });
-
     await this.communicationService.createJobForBull(
       QueueActionOptions.SEND_SIGN_UP_IN_EMAIL,
       {
@@ -50,6 +56,24 @@ export class AuthDataService {
       },
     });
     return verificationToken;
+    // return {
+    //   passkey: '000000',
+    //   expiresAt: new Date(Date.now() + 1000 * 60 * 5),
+    // };
+  }
+  async getAccessToken(email: string) {
+    const accessToken = await this.prisma.access.findFirst({
+      where: {
+        accessReceiver: {
+          email: email,
+        },
+      },
+      select: {
+        token: true,
+        expiry: true,
+      },
+    });
+    return accessToken;
     // return {
     //   passkey: '000000',
     //   expiresAt: new Date(Date.now() + 1000 * 60 * 5),

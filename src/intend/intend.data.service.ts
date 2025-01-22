@@ -27,6 +27,7 @@ export class IntendDataService {
         select: {
           id: true,
           currentOnboardingState: true,
+          primaryAccountId: true,
           accounts: {
             select: {
               id: true,
@@ -78,6 +79,7 @@ export class IntendDataService {
         currentOnboardingState: 'PROMOTED_USER',
         accountId: account.id,
       })),
+      primaryAccountId: account.id,
       accountId: account.id,
     };
   }

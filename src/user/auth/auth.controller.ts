@@ -61,7 +61,21 @@ export class AuthController {
       return { error: error };
     }
   }
+  @Post('verify-access')
+  async verifyAccess(
+    @Body() body: VerifyOtpDto,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    try {
+      const data = await this.authService.verifyOtp(body);
 
+      const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
+      reply.cookie(key, data.user.token, this.authService.cookieOptions);
+      return { data: { user: data.user.userData } };
+    } catch (error) {
+      return { error: error };
+    }
+  }
   // @UseGuards(AuthGuard)
   // @Post('signout')
   // async signOut(

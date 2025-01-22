@@ -25,6 +25,8 @@ export class GlobalResponseInterceptor implements NestInterceptor {
         throw err;
       }),
       tap((data) => {
+        console.log(data);
+
         if (data?.error) {
           // Check if the response contains an error property
           const error = data.error;

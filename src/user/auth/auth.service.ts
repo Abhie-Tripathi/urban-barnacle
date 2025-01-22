@@ -120,7 +120,7 @@ export class AuthService {
         }
       }
       if (!user) {
-        const user = await this.userDataService.createUser({
+        user = await this.userDataService.createUser({
           ...data,
           role: 'CUSTOMER',
           companyId: company.id,
@@ -128,6 +128,7 @@ export class AuthService {
           primaryAccountId: account!.id,
         });
       }
+      console.log(user);
 
       await this.authDataService.createVerificationToken(user, 'sign-up');
       return {
@@ -205,7 +206,54 @@ export class AuthService {
       }),
     };
   }
-
+  async verifyAccess(data: VerifyOtpDto) {
+    const users = await this.userDataService.getUsers({
+      email: [data.email],
+      limit: 1,
+      offset: 0,
+    });
+    if (users.length === 0) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+    const user = users[0];
+    const accessToken = await this.authDataService.getAccessToken(data.email);
+    if (!accessToken || (accessToken && accessToken.token !== data.otp)) {
+      throw new HttpException('Invalid Token', HttpStatus.UNAUTHORIZED);
+    }
+    if (accessToken.expiry && accessToken.expiry < new Date()) {
+      throw new HttpException('Token Expired', HttpStatus.UNAUTHORIZED);
+    }
+    const accounts = await this.accountDataService.getAccounts({
+      userId: user.id,
+      limit: 10,
+      offset: 0,
+    });
+    let currentAccount = accounts[0];
+    const domain = data.email.split('@')[1].split('.')[0];
+    accounts.forEach((account) => {
+      if (account.company!.domain === domain) {
+        currentAccount = account;
+      }
+    });
+    if (user.currentOnboardingState === OnboardingState.VERIFICATION) {
+      const updatedUser = await this.userDataService.updateUser({
+        id: user.id,
+        currentOnboardingState: OnboardingState.COMPLETED,
+      });
+      return {
+        user: await this.UserResponse({
+          ...updatedUser,
+          accountId: currentAccount.id,
+        }),
+      };
+    }
+    return {
+      user: await this.UserResponse({
+        ...user,
+        accountId: currentAccount.id,
+      }),
+    };
+  }
   async signOut(token: string) {
     await this.cacheManager.del(token);
     return {

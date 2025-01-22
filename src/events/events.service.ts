@@ -50,9 +50,9 @@ export class EventsService {
     const isSaved = {};
     const event = {
       ...fetchedEvents[0],
-      isSaved: isSaved[fetchedEvents[0].id],
+      isSaved: isSaved[fetchedEvents[0]?.id],
     };
-    return event;
+    return { data: event };
   }
 
   async getEventsCount(query: CountQueryDto, validateIds: boolean = true) {
