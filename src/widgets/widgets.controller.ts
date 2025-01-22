@@ -55,7 +55,7 @@ export class WidgetsController {
   getWidgetByid(
     @Param('id') patram,
     @Query() query,
-    @GetUser('companyId') user: string,
+    @GetUser('accountId') user: string,
   ) {
     try {
       const result = this.service.getWidgetById(patram, query, user);

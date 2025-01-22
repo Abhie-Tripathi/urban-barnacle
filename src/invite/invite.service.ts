@@ -97,7 +97,6 @@ export class InviteService {
           break;
         }
         count--;
-        await this.inviteDataService.updateAllowance(allowcation.id, count);
         const convertInterestOfevnt: object = {
           ATTENDEE: 'ATTEND',
           SPEAKER: 'SPEAK',
@@ -137,6 +136,7 @@ export class InviteService {
           console.log('loop', count);
         }
       }
+      await this.inviteDataService.updateAllowance(allowcation.id, count);
     } catch (error) {
       console.log(error + ' 567');
 

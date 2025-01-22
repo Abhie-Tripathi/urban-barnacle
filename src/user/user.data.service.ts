@@ -23,18 +23,11 @@ export class UserDataService {
           },
         }
       : {};
+
     const user = await this.prisma.user.create({
       data: {
-        firstname: data.firstname,
-        lastname: data.lastname,
+        ...data,
         email: data.email.toLowerCase(),
-        role: data.role,
-        imageUrl: data.imageUrl,
-        companyId: data.companyId,
-        industry: data.industry,
-        subIndustry: data.subIndustry,
-        category: data.category,
-        currentOnboardingState: data.currentOnboardingState,
         ...account,
       },
     });

@@ -21,7 +21,7 @@ export class PublicApiController {
       };
     }
   }
-  @Get('event')
+  @Get('event/:id')
   async getWidgetEvents(@Param('id') id) {
     try {
       const result = this.service.getWidgetEventById(id);
