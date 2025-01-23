@@ -538,28 +538,28 @@ export const QuerySchema = LimitSchema.extend(QueryFilter.shape)
     calendar_type: z.nativeEnum(CalendarViewType).optional(),
   })
   .transform((data) => {
-    const intersectedKeys = Object.keys(data).filter((key) =>
-      FilterNames.includes(key),
-    );
-    if (
-      !(
-        intersectedKeys.length === 1 && intersectedKeys[0].trim() === 'query'
-      ) &&
-      !(data.eventIds && data.eventIds.length)
-    ) {
-      const defaultStartDate = new Date().toISOString();
-      const defaultEndDate = new Date(
-        new Date().getTime() + (90 - 1) * 24 * 60 * 60 * 1000,
-      ).toISOString();
-      if (!data['active_gte'] && !data['active_lte']) {
-        data['active_gte'] = defaultStartDate;
-        data['active_lte'] = defaultEndDate;
-      } else if (!data['active_lte'] && data['active_gte']) {
-        data['active_gte'] = data['active_gte'];
-      } else if (!data['active_gte'] && data['active_lte']) {
-        data['active_lte'] = data['active_lte'];
-      }
-    }
+    // const intersectedKeys = Object.keys(data).filter((key) =>
+    //   FilterNames.includes(key),
+    // );
+    // if (
+    //   !(
+    //     intersectedKeys.length === 1 && intersectedKeys[0].trim() === 'query'
+    //   ) &&
+    //   !(data.eventIds && data.eventIds.length)
+    // ) {
+    //   const defaultStartDate = new Date().toISOString();
+    //   const defaultEndDate = new Date(
+    //     new Date().getTime() + (90 - 1) * 24 * 60 * 60 * 1000,
+    //   ).toISOString();
+    //   if (!data['active_gte'] && !data['active_lte']) {
+    //     data['active_gte'] = defaultStartDate;
+    //     data['active_lte'] = defaultEndDate;
+    //   } else if (!data['active_lte'] && data['active_gte']) {
+    //     data['active_gte'] = data['active_gte'];
+    //   } else if (!data['active_gte'] && data['active_lte']) {
+    //     data['active_lte'] = data['active_lte'];
+    //   }
+    // }
     return data;
   });
 
@@ -588,26 +588,26 @@ export const CountQuerySchema = QueryFilter.extend({
     .transform((val) => val.split(',') as CountGroup[])
     .optional(),
 }).transform((data) => {
-  const intersectedKeys = Object.keys(data).filter((key) =>
-    FilterNames.includes(key),
-  );
-  if (
-    !(intersectedKeys.length === 1 && intersectedKeys[0].trim() === 'query') &&
-    !(data.eventIds && data.eventIds.length)
-  ) {
-    const defaultStartDate = new Date().toISOString();
-    const defaultEndDate = new Date(
-      new Date().getTime() + (90 - 1) * 24 * 60 * 60 * 1000,
-    ).toISOString();
-    if (!data['active_gte'] && !data['active_lte']) {
-      data['active_gte'] = defaultStartDate;
-      data['active_lte'] = defaultEndDate;
-    } else if (!data['active_lte'] && data['active_gte']) {
-      data['active_gte'] = data['active_gte'];
-    } else if (!data['active_gte'] && data['active_lte']) {
-      data['active_lte'] = data['active_lte'];
-    }
-  }
+  // const intersectedKeys = Object.keys(data).filter((key) =>
+  //   FilterNames.includes(key),
+  // );
+  // if (
+  //   !(intersectedKeys.length === 1 && intersectedKeys[0].trim() === 'query') &&
+  //   !(data.eventIds && data.eventIds.length)
+  // ) {
+  //   const defaultStartDate = new Date().toISOString();
+  //   const defaultEndDate = new Date(
+  //     new Date().getTime() + (90 - 1) * 24 * 60 * 60 * 1000,
+  //   ).toISOString();
+  //   if (!data['active_gte'] && !data['active_lte']) {
+  //     data['active_gte'] = defaultStartDate;
+  //     data['active_lte'] = defaultEndDate;
+  //   } else if (!data['active_lte'] && data['active_gte']) {
+  //     data['active_gte'] = data['active_gte'];
+  //   } else if (!data['active_gte'] && data['active_lte']) {
+  //     data['active_lte'] = data['active_lte'];
+  //   }
+  // }
   return data;
 });
 

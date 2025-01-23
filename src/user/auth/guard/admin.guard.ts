@@ -4,8 +4,9 @@ import {
   CanActivate,
   ExecutionContext,
   Inject,
-  HttpException,
+  UnauthorizedException,
   HttpStatus,
+  HttpException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cache } from 'cache-manager';
@@ -19,11 +20,10 @@ export class AdminGuard implements CanActivate {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private configService: ConfigService,
   ) {
-    this.cookiePrefix = this.configService.get('COOKIE_PREFIX');
+    this.cookiePrefix = process.env.COOKIE_PREFIX;
   }
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request: FastifyRequest = context.switchToHttp().getRequest();
-    console.log({ cookies: request.cookies });
     const user = await this.getUser(request);
     request['user'] = user;
     if (!user) {
@@ -40,9 +40,11 @@ export class AdminGuard implements CanActivate {
   async getUser(request: FastifyRequest) {
     const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
     // const requestToken = request.unsignCookie[key];
-    const requestToken = request.unsignCookie(
-      request.cookies[key] as string,
-    ).value;
+    const signedCookie = request.cookies[key];
+    if (!signedCookie) {
+      return null;
+    }
+    const requestToken = request.unsignCookie(signedCookie).value;
     if (!requestToken) {
       return null;
     }

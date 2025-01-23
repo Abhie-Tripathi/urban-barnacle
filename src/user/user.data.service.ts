@@ -8,13 +8,14 @@ export class UserDataService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createUser(data: CreateUserDto) {
+    const { accountId, companyId, ...rest } = data;
     if (!data.accountId && data.currentOnboardingState !== 'PROMOTED_USER') {
       throw new HttpException(
         'account id is must be provided',
         HttpStatus.BAD_REQUEST,
       );
     }
-    const account: object = data.accountId
+    const account: object = accountId
       ? {
           accounts: {
             connect: {
@@ -23,12 +24,21 @@ export class UserDataService {
           },
         }
       : {};
-
+    const company = companyId
+      ? {
+          company: {
+            connect: {
+              id: data.companyId,
+            },
+          },
+        }
+      : {};
     const user = await this.prisma.user.create({
       data: {
-        ...data,
+        ...rest,
         email: data.email.toLowerCase(),
         ...account,
+        ...company,
       },
     });
     return user;

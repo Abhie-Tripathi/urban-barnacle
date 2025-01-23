@@ -61,6 +61,7 @@ export class AuthController {
       return { error: error };
     }
   }
+
   @Post('verify-access')
   async verifyAccess(
     @Body() body: VerifyOtpDto,

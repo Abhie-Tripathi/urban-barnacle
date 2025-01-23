@@ -14,7 +14,8 @@ export const LocationSchema = SuggestionSchema.extend({
   type: z
     .string()
     .refine((type) => type in LocationType)
-    .transform((type) => type.toUpperCase()),
+    .transform((type) => type.toUpperCase())
+    .optional(),
 });
 
 export class LocationDto extends createZodDto(LocationSchema) {}
@@ -25,34 +26,37 @@ export const LocationResponseSchema = z.object({
       id: z.string().uuid(),
       name: z.string(),
       displayName: z.string(),
-      latitude: z.number(),
-      longitude: z.number(),
-      iso: z.string().nullable(),
+      latitude: z.coerce.number(),
+      longitude: z.coerce.number(),
+      iso: z.string().optional(),
       locationType: z.string(),
       city: z
         .object({
           id: z.string().uuid(),
           name: z.string(),
-          latitude: z.number(),
-          longitude: z.number(),
+          latitude: z.coerce.number(),
+          longitude: z.coerce.number(),
         })
+        .nullable()
         .optional(),
       state: z
         .object({
           id: z.string().uuid(),
           name: z.string(),
-          latitude: z.number(),
-          longitude: z.number(),
+          latitude: z.coerce.number(),
+          longitude: z.coerce.number(),
         })
+        .nullable()
         .optional(),
       country: z
         .object({
           id: z.string().uuid(),
           name: z.string(),
-          latitude: z.number(),
-          longitude: z.number(),
-          iso: z.string(),
+          latitude: z.coerce.number(),
+          longitude: z.coerce.number(),
+          iso: z.string().optional(),
         })
+        .nullable()
         .optional(),
     }),
   ),

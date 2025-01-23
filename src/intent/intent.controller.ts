@@ -18,7 +18,7 @@ import { TCachedUser } from 'src/utils/types';
 import { CreateEnquiryActivityHttpDto } from './dto/enquiryActivity.dto';
 import { AuthGuard } from 'src/user/auth/guard';
 
-@Controller('intent')
+@Controller('intents')
 export class IntentController {
   constructor(private readonly intentService: IntentService) {}
 

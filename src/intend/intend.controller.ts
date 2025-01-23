@@ -29,7 +29,7 @@ export class IntendController {
     }
   }
   @Patch()
-  async updateIntende(@Body() body: Update_Dto) {
+  async updateIntend(@Body() body: Update_Dto) {
     try {
       const result = await this.service.updateIntend(body);
       return result;

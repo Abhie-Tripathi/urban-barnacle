@@ -14,8 +14,9 @@ export const EventTypeSchema = SuggestionSchema.extend({
     .optional(),
   type: z
     .string()
-    .refine((type) => type in EventTypeGroup)
-    .transform((type) => type.toUpperCase()),
+    .refine((type) => type.toUpperCase() in EventTypeGroup)
+    .transform((type) => type.toUpperCase())
+    .optional(),
 });
 
 export class EventTypeDto extends createZodDto(EventTypeSchema) {}

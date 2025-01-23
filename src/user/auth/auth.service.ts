@@ -21,6 +21,7 @@ import { CookieSerializeOptions } from '@fastify/cookie';
 import { ConfigService } from '@nestjs/config';
 import { CommunicationService } from 'src/communication/communication.service';
 import { UserResponseSchema } from '../me/dto';
+import { UserService } from '../user.service';
 
 @Injectable()
 export class AuthService {
@@ -33,6 +34,7 @@ export class AuthService {
     private readonly authDataService: AuthDataService,
     private readonly configService: ConfigService,
     private readonly communicationService: CommunicationService,
+    private readonly sharedService: SharedService,
   ) {}
 
   cookieOptions: CookieSerializeOptions = {
@@ -49,21 +51,6 @@ export class AuthService {
     // signed: true,
     // domain: this.config.get('COOKIE_DOMAIN'),
   };
-
-  async signToken(user: SelectedUserDetails, token: string) {
-    const tokenData: TCachedUser = { ...user, token };
-    await this.cacheManager.set(token, tokenData, 1000 * 60 * 60 * 24 * 365);
-    return token;
-  }
-
-  async UserResponse(user: SelectedUserDetails, token?: string) {
-    if (!token) {
-      token = randomUUID();
-    }
-    const userData = CachedUserSchema.parse(user);
-    await this.signToken(userData, token);
-    return UserResponseSchema.parse({ userData, token });
-  }
 
   async signUp(data: SignUpDto) {
     const domain = data.email.split('@')[1].split('.')[0];
@@ -192,19 +179,22 @@ export class AuthService {
         currentOnboardingState: OnboardingState.COMPLETED,
       });
       return {
-        user: await this.UserResponse({
+        user: await this.sharedService.UserResponse({
           ...updatedUser,
           accountId: currentAccount.id,
+          accountConfigurationId: currentAccount.configurationId,
         }),
       };
     }
     return {
-      user: await this.UserResponse({
+      user: await this.sharedService.UserResponse({
         ...user,
         accountId: currentAccount.id,
+        accountConfigurationId: currentAccount.configurationId,
       }),
     };
   }
+
   async verifyAccess(data: VerifyOtpDto) {
     const users = await this.userDataService.getUsers({
       email: [data.email],
@@ -240,51 +230,19 @@ export class AuthService {
         currentOnboardingState: OnboardingState.COMPLETED,
       });
       return {
-        user: await this.UserResponse({
+        user: await this.sharedService.UserResponse({
           ...updatedUser,
           accountId: currentAccount.id,
+          accountConfigurationId: currentAccount.configurationId,
         }),
       };
     }
     return {
-      user: await this.UserResponse({
+      user: await this.sharedService.UserResponse({
         ...user,
         accountId: currentAccount.id,
+        accountConfigurationId: currentAccount.configurationId,
       }),
-    };
-  }
-  async signOut(token: string) {
-    await this.cacheManager.del(token);
-    return {
-      message: 'Successfully logged out',
-    };
-  }
-
-  async switchAccount(user: TCachedUser, accountId: string) {
-    const account = await this.accountDataService.getAccounts({
-      id: accountId,
-      userId: user.id,
-      limit: 1,
-      offset: 0,
-    })[0];
-    if (!account) {
-      throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
-    }
-    const [signOutUser, signInUser] = await Promise.all([
-      await this.signOut(user.token),
-      await this.UserResponse({
-        ...user,
-        accountId: account.id,
-      }),
-    ]);
-    if (signOutUser.message !== 'Successfully logged out') {
-      throw new HttpException(
-        'Failed to sign out current account',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-    return {
-      user: signInUser,
     };
   }
 

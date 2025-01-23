@@ -14,12 +14,21 @@ export class AccessDataService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createAccess(data: CreateAccessDto) {
+    const { accessReceiverEmail, accessReceiverId, ...rest } = data;
+    if (!accessReceiverId) {
+      throw new HttpException(
+        'Access receiver id is required',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
     const access = await this.prisma.access.create({
       data: {
-        ...data,
+        ...rest,
+        accessReceiverId: accessReceiverId,
         lastModifiedBy: data.accessProviderId,
       },
     });
+    // send invite
     return access;
   }
 

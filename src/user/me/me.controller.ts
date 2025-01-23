@@ -5,7 +5,9 @@ import {
   HttpException,
   HttpStatus,
   Patch,
+  Post,
   Query,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -19,14 +21,19 @@ import { UpdateMeDto } from './dto/update.dto';
 import {
   GetMyExportsDto,
   GetRecentEventSearchesDto,
+  SwitchAccountDto,
   UserDataSchema,
 } from './dto';
 import { GetTrackersHttpDto } from 'src/tracker/dto';
 import { GetSavedLocationsHttpDto } from 'src/saved-location/dto';
+import { FastifyReply } from 'fastify';
 
 @Controller('me')
 export class MeController {
-  constructor(private readonly meService: MeService) {}
+  cookiePrefix: string | undefined;
+  constructor(private readonly meService: MeService) {
+    this.cookiePrefix = process.env.COOKIE_PREFIX;
+  }
 
   @UseGuards(AuthGuard)
   @Get()
@@ -142,6 +149,46 @@ export class MeController {
         query,
       );
       return { data: recentSearches };
+    } catch (error) {
+      return {
+        error: new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        ),
+      };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('sign-out')
+  async signOut(
+    @GetUser() user: TCachedUser,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    try {
+      const data = await this.meService.signOut(user.token);
+      const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
+      reply.clearCookie(key);
+      return { data };
+    } catch (error) {
+      return {
+        error: new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        ),
+      };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('switch-account')
+  async switchAccount(
+    @GetUser() user: TCachedUser,
+    @Body() body: SwitchAccountDto,
+  ) {
+    try {
+      const data = await this.meService.switchAccount(user, body.accountId);
+      return { data };
     } catch (error) {
       return {
         error: new HttpException(

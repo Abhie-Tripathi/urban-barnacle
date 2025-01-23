@@ -27,29 +27,29 @@ export class SuggestionService {
   async getSuggestions(suggestionType: SuggestionType, dto: any): Promise<any> {
     switch (suggestionType) {
       case 'event-types':
-        return this.suggestionDataService.getEventTypes(dto) as Promise<
-          EventTypeResponseDto[]
-        >;
-      case 'categories':
-        return this.suggestionDataService.getCategories(dto) as Promise<
-          CategoryResponseDto[]
-        >;
-      case 'designations':
-        return this.suggestionDataService.getDesignations(dto) as Promise<
-          CategoryResponseDto[]
-        >;
-      case 'companies':
-        return this.suggestionDataService.getCompanies(dto) as Promise<
-          CompanyResponseDto[]
-        >;
-      case 'locations':
-        return this.suggestionDataService.getLocations(
+        return (await this.suggestionDataService.getEventTypes(
           dto,
-        ) as Promise<LocationResponseDto>;
+        )) as EventTypeResponseDto[];
+      case 'categories':
+        return (await this.suggestionDataService.getCategories(
+          dto,
+        )) as CategoryResponseDto[];
+      case 'designations':
+        return (await this.suggestionDataService.getDesignations(
+          dto,
+        )) as CategoryResponseDto[];
+      case 'companies':
+        return (await this.suggestionDataService.getCompanies(
+          dto,
+        )) as CompanyResponseDto[];
+      case 'locations':
+        return (await this.suggestionDataService.getLocations(
+          dto,
+        )) as LocationResponseDto;
       case 'tags':
-        return this.suggestionDataService.getTags(dto) as Promise<
-          TagResponseDto[]
-        >;
+        return (await this.suggestionDataService.getTags(
+          dto,
+        )) as TagResponseDto[];
       default:
         throw new HttpException(
           'Invalid suggestion type',

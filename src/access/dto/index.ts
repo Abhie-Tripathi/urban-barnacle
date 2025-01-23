@@ -7,7 +7,9 @@ import { LimitSchema } from 'src/global_dto';
 const CreateAccessHttpSchema = z.object({
   sourceEntity: z.nativeEnum(AccessSourceEntity),
   sourceEntityId: z.string(),
-  accessReceiverId: z.string().uuid(),
+  // accessReceiverId: z.string().uuid(),
+  accessReceiverId: z.string().uuid().optional(),
+  accessReceiverEmail: z.string().email().optional(),
   accessType: z.nativeEnum(AccessType),
 });
 

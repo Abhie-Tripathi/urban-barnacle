@@ -13,6 +13,8 @@ import * as fastifyCookie from '@fastify/cookie';
 import { GlobalResponseInterceptor } from './global-response.interceptor';
 import multipart from '@fastify/multipart';
 import { CorsGaurd } from './corsgaurd';
+import { AfterResponseInterceptor } from './after-response.interceptor';
+import { PrismaService } from './prisma/prisma.service';
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
@@ -30,7 +32,8 @@ async function bootstrap() {
 
   // Config Service
   const configService = app.get(ConfigService);
-  const port = configService.get('PORT') || 2000;
+  // const port = configService.get('PORT') || 5000;
+  const port = 5000;
   const origin = JSON.parse(configService.get('ORIGIN') ?? '[]');
 
   // CORS and Guards
@@ -57,6 +60,9 @@ async function bootstrap() {
       domain: configService.get('DOMAIN'),
     },
   });
+  app.useGlobalInterceptors(
+    new AfterResponseInterceptor(app.get(PrismaService)),
+  );
   app.useGlobalInterceptors(new GlobalResponseInterceptor());
   // Zod validation pipe
   app.useGlobalPipes(new ZodValidationPipe());

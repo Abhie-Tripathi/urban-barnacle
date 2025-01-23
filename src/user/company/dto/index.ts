@@ -36,8 +36,8 @@ export const CompanyResponseSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
   domain: z.string(),
-  website: z.string().optional(),
-  imageUrl: z.string().optional(),
+  website: z.string().nullable().optional(),
+  imageUrl: z.string().nullable().optional(),
 });
 
 export class CompanyResponseDto extends createZodDto(CompanyResponseSchema) {}

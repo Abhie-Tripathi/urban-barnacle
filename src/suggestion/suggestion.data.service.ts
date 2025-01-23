@@ -30,9 +30,9 @@ export class SuggestionDataService {
   async getLocations(dto: LocationDto): Promise<LocationResponseDto> {
     const params = {
       locationType: dto.type,
-      ids: dto.ids,
-      limit: dto.limit,
-      offset: dto.offset,
+      locationIds: dto.ids,
+      take: dto.limit,
+      skip: dto.offset,
       query: dto.query,
     };
     const nonEmptyParams = getNonEmptyParams(params);
@@ -56,8 +56,8 @@ export class SuggestionDataService {
     const params = {
       eventTypeGroup: dto.type,
       ids: dto.ids,
-      limit: dto.limit,
-      offset: dto.offset,
+      take: dto.limit,
+      skip: dto.offset,
       query: dto.query,
       slugs: dto.slugs,
     };
@@ -70,9 +70,10 @@ export class SuggestionDataService {
       microserviceEndpoints.suggestions.eventTypes +
       '?' +
       searchQuery.toString();
+    console.log(decodeURIComponent(url));
     const response = await fetch(url);
     const { data, error } = await response.json();
-    if (error) {
+    if (!data || error) {
       throw new HttpException(error, HttpStatus.BAD_REQUEST);
     }
     return data.map((eventType: any) =>
@@ -83,8 +84,8 @@ export class SuggestionDataService {
   async getCategories(dto: CategoryDto): Promise<CategoryResponseDto[]> {
     const params = {
       ids: dto.ids,
-      limit: dto.limit,
-      offset: dto.offset,
+      take: dto.limit,
+      skip: dto.offset,
       query: dto.query,
       slugs: dto.slugs,
     };
@@ -108,11 +109,10 @@ export class SuggestionDataService {
   async getDesignations(dto: CategoryDto): Promise<CategoryResponseDto[]> {
     const params = {
       ids: dto.ids,
-      limit: dto.limit,
-      offset: dto.offset,
+      take: dto.limit,
+      skip: dto.offset,
       query: dto.query,
       slugs: dto.slugs,
-      isDesignation: true,
     };
     const nonEmptyParams = getNonEmptyParams(params);
     const searchQuery = new URLSearchParams(
@@ -120,9 +120,10 @@ export class SuggestionDataService {
     );
     const url =
       this.configService.get('MICROSERVICE_URL') +
-      microserviceEndpoints.suggestions.categories +
+      microserviceEndpoints.suggestions.designations +
       '?' +
       searchQuery.toString();
+    console.log(decodeURIComponent(url));
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (error) {
@@ -135,10 +136,7 @@ export class SuggestionDataService {
 
   async getCompanies(dto: CompanyDto): Promise<CompanyResponseDto[]> {
     const params = {
-      ids: dto.ids,
-      limit: dto.limit,
-      offset: dto.offset,
-      query: dto.query,
+      q: dto.query,
     };
     const nonEmptyParams = getNonEmptyParams(params);
     const searchQuery = new URLSearchParams(
@@ -149,19 +147,22 @@ export class SuggestionDataService {
       microserviceEndpoints.suggestions.companies +
       '?' +
       searchQuery.toString();
+    console.log(decodeURIComponent(url));
     const response = await fetch(url);
     const { data, error } = await response.json();
-    if (error) {
+    if (!data || error) {
       throw new HttpException(error, HttpStatus.BAD_REQUEST);
     }
-    return data.map((company: any) => CompanyResponseSchema.parse(company));
+    return data.company.map((company: any) =>
+      CompanyResponseSchema.parse(company),
+    );
   }
 
   async getTags(dto: TagDto): Promise<TagResponseDto[]> {
     const params = {
       ids: dto.ids,
-      limit: dto.limit,
-      offset: dto.offset,
+      take: dto.limit,
+      skip: dto.offset,
       query: dto.query,
       slugs: dto.slugs,
     };

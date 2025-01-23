@@ -4,10 +4,16 @@ import { CreateAccessHttpDto, GetAccessDto, UpdateAccessHttpDto } from './dto';
 import { TrackerDataService } from 'src/tracker/tracker.data.service';
 import { TCachedUser } from 'src/utils/types';
 import { STATUS_CODES } from 'http';
+import { UserService } from 'src/user/user.service';
+import { UserDataService } from 'src/user/user.data.service';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class AccessService {
-  constructor(private readonly accessDataService: AccessDataService) {}
+  constructor(
+    private readonly accessDataService: AccessDataService,
+    private readonly userDataService: UserDataService,
+  ) {}
 
   async createAccess(user: TCachedUser, data: CreateAccessHttpDto) {
     if (data.sourceEntity === 'TRACKER' && data.sourceEntityId) {
@@ -23,10 +29,39 @@ export class AccessService {
         throw new HttpException(result.message, result.status);
       }
     }
+    let receiver: User | null = null;
+    if (data.accessReceiverId) {
+      const users = await this.userDataService.getUsers({
+        id: [data.accessReceiverId],
+        limit: 1,
+        offset: 0,
+      });
+      if (users.length === 0) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+      receiver = users[0];
+    } else if (data.accessReceiverEmail) {
+      const users = await this.userDataService.getUsers({
+        email: [data.accessReceiverEmail],
+        limit: 1,
+        offset: 0,
+      });
+      if (!users || (users && users.length === 0)) {
+        const newUser = await this.userDataService.createUser({
+          email: data.accessReceiverEmail,
+          accountId: user.accountId,
+          role: 'CUSTOMER',
+        });
+        receiver = newUser;
+      } else {
+        receiver = users[0];
+      }
+    }
     return this.accessDataService.createAccess({
       ...data,
       accessProviderId: user.id,
       accountId: user.accountId,
+      accessReceiverEmail: receiver?.email,
     });
   }
 

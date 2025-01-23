@@ -404,6 +404,7 @@ model SavedLocation {
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   accountId    String?      @db.Uuid
   account      Account?     @relation(fields: [accountId], references: [id])
+  deleted      Boolean      @default(false)
 
   @@unique([userId, type, locationId, latitude, longitude, radius, radiusUnit, geomType], map: "unique_saved_location_constraint")
 }

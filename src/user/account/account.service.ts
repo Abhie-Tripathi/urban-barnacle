@@ -11,6 +11,8 @@ import { UserService } from '../user.service';
 import { UserDataService } from '../user.data.service';
 import { Prisma } from '@prisma/client';
 import { AccountConfigDto } from './account.config';
+import { UserDataSchema } from '../me/dto';
+import { AccountConfigKey } from './dto';
 
 @Injectable()
 export class AccountService {
@@ -41,24 +43,43 @@ export class AccountService {
       accountId: user.accountId,
       ...query,
     });
-    return users;
+    return users.map((user) => ({
+      id: user.id,
+      name:
+        user.firstname || user.lastname
+          ? `${user.firstname} ${user.lastname || ''}`
+          : user.email.split('@')[0],
+      email: user.email,
+      imageUrl: user.imageUrl,
+    }));
   }
 
-  async getAccountConfiguration(user: TCachedUser) {
+  async getAccountConfiguration(user: TCachedUser, key: AccountConfigKey) {
     const configuration = await this.accountDataService.getAccountConfiguration(
-      user.accountId,
+      user.accountConfigurationId,
     );
-    return configuration;
+    return { [key]: configuration ? configuration[key] : [] };
   }
 
-  async updateAccountConfiguration(user: TCachedUser, data: AccountConfigDto) {
-    const configuration = await this.accountDataService.updateAccount({
-      id: user.accountId,
-      configuration: {
-        ...data,
-        lastModifiedById: user.id,
-      },
-    });
-    return configuration;
+  async updateAccountConfiguration(
+    user: TCachedUser,
+    key: AccountConfigKey,
+    data: AccountConfigDto[keyof AccountConfigDto],
+  ) {
+    const config = await this.accountDataService.getAccountConfiguration(
+      user.accountConfigurationId,
+    );
+    if (!config) {
+      return [];
+    }
+    config[key as string] = data;
+    const configuration = (
+      await this.accountDataService.updateAccountConfiguration(
+        user,
+        config as unknown as AccountConfigDto,
+      )
+    ).config;
+
+    return { [key]: configuration ? configuration[key] : [] };
   }
 }

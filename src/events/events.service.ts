@@ -107,6 +107,11 @@ export class EventsService {
   }
 
   async getEventsTrends(query: EventsTrendsDto) {
-    return await this.eventsDataService.getEventsTrends(query);
+    const nonEmptyParams = getNonEmptyParams(query);
+    const convertedParams = await this.sharedService.convertSlugParamsToIds(
+      nonEmptyParams,
+      true,
+    );
+    return await this.eventsDataService.getEventsTrends(convertedParams);
   }
 }

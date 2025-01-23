@@ -28,10 +28,11 @@ export class OptionalAuthGuard implements CanActivate {
   async getUser(request: FastifyRequest) {
     const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
     // const requestToken = request.unsignCookie[key];
-    const requestToken = request.unsignCookie(
-      request.cookies[key] as string,
-    ).value;
-    // const requestToken = request.unsignCookie(request.cookies.token as string).value;
+    const signedCookie = request.cookies[key];
+    if (!signedCookie) {
+      return null;
+    }
+    const requestToken = request.unsignCookie(signedCookie).value;
     if (!requestToken) {
       return null;
     }

@@ -14,7 +14,7 @@ import { GetUser } from 'src/user/decorator';
 import { CreateCommentHttpDto, UpdateCommentHttpDto } from './dto';
 import { AuthGuard } from 'src/user/auth/guard';
 
-@Controller('comment')
+@Controller('comments')
 export class CommentController {
   constructor(private readonly commentService: CommentService) {}
 

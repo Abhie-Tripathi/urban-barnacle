@@ -4,15 +4,19 @@ import {
   HttpException,
   HttpStatus,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { SuggestionService } from './suggestion.service';
 import { CategoryDto, EventTypeDto, SuggestionDto, LocationDto } from './dto';
 import { TagDto } from './dto/tags.dto';
+import { AuthGuard } from 'src/user/auth/guard';
+import { CompanyDto } from './dto/company.dto';
 
 @Controller('suggestions')
 export class SuggestionController {
   constructor(private readonly suggestionService: SuggestionService) {}
 
+  @UseGuards(AuthGuard)
   @Get('event-types')
   async getEventTypes(@Query() dto: EventTypeDto) {
     try {
@@ -20,12 +24,13 @@ export class SuggestionController {
         'event-types',
         dto,
       );
-      return { data: eventTypes };
+      return { data: { eventTypes } };
     } catch (error) {
       return { error: new HttpException(error, HttpStatus.BAD_REQUEST) };
     }
   }
 
+  @UseGuards(AuthGuard)
   @Get('categories')
   async getCategories(@Query() dto: CategoryDto) {
     try {
@@ -33,12 +38,13 @@ export class SuggestionController {
         'categories',
         dto,
       );
-      return { data: categories };
+      return { data: { categories } };
     } catch (error) {
       return { error: new HttpException(error, HttpStatus.BAD_REQUEST) };
     }
   }
 
+  @UseGuards(AuthGuard)
   @Get('designations')
   async getDesignations(@Query() dto: CategoryDto) {
     try {
@@ -46,25 +52,27 @@ export class SuggestionController {
         'designations',
         dto,
       );
-      return { data: designations };
+      return { data: { designations } };
     } catch (error) {
       return { error: new HttpException(error, HttpStatus.BAD_REQUEST) };
     }
   }
 
+  @UseGuards(AuthGuard)
   @Get('companies')
-  async getCompanies(@Query() dto: SuggestionDto) {
+  async getCompanies(@Query() dto: CompanyDto) {
     try {
       const companies = await this.suggestionService.getSuggestions(
         'companies',
         dto,
       );
-      return { data: companies };
+      return { data: { companies } };
     } catch (error) {
       return { error: new HttpException(error, HttpStatus.BAD_REQUEST) };
     }
   }
 
+  @UseGuards(AuthGuard)
   @Get('locations')
   async getLocations(@Query() dto: LocationDto) {
     try {
@@ -72,17 +80,18 @@ export class SuggestionController {
         'locations',
         dto,
       );
-      return { data: locations };
+      return { data: { locations } };
     } catch (error) {
       return { error: new HttpException(error, HttpStatus.BAD_REQUEST) };
     }
   }
 
+  @UseGuards(AuthGuard)
   @Get('tags')
   async getTags(@Query() dto: TagDto) {
     try {
       const tags = await this.suggestionService.getSuggestions('tags', dto);
-      return { data: tags };
+      return { data: { tags } };
     } catch (error) {
       return { error: new HttpException(error, HttpStatus.BAD_REQUEST) };
     }

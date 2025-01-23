@@ -16,7 +16,7 @@ import { TCachedUser } from 'src/utils/types';
 import { CreateSavedLocationDto, UpdateSavedLocationHttpDto } from './dto';
 import { AuthGuard } from 'src/user/auth/guard';
 
-@Controller('saved-location')
+@Controller('saved-locations')
 export class SavedLocationController {
   constructor(private readonly savedLocationService: SavedLocationService) {}
 

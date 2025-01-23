@@ -146,21 +146,6 @@ export class TrackerController {
   }
 
   @UseGuards(AuthGuard)
-  @Get(':id')
-  async getTracker(
-    @Param('id') id: string,
-    @GetUser() user: TCachedUser,
-    @Query() query: GetTrackerByIdDto,
-  ) {
-    try {
-      const tracker = await this.trackerService.getTracker(user, id, query);
-      return { data: tracker };
-    } catch (error) {
-      return { error: error };
-    }
-  }
-
-  @UseGuards(AuthGuard)
   @Get(':id/users')
   async getTrackerUsers(
     @Param('id') id: string,
@@ -189,6 +174,21 @@ export class TrackerController {
         query,
       );
       return { data: comments };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get(':id')
+  async getTracker(
+    @Param('id') id: string,
+    @GetUser() user: TCachedUser,
+    @Query() query: GetTrackerByIdDto,
+  ) {
+    try {
+      const tracker = await this.trackerService.getTracker(user, id, query);
+      return { data: tracker };
     } catch (error) {
       return { error: error };
     }

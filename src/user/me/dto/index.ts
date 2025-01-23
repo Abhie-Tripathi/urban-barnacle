@@ -2,6 +2,7 @@ export * from './query.dto';
 export * from './update.dto';
 
 import { z } from 'zod';
+import { createZodDto } from 'nestjs-zod';
 import { PrimaryLocationSchema } from 'src/utils/types';
 
 export const UserDataSchema = z.object({
@@ -19,3 +20,9 @@ export const UserResponseSchema = z.object({
   userData: UserDataSchema,
   token: z.string(),
 });
+
+export const SwitchAccountSchema = z.object({
+  accountId: z.string(),
+});
+
+export class SwitchAccountDto extends createZodDto(SwitchAccountSchema) {}

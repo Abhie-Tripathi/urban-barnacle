@@ -30,3 +30,6 @@ const GetAccountsSchema = LimitSchema.extend({
 });
 
 export class GetAccountDto extends createZodDto(GetAccountsSchema) {}
+
+const AccountConfigKey = z.enum(['interest', 'outreach', 'filter']);
+export type AccountConfigKey = z.infer<typeof AccountConfigKey>;

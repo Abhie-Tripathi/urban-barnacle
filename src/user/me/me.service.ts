@@ -13,12 +13,14 @@ import { MeDataService } from './me.data.service';
 import { SavedLocationService } from 'src/saved-location/saved-location.service';
 import { GetSavedLocationsHttpDto } from 'src/saved-location/dto';
 import { ExportDataService } from 'src/exports/exports.data.service';
+import { UserService } from '../user.service';
 
 @Injectable()
 export class MeService {
   constructor(
     // private readonly fileCreation: FileCreationService,
     private readonly userDataService: UserDataService,
+    private readonly userService: UserService,
     private readonly trackerService: TrackerService,
     private readonly meDataService: MeDataService,
     private readonly savedLocationService: SavedLocationService,
@@ -63,6 +65,17 @@ export class MeService {
   async getMyExports(user: TCachedUser, params: GetMyExportsDto) {
     const exports = await this.exportDataService.getExports(user, params);
     return exports;
+  }
+
+  async signOut(token: string) {
+    await this.userService.signOut(token);
+    return {
+      message: 'Successfully logged out',
+    };
+  }
+
+  async switchAccount(user: TCachedUser, accountId: string) {
+    await this.userService.switchAccount(user, accountId);
   }
 
   // async getProfileData(userId: string) {

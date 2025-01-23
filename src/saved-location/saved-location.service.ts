@@ -20,19 +20,18 @@ export class SavedLocationService {
     private readonly sharedService: SharedService,
     private readonly savedLocationDataService: SavedLocationDataService,
     private readonly userDataService: UserDataService,
-    private readonly authService: AuthService,
   ) {}
 
   async saveAreaOfSavedLocation(savedLocation: SavedLocation) {
     let area: null | number = null;
     if (savedLocation.type === LocationType.LOCATION_ID) {
-      const location = await this.suggestionService.getSuggestions(
+      const location = (await this.suggestionService.getSuggestions(
         'locations',
         {
           ids: [savedLocation.locationId],
         } as LocationDto,
-      );
-      const loc = location.data.formattedLocations[0];
+      )) as LocationResponseDto;
+      const loc = location.formattedLocations[0];
       const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${loc.displayName}&format=geojson&polygon_geojson=1&limit=5`;
       const nominatimResponse = await fetch(nominatimUrl);
       const locationGeoJson = await nominatimResponse.json();
@@ -45,7 +44,7 @@ export class SavedLocationService {
           : radius;
       area = +(Math.PI * Math.pow(radiusInKm, 2)).toFixed(2);
     }
-
+    console.log({ savedLocation, area });
     await this.savedLocationDataService.updateSavedLocation({
       id: savedLocation.id,
       area,
@@ -54,10 +53,7 @@ export class SavedLocationService {
 
   async setPrimaryLocation(user: TCachedUser, location: SavedLocation) {
     if (user.primaryLocation) {
-      throw new HttpException(
-        'Primary location already set',
-        HttpStatus.BAD_REQUEST,
-      );
+      return;
     }
     const data = {
       primaryLocation: {
@@ -85,8 +81,12 @@ export class SavedLocationService {
 
     return {
       data: {
-        user: await this.authService.UserResponse(
-          { ...updatedUser, accountId: user.accountId },
+        user: await this.sharedService.UserResponse(
+          {
+            ...updatedUser,
+            accountId: user.accountId,
+            accountConfigurationId: user.accountConfigurationId,
+          },
           user.token,
         ),
       },

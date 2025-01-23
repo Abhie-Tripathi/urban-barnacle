@@ -1,7 +1,9 @@
 // generateSlug : to generate a slug
 
-import { HttpException, Injectable } from '@nestjs/common';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { JobSource } from '@prisma/client';
+import { randomUUID } from 'crypto';
 import { FeatureCollection } from 'geojson';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
@@ -14,13 +16,38 @@ import {
 } from 'src/suggestion/dto';
 import { TagResponseDto } from 'src/suggestion/dto/tags.dto';
 import { SuggestionService } from 'src/suggestion/suggestion.service';
+import { UserResponseSchema } from 'src/user/me/dto';
+import {
+  CachedUserSchema,
+  SelectedUserDetails,
+  TCachedUser,
+} from 'src/utils/types';
+
+import * as turf from 'turf';
 
 @Injectable()
 export class SharedService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly suggestionService: SuggestionService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
+
+  async signToken(user: SelectedUserDetails, token: string) {
+    const tokenData: TCachedUser = { ...user, token };
+    await this.cacheManager.set(token, tokenData, 1000 * 60 * 60 * 24 * 365);
+    return token;
+  }
+
+  async UserResponse(user: SelectedUserDetails, token?: string) {
+    if (!token) {
+      token = randomUUID();
+    }
+    const userData = CachedUserSchema.parse(user);
+    await this.signToken(userData, token);
+    return UserResponseSchema.parse({ userData, token });
+  }
+
   generateSlug(title: string) {
     return title.toLowerCase().replace(/ /g, '-');
   }

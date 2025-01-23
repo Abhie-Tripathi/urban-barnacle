@@ -4,6 +4,7 @@ import { CreateAccountDto, GetAccountDto, UpdateAccountDto } from './dto';
 import { Prisma } from '@prisma/client';
 import { accountConfig, AccountConfigDto } from './account.config';
 import { TCachedUser } from 'src/utils/types';
+import { JsonArray } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class AccountDataService {
@@ -48,9 +49,38 @@ export class AccountDataService {
   }
 
   async updateAccount(data: UpdateAccountDto) {
+    const { configuration, ...rest } = data;
+    const config = configuration
+      ? {
+          accountConfiguration: {
+            update: {
+              config: configuration,
+            },
+          },
+        }
+      : {};
     const account = await this.prisma.account.update({
       where: { id: data.id },
-      data,
+      data: {
+        ...rest,
+        ...config,
+      },
+    });
+    return account;
+  }
+
+  async updateAccountConfiguration(user: TCachedUser, data: AccountConfigDto) {
+    const account = await this.prisma.configuration.update({
+      where: { id: user.accountConfigurationId },
+      data: {
+        config: {
+          toJSON: () => data,
+        },
+        lastModifiedById: user.id,
+      },
+      include: {
+        account: true,
+      },
     });
     return account;
   }
@@ -63,14 +93,13 @@ export class AccountDataService {
     return account;
   }
 
-  async getAccountConfiguration(accountId: string) {
-    const account = await this.prisma.account.findUnique({
-      where: { id: accountId },
-      include: { accountConfiguration: true },
+  async getAccountConfiguration(configurationId: string) {
+    const configuration = await this.prisma.configuration.findUnique({
+      where: { id: configurationId },
     });
-    if (!account) {
-      throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
+    if (!configuration) {
+      throw new HttpException('configuration not found', HttpStatus.NOT_FOUND);
     }
-    return account.accountConfiguration.config;
+    return configuration.config;
   }
 }

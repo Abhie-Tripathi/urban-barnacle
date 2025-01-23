@@ -42,8 +42,6 @@ export class CreateSavedLocationDto extends createZodDto(
 const UpdateSavedLocationHttpSchema = z.object({
   radius: z.number().positive().optional(),
   radiusUnit: z.nativeEnum(RadiusUnit).optional(),
-  tags: z.array(z.string()).optional(),
-  customName: z.string().optional(),
 });
 
 export class UpdateSavedLocationHttpDto extends createZodDto(

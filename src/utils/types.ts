@@ -48,6 +48,7 @@ export type SelectedUserDetails = Pick<
   | 'designation'
 > & {
   accountId: string;
+  accountConfigurationId: string;
 };
 
 export type TCachedUser = SelectedUserDetails & {
@@ -77,6 +78,7 @@ export const CachedUserSchema: z.ZodType<SelectedUserDetails> = z.object({
   department: z.string().nullable(),
   accountId: z.string(),
   role: z.nativeEnum(UserRole),
+  accountConfigurationId: z.string(),
 });
 
 export const Industries = {

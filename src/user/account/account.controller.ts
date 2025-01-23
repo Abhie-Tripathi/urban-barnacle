@@ -1,11 +1,26 @@
-import { Body, Controller, Get, Patch, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { AccountService } from './account.service';
 import { AuthGuard } from '../auth/guard';
 import { GetUser } from '../decorator';
 import { TCachedUser } from 'src/utils/types';
 import { GetEnquiriesDto } from 'src/enquiry/dto';
 import { GetUserHttpDto } from '../dto';
-import { AccountConfigDto } from './account.config';
+import {
+  AccountConfigDto,
+  FilterConfigurationDto,
+  InterestConfigurationDto,
+  OutreachConfigurationDto,
+} from './account.config';
+import { AccountConfigKey } from './dto';
 
 @Controller('me/account')
 export class AccountController {
@@ -18,7 +33,7 @@ export class AccountController {
       const company = await this.accountService.getAccountCompany(user);
       return { data: company };
     } catch (error) {
-      return { error: error.message };
+      return { error: error };
     }
   }
 
@@ -36,7 +51,7 @@ export class AccountController {
       return { data: enquiries };
     } catch (error) {
       console.log(error);
-      return { error: error.message };
+      return { error: error };
     }
   }
 
@@ -50,34 +65,81 @@ export class AccountController {
       const users = await this.accountService.getAccountUsers(user, query);
       return { data: users };
     } catch (error) {
-      return { error: error.message };
+      return { error: error };
     }
   }
 
   @UseGuards(AuthGuard)
-  @Get('configuration')
-  async getAccountConfiguration(@GetUser() user: TCachedUser) {
+  @Get('configuration/:key')
+  async getAccountConfiguration(
+    @GetUser() user: TCachedUser,
+    @Param('key') key: AccountConfigKey,
+  ) {
     try {
-      const configuration =
-        await this.accountService.getAccountConfiguration(user);
+      const configuration = await this.accountService.getAccountConfiguration(
+        user,
+        key,
+      );
       return { data: configuration };
     } catch (error) {
-      return { error: error.message };
+      return { error: error };
     }
   }
 
   @UseGuards(AuthGuard)
-  @Patch('configuration')
-  async updateAccountConfiguration(
+  @Put('configuration/interest')
+  async updateAccountConfigurationInterest(
     @GetUser() user: TCachedUser,
-    @Body() data: AccountConfigDto,
+    @Body() data: InterestConfigurationDto,
   ) {
     try {
       const configuration =
-        await this.accountService.updateAccountConfiguration(user, data);
+        await this.accountService.updateAccountConfiguration(
+          user,
+          'interest',
+          data,
+        );
       return { data: configuration };
     } catch (error) {
-      return { error: error.message };
+      return { error: error };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Put('configuration/outreach')
+  async updateAccountConfigurationOutreach(
+    @GetUser() user: TCachedUser,
+    @Body() data: OutreachConfigurationDto,
+  ) {
+    try {
+      const configuration =
+        await this.accountService.updateAccountConfiguration(
+          user,
+          'outreach',
+          data,
+        );
+      return { data: configuration };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Put('configuration/filter')
+  async updateAccountConfigurationFilter(
+    @GetUser() user: TCachedUser,
+    @Body() data: FilterConfigurationDto,
+  ) {
+    try {
+      const configuration =
+        await this.accountService.updateAccountConfiguration(
+          user,
+          'filter',
+          data,
+        );
+      return { data: configuration };
+    } catch (error) {
+      return { error: error };
     }
   }
 }

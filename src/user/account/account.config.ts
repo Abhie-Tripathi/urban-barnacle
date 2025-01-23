@@ -17,24 +17,42 @@ export const filterValueSchema = z.object({
   group: z.nativeEnum(FilterGroup),
 });
 
-export const AccountConfigSchema = z.object({
-  interest: z.array(
-    z.object({
-      label: z.string(),
-      source: z.string(),
-      status: z.nativeEnum(Interest),
-      position: z.number(),
-    }),
-  ),
-  outreach: z.array(
-    z.object({
-      label: z.string(),
-      source: z.string(),
-      status: z.nativeEnum(EnquiryStatus),
-      position: z.number(),
-    }),
-  ),
-  filterValues: z.record(z.string(), filterValueSchema),
+const InterestConfigurationSchema = z.array(
+  z.object({
+    label: z.string(),
+    source: z.string(),
+    status: z.nativeEnum(Interest),
+    position: z.number(),
+  }),
+);
+
+export class InterestConfigurationDto extends createZodDto(
+  InterestConfigurationSchema,
+) {}
+
+const OutreachConfigurationSchema = z.array(
+  z.object({
+    label: z.string(),
+    source: z.string(),
+    status: z.nativeEnum(EnquiryStatus),
+    position: z.number(),
+  }),
+);
+
+export class OutreachConfigurationDto extends createZodDto(
+  OutreachConfigurationSchema,
+) {}
+
+const FilterConfigurationSchema = z.record(z.string(), filterValueSchema);
+
+export class FilterConfigurationDto extends createZodDto(
+  FilterConfigurationSchema,
+) {}
+
+export const AccountConfigSchema = z.strictObject({
+  interest: InterestConfigurationSchema,
+  outreach: OutreachConfigurationSchema,
+  filter: FilterConfigurationSchema,
 });
 
 export class AccountConfigDto extends createZodDto(AccountConfigSchema) {}
@@ -116,5 +134,5 @@ export const accountConfig: AccountConfigDto = {
       position: 7,
     },
   ],
-  filterValues: {},
+  filter: {},
 };
