@@ -24,6 +24,7 @@ export class CommunicationService {
     priority: number = 5,
   ) {
     try {
+      console.log(payload);
       let validatedPayload: z.infer<typeof PayloadDTO>;
       try {
         validatedPayload = PayloadDTO.parse(payload);

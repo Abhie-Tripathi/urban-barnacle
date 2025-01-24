@@ -1,7 +1,8 @@
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { SignInDto, SignUpDto, VerifyOtpDto } from './dto';
+import { SignInDto, SignUpDto, VerifyAccessDto, VerifyOtpDto } from './dto';
 import {
+  blackListDomain,
   CachedUserSchema,
   QueueActionOptions,
   TCachedUser,
@@ -22,6 +23,8 @@ import { ConfigService } from '@nestjs/config';
 import { CommunicationService } from 'src/communication/communication.service';
 import { UserResponseSchema } from '../me/dto';
 import { UserService } from '../user.service';
+import { AccessService } from 'src/access/access.service';
+import { GetAccessDto } from 'src/access/dto';
 
 @Injectable()
 export class AuthService {
@@ -35,6 +38,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly communicationService: CommunicationService,
     private readonly sharedService: SharedService,
+    private readonly accessService: AccessService,
   ) {}
 
   cookieOptions: CookieSerializeOptions = {
@@ -53,18 +57,23 @@ export class AuthService {
   };
 
   async signUp(data: SignUpDto) {
-    const domain = data.email.split('@')[1].split('.')[0];
+    const domain = data.email.split('@')[1];
+    if (blackListDomain.includes(domain)) {
+      throw new HttpException('Domain not allowed', HttpStatus.BAD_REQUEST);
+    }
     let [user, company] = await Promise.all([
       await this.userDataService.getUsers({
         email: [data.email],
         limit: 1,
         offset: 0,
       })[0],
-      await this.companyDataService.getCompany({
-        domain: domain,
-      }),
+      blackListDomain.includes(domain)
+        ? null
+        : await this.companyDataService.getCompany({
+            domain: domain,
+          }),
     ]);
-    console.log(user, company);
+
     let account = company ? { id: company.accountId } : null;
     if (user && company) {
       account = (
@@ -87,35 +96,44 @@ export class AuthService {
           pendingRequests: domain === '10times' ? 1000 : 200,
           pendingPocUnlockRequests: domain === '10times' ? 10000 : 4400,
         };
+        if (blackListDomain.includes(domain)) {
+          accountDefault['domain'] = domain;
+        }
         account = await this.accountDataService.createAccount({
           ...accountDefault,
         });
-        console.log(account);
-        company = await this.companyDataService.createCompany({
-          name: domain,
-          domain: domain,
-          accountId: account.id,
-        });
+        if (!blackListDomain.includes(domain)) {
+          company = await this.companyDataService.createCompany({
+            name: domain,
+            domain: domain,
+            accountId: account.id,
+          });
+        }
+
         if (user) {
           await Promise.all([
-            this.userDataService.updateUser({
-              id: user.id,
-              companyId: company.id,
-            }),
+            company
+              ? this.userDataService.updateUser({
+                  id: user.id,
+                  companyId: company.id,
+                })
+              : null,
             this.accountDataService.addAccountUser(account.id, user.id),
           ]);
         }
+      }
+      if (!account || !(account && account.id)) {
+        throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
       }
       if (!user) {
         user = await this.userDataService.createUser({
           ...data,
           role: 'CUSTOMER',
-          companyId: company.id,
-          accountId: account!.id,
-          primaryAccountId: account!.id,
+          primaryCompanyId: company?.id,
+          accountId: account.id,
+          primaryAccountId: account.id,
         });
       }
-      console.log(user);
 
       await this.authDataService.createVerificationToken(user, 'sign-up');
       return {
@@ -125,6 +143,10 @@ export class AuthService {
   }
 
   async signIn(data: SignInDto) {
+    const domain = data.email.split('@')[1];
+    if (blackListDomain.includes(domain)) {
+      throw new HttpException('Domain not allowed', HttpStatus.BAD_REQUEST);
+    }
     const users = await this.userDataService.getUsers({
       email: [data.email],
       limit: 1,
@@ -169,7 +191,10 @@ export class AuthService {
     let currentAccount = accounts[0];
     const domain = data.email.split('@')[1].split('.')[0];
     accounts.forEach((account) => {
-      if (account.company!.domain === domain) {
+      if (
+        (account.company && account.company.domain === domain) ||
+        account.domain === domain
+      ) {
         currentAccount = account;
       }
     });
@@ -190,12 +215,14 @@ export class AuthService {
       user: await this.sharedService.UserResponse({
         ...user,
         accountId: currentAccount.id,
+        primaryAccountId: user.primaryAccountId,
+        primaryCompanyId: user.primaryCompanyId,
         accountConfigurationId: currentAccount.configurationId,
       }),
     };
   }
 
-  async verifyAccess(data: VerifyOtpDto) {
+  async verifyAccess(data: VerifyAccessDto) {
     const users = await this.userDataService.getUsers({
       email: [data.email],
       limit: 1,
@@ -205,25 +232,44 @@ export class AuthService {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
     const user = users[0];
-    const accessToken = await this.authDataService.getAccessToken(data.email);
-    if (!accessToken || (accessToken && accessToken.token !== data.otp)) {
+    const accessParams: GetAccessDto = {
+      accessReceiverId: user.id,
+      sourceEntity: data.target,
+      limit: 1,
+      offset: 0,
+    };
+    if (data.targetId) {
+      accessParams.sourceEntityId = data.targetId;
+    }
+    const access = await this.accessService.getAccess(accessParams, true);
+
+    if (!access || (access && access.length === 0)) {
+      throw new HttpException('Invalid Access', HttpStatus.UNAUTHORIZED);
+    }
+    const foundAccess = access[0];
+
+    if (
+      foundAccess.token !== data.otp ||
+      !foundAccess.expiry ||
+      (foundAccess.expiry && foundAccess.expiry < new Date())
+    ) {
       throw new HttpException('Invalid Token', HttpStatus.UNAUTHORIZED);
     }
-    if (accessToken.expiry && accessToken.expiry < new Date()) {
-      throw new HttpException('Token Expired', HttpStatus.UNAUTHORIZED);
-    }
+
     const accounts = await this.accountDataService.getAccounts({
       userId: user.id,
       limit: 10,
       offset: 0,
     });
+
     let currentAccount = accounts[0];
     const domain = data.email.split('@')[1].split('.')[0];
-    accounts.forEach((account) => {
-      if (account.company!.domain === domain) {
-        currentAccount = account;
-      }
-    });
+    if (domain)
+      accounts.forEach((account) => {
+        if (account.company!.domain === domain) {
+          currentAccount = account;
+        }
+      });
     if (user.currentOnboardingState === OnboardingState.VERIFICATION) {
       const updatedUser = await this.userDataService.updateUser({
         id: user.id,

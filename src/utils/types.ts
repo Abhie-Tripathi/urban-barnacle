@@ -43,7 +43,8 @@ export type SelectedUserDetails = Pick<
   | 'subIndustry'
   | 'primaryLocation'
   | 'category'
-  | 'companyId'
+  | 'primaryCompanyId'
+  | 'primaryAccountId'
   | 'department'
   | 'designation'
 > & {
@@ -73,7 +74,8 @@ export const CachedUserSchema: z.ZodType<SelectedUserDetails> = z.object({
   subIndustry: z.string().nullable(),
   primaryLocation: PrimaryLocationSchema.nullable(),
   category: z.string().nullable(),
-  companyId: z.string().nullable(),
+  primaryCompanyId: z.string().nullable(),
+  primaryAccountId: z.string().nullable(),
   designation: z.string().nullable(),
   department: z.string().nullable(),
   accountId: z.string(),

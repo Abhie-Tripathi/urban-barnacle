@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Event, Prisma } from '@prisma/client';
 import * as crypto from 'crypto';
-import { InviteEmailDataDTO } from 'src/communication/bull.dto';
+import { InviteEmailDataSchema } from 'src/communication/bull.dto';
 import { CommunicationService } from 'src/communication/communication.service';
 import { QueueActionOptions } from 'src/utils/types';
 @Injectable()
@@ -132,7 +132,7 @@ export class InviteDataService {
     };
     await this.communicationService.createJobForBull(
       QueueActionOptions.SEND_PROMOTED_EVENT_INVITAION_EMAIL,
-      InviteEmailDataDTO.parse(jobPayload),
+      InviteEmailDataSchema.parse(jobPayload),
       userId,
     );
   }

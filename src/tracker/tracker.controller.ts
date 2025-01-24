@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpException,
   Param,
   Patch,
   Post,
@@ -23,6 +24,7 @@ import { GetUser } from 'src/user/decorator';
 import { TCachedUser } from 'src/utils/types';
 import { AuthGuard } from 'src/user/auth/guard';
 import { GetCommentsDto } from 'src/comment/dto';
+import { CreateAccessHttpDto, UpdateAccessHttpDto } from 'src/access/dto';
 
 @Controller('trackers')
 export class TrackerController {
@@ -39,6 +41,65 @@ export class TrackerController {
       return { data: tracker };
     } catch (error) {
       console.log(error);
+      return { error: error };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Post(':id/access')
+  async createAccess(
+    @Body() data: CreateAccessHttpDto,
+    @Param('id') id: string,
+    @GetUser() user: TCachedUser,
+  ) {
+    try {
+      const access = await this.trackerService.createTrackerAccess(
+        user,
+        id,
+        data,
+      );
+      return { data: access };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Delete(':id/access/:accessId')
+  async deleteAccess(
+    @Param('id') id: string,
+    @Param('accessId') accessId: string,
+    @GetUser() user: TCachedUser,
+  ) {
+    try {
+      const access = await this.trackerService.deleteTrackerAccess(
+        user,
+        id,
+        accessId,
+      );
+      return { data: access };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch(':id/access/:accessId')
+  async updateAccess(
+    @Param('id') id: string,
+    @Param('accessId') accessId: string,
+    @Body() data: UpdateAccessHttpDto,
+    @GetUser() user: TCachedUser,
+  ) {
+    try {
+      const access = await this.trackerService.updateTrackerAccess(
+        user,
+        id,
+        accessId,
+        data,
+      );
+      return { data: access };
+    } catch (error) {
       return { error: error };
     }
   }

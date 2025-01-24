@@ -5,8 +5,8 @@ import { UserDataService } from 'src/user/user.data.service';
 import { CommunicationService } from 'src/communication/communication.service';
 import { QueueActionOptions } from 'src/utils/types';
 import {
-  IntendCaptureDataDTO,
-  IntendUpdateDataDTO,
+  IntendCaptureDataSchema,
+  IntendUpdateDataSchema,
 } from 'src/communication/bull.dto';
 import { AccountDataService } from 'src/user/account/account.data.service';
 
@@ -303,8 +303,8 @@ export class IntendDataService {
         ? QueueActionOptions.SEND_EVENT_INTEND_CAPTURE_EMAIL
         : QueueActionOptions.SEND_EVENT_INTEND_UPDATE_EMAIL,
       flag
-        ? IntendCaptureDataDTO.parse(payloadForjob)
-        : IntendUpdateDataDTO.parse(payloadForjob),
+        ? IntendCaptureDataSchema.parse(payloadForjob)
+        : IntendUpdateDataSchema.parse(payloadForjob),
       flag ? (eventData?.User.id ?? '') : (userShowedInterestData?.id ?? ''),
     );
   }

@@ -5,25 +5,39 @@ import { AccessSourceEntity } from '@prisma/client';
 import { LimitSchema } from 'src/global_dto';
 
 const CreateAccessHttpSchema = z.object({
-  sourceEntity: z.nativeEnum(AccessSourceEntity),
-  sourceEntityId: z.string(),
-  // accessReceiverId: z.string().uuid(),
   accessReceiverId: z.string().uuid().optional(),
   accessReceiverEmail: z.string().email().optional(),
-  accessType: z.nativeEnum(AccessType),
+  accessType: z
+    .string()
+    .refine(
+      (val) =>
+        Object.values(AccessType).includes(val.toUpperCase() as AccessType),
+      {
+        message: 'Invalid access type',
+        params: {
+          values: Object.values(AccessType),
+        },
+      },
+    )
+    .transform((val) => val.toUpperCase() as AccessType),
 });
 
 export class CreateAccessHttpDto extends createZodDto(CreateAccessHttpSchema) {}
 
 const createAccessSchema = CreateAccessHttpSchema.extend({
+  sourceEntity: z.nativeEnum(AccessSourceEntity),
+  sourceEntityId: z.string(),
   accessProviderId: z.string().uuid(),
   accountId: z.string().uuid(),
+  redirectQueryParams: z.string().optional(),
+  token: z.string().optional(),
+  expiry: z.date().optional(),
 });
 
 export class CreateAccessDto extends createZodDto(createAccessSchema) {}
 
-const UpdateAccessHttpSchema = z.object({
-  accessType: z.nativeEnum(AccessType),
+const UpdateAccessHttpSchema = CreateAccessHttpSchema.pick({
+  accessType: true,
 });
 
 export class UpdateAccessHttpDto extends createZodDto(UpdateAccessHttpSchema) {}
@@ -50,7 +64,7 @@ const showAccess = {
 
 const GetAccessSchema = LimitSchema.extend({
   id: z.string().uuid().optional(),
-  accountId: z.string().uuid(),
+  accountId: z.string().uuid().optional(),
   userId: z.string().uuid().optional(),
   accessReceiverId: z.string().uuid().optional(),
   accessProviderId: z.string().uuid().optional(),

@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { CommunicationService } from 'src/communication/communication.service';
-import { EventCancelDataDTO } from '../../src/communication/bull.dto';
+import { EventCancelDataSchema } from '../../src/communication/bull.dto';
 import { QueueActionOptions } from 'src/utils/types';
 
 @Injectable()
@@ -427,7 +427,10 @@ WHERE a."A" = '${eventId}';
     });
     return data;
   }
-  async createEventCancelJob(data: typeof EventCancelDataDTO, userId: string) {
+  async createEventCancelJob(
+    data: typeof EventCancelDataSchema,
+    userId: string,
+  ) {
     await this.communicationService.createJobForBull(
       QueueActionOptions.SEND_EVENT_CANCEL_EMAIL,
       data,

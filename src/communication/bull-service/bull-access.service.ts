@@ -6,10 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { Job } from 'bull';
 import { Processor, Process, JOB_REF } from '@nestjs/bull';
 import { EmailService } from '../email/email.service';
-import {
-  emailSenderAddress,
-  trackerAccessHtml,
-} from '../email/email.template';
+import { emailSenderAddress, trackerAccessHtml } from '../email/email.template';
 interface AccessEmailData {
   accessMetaData: UserMetaData;
   redirectUrl: string;
@@ -54,13 +51,14 @@ export class AccessEmailWorkerClass {
         .replace('{givenByUserDesignation}', userData.givenByUserDesignation)
         .replace('{givenByUserEmail}', userData.givenByUserEmail)
         .replace('{givenByUserName}', userData.givenByUserName)
-        .replace('{givenToUserEmail}', userData.givenToUserEmail);
+        .replace('{givenToUserEmail}', userData.givenToUserEmail)
+        .replace('{redirectUrl}', jobdata.redirectUrl);
 
       const { data, error } = await this.email.mailSender(
         userData.givenToUserEmail,
         emailSenderAddress,
         `Invitation to use tracker - ${jobdata.trackerName}`,
-        trackerAccessTemplate ,
+        trackerAccessTemplate,
       );
       let status = 'COMPLETED' as JobStatus;
       if (error) {

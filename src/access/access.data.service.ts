@@ -32,7 +32,7 @@ export class AccessDataService {
     return access;
   }
 
-  async getAccess(data: GetAccessDto) {
+  async getAccess(data: GetAccessDto, includesToken: boolean = false) {
     const { accessTypes, show, limit, offset, ...params } = data;
     if (accessTypes) {
       params['accessType'] = {
@@ -40,7 +40,10 @@ export class AccessDataService {
       };
     }
     const access = await this.prisma.access.findMany({
-      where: params,
+      where: {
+        ...params,
+        token: includesToken ? { not: null } : undefined,
+      },
       include: {
         accessReceiver: (show && show.includes('user')) || false,
       },

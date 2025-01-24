@@ -12,8 +12,8 @@ const CreateUserSchema = SignUpSchema.extend({
   role: z.nativeEnum(UserRole),
   imageUrl: z.string().optional(),
   accountId: z.string().uuid().optional(),
-  companyId: z.string().uuid().optional(),
   primaryAccountId: z.string().uuid().optional(),
+  primaryCompanyId: z.string().uuid().optional(),
   currentOnboardingState: z
     .nativeEnum(OnboardingState)
     .default('VERIFICATION')

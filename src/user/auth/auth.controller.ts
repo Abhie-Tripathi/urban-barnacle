@@ -1,6 +1,6 @@
 import { Body, Controller, Post, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { SignInDto, SignUpDto, VerifyOtpDto } from './dto';
+import { SignInDto, SignUpDto, VerifyAccessDto, VerifyOtpDto } from './dto';
 import { FastifyReply } from 'fastify';
 
 @Controller('auth')
@@ -64,11 +64,11 @@ export class AuthController {
 
   @Post('verify-access')
   async verifyAccess(
-    @Body() body: VerifyOtpDto,
+    @Body() body: VerifyAccessDto,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
     try {
-      const data = await this.authService.verifyOtp(body);
+      const data = await this.authService.verifyAccess(body);
 
       const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
       reply.cookie(key, data.user.token, this.authService.cookieOptions);

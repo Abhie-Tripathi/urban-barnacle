@@ -22,6 +22,8 @@ import { AccessType, Prisma, Tracker } from '@prisma/client';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { UserDataService } from 'src/user/user.data.service';
 import { CommentService } from 'src/comment/comment.service';
+import { CreateAccessHttpDto, UpdateAccessHttpDto } from 'src/access/dto';
+import { createHash } from 'crypto';
 
 @Injectable()
 export class TrackerService {
@@ -181,7 +183,7 @@ export class TrackerService {
     trackerId: string,
     query: GetTrackerByIdDto,
   ) {
-    const tracker = await this.hasTrackerAccess(user, trackerId, [
+    const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
       'ADMIN',
       'SUPER_ADMIN',
       'USER',
@@ -213,7 +215,7 @@ export class TrackerService {
     trackerId: string,
     data: UpdateTrackerHttpDto,
   ) {
-    const tracker = await this.hasTrackerAccess(user, trackerId, [
+    const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
       'ADMIN',
       'SUPER_ADMIN',
     ]);
@@ -233,7 +235,7 @@ export class TrackerService {
   }
 
   async deleteTracker(user: TCachedUser, trackerId: string) {
-    const tracker = await this.hasTrackerAccess(user, trackerId, [
+    const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
       'ADMIN',
       'SUPER_ADMIN',
     ]);
@@ -248,7 +250,7 @@ export class TrackerService {
     trackerId: string,
     params: GetTrackerEventsDto,
   ) {
-    const tracker = await this.hasTrackerAccess(user, trackerId, [
+    const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
       'ADMIN',
       'SUPER_ADMIN',
       'USER',
@@ -275,7 +277,7 @@ export class TrackerService {
     trackerId: string,
     params: GetTrackerEventsDto,
   ) {
-    const tracker = await this.hasTrackerAccess(user, trackerId, [
+    const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
       'ADMIN',
       'SUPER_ADMIN',
       'USER',
@@ -320,7 +322,7 @@ export class TrackerService {
     trackerId: string,
     params: GetTrackerEventsCountDto,
   ) {
-    const tracker = await this.hasTrackerAccess(user, trackerId, [
+    const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
       'ADMIN',
       'SUPER_ADMIN',
       'USER',
@@ -342,7 +344,7 @@ export class TrackerService {
     trackerId: string,
     params: GetTrackerEventsCountDto,
   ) {
-    const tracker = await this.hasTrackerAccess(user, trackerId, [
+    const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
       'ADMIN',
       'SUPER_ADMIN',
       'USER',
@@ -379,7 +381,7 @@ export class TrackerService {
     trackerId: string,
     params: GetTrackerCommentDto,
   ) {
-    const tracker = await this.hasTrackerAccess(user, trackerId, [
+    const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
       'ADMIN',
       'SUPER_ADMIN',
       'USER',
@@ -399,7 +401,7 @@ export class TrackerService {
     trackerId: string,
     params: GetTrackerUsersDto,
   ) {
-    const tracker = await this.hasTrackerAccess(user, trackerId, [
+    const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
       'ADMIN',
       'SUPER_ADMIN',
       'USER',
@@ -417,9 +419,14 @@ export class TrackerService {
       const user = item.accessReceiver;
       return {
         id: user.id,
-        name: `${user.firstname} ${user.lastname}`,
+        name:
+          user.firstname || user.lastname
+            ? `${user.firstname} ${user.lastname || ''}`
+            : user.email.split('@')[0],
         email: user.email,
         imageUrl: user.imageUrl,
+        accessType: item.accessType,
+        accessId: item.id,
       };
     });
     return users;
@@ -429,8 +436,7 @@ export class TrackerService {
     user: TCachedUser,
     trackerId: string,
     accessTypes: AccessType[],
-    checkAccess: boolean = true,
-  ) {
+  ): Promise<[Tracker, Record<string, any>]> {
     const tracker = (
       await this.trackerDataService.getTrackers({
         ids: [trackerId],
@@ -441,22 +447,20 @@ export class TrackerService {
     )[0];
     if (!tracker)
       throw new HttpException('Tracker not found', HttpStatus.NOT_FOUND);
-    const [hasAccess, result] = checkAccess
-      ? await this.accessService.hasAccess({
-          accessReceiverId: user.id,
-          accessTypes: accessTypes,
-          sourceEntity: 'TRACKER',
-          sourceEntityId: tracker.id,
-          accountId: user.accountId,
-          limit: 1,
-          offset: 0,
-        })
-      : [true, null];
+    const [hasAccess, result] = await this.accessService.hasAccess({
+      accessReceiverId: user.id,
+      accessTypes: accessTypes,
+      sourceEntity: 'TRACKER',
+      sourceEntityId: tracker.id,
+      accountId: user.accountId,
+      limit: 1,
+      offset: 0,
+    });
     if (!hasAccess) {
       if (result) throw new HttpException(result.message, result.status);
       else throw new HttpException('Invalid Access', HttpStatus.FORBIDDEN);
     }
-    return tracker;
+    return [tracker, result];
   }
 
   getTrackerDates(created: Date, lastOpened?: Date) {
@@ -478,5 +482,57 @@ export class TrackerService {
       last_active_gte: lastOpened.toISOString(),
     };
     return dateParams;
+  }
+
+  async createTrackerAccess(
+    user: TCachedUser,
+    trackerId: string,
+    data: CreateAccessHttpDto,
+  ) {
+    const [tracker, access] = await this.hasTrackerAccess(user, trackerId, [
+      'ADMIN',
+      'SUPER_ADMIN',
+    ]);
+
+    const hash = createHash('sha256').digest('hex');
+    const expiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+
+    await this.accessService.createAccess(
+      user,
+      {
+        ...data,
+        sourceEntity: 'TRACKER',
+        sourceEntityId: tracker.id,
+        accessProviderId: user.id,
+        accountId: user.accountId,
+        redirectQueryParams: `targetId=${tracker.id}&target=tracker`,
+        token: hash,
+        expiry: expiry,
+      },
+      {
+        trackerName: tracker.name,
+      },
+    );
+
+    return { message: 'access provided successfully' };
+  }
+
+  async deleteTrackerAccess(
+    user: TCachedUser,
+    trackerId: string,
+    accessId: string,
+  ) {
+    await this.hasTrackerAccess(user, trackerId, ['ADMIN', 'SUPER_ADMIN']);
+    return this.accessService.deleteAccess(user, accessId);
+  }
+
+  async updateTrackerAccess(
+    user: TCachedUser,
+    trackerId: string,
+    accessId: string,
+    data: UpdateAccessHttpDto,
+  ) {
+    await this.hasTrackerAccess(user, trackerId, ['ADMIN', 'SUPER_ADMIN']);
+    return this.accessService.updateAccess(user, accessId, data);
   }
 }
