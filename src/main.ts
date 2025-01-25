@@ -32,8 +32,7 @@ async function bootstrap() {
 
   // Config Service
   const configService = app.get(ConfigService);
-  // const port = configService.get('PORT') || 5000;
-  const port = 5000;
+  const port = configService.get('PORT');
   const origin = JSON.parse(configService.get('ORIGIN') ?? '[]');
 
   // CORS and Guards
