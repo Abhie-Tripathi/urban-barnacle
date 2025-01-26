@@ -41,21 +41,6 @@ export class AuthService {
     private readonly accessService: AccessService,
   ) {}
 
-  cookieOptions: CookieSerializeOptions = {
-    maxAge: 60 * 60 * 24 * 365,
-    httpOnly: true,
-    sameSite: 'none',
-    secure: true,
-    signed: true,
-    domain: this.configService.get('COOKIE_DOMAIN'),
-    // expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
-    // httpOnly: true,
-    // sameSite: 'none',
-    // secure: true,
-    // signed: true,
-    // domain: this.config.get('COOKIE_DOMAIN'),
-  };
-
   async signUp(data: SignUpDto) {
     const domain = data.email.split('@')[1];
     if (blackListDomain.includes(domain)) {
