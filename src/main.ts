@@ -47,15 +47,16 @@ async function bootstrap() {
   app.use(cookieParser(configService.get('COOKIE_SECRET')));
   await app.register(multipart);
   // Register fastifyCookie with the correct type
+  const node_env = configService.get('NODE_ENV') || 'development';
   await app.register(fastifyCookie, {
     secret: JSON.stringify(configService.get('COOKIE_SECRET')) || 'My-Key',
     parseOptions: {
-      expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
+      maxAge: 60 * 60 * 24 * 365,
       httpOnly: true,
       sameSite: 'none',
-      secure: true,
+      secure: node_env === 'production' ? true : false,
       signed: true,
-      // path: '/',
+      path: '/',
       domain: configService.get('DOMAIN'),
     },
   });
