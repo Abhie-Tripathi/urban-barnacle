@@ -55,7 +55,7 @@ async function bootstrap() {
       sameSite: 'none',
       secure: true,
       signed: true,
-      path: '/',
+      // path: '/',
       domain: configService.get('DOMAIN'),
     },
   });
