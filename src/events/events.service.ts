@@ -1,23 +1,30 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { EventsDataService } from './events.data.service';
-import { CountQueryDto, EventsTrendsDto, QueryDto } from './dto';
+import { CountQueryDto, EventsTrendsDto, QueryDto, View } from './dto';
 import { SharedService } from '../shared/shared.service';
 import { TCachedUser } from 'src/utils/types';
 import { getNonEmptyParams } from 'src/utils';
+import { transformEventData } from './global.service';
+import { IntentDataService } from 'src/intent/intent.data.service';
 
 @Injectable()
 export class EventsService {
   constructor(
     private readonly eventsDataService: EventsDataService,
     private readonly sharedService: SharedService,
+    private readonly intentDataService: IntentDataService,
   ) {}
 
   async getAllEvents(
     query: QueryDto,
     validateIds: boolean = true,
-    userId?: string,
+    user?: TCachedUser,
   ) {
-    const nonEmptyParams = getNonEmptyParams(query);
+    let show = query.show || [];
+    if (show.includes('old')) {
+      show = show.filter((item) => item !== 'old');
+    }
+    const nonEmptyParams = getNonEmptyParams({ ...query, show });
     const convertedParams = await this.sharedService.convertSlugParamsToIds(
       nonEmptyParams,
       validateIds,
@@ -25,25 +32,48 @@ export class EventsService {
 
     const fetchedEvents =
       await this.eventsDataService.getEvents(convertedParams);
+
     let events = fetchedEvents;
+    console.log(query);
     if (
-      query.view === 'list' &&
+      ['list', 'tracker'].includes(query.view) &&
       !(query.eventTypes && query.eventTypes.includes('alert'))
     ) {
-      const savedEventsIds = {};
-      events = events.map((event) => {
+      let userInterests = {};
+      if (user) {
+        userInterests = await this.getGroupedEventInterests(
+          user,
+          events.events.map((event) => event.id),
+        );
+      }
+      const transformedEvents = events.events.map((event) => {
         return {
-          ...event,
-          isSaved: savedEventsIds[event.id],
+          ...(query.show && query.show.includes('old')
+            ? event
+            : transformEventData(event)),
+
+          ...(query.show && query.show.includes('old')
+            ? {
+                isSaved:
+                  userInterests[event.id] && userInterests[event.id]['bookmark']
+                    ? true
+                    : false,
+              }
+            : { interests: userInterests[event.id] }),
         };
       });
+      events = {
+        count: events.count,
+        events: transformedEvents,
+      };
     }
     return events;
   }
 
-  async getEvent(userId: string, eventId: string) {
+  async getEvent(eventId: string, user?: TCachedUser) {
     const data = await this.eventsDataService.getEvents({
       eventIds: [eventId],
+      view: View.detail,
       limit: 1,
       offset: 0,
     });
@@ -55,13 +85,32 @@ export class EventsService {
       throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
     }
     const event = data.events[0];
-    console.log(event);
-    const isSaved = {};
+    let userInterests = {};
+    if (user) {
+      userInterests = await this.getGroupedEventInterests(user, [event.id]);
+    }
     const eventResponse = {
-      ...event,
-      isSaved: isSaved[event.id],
+      ...transformEventData(event),
+      interests: userInterests[event.id],
     };
     return eventResponse;
+  }
+
+  async getGroupedEventInterests(user: TCachedUser, eventIds: string[]) {
+    const interests = await this.intentDataService.getAllEventInterestsByUser(
+      user,
+      eventIds,
+    );
+
+    const groupedInterests = interests.reduce((acc, interest) => {
+      acc[interest.eventId] = acc[interest.eventId] || {};
+      acc[interest.eventId][interest.interest.toLowerCase()] = {
+        interestId: interest.id,
+      };
+      return acc;
+    }, {});
+
+    return groupedInterests;
   }
 
   async getEventsCount(query: CountQueryDto, validateIds: boolean = true) {

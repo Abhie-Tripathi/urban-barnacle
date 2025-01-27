@@ -55,7 +55,7 @@ export class IntentService {
         enquiry = enquiries[0];
       }
       if (!data.enquiryId && data.eventId && enquiries.length === 0) {
-        const event = await this.eventService.getEvent(user.id, data.eventId);
+        const event = await this.eventService.getEvent(data.eventId);
         if (!event) {
           throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
         }
@@ -63,11 +63,11 @@ export class IntentService {
           accountId: user.accountId,
           eventId: data.eventId,
           eventData: {
-            name: event.name,
-            name_lower: event.name.toLowerCase(),
-            eventId: event.id,
-            startDate: event.startDateTime,
-            endDate: event.endDateTime,
+            name: event.basic['name'],
+            name_lower: event.basic['name'].toLowerCase(),
+            eventId: event.basic['id'],
+            startDate: event.basic['startDateTime'],
+            endDate: event.basic['endDateTime'],
           },
           initiatedBy: data.recommendedBy || data.interestedUserId,
         });

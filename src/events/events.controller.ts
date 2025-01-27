@@ -18,10 +18,10 @@ export class EventsController {
 
   @UseGuards(AuthGuard)
   @Get()
-  async getAllEvents(@Query() query: QueryDto, @GetUser('id') userId: string) {
+  async getAllEvents(@Query() query: QueryDto, @GetUser() user: TCachedUser) {
     try {
-      const events = await this.eventsService.getAllEvents(query, true, userId);
-      return events;
+      const events = await this.eventsService.getAllEvents(query, true, user);
+      return { data: events };
     } catch (error) {
       return {
         error,
@@ -34,7 +34,7 @@ export class EventsController {
   async getEventCount(@Query() query: CountQueryDto) {
     try {
       const count = await this.eventsService.getEventsCount(query);
-      return count;
+      return { data: count };
     } catch (error) {
       return {
         error,
@@ -47,7 +47,7 @@ export class EventsController {
   async getEventsTrends(@Query() query: EventsTrendsDto) {
     try {
       const trends = await this.eventsService.getEventsTrends(query);
-      return trends;
+      return { data: trends };
     } catch (error) {
       return {
         error,
@@ -60,7 +60,7 @@ export class EventsController {
   async getEventPocs(@Param('id') id: string) {
     try {
       const pocs = await this.eventsService.getEventPocs(id);
-      return pocs;
+      return { data: pocs };
     } catch (error) {
       return {
         error,
@@ -73,7 +73,7 @@ export class EventsController {
   async getEventEditions(@Param('id') id: string) {
     try {
       const editions = await this.eventsService.getEventEditions(id);
-      return editions;
+      return { data: editions };
     } catch (error) {
       return {
         error,
@@ -86,7 +86,7 @@ export class EventsController {
   async getEventCoorganizers(@Param('id') id: string) {
     try {
       const coorganizers = await this.eventsService.getEventCoorganizers(id);
-      return coorganizers;
+      return { data: coorganizers };
     } catch (error) {
       return {
         error,
@@ -99,7 +99,7 @@ export class EventsController {
   async getEventRankings(@Param('id') id: string) {
     try {
       const rankings = await this.eventsService.getEventRankings(id);
-      return rankings;
+      return { data: rankings };
     } catch (error) {
       return {
         error,
@@ -112,7 +112,7 @@ export class EventsController {
   async getEventSpeakers(@Param('id') id: string) {
     try {
       const speakers = await this.eventsService.getEventSpeakers(id);
-      return speakers;
+      return { data: speakers };
     } catch (error) {
       return {
         error,
@@ -125,7 +125,7 @@ export class EventsController {
   async getEventSponsors(@Param('id') id: string) {
     try {
       const sponsors = await this.eventsService.getEventSponsors(id);
-      return sponsors;
+      return { data: sponsors };
     } catch (error) {
       return { error };
     }
@@ -136,7 +136,7 @@ export class EventsController {
   async getEventExhibitors(@Param('id') id: string) {
     try {
       const exhibitors = await this.eventsService.getEventExhibitors(id);
-      return exhibitors;
+      return { data: exhibitors };
     } catch (error) {
       return { error };
     }
@@ -147,7 +147,7 @@ export class EventsController {
   async getEventPolygons(@Param('id') id: string) {
     try {
       const polygons = await this.eventsService.getEventPolygons(id);
-      return polygons;
+      return { data: polygons };
     } catch (error) {
       return { error };
     }
@@ -155,10 +155,10 @@ export class EventsController {
 
   @UseGuards(AuthGuard)
   @Get(':id')
-  async getEvent(@Param('id') id: string, @GetUser('id') userId: string) {
+  async getEvent(@Param('id') id: string, @GetUser() user: TCachedUser) {
     try {
-      const event = await this.eventsService.getEvent(userId, id);
-      return event;
+      const event = await this.eventsService.getEvent(id, user);
+      return { data: event };
     } catch (error) {
       return {
         error,

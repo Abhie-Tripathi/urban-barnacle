@@ -1,4 +1,4 @@
-import { QueryDto } from './dto';
+import { EventDataDto, QueryDto } from './dto';
 
 export function eventSearchFilterCheck(data: any, query: QueryDto) {
   try {
@@ -321,4 +321,97 @@ export function eventSearchFilterCheck(data: any, query: QueryDto) {
     console.error(error);
     return false;
   }
+}
+
+const DataGroups = {
+  basic: [
+    'id',
+    'name',
+    'primaryEventType',
+    'categories',
+    'eventTypes',
+    'tags',
+    'format',
+    'eventLocation',
+    'tickets',
+    'bannerUrl',
+    'createdAt',
+    'description',
+    'designations',
+    'startDateTime',
+    'endDateTime',
+    'entryType',
+    'lastVerifiedOn',
+    'logoUrl',
+    'organizer',
+    'status',
+    'timings',
+    'updatedAt',
+    'website',
+    'eventPageUrl',
+    'rating',
+  ],
+
+  advance: [
+    'editions',
+    'isBranded',
+    'isSeries',
+    'rehostDate',
+    'rating',
+    'estimatedExhibitors',
+    'trustScore',
+    'rehostDate',
+    'maturity',
+    'frequency',
+  ],
+  insights: [
+    'estimatedAttendance',
+    'estimatedExhibitors',
+    'estimatedAttendanceMean',
+    'estimatedVisitorRangeTag',
+    'exhibitorsCount',
+    'rehostScore',
+    'repeatSentiment',
+    'reputationScore',
+    'speakersCount',
+    'sponsorsCount',
+    'economicImpactBreakdown',
+    'trustScore',
+    'yoyGrowth',
+    'scores',
+  ],
+  audience: ['audienceSpread', 'designationSpread', 'audienceZone'],
+};
+export function transformEventData(data: EventDataDto) {
+  const { alerts, trackerMatchInfo, ...rest } = data;
+  const basic = {};
+  const advance = {};
+  const insights = {};
+  const audience = {};
+  Object.keys(rest).forEach((key) => {
+    if (DataGroups.basic.includes(key)) {
+      basic[key] = rest[key];
+    } else if (DataGroups.advance.includes(key)) {
+      if (key === 'scores') {
+        const scores = rest['scores'];
+        Object.keys(scores).forEach((score) => {
+          advance[score] = scores[score];
+        });
+      } else {
+        advance[key] = rest[key];
+      }
+    } else if (DataGroups.insights.includes(key)) {
+      insights[key] = rest[key];
+    } else if (DataGroups.audience.includes(key)) {
+      audience[key] = rest[key];
+    }
+  });
+  return {
+    basic,
+    advance,
+    insights,
+    audience,
+    alerts,
+    ...(Object.keys(trackerMatchInfo).length ? { trackerMatchInfo } : {}),
+  };
 }

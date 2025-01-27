@@ -37,6 +37,7 @@ export enum View {
   'map' = 'map',
   'calendar' = 'calendar',
   'tracker' = 'tracker',
+  'detail' = 'detail',
 }
 
 export enum CalendarViewType {
@@ -82,6 +83,7 @@ export enum Show {
   frequency,
   alerts,
   isNew,
+  old,
 }
 
 export enum Frequency {
@@ -534,7 +536,7 @@ export const QuerySchema = LimitSchema.extend(QueryFilter.shape)
       .nativeEnum(timezones)
       .default(timezones['Asia/Kolkata'])
       .optional(),
-    view: z.nativeEnum(View).default(View.list).optional(),
+    view: z.nativeEnum(View).optional().default(View.list),
     calendar_type: z.nativeEnum(CalendarViewType).optional(),
   })
   .transform((data) => {

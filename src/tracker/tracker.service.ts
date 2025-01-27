@@ -16,7 +16,7 @@ import { AccessDataService } from 'src/access/access.data.service';
 import { getNonEmptyParams } from 'src/utils';
 import { SharedService } from 'src/shared/shared.service';
 import { EventsService } from 'src/events/events.service';
-import { CountGroup, CountQueryDto, QueryDto } from 'src/events/dto';
+import { CountGroup, CountQueryDto, QueryDto, View } from 'src/events/dto';
 import { IntentDataService } from 'src/intent/intent.data.service';
 import { AccessType, Prisma, Tracker } from '@prisma/client';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -257,17 +257,35 @@ export class TrackerService {
     ]);
     const newParams = getNonEmptyParams(params);
     const convertedParams =
-      this.sharedService.convertSlugParamsToIds(newParams);
+      await this.sharedService.convertSlugParamsToIds(newParams);
+    console.log({ params: convertedParams });
+
+    const searchByEntity = ['T_COMPETITOR', 'T_CUSTOMER_ICP'].includes(
+      tracker.type,
+    )
+      ? 'company'
+      : tracker.type === 'T_PEOPLE_FINDER'
+        ? 'user'
+        : tracker.type === 'T_SPEAKING_OPPORTUNITY'
+          ? 'speaker'
+          : tracker.type === 'T_RECRUITMENT'
+            ? 'recruitment'
+            : undefined;
     const eventParams = {
       ...(tracker.filterValues as Object),
       ...convertedParams,
       limit: params.limit,
       offset: params.offset,
+      view: View.tracker,
     } as QueryDto;
+    console.log({ eventParams });
+    if (searchByEntity) {
+      eventParams['searchByEntity'] = searchByEntity;
+    }
     const events = await this.eventService.getAllEvents(
       eventParams,
       false,
-      user.id,
+      user,
     );
     return events;
   }
@@ -304,15 +322,12 @@ export class TrackerService {
       ...convertedParams,
       limit: params.limit,
       offset: params.offset,
+      view: View.tracker,
     } as QueryDto;
 
     console.log({ eventParams });
 
-    const events = await this.eventService.getAllEvents(
-      eventParams,
-      false,
-      user.id,
-    );
+    const events = await this.eventService.getAllEvents(eventParams, false);
 
     return events;
   }

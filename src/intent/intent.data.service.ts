@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { InterestStatus, Prisma } from '@prisma/client';
+import { Interest, InterestStatus, Prisma } from '@prisma/client';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -17,6 +17,7 @@ import {
   UpdateEnquiryActivityDto,
 } from './dto/enquiryActivity.dto';
 import { EnquiryDataService } from 'src/enquiry/enquiry.data.service';
+import { TCachedUser } from 'src/utils/types';
 
 @Injectable()
 export class IntentDataService {
@@ -57,6 +58,28 @@ export class IntentDataService {
   async getUserEventInterest(data: GetUserEventInterestDto) {
     const userEventInterests = await this.prisma.userEventInterest.findMany({
       where: { ...data, deleted: false },
+    });
+    return userEventInterests;
+  }
+
+  async getAllEventInterestsByUser(user: TCachedUser, eventIds: string[]) {
+    const userEventInterests = await this.prisma.userEventInterest.findMany({
+      where: {
+        interestedUserId: user.id,
+        accountId: user.accountId,
+        deleted: false,
+        eventId: {
+          in: eventIds,
+        },
+        interest: {
+          not: Interest.ORGANIZE,
+        },
+      },
+      select: {
+        id: true,
+        interest: true,
+        eventId: true,
+      },
     });
     return userEventInterests;
   }
