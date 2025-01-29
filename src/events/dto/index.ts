@@ -1,6 +1,7 @@
 export * from './query.dto';
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
+import { UnlockValue } from '@prisma/client';
 
 const LocationSchema = z.object({
   id: z.string(),
@@ -214,3 +215,11 @@ const EventDataSchema = z.object({
 });
 
 export class EventDataDto extends createZodDto(EventDataSchema) {}
+
+const pocsUnmaskSchema = z.strictObject({
+  unlockValue: z
+    .string()
+    .transform((val) => val.toUpperCase().split(',') as UnlockValue[]),
+});
+
+export class PocsUnmaskDto extends createZodDto(pocsUnmaskSchema) {}

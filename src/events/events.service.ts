@@ -1,6 +1,12 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { EventsDataService } from './events.data.service';
-import { CountQueryDto, EventsTrendsDto, QueryDto, View } from './dto';
+import {
+  CountQueryDto,
+  EventsTrendsDto,
+  PocsUnmaskDto,
+  QueryDto,
+  View,
+} from './dto';
 import { SharedService } from '../shared/shared.service';
 import { TCachedUser } from 'src/utils/types';
 import { getNonEmptyParams } from 'src/utils';
@@ -25,6 +31,8 @@ export class EventsService {
       show = show.filter((item) => item !== 'old');
     }
     const nonEmptyParams = getNonEmptyParams({ ...query, show });
+    if (user) {
+    }
     const convertedParams = await this.sharedService.convertSlugParamsToIds(
       nonEmptyParams,
       validateIds,
@@ -154,7 +162,55 @@ export class EventsService {
   async getEventPolygons(eventId: string) {
     return await this.eventsDataService.getEventPolygons(eventId);
   }
-
+  async getEventPocsUnmasked(
+    eventId: string,
+    pocId: string,
+    query: PocsUnmaskDto,
+    user: TCachedUser,
+  ) {
+    const { checkForEntry, limitForPoc } =
+      await this.eventsDataService.getUserPocLimitAndPocunloackedValues(
+        eventId,
+        pocId,
+        query,
+        user,
+      );
+    const noOfUnloackedPoc: number = limitForPoc?.pendingPocUnlockRequests
+      ? limitForPoc.pendingPocUnlockRequests
+      : 0;
+    if (noOfUnloackedPoc <= 0) {
+      throw new HttpException(
+        'limit exceeded for event poc viewing',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    for (const val of query.unlockValue) {
+      let checkForCase: boolean = false;
+      let id: string = '';
+      checkForEntry.map((entry) => {
+        if (entry.unlockValue === val) {
+          checkForCase = true;
+          id = entry.id;
+        }
+      });
+      if (checkForCase) {
+        this.eventsDataService.updateEventPocunlocakedEntry(id, user.id);
+      } else {
+        this.eventsDataService.createUnlocakedPocEntryAndDeductPocLimitPoint(
+          eventId,
+          pocId,
+          val,
+          user,
+          noOfUnloackedPoc - 1,
+        );
+      }
+    }
+    return await this.eventsDataService.getEventsPocsunloacked(
+      pocId,
+      query.unlockValue,
+    );
+    // return await this.eventsDataService.getEventPolygons(eventId);
+  }
   async getEventsTrends(query: EventsTrendsDto) {
     const nonEmptyParams = getNonEmptyParams(query);
     const convertedParams = await this.sharedService.convertSlugParamsToIds(

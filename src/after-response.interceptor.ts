@@ -34,12 +34,16 @@ export class AfterResponseInterceptor implements NestInterceptor {
             body: req.body ?? null,
             headers: req.headers,
           } as Record<string, any>,
-          user: {
-            connect: { id: String(req.user.id) },
-          },
-          account: {
-            connect: { id: req.user.accountId },
-          },
+          user: req?.user?.id
+            ? {
+                connect: { id: String(req.user.id) },
+              }
+            : {},
+          account: req?.user?.accountId
+            ? {
+                connect: { id: req.user.accountId },
+              }
+            : {},
         };
         if (
           (pathBreakdown[0] === 'trackers' &&
