@@ -15,7 +15,28 @@ export class EventsDataService {
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
   ) {}
-
+  async createLogForEncryptedQuery(encryption: string, user: TCachedUser) {
+    const checkIfenccryptionIsUniqueOrNot =
+      await this.prisma.userActivity.findFirst({
+        where: {
+          request: { equals: { data: encryption } },
+        },
+        select: {
+          id: true,
+        },
+      });
+    if (checkIfenccryptionIsUniqueOrNot?.id) {
+      return { message: 'not a unique encryption' };
+    }
+    await this.prisma.userActivity.create({
+      data: {
+        path: '/events',
+        request: { data: encryption },
+        account: { connect: { id: user.accountId } },
+        user: { connect: { id: user.id } },
+      },
+    });
+  }
   async getEvents(params: QueryDto) {
     const queryParams = new URLSearchParams(
       params as unknown as Record<string, any>,
@@ -229,16 +250,15 @@ export class EventsDataService {
     return { message: 'Poc unlocked entry updated successfully' };
   }
   async getEventsPocsunloacked(pocId: string, params: UnlockValue[]) {
-    const queryParams = new URLSearchParams(
-      params as unknown as Record<string, any>,
-    );
     const url =
       this.configService.get('MICROSERVICE_URL') +
       microserviceEndpoints.events.eventPocsUnlocked +
       '?' +
-      `unmaskedBy=${params.join(',').toLowerCase()}&pocId=${pocId}`;
+      `unlockValue=${params.join(',').toLowerCase()}&pocId=${pocId}`;
     const response = await fetch(url);
     const { data, error } = await response.json();
+    console.log(url, error, data);
+
     if (!data || error) {
       throw new HttpException(error, HttpStatus.BAD_REQUEST);
     }

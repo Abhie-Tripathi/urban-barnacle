@@ -30,6 +30,26 @@ export class EventsController {
   }
 
   @UseGuards(AuthGuard)
+  @Get(':id/pocs/:pocId')
+  async getEventPocsUnmasked(
+    @Param('id') id: string,
+    @Param('pocId') pocId: string,
+    @Query() query: PocsUnmaskDto,
+    @GetUser() user: TCachedUser,
+  ) {
+    try {
+      const polygons = await this.eventsService.getEventPocsUnmasked(
+        id,
+        pocId,
+        query,
+        user,
+      );
+      return { data: polygons };
+    } catch (error) {
+      return { error };
+    }
+  }
+  @UseGuards(AuthGuard)
   @Get('/count')
   async getEventCount(@Query() query: CountQueryDto) {
     try {
@@ -147,26 +167,6 @@ export class EventsController {
   async getEventPolygons(@Param('id') id: string) {
     try {
       const polygons = await this.eventsService.getEventPolygons(id);
-      return { data: polygons };
-    } catch (error) {
-      return { error };
-    }
-  }
-  @UseGuards(AuthGuard)
-  @Get(':id//pocs/:poc-id')
-  async getEventPocsUnmasked(
-    @Param('id') id: string,
-    @Param('poc-id') pocId: string,
-    @Query() query: PocsUnmaskDto,
-    @GetUser() user: TCachedUser,
-  ) {
-    try {
-      const polygons = await this.eventsService.getEventPocsUnmasked(
-        id,
-        pocId,
-        query,
-        user,
-      );
       return { data: polygons };
     } catch (error) {
       return { error };
