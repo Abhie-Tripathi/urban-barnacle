@@ -85,22 +85,16 @@ export const CachedUserSchema: z.ZodType<SelectedUserDetails> = z.object({
 
 export const Industries = {
   eventeli: {
-    Accomodation: 'Accomodation',
-    Restaurants: 'Restaurants',
-    Retail: 'Retail',
-    Parking: 'Parking',
     Hospitality: 'Hospitality',
     Local_Commerce: 'Local_Commerce',
-    Real_Estate: 'Real_Estate',
-    Travel: 'Travel',
-    Venue: 'Venue',
-    Event_Planner: 'Event_Planner',
-    Event_Supplier: 'Event_Supplier',
-    DMO: 'DMO',
-    Activity_Planner: 'Activity_Planner',
-    Local_Government: 'Local_Government',
+    Transportation_Logistics: 'Transportation_Logistics',
+    Venue_Real_Estate: 'Venue_Real_Estate',
+    Event_Planners: 'Event_Planners',
+    Civic_Commerce_Tourism: 'Civic_Commerce_Tourism',
+    Activity_Planners: 'Activity_Planners',
+    Media_Marketing: 'Media_Marketing',
+    Corporate_Brands: 'Corporate_Brands',
     Others: 'Others',
-    Hotel: 'Hotel',
   },
   eventgtm: {
     others: 'others',
@@ -114,6 +108,7 @@ export const Industries = {
 export const SubIndustries = {
   Retail: 'Retail',
   Quick_Commerce: 'Quick_Commerce',
+  Local_Government: 'Local_Government',
   Parking: 'Parking',
   Others: 'Others',
 };
