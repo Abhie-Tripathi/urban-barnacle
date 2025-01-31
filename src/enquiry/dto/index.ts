@@ -37,7 +37,7 @@ const UpdateEnquirySchema = z.object({
 
 export class UpdateEnquiryDto extends createZodDto(UpdateEnquirySchema) {}
 
-const GetEnquiriesSchema = LimitSchema.extend({
+const GetEnquiriesSchema = z.object({
   ids: z.array(z.string().uuid()).optional(),
   eventId: z.string().uuid().optional(),
   accountId: z.string().uuid().optional(),
@@ -50,4 +50,16 @@ const GetEnquiriesSchema = LimitSchema.extend({
   name: z.string().optional(),
 });
 
-export class GetEnquiriesDto extends createZodDto(GetEnquiriesSchema) {}
+export class GetEnquiriesDto extends createZodDto(
+  LimitSchema.extend(GetEnquiriesSchema.shape),
+) {}
+
+export class GetEnquiryCountDto extends createZodDto(GetEnquiriesSchema) {}
+
+const SetEnquiryOwnerHttpSchema = z.object({
+  ownerId: z.string().uuid(),
+});
+
+export class SetEnquiryOwnerHttpDto extends createZodDto(
+  SetEnquiryOwnerHttpSchema,
+) {}

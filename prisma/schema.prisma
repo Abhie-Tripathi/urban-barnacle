@@ -195,8 +195,8 @@ model Comment {
   commentType     CommentType
   user            User                @relation(fields: [userId], references: [id])
   userId          String              @db.Uuid
-  accountId       String?             @db.Uuid
-  account         Account?            @relation(fields: [accountId], references: [id])
+  accountId       String              @db.Uuid
+  account         Account             @relation(fields: [accountId], references: [id])
   sourceModule    CommentSourceModule
   sourceId        String
   parentCommentId String?             @db.Uuid

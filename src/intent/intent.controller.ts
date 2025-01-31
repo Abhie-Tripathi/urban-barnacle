@@ -96,6 +96,7 @@ export class IntentController {
     @Body() data: CreateEnquiryActivityHttpDto,
     @GetUser() user: TCachedUser,
   ) {
+    console.log({ data });
     return this.intentService.createEnquiryActivity(user, data);
   }
 

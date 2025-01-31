@@ -12,7 +12,17 @@ import { UserDataService } from '../user.data.service';
 import { Prisma } from '@prisma/client';
 import { AccountConfigDto } from './account.config';
 import { UserDataSchema } from '../me/dto';
-import { AccountConfigKey } from './dto';
+import { AccountConfigKey, GetAccountEnquiriesCountDto } from './dto';
+import { IntentDataService } from 'src/intent/intent.data.service';
+import {
+  GetUserEventInterestCountDto,
+  UserInterestsGroupBy,
+} from 'src/intent/dto';
+import {
+  EnquiryActivityGroupBy,
+  GetEnquiryActivityCountDto,
+} from 'src/intent/dto/enquiryActivity.dto';
+import { EnquiryResponseSchema } from 'src/enquiry/dto/response';
 
 @Injectable()
 export class AccountService {
@@ -21,6 +31,7 @@ export class AccountService {
     private readonly companyDataService: CompanyDataService,
     private readonly enquiryService: EnquiryService,
     private readonly userDataService: UserDataService,
+    private readonly intentDataService: IntentDataService,
   ) {}
 
   async getAccountCompany(user: TCachedUser) {
@@ -31,11 +42,68 @@ export class AccountService {
   }
 
   async getAccountEnquiries(user: TCachedUser, query: GetEnquiriesDto) {
-    const enquiries = await this.enquiryService.getEnquiries({
-      accountId: user.accountId,
-      ...query,
-    });
-    return enquiries;
+    const { limit, offset, ...rest } = query;
+    const [enquiries, enquiryCount] = await Promise.all([
+      this.enquiryService.getEnquiries({
+        accountId: user.accountId,
+        ...rest,
+        limit,
+        offset,
+      }),
+      this.enquiryService.getEnquiryCount({
+        accountId: user.accountId,
+        ...rest,
+      }),
+    ]);
+    const transformedEnquires = await Promise.all(
+      enquiries.map(async (enquiry) => {
+        const [interestedCount, activityCount] = await Promise.all([
+          this.intentDataService.getUserEventInterestCount({
+            accountId: user.accountId,
+            ...rest,
+            groupBy: UserInterestsGroupBy.interests,
+            interest: ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'],
+          }),
+          this.intentDataService.getEnquiryActivityCount({
+            accountId: user.accountId,
+            ...rest,
+            groupBy: EnquiryActivityGroupBy.activitySubType,
+          }),
+        ]);
+        const interestCounts = {
+          total: 0,
+          attend: 0,
+          speak: 0,
+          sponsor: 0,
+          exhibit: 0,
+        };
+        interestedCount.forEach((curr) => {
+          interestCounts.total += curr._count.id;
+          interestCounts[curr.interest.toLowerCase()] = curr._count.id;
+        });
+
+        const activityCounts = {
+          total: 0,
+          attend: 0,
+          speak: 0,
+          sponsor: 0,
+          exhibit: 0,
+        };
+        activityCount.forEach((curr) => {
+          activityCounts.total += curr._count.id;
+          activityCounts[curr.activitySubType.toLowerCase()] = curr._count.id;
+        });
+        return EnquiryResponseSchema.parse({
+          ...enquiry,
+          activityCount: activityCounts,
+          interestedCount: interestCounts,
+        });
+      }),
+    );
+    return {
+      count: enquiryCount,
+      enquiries: transformedEnquires,
+    };
   }
 
   async getAccountUsers(user: TCachedUser, query: GetUserHttpDto) {
@@ -81,5 +149,42 @@ export class AccountService {
     ).config;
 
     return { [key]: configuration ? configuration[key] : [] };
+  }
+
+  async getAccountEnquiriesCount(
+    user: TCachedUser,
+    query: GetAccountEnquiriesCountDto,
+  ) {
+    const params: GetUserEventInterestCountDto = {
+      accountId: user.accountId,
+      groupBy: UserInterestsGroupBy.interests,
+    };
+    if (query.type === 'interest') {
+      params.interest = ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'];
+    }
+    const [interests, totalEnquiries] = await Promise.all([
+      this.intentDataService.getUserEventInterestCount(params),
+      this.enquiryService.getEnquiryCount({
+        accountId: user.accountId,
+      }),
+    ]);
+    let total = 0;
+    const groupedInterests = interests.reduce((acc, curr) => {
+      total += curr._count.id;
+      acc[curr.interest.toLowerCase()] = curr._count.id;
+      return acc;
+    }, {});
+    let response = {};
+    if (query.type === 'interest') {
+      response = {
+        ...groupedInterests,
+        total: total,
+      };
+    }
+
+    return {
+      totalEnquiries: totalEnquiries,
+      ...response,
+    };
   }
 }

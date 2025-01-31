@@ -7,12 +7,16 @@ import {
   CreateIntentDto,
   CreateUserEventInterestDto,
   GetIntentDto,
+  GetUserEventInterestCountDto,
   GetUserEventInterestDto,
   UpdateIntentDto,
   UpdateUserEventInterestDto,
+  UserInterestsGroupBy,
 } from './dto/';
 import {
   CreateEnquiryActivityDto,
+  EnquiryActivityGroupBy,
+  GetEnquiryActivityCountDto,
   GetEnquiryActivityDto,
   UpdateEnquiryActivityDto,
 } from './dto/enquiryActivity.dto';
@@ -56,8 +60,14 @@ export class IntentDataService {
   }
 
   async getUserEventInterest(data: GetUserEventInterestDto) {
+    const { limit, offset, interest, ...rest } = data;
+    if (interest && interest.length > 0) {
+      rest['interest'] = { in: interest };
+    }
     const userEventInterests = await this.prisma.userEventInterest.findMany({
-      where: { ...data, deleted: false },
+      where: { ...rest, deleted: false },
+      skip: offset,
+      take: limit,
     });
     return userEventInterests;
   }
@@ -84,11 +94,33 @@ export class IntentDataService {
     return userEventInterests;
   }
 
-  async getUserEventInterestCount(data: GetUserEventInterestDto) {
-    const userEventInterests = await this.prisma.userEventInterest.count({
-      where: { ...data, deleted: false },
-    });
-    return userEventInterests;
+  async getUserEventInterestCount(data: GetUserEventInterestCountDto) {
+    const { groupBy, interest, ...rest } = data;
+    if (interest && interest.length > 0) {
+      rest['interest'] = {
+        in: interest,
+      };
+    }
+    let count;
+    if (groupBy) {
+      const by: Prisma.UserEventInterestScalarFieldEnum[] = [];
+      if (groupBy === UserInterestsGroupBy.interests) {
+        by.push('interest');
+      }
+      count = await this.prisma.userEventInterest.groupBy({
+        where: { ...rest, deleted: false },
+        by: by,
+        _count: {
+          id: true,
+        },
+      });
+    } else {
+      count = await this.prisma.userEventInterest.count({
+        where: { ...rest, deleted: false },
+      });
+    }
+
+    return count;
   }
 
   async createEnquiryActivity(data: CreateEnquiryActivityDto) {
@@ -117,6 +149,30 @@ export class IntentDataService {
       where: { ...data, deleted: false },
     });
     return enquiryActivities;
+  }
+
+  async getEnquiryActivityCount(data: GetEnquiryActivityCountDto) {
+    console.log(data);
+    const { groupBy, ...rest } = data;
+    let count;
+    if (groupBy) {
+      const by: Prisma.EnquiryActivityScalarFieldEnum[] = [];
+      if (groupBy === EnquiryActivityGroupBy.activitySubType) {
+        by.push('activitySubType');
+      }
+      count = await this.prisma.enquiryActivity.groupBy({
+        where: { ...rest, deleted: false },
+        by: by,
+        _count: {
+          id: true,
+        },
+      });
+    } else {
+      count = await this.prisma.enquiryActivity.count({
+        where: { ...rest, deleted: false },
+      });
+    }
+    return count;
   }
 
   async createIntent(data: CreateIntentDto) {

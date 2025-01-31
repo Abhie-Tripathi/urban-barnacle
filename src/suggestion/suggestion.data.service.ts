@@ -14,6 +14,7 @@ import {
   EventTypeResponseDto,
   LocationResponseDto,
   LocationResponseSchema,
+  LocationType,
 } from './dto';
 import {
   CompanyDto,
@@ -28,26 +29,42 @@ export class SuggestionDataService {
   constructor(private readonly configService: ConfigService) {}
 
   async getLocations(dto: LocationDto): Promise<LocationResponseDto> {
-    const params = {
-      locationType: dto.type,
-      locationIds: dto.ids,
-      take: dto.limit,
-      skip: dto.offset,
-      query: dto.query,
-    };
+    let params = {};
+    if (dto.type === 'REGION') {
+      params = {
+        query: dto.query,
+        offset: dto.offset,
+        take: dto.limit,
+      };
+    } else {
+      params = {
+        locationType: dto.type,
+        locationIds: dto.ids,
+        take: dto.limit,
+        skip: dto.offset,
+        query: dto.query,
+      };
+    }
+
     const nonEmptyParams = getNonEmptyParams(params);
     const searchQuery = new URLSearchParams(
       nonEmptyParams as unknown as Record<string, any>,
     );
+
     const url =
       this.configService.get('MICROSERVICE_URL') +
-      microserviceEndpoints.suggestions.locations +
+      (dto.type === 'REGION'
+        ? microserviceEndpoints.suggestions.regions
+        : microserviceEndpoints.suggestions.locations) +
       '?' +
       searchQuery.toString();
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (error) {
       throw new HttpException(error, HttpStatus.BAD_REQUEST);
+    }
+    if (dto.type === 'REGION') {
+      return data;
     }
     return LocationResponseSchema.parse(data);
   }

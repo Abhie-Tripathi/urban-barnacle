@@ -3,6 +3,7 @@ import { AccessDataService } from './access.data.service';
 import {
   CreateAccessDto,
   CreateAccessHttpDto,
+  GetAccessCountDto,
   GetAccessDto,
   UpdateAccessHttpDto,
 } from './dto';
@@ -17,6 +18,7 @@ import { AccessEmailDataDto } from 'src/communication/bull.dto';
 import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
 import { CompanyDataService } from 'src/user/company/company.data.service';
+import { getNameFromEmail } from 'src/utils';
 
 @Injectable()
 export class AccessService {
@@ -106,14 +108,16 @@ export class AccessService {
             givenToUserEmail: receiver?.email,
             givenByUserEmail: user.email,
             givenByUserDesignation: user.designation,
-            givenToUserName:
-              receiver.firstname || receiver.lastname
-                ? `${receiver.firstname} ${receiver.lastname || ''}`
-                : receiver.email.split('@')[0],
-            givenByUserName:
-              user.firstname || user.lastname
-                ? `${user.firstname} ${user.lastname || ''}`
-                : user.email.split('@')[0],
+            givenToUserName: getNameFromEmail(
+              receiver.email,
+              receiver.firstname,
+              receiver.lastname,
+            ),
+            givenByUserName: getNameFromEmail(
+              user.email,
+              user.firstname,
+              user.lastname,
+            ),
           },
           redirectUrl:
             (this.configService.get('FRONTEND_URL') || '') +
@@ -210,5 +214,13 @@ export class AccessService {
       return [true, { access }];
     }
     return [false, { message: 'Access not found' }];
+  }
+
+  async getAccessCount(data: GetAccessCountDto) {
+    const accessCount = await this.accessDataService.getAccessCount({
+      ...data,
+      accountId: data.accountId,
+    });
+    return accessCount;
   }
 }

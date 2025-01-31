@@ -20,7 +20,7 @@ import {
   InterestConfigurationDto,
   OutreachConfigurationDto,
 } from './account.config';
-import { AccountConfigKey } from './dto';
+import { AccountConfigKey, GetAccountEnquiriesCountDto } from './dto';
 
 @Controller('me/account')
 export class AccountController {
@@ -50,7 +50,23 @@ export class AccountController {
       );
       return { data: enquiries };
     } catch (error) {
-      console.log(error);
+      return { error: error };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('enquiries/count')
+  async getAccountEnquiriesCount(
+    @GetUser() user: TCachedUser,
+    @Query() query: GetAccountEnquiriesCountDto,
+  ) {
+    try {
+      const count = await this.accountService.getAccountEnquiriesCount(
+        user,
+        query,
+      );
+      return { data: { count } };
+    } catch (error) {
       return { error: error };
     }
   }

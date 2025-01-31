@@ -1,7 +1,15 @@
-import { Body, Controller, Post, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpException,
+  HttpStatus,
+  Post,
+  Res,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignInDto, SignUpDto, VerifyAccessDto, VerifyOtpDto } from './dto';
 import { FastifyReply } from 'fastify';
+import { Prisma } from '@prisma/client';
 
 @Controller('auth')
 export class AuthController {
@@ -31,7 +39,17 @@ export class AuthController {
       const user = await this.authService.signUp(body);
       return { data: user };
     } catch (error) {
-      throw error;
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return {
+          error: new HttpException(
+            'User already exists',
+            HttpStatus.BAD_REQUEST,
+          ),
+        };
+      }
       return { error: error };
     }
   }

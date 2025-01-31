@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import {
   CreateAccessDto,
   CreateAccessHttpDto,
+  GetAccessCountDto,
   GetAccessDto,
   UpdateAccessDto,
 } from './dto';
@@ -63,5 +64,21 @@ export class AccessDataService {
       },
     });
     return access;
+  }
+
+  async getAccessCount(data: GetAccessCountDto) {
+    const { accessTypes, ...params } = data;
+    if (accessTypes) {
+      params['accessType'] = {
+        in: accessTypes,
+      };
+    }
+    const accessCount = await this.prisma.access.count({
+      where: {
+        ...params,
+        deleted: false,
+      },
+    });
+    return accessCount;
   }
 }

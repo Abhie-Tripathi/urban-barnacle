@@ -80,7 +80,7 @@ export class SuggestionController {
         'locations',
         dto,
       );
-      return { data: { locations } };
+      return { data: locations };
     } catch (error) {
       return { error: new HttpException(error, HttpStatus.BAD_REQUEST) };
     }

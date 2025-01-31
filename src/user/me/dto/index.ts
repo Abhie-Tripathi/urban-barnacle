@@ -15,6 +15,9 @@ export const UserDataSchema = z.object({
   imageUrl: z.string().nullable(),
   industry: z.string().nullable(),
   subIndustry: z.string().nullable(),
+  category: z.string().nullable(),
+  designation: z.string().nullable(),
+  department: z.string().nullable(),
 });
 export const UserResponseSchema = z.object({
   userData: UserDataSchema,

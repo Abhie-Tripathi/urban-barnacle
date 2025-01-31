@@ -33,3 +33,15 @@ export class GetAccountDto extends createZodDto(GetAccountsSchema) {}
 
 const AccountConfigKey = z.enum(['interest', 'outreach', 'filter']);
 export type AccountConfigKey = z.infer<typeof AccountConfigKey>;
+
+enum EnquiryCountType {
+  interest = 'interest',
+}
+
+const GetAccountEnquiriesCountSchema = z.strictObject({
+  type: z.nativeEnum(EnquiryCountType),
+});
+
+export class GetAccountEnquiriesCountDto extends createZodDto(
+  GetAccountEnquiriesCountSchema,
+) {}

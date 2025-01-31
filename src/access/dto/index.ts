@@ -78,3 +78,11 @@ const GetAccessSchema = LimitSchema.extend({
 });
 
 export class GetAccessDto extends createZodDto(GetAccessSchema) {}
+
+const GetAccessCountSchema = GetAccessSchema.omit({
+  show: true,
+  limit: true,
+  offset: true,
+});
+
+export class GetAccessCountDto extends createZodDto(GetAccessCountSchema) {}

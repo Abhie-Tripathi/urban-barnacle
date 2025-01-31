@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { SuggestionSchema } from '.';
 import { createZodDto } from 'nestjs-zod';
 
-const LocationType = {
+export const LocationType = {
   CITY: 'city',
   STATE: 'state',
   COUNTRY: 'country',
@@ -13,7 +13,7 @@ const LocationType = {
 export const LocationSchema = SuggestionSchema.extend({
   type: z
     .string()
-    .refine((type) => type in LocationType)
+    .refine((type) => Object.keys(LocationType).includes(type.toUpperCase()))
     .transform((type) => type.toUpperCase())
     .optional(),
 });

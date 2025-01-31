@@ -13,7 +13,7 @@ import {
 } from './dto';
 import { AccessService } from 'src/access/access.service';
 import { AccessDataService } from 'src/access/access.data.service';
-import { getNonEmptyParams } from 'src/utils';
+import { getNameFromEmail, getNonEmptyParams } from 'src/utils';
 import { SharedService } from 'src/shared/shared.service';
 import { EventsService } from 'src/events/events.service';
 import { CountGroup, CountQueryDto, QueryDto, View } from 'src/events/dto';
@@ -24,6 +24,7 @@ import { UserDataService } from 'src/user/user.data.service';
 import { CommentService } from 'src/comment/comment.service';
 import { CreateAccessHttpDto, UpdateAccessHttpDto } from 'src/access/dto';
 import { createHash } from 'crypto';
+import { CommentsResponseSchema } from 'src/comment/dto/response';
 
 @Injectable()
 export class TrackerService {
@@ -91,7 +92,7 @@ export class TrackerService {
 
     const savedEventsCount =
       await this.intentDataService.getUserEventInterestCount({
-        interest: 'BOOKMARK',
+        interest: ['BOOKMARK'],
         sourceModule: 'TRACKER',
         sourceId: tracker.id,
         interestedUserId: user.id,
@@ -176,6 +177,21 @@ export class TrackerService {
       }),
     );
     return allTrackers;
+  }
+
+  async getTrackersCount(user: TCachedUser, params: GetTrackersHttpDto) {
+    const trackerCount = await this.accessService.getAccessCount({
+      accessReceiverId: user.id,
+      accountId: user.accountId,
+      sourceEntity: 'TRACKER',
+      accessTypes:
+        params.createdBy === 'me'
+          ? ['SUPER_ADMIN']
+          : params.createdBy === 'others'
+            ? ['ADMIN', 'USER']
+            : ['SUPER_ADMIN', 'ADMIN', 'USER'],
+    });
+    return trackerCount;
   }
 
   async getTracker(
@@ -302,11 +318,13 @@ export class TrackerService {
     ]);
     const savedEventsIds = (
       await this.intentDataService.getUserEventInterest({
-        interest: 'BOOKMARK',
+        interest: ['BOOKMARK'],
         sourceModule: 'TRACKER',
         sourceId: tracker.id,
         interestedUserId: user.id,
         accountId: user.accountId,
+        limit: params.limit,
+        offset: params.offset,
       })
     ).map((item) => item.eventId);
 
@@ -367,7 +385,7 @@ export class TrackerService {
 
     const savedEventsIds = (
       await this.intentDataService.getUserEventInterest({
-        interest: 'BOOKMARK',
+        interest: ['BOOKMARK'],
         sourceModule: 'TRACKER',
         sourceId: tracker.id,
         interestedUserId: user.id,
@@ -401,14 +419,24 @@ export class TrackerService {
       'SUPER_ADMIN',
       'USER',
     ]);
-    const comments = await this.commentService.getComments(user, {
-      accountId: user.accountId,
-      sourceModule: 'TRACKER',
-      sourceId: tracker.id,
-      limit: params.limit,
-      offset: params.offset,
-    });
-    return comments;
+    const [data] = await Promise.all([
+      this.commentService.getComments(
+        {
+          accountId: user.accountId,
+          sourceModule: 'TRACKER',
+          sourceId: tracker.id,
+          limit: params.limit,
+          offset: params.offset,
+        },
+        user,
+      ),
+      // this.commentService.getCommentCount({
+      //   accountId: user.accountId,
+      //   sourceModule: 'TRACKER',
+      //   sourceId: tracker.id,
+      // }),
+    ]);
+    return CommentsResponseSchema.parse(data);
   }
 
   async getTrackerUsers(
@@ -434,10 +462,7 @@ export class TrackerService {
       const user = item.accessReceiver;
       return {
         id: user.id,
-        name:
-          user.firstname || user.lastname
-            ? `${user.firstname} ${user.lastname || ''}`
-            : user.email.split('@')[0],
+        name: getNameFromEmail(user.email, user.firstname, user.lastname),
         email: user.email,
         imageUrl: user.imageUrl,
         accessType: item.accessType,

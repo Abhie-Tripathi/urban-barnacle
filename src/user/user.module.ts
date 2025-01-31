@@ -4,6 +4,7 @@ import { UserController } from './user.controller';
 import { MeController } from './me/me.controller';
 import { AuthController } from './auth/auth.controller';
 import { UserDataService } from './user.data.service';
+import { CommentService } from 'src/comment/comment.service';
 
 @Module({
   controllers: [UserController],

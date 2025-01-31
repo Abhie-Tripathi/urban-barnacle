@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { EnquiryActivitySubType, EnquiryActivityType } from '@prisma/client';
+import { LimitSchema } from 'src/global_dto';
 
 const CreateEnquiryActivityHttpSchema = z.object({
   enquiryId: z.string().uuid(),
@@ -40,5 +41,17 @@ const GetEnquiryActivitySchema = z.object({
 });
 
 export class GetEnquiryActivityDto extends createZodDto(
-  GetEnquiryActivitySchema,
+  LimitSchema.partial().extend(GetEnquiryActivitySchema.shape),
+) {}
+
+export enum EnquiryActivityGroupBy {
+  activitySubType = 'subType',
+}
+
+const GetEnquiryActivityCountSchema = GetEnquiryActivitySchema.extend({
+  groupBy: z.nativeEnum(EnquiryActivityGroupBy).optional(),
+});
+
+export class GetEnquiryActivityCountDto extends createZodDto(
+  z.strictObject(GetEnquiryActivityCountSchema.shape),
 ) {}

@@ -2,15 +2,13 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CommentDataService } from './comment.data.service';
 import { TCachedUser } from 'src/utils/types';
 import {
-  CreateCommentDto,
   CreateCommentHttpDto,
+  GetCommentCountDto,
   GetCommentsDto,
   UpdateCommentDto,
 } from './dto';
 import { AccessService } from 'src/access/access.service';
 import { IntentService } from 'src/intent/intent.service';
-import { EnquiryService } from 'src/enquiry/enquiry.service';
-import { IntentDataService } from 'src/intent/intent.data.service';
 import { IntentTargetModule, InterestSourceModule } from '@prisma/client';
 
 @Injectable()
@@ -19,8 +17,6 @@ export class CommentService {
     private readonly commentDataService: CommentDataService,
     private readonly accessService: AccessService,
     private readonly intentService: IntentService,
-    // private readonly intentDataService: IntentDataService,
-    // private readonly enquiryService: EnquiryService,
   ) {}
 
   async createComment(user: TCachedUser, data: CreateCommentHttpDto) {
@@ -106,24 +102,35 @@ export class CommentService {
     throw new HttpException('Invalid source module', 400);
   }
 
-  async getComments(user: TCachedUser, data: GetCommentsDto) {
-    const comments = await this.commentDataService.getComments(data);
-    const commentsWithUserUpvoted = await Promise.all(
-      comments.map(async (comment) => {
-        const userUpvoted = await this.intentService.checkUserUpvote({
-          userId: user.id,
-          targetModule: IntentTargetModule.COMMENT,
-          targetId: comment.id,
-          accountId: user.accountId,
-        });
-        return {
-          ...comment,
-          userUpvoted,
-        };
-      }),
-    );
-
+  async getComments(data: GetCommentsDto, user?: TCachedUser) {
+    const { limit, offset, ...rest } = data;
+    const [comments, commentsCount] = await Promise.all([
+      this.commentDataService.getComments({ ...rest, limit, offset }),
+      this.commentDataService.getCommentCount(rest),
+    ]);
+    const commentsWithUserUpvoted = { count: commentsCount, comments };
+    if (user) {
+      commentsWithUserUpvoted.comments = await Promise.all(
+        comments.map(async (comment) => {
+          const userUpvoted = await this.intentService.checkUserUpvote({
+            userId: user.id,
+            targetModule: IntentTargetModule.COMMENT,
+            targetId: comment.id,
+            accountId: user.accountId,
+          });
+          return {
+            ...comment,
+            userUpvoted,
+          };
+        }),
+      );
+    }
     return commentsWithUserUpvoted;
+  }
+
+  async getCommentCount(data: GetCommentCountDto) {
+    const commentCount = await this.commentDataService.getCommentCount(data);
+    return commentCount;
   }
 
   async updateComment(user: TCachedUser, data: UpdateCommentDto) {
