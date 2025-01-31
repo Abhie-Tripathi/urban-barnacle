@@ -7,7 +7,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { EventsService } from './events.service';
-import { CountQueryDto, EventsTrendsDto, QueryDto } from './dto';
+import { CountQueryDto, EventsTrendsDto, PocsUnmaskDto, QueryDto } from './dto';
 import { AuthGuard } from 'src/user/auth/guard';
 import { TCachedUser } from 'src/utils/types';
 import { GetUser } from 'src/user/decorator';
@@ -29,6 +29,26 @@ export class EventsController {
     }
   }
 
+  @UseGuards(AuthGuard)
+  @Get(':id/pocs/:pocId')
+  async getEventPocsUnmasked(
+    @Param('id') id: string,
+    @Param('pocId') pocId: string,
+    @Query() query: PocsUnmaskDto,
+    @GetUser() user: TCachedUser,
+  ) {
+    try {
+      const polygons = await this.eventsService.getEventPocsUnmasked(
+        id,
+        pocId,
+        query,
+        user,
+      );
+      return { data: polygons };
+    } catch (error) {
+      return { error };
+    }
+  }
   @UseGuards(AuthGuard)
   @Get('/count')
   async getEventCount(@Query() query: CountQueryDto) {
@@ -152,7 +172,6 @@ export class EventsController {
       return { error };
     }
   }
-
   @UseGuards(AuthGuard)
   @Get(':id')
   async getEvent(@Param('id') id: string, @GetUser() user: TCachedUser) {

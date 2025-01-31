@@ -412,6 +412,6 @@ export function transformEventData(data: EventDataDto) {
     insights,
     audience,
     alerts,
-    ...(Object.keys(trackerMatchInfo).length ? { trackerMatchInfo } : {}),
+    ...(Object.keys(trackerMatchInfo ?? {}).length ? { trackerMatchInfo } : {}),
   };
 }

@@ -119,6 +119,8 @@ export class AccountService {
           : user.email.split('@')[0],
       email: user.email,
       imageUrl: user.imageUrl,
+      designation: user.designation,
+      department: user.department,
     }));
   }
 

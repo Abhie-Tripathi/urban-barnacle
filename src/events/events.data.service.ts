@@ -1,12 +1,13 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { QueryDto, CountQueryDto, EventsTrendsDto } from './dto';
-import { Export, Prisma } from '@prisma/client';
+import { QueryDto, CountQueryDto, EventsTrendsDto, PocsUnmaskDto } from './dto';
+import { Export, Prisma, UnlockValue } from '@prisma/client';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { ConfigService } from '@nestjs/config';
 import { CreateExportDto } from 'src/exports/dto';
 import { FastifyReply } from 'fastify';
 import { get } from 'http';
+import { TCachedUser } from 'src/utils/types';
 
 @Injectable()
 export class EventsDataService {
@@ -14,7 +15,28 @@ export class EventsDataService {
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
   ) {}
-
+  async createLogForEncryptedQuery(encryption: string, user: TCachedUser) {
+    const checkIfenccryptionIsUniqueOrNot =
+      await this.prisma.userActivity.findFirst({
+        where: {
+          request: { equals: { data: encryption } },
+        },
+        select: {
+          id: true,
+        },
+      });
+    if (checkIfenccryptionIsUniqueOrNot?.id) {
+      return { message: 'not a unique encryption' };
+    }
+    await this.prisma.userActivity.create({
+      data: {
+        path: '/events',
+        request: { data: encryption },
+        account: { connect: { id: user.accountId } },
+        user: { connect: { id: user.id } },
+      },
+    });
+  }
   async getEvents(params: QueryDto) {
     const queryParams = new URLSearchParams(
       params as unknown as Record<string, any>,
@@ -164,7 +186,84 @@ export class EventsDataService {
     }
     return data;
   }
+  async getUserPocLimitAndPocunloackedValues(
+    eventId: string,
+    pocId: string,
+    query: PocsUnmaskDto,
+    user: TCachedUser,
+  ) {
+    const [checkForEntry, limitForPoc] = await Promise.all([
+      this.prisma.unlockedTransaction.findMany({
+        where: {
+          accountId: user.accountId,
+          eventId: eventId,
+          unlockValue: { in: query.unlockValue },
+          unlockByUserId: pocId,
+        },
+      }),
+      this.prisma.account.findFirst({
+        where: {
+          id: user.accountId,
+        },
+      }),
+    ]);
+    return { checkForEntry, limitForPoc };
+  }
+  async createUnlocakedPocEntryAndDeductPocLimitPoint(
+    eventId: string,
+    pocId: string,
+    unlockValue: UnlockValue,
+    user: TCachedUser,
+    limit: number,
+  ) {
+    await this.prisma.unlockedTransaction.create({
+      data: {
+        accountId: user.accountId,
+        eventId: eventId,
+        unlockValue: unlockValue,
+        unlockByUserId: pocId,
+        source: 'CONTACT_DETAIL',
+        unlockedById: user.id,
+        unlockType: 'USER',
+      },
+    });
+    // }
+    await this.prisma.account.update({
+      where: {
+        id: user.accountId,
+      },
+      data: {
+        pendingPocUnlockRequests: limit,
+      },
+    });
+    return { message: 'Poc unlocked successfully' };
+  }
+  async updateEventPocunlocakedEntry(unlocakedEntryId: string, userId: string) {
+    await this.prisma.unlockedTransaction.update({
+      where: {
+        id: unlocakedEntryId,
+      },
+      data: {
+        unlockedById: userId,
+      },
+    });
+    return { message: 'Poc unlocked entry updated successfully' };
+  }
+  async getEventsPocsunloacked(pocId: string, params: UnlockValue[]) {
+    const url =
+      this.configService.get('MICROSERVICE_URL') +
+      microserviceEndpoints.events.eventPocsUnlocked +
+      '?' +
+      `unlockValue=${params.join(',').toLowerCase()}&pocId=${pocId}`;
+    const response = await fetch(url);
+    const { data, error } = await response.json();
+    console.log(url, error, data);
 
+    if (!data || error) {
+      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+    }
+    return data;
+  }
   async createEventExport(exportData: Export) {
     try {
       const url =

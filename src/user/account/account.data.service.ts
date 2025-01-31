@@ -4,11 +4,7 @@ import { CreateAccountDto, GetAccountDto, UpdateAccountDto } from './dto';
 import { Prisma } from '@prisma/client';
 import { accountConfig, AccountConfigDto } from './account.config';
 import { TCachedUser } from 'src/utils/types';
-import {
-  InputJsonObject,
-  JsonArray,
-  JsonObject,
-} from '@prisma/client/runtime/library';
+import { InputJsonObject, JsonArray } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class AccountDataService {
