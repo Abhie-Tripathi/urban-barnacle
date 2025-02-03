@@ -619,6 +619,8 @@ model RequestedJob {
   userId    String    @db.Uuid
   user      User      @relation(fields: [userId], references: [id])
   source    JobSource
+  sourceId  String
+  processid Int?
   status    JobStatus @default(PENDING)
   inputData Json
   createdAt DateTime  @default(now())
