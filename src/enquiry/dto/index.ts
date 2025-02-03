@@ -72,8 +72,8 @@ export class SetEnquiryOwnerHttpDto extends createZodDto(
 ) {}
 
 export enum UserInterest {
-  ATTEND = 'ATTEND',
-  SPEAK = 'SPEAK',
-  EXHIBIT = 'EXHIBIT',
-  SPONSOR = 'SPONSOR',
+  attend = 'attend',
+  speak = 'speak',
+  exhibit = 'exhibit',
+  sponsor = 'sponsor',
 }

@@ -6,7 +6,6 @@ import {
   GetEnquiryCountDto,
   SetEnquiryOwnerHttpDto,
   UpdateEnquiryDto,
-  UserInterest,
 } from './dto';
 import { EnquiryDataService } from './enquiry.data.service';
 import { EnquiryResponseSchema } from './dto/response';
@@ -15,7 +14,6 @@ import { UserInterestsGroupBy } from 'src/intent/dto/userEventInterest.dto';
 import { EnquiryActivityGroupBy } from 'src/intent/dto/enquiryActivity.dto';
 import { UserDataService } from 'src/user/user.data.service';
 import { getNameFromEmail } from 'src/utils';
-import { CommentService } from 'src/comment/comment.service';
 import { GetCommentsDto } from 'src/comment/dto';
 import {
   CommentSourceModule,
@@ -23,15 +21,13 @@ import {
   EnquiryActivityType,
   IntentTargetModule,
   IntentType,
+  Interest,
   Prisma,
   User,
   UserEventInterest,
 } from '@prisma/client';
-import { EventsService } from 'src/events/events.service';
-import { CommentDataService } from 'src/comment/comment.data.service';
-import { IntentService } from 'src/intent/intent.service';
-import { GetIntentDto } from 'src/intent/dto';
 import { CommentsResponseSchema } from 'src/comment/dto/response';
+import { GetIntentDto } from 'src/intent/dto';
 
 @Injectable()
 export class EnquiryService {
@@ -62,24 +58,30 @@ export class EnquiryService {
       throw new HttpException('Enquiry not found', HttpStatus.NOT_FOUND);
     }
     const enquiry = enquiries[0];
-    const [interestedCount, activityCount, followerCount] = await Promise.all([
-      this.intentDataService.getUserEventInterestCount({
-        accountId: user.accountId,
-        enquiryId: enquiry.id,
-        groupBy: UserInterestsGroupBy.interests,
-        interest: ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'],
-      }),
-      this.intentDataService.getEnquiryActivityCount({
-        accountId: user.accountId,
-        enquiryId: enquiry.id,
-        groupBy: EnquiryActivityGroupBy.activitySubType,
-      }),
-      this.intentDataService.getEnquiryActivityCount({
-        accountId: user.accountId,
-        enquiryId: enquiry.id,
-        activityType: 'FOLLOW',
-      }),
-    ]);
+    const [interestedCount, activityCount, followerCount, myActivity] =
+      await Promise.all([
+        this.intentDataService.getUserEventInterestCount({
+          accountId: user.accountId,
+          enquiryId: enquiry.id,
+          groupBy: UserInterestsGroupBy.interests,
+          interest: ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'],
+        }),
+        this.intentDataService.getEnquiryActivityCount({
+          accountId: user.accountId,
+          enquiryId: enquiry.id,
+          groupBy: EnquiryActivityGroupBy.activitySubType,
+        }),
+        this.intentDataService.getEnquiryActivityCount({
+          accountId: user.accountId,
+          enquiryId: enquiry.id,
+          activityType: 'FOLLOW',
+        }),
+        this.intentDataService.getEnquiryActivities({
+          accountId: user.accountId,
+          enquiryId: enquiry.id,
+          userId: user.id,
+        }),
+      ]);
     let totalInterestedCount = 0;
     const groupedInterestedCount = interestedCount.reduce((acc, curr) => {
       totalInterestedCount += curr._count.id;
@@ -100,6 +102,7 @@ export class EnquiryService {
         ...groupedInterestedCount,
         total: totalInterestedCount,
       },
+      myActivity: myActivity,
       followerCount,
     });
     // return EnquiryResponseSchema.parse(enquiry);
@@ -265,7 +268,7 @@ export class EnquiryService {
   async getEnquiryInterestedUsers(
     user: TCachedUser,
     id: string,
-    interest?: UserInterest,
+    interest?: Interest,
   ) {
     const enquiries = await this.enquiryDataService.getEnquiries({
       ids: [id],
@@ -273,6 +276,7 @@ export class EnquiryService {
       offset: 0,
       accountId: user.accountId,
     });
+    console.log({ enquiries });
     if (enquiries.length === 0) {
       throw new HttpException('Enquiry not found', HttpStatus.NOT_FOUND);
     }
