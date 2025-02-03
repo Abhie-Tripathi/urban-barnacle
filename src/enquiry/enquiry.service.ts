@@ -277,15 +277,35 @@ export class EnquiryService {
       throw new HttpException('Enquiry not found', HttpStatus.NOT_FOUND);
     }
     const enquiry = enquiries[0];
-    const interests = (await this.intentDataService.getUserEventInterest({
-      accountId: user.accountId,
-      enquiryId: enquiry.id,
-      show: 'user',
-      interest: interest
-        ? [interest]
-        : ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'],
-    })) as (UserEventInterest & { interestedUser: User })[];
-    const interestedUsers = interests.map((interest) => {
+    const [interests, interestsCount] = await Promise.all([
+      this.intentDataService.getUserEventInterest({
+        accountId: user.accountId,
+        enquiryId: enquiry.id,
+        show: 'user',
+        interest: interest
+          ? [interest]
+          : ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'],
+      }),
+      this.intentDataService.getUserEventInterestCount({
+        accountId: user.accountId,
+        enquiryId: enquiry.id,
+        interest: interest
+          ? [interest]
+          : ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'],
+      }),
+    ]);
+    // const interests = (await this.intentDataService.getUserEventInterest({
+    //   accountId: user.accountId,
+    //   enquiryId: enquiry.id,
+    //   show: 'user',
+    //   interest: interest
+    //     ? [interest]
+    //     : ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'],
+    // })) as (UserEventInterest & { interestedUser: User })[];
+
+    const interestedUsers = (
+      interests as (UserEventInterest & { interestedUser: User })[]
+    ).map((interest) => {
       const user = interest.interestedUser;
       return {
         id: user.id,
@@ -298,7 +318,10 @@ export class EnquiryService {
         status: interest.status,
       };
     });
-    return interestedUsers;
+    return {
+      count: interestsCount,
+      interestedUsers,
+    };
   }
 
   async getEnquiryFollowers(user: TCachedUser, id: string) {
@@ -312,13 +335,24 @@ export class EnquiryService {
       throw new HttpException('Enquiry not found', HttpStatus.NOT_FOUND);
     }
     const enquiry = enquiries[0];
-    const followers = (await this.intentDataService.getEnquiryActivities({
-      enquiryId: enquiry.id,
-      accountId: user.accountId,
-      activityType: EnquiryActivityType.FOLLOW,
-      show: 'user',
-    })) as (EnquiryActivity & { user: User })[];
-    return followers.map((follower) => {
+    const [followers, followersCount] = await Promise.all([
+      this.intentDataService.getEnquiryActivities({
+        enquiryId: enquiry.id,
+        accountId: user.accountId,
+        activityType: EnquiryActivityType.FOLLOW,
+        show: 'user',
+      }),
+      this.intentDataService.getEnquiryActivityCount({
+        enquiryId: enquiry.id,
+        accountId: user.accountId,
+        activityType: EnquiryActivityType.FOLLOW,
+      }),
+    ]);
+
+    // const followersCount = ;
+    const followersData = (
+      followers as (EnquiryActivity & { user: User })[]
+    ).map((follower) => {
       const user = follower.user;
       return {
         id: user.id,
@@ -329,5 +363,9 @@ export class EnquiryService {
         department: user.department,
       };
     });
+    return {
+      count: followersCount,
+      followers: followersData,
+    };
   }
 }
