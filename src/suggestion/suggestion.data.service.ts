@@ -87,7 +87,6 @@ export class SuggestionDataService {
       microserviceEndpoints.suggestions.eventTypes +
       '?' +
       searchQuery.toString();
-    console.log(decodeURIComponent(url));
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (!data || error) {
@@ -140,7 +139,6 @@ export class SuggestionDataService {
       microserviceEndpoints.suggestions.designations +
       '?' +
       searchQuery.toString();
-    console.log(decodeURIComponent(url));
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (error) {
@@ -164,7 +162,6 @@ export class SuggestionDataService {
       microserviceEndpoints.suggestions.companies +
       '?' +
       searchQuery.toString();
-    console.log(decodeURIComponent(url));
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (!data || error) {

@@ -100,7 +100,6 @@ export class AccountService {
           activityCounts.total += curr._count.id;
           activityCounts[curr.activitySubType.toLowerCase()] = curr._count.id;
         });
-        console.log({ myActivity });
         return EnquiryResponseSchema.parse({
           ...enquiry,
           activityCount: activityCounts,

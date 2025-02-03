@@ -64,6 +64,7 @@ export class IntentService {
         if (!event) {
           throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
         }
+        const location = event.basic['eventLocation'];
         enquiry = await this.enquiryService.createEnquiry(user, {
           accountId: user.accountId,
           eventId: data.eventId,
@@ -73,6 +74,15 @@ export class IntentService {
             eventId: event.basic['id'],
             startDate: event.basic['startDateTime'],
             endDate: event.basic['endDateTime'],
+            logoUrl: event.basic['logoUrl'],
+            organizerName: event.basic['organizer']
+              ? event.basic['organizer']['name']
+              : null,
+            location: {
+              cityName: location.city.name,
+              countryName: location.country.name,
+              stateName: location.state ? location.state.name : null,
+            },
           },
           initiatedBy: data.recommendedBy || data.interestedUserId,
         });

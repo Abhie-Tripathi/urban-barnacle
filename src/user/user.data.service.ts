@@ -66,7 +66,6 @@ export class UserDataService {
     if (data.companyId) {
       params['companyId'] = data.companyId;
     }
-    console.log(params);
     const users = await this.prisma.user.findMany({
       where: {
         ...params,
