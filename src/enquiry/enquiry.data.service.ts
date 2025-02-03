@@ -21,38 +21,49 @@ export class EnquiryDataService {
   }
 
   async getEnquiries(data: GetEnquiriesDto) {
-    const params: Prisma.EnquiryWhereInput = {};
-    if (data.accountId) params['accountId'] = data.accountId;
-    if (data.eventId) params['eventId'] = data.eventId;
-    if (data.initiatedBy) params['initiatedBy'] = data.initiatedBy;
-    if (data.type)
+    const {
+      ids,
+      type,
+      event_active_gte,
+      event_active_lte,
+      name,
+      upvotedBy,
+      limit,
+      offset,
+      ...rest
+    } = data;
+    const params: Prisma.EnquiryWhereInput = {
+      ...rest,
+    };
+    if (ids) params['id'] = { in: ids };
+    if (type)
       params['userInterests'] = {
         some: {
-          interest: data.type,
+          interest: type,
         },
       };
 
-    const endDate = data.event_active_gte
+    const endDate = event_active_gte
       ? {
           eventData: {
             path: ['startDate'],
-            lte: data.event_active_lte,
+            lte: event_active_lte,
           },
         }
       : null;
-    const startDate = data.event_active_lte
+    const startDate = event_active_lte
       ? {
           eventData: {
             path: ['endDate'],
-            gte: data.event_active_gte,
+            gte: event_active_gte,
           },
         }
       : null;
-    const name = data.name
+    const eventName = name
       ? {
           eventData: {
             path: ['name_lower'],
-            string_contains: data.name.toLowerCase(),
+            string_contains: name.toLowerCase(),
           },
         }
       : null;
@@ -61,28 +72,20 @@ export class EnquiryDataService {
       params['AND'] = [];
       if (endDate) params['AND'].push(endDate);
       if (startDate) params['AND'].push(startDate);
-      if (name) params['AND'].push(name);
+      if (eventName) params['AND'].push(eventName);
     }
     // } else if (data.event_active_lte) params['eventData'] = endDate;
     // else if (data.event_active_gte) params['eventData'] = startDate;
     // else if (data.name) params['name'] = name;
-    if (
-      (data.upvotedBy === 'me' || data.upvotedBy === 'others') &&
-      !data.userId
-    ) {
+    if ((upvotedBy === 'me' || upvotedBy === 'others') && !data.userId) {
       throw new HttpException(
         'userId is required when upvotedBy is me or others',
         HttpStatus.BAD_REQUEST,
       );
     }
-    if (
-      (data.upvotedBy === 'me' || data.upvotedBy === 'others') &&
-      data.userId
-    ) {
+    if ((upvotedBy === 'me' || upvotedBy === 'others') && data.userId) {
       const userId =
-        data.upvotedBy === 'me'
-          ? { equals: data.userId }
-          : { not: data.userId };
+        upvotedBy === 'me' ? { equals: data.userId } : { not: data.userId };
       params['activities'] = {
         some: {
           activityType: 'UPVOTE',
@@ -92,8 +95,8 @@ export class EnquiryDataService {
     }
     const enquiries = await this.prisma.enquiry.findMany({
       where: params,
-      skip: data.offset,
-      take: data.limit,
+      skip: offset,
+      take: limit,
       orderBy: {
         createdAt: 'desc',
       },

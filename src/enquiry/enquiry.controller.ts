@@ -20,7 +20,7 @@ import { GetUser } from 'src/user/decorator';
 import { TCachedUser } from 'src/utils/types';
 import { AuthGuard } from 'src/user/auth/guard';
 import { GetCommentsDto } from 'src/comment/dto';
-import { CommentSourceModule } from '@prisma/client';
+import { CommentSourceModule, Interest } from '@prisma/client';
 
 @Controller('enquiries')
 export class EnquiryController {
@@ -150,7 +150,11 @@ export class EnquiryController {
   ) {
     try {
       const interestedUsers =
-        await this.enquiryService.getEnquiryInterestedUsers(user, id);
+        await this.enquiryService.getEnquiryInterestedUsers(
+          user,
+          id,
+          interest.toUpperCase() as Interest,
+        );
       return {
         data: interestedUsers,
       };
