@@ -6,6 +6,7 @@ import {
   GetEnquiryCountDto,
   SetEnquiryOwnerHttpDto,
   UpdateEnquiryDto,
+  UserInterest,
 } from './dto';
 import { EnquiryDataService } from './enquiry.data.service';
 import { EnquiryResponseSchema } from './dto/response';
@@ -16,8 +17,21 @@ import { UserDataService } from 'src/user/user.data.service';
 import { getNameFromEmail } from 'src/utils';
 import { CommentService } from 'src/comment/comment.service';
 import { GetCommentsDto } from 'src/comment/dto';
-import { CommentSourceModule } from '@prisma/client';
+import {
+  CommentSourceModule,
+  EnquiryActivity,
+  EnquiryActivityType,
+  IntentTargetModule,
+  IntentType,
+  Prisma,
+  User,
+  UserEventInterest,
+} from '@prisma/client';
 import { EventsService } from 'src/events/events.service';
+import { CommentDataService } from 'src/comment/comment.data.service';
+import { IntentService } from 'src/intent/intent.service';
+import { GetIntentDto } from 'src/intent/dto';
+import { CommentsResponseSchema } from 'src/comment/dto/response';
 
 @Injectable()
 export class EnquiryService {
@@ -25,7 +39,6 @@ export class EnquiryService {
     private readonly enquiryDataService: EnquiryDataService,
     private readonly intentDataService: IntentDataService,
     private readonly userDataService: UserDataService,
-    // private readonly commentService: CommentService,
   ) {}
 
   async createEnquiry(user: TCachedUser, data: CreateEnquiryDto) {
@@ -175,6 +188,28 @@ export class EnquiryService {
     };
   }
 
+  async checkUserUpvote(data: GetIntentDto) {
+    if (
+      !data.targetId ||
+      !data.targetModule ||
+      !data.accountId ||
+      !data.userId
+    ) {
+      throw new HttpException('Invalid request', HttpStatus.BAD_REQUEST);
+    }
+    const upvote = await this.intentDataService.getIntents({
+      accountId: data.accountId,
+      userId: data.userId,
+      targetId: data.targetId,
+      targetModule: data.targetModule,
+      intentType: IntentType.UPVOTE,
+    });
+    if (upvote.length === 0) {
+      return false;
+    }
+    return true;
+  }
+
   async getEnquiryComments(
     user: TCachedUser,
     id: string,
@@ -189,6 +224,110 @@ export class EnquiryService {
     //   offset: query.offset,
     // });
     // return comments;
-    return {};
+    const { limit, offset, ...rest } = query;
+    const [comments, commentsCount] = await Promise.all([
+      this.enquiryDataService.getComments({
+        ...rest,
+        accountId: user.accountId,
+        sourceModule: source,
+        sourceId: id,
+        limit: limit,
+        offset: offset,
+      }),
+      this.enquiryDataService.getCommentCount({
+        ...rest,
+        accountId: user.accountId,
+        sourceModule: source,
+        sourceId: id,
+      }),
+    ]);
+
+    const commentsWithUserUpvoted = { count: commentsCount, comments };
+    if (user) {
+      commentsWithUserUpvoted.comments = await Promise.all(
+        comments.map(async (comment) => {
+          const userUpvoted = await this.checkUserUpvote({
+            userId: user.id,
+            targetModule: IntentTargetModule.COMMENT,
+            targetId: comment.id,
+            accountId: user.accountId,
+          });
+          return {
+            ...comment,
+            userUpvoted,
+          };
+        }),
+      );
+    }
+    return CommentsResponseSchema.parse(commentsWithUserUpvoted);
+  }
+
+  async getEnquiryInterestedUsers(
+    user: TCachedUser,
+    id: string,
+    interest?: UserInterest,
+  ) {
+    const enquiries = await this.enquiryDataService.getEnquiries({
+      ids: [id],
+      limit: 1,
+      offset: 0,
+      accountId: user.accountId,
+    });
+    if (enquiries.length === 0) {
+      throw new HttpException('Enquiry not found', HttpStatus.NOT_FOUND);
+    }
+    const enquiry = enquiries[0];
+    const interests = (await this.intentDataService.getUserEventInterest({
+      accountId: user.accountId,
+      enquiryId: enquiry.id,
+      show: 'user',
+      interest: interest
+        ? [interest]
+        : ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'],
+    })) as (UserEventInterest & { interestedUser: User })[];
+    const interestedUsers = interests.map((interest) => {
+      const user = interest.interestedUser;
+      return {
+        id: user.id,
+        name: getNameFromEmail(user.email, user.firstname, user.lastname),
+        email: user.email,
+        profileImage: user.imageUrl,
+        designation: user.designation,
+        department: user.department,
+        interest: interest.interest,
+        status: interest.status,
+      };
+    });
+    return interestedUsers;
+  }
+
+  async getEnquiryFollowers(user: TCachedUser, id: string) {
+    const enquiries = await this.enquiryDataService.getEnquiries({
+      ids: [id],
+      limit: 1,
+      offset: 0,
+      accountId: user.accountId,
+    });
+    if (enquiries.length === 0) {
+      throw new HttpException('Enquiry not found', HttpStatus.NOT_FOUND);
+    }
+    const enquiry = enquiries[0];
+    const followers = (await this.intentDataService.getEnquiryActivities({
+      enquiryId: enquiry.id,
+      accountId: user.accountId,
+      activityType: EnquiryActivityType.FOLLOW,
+      show: 'user',
+    })) as (EnquiryActivity & { user: User })[];
+    return followers.map((follower) => {
+      const user = follower.user;
+      return {
+        id: user.id,
+        name: getNameFromEmail(user.email, user.firstname, user.lastname),
+        email: user.email,
+        profileImage: user.imageUrl,
+        designation: user.designation,
+        department: user.department,
+      };
+    });
   }
 }

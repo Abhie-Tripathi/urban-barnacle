@@ -2,6 +2,7 @@ import { createZodDto } from 'nestjs-zod';
 import { LimitSchema } from 'src/global_dto';
 import { z } from 'zod';
 import { AccountConfigSchema } from '../account.config';
+import { UserInterestsGroupBy } from 'src/intent/dto';
 
 const CreateAccountSchema = z.strictObject({
   membership: z.number().optional(),
@@ -34,12 +35,8 @@ export class GetAccountDto extends createZodDto(GetAccountsSchema) {}
 const AccountConfigKey = z.enum(['interest', 'outreach', 'filter']);
 export type AccountConfigKey = z.infer<typeof AccountConfigKey>;
 
-enum EnquiryCountType {
-  interest = 'interest',
-}
-
 const GetAccountEnquiriesCountSchema = z.strictObject({
-  type: z.nativeEnum(EnquiryCountType),
+  type: z.nativeEnum(UserInterestsGroupBy).optional(),
 });
 
 export class GetAccountEnquiriesCountDto extends createZodDto(

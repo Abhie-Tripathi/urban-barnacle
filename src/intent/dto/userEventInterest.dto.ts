@@ -39,10 +39,10 @@ export class UpdateUserEventInterestHttpDto extends createZodDto(
 ) {}
 
 const UpdateUserEventInterestSchema = UpdateUserEventInterestHttpSchema.extend({
-  id: z.string().uuid(),
+  id: z.string().uuid().optional(),
   approvedBy: z.string().uuid().optional(),
   deleted: z.boolean().optional(),
-  modifiedBy: z.string().uuid(),
+  modifiedBy: z.string().uuid().optional(),
 });
 
 export class UpdateUserEventInterestDto extends createZodDto(
@@ -61,6 +61,8 @@ const GetUserEventInterestSchema = z.object({
   sourceModule: z.nativeEnum(InterestSourceModule).optional(),
   sourceId: z.string().uuid().optional(),
   accountId: z.string().uuid().optional(),
+  ownerId: z.string().uuid().optional(),
+  show: z.enum(['user', 'enquiry']).optional(),
 });
 
 export class GetUserEventInterestDto extends createZodDto(
@@ -69,6 +71,7 @@ export class GetUserEventInterestDto extends createZodDto(
 
 export enum UserInterestsGroupBy {
   interests = 'interests',
+  status = 'status',
 }
 
 const GetUserEventInterestCountSchema = GetUserEventInterestSchema.extend({

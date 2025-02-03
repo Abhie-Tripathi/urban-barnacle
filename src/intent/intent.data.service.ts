@@ -60,12 +60,18 @@ export class IntentDataService {
   }
 
   async getUserEventInterest(data: GetUserEventInterestDto) {
-    const { limit, offset, interest, ...rest } = data;
+    const { limit, offset, interest, show, ...rest } = data;
     if (interest && interest.length > 0) {
       rest['interest'] = { in: interest };
     }
+    const include = {};
+    if (show) {
+      if (show === 'user') include['interestedUser'] = true;
+      else if (show === 'enquiry') include['enquiry'] = true;
+    }
     const userEventInterests = await this.prisma.userEventInterest.findMany({
       where: { ...rest, deleted: false },
+      include,
       skip: offset,
       take: limit,
     });
@@ -106,6 +112,8 @@ export class IntentDataService {
       const by: Prisma.UserEventInterestScalarFieldEnum[] = [];
       if (groupBy === UserInterestsGroupBy.interests) {
         by.push('interest');
+      } else if (groupBy === UserInterestsGroupBy.status) {
+        by.push('status');
       }
       count = await this.prisma.userEventInterest.groupBy({
         where: { ...rest, deleted: false },
@@ -145,8 +153,14 @@ export class IntentDataService {
   }
 
   async getEnquiryActivities(data: GetEnquiryActivityDto) {
+    const { show, ...rest } = data;
+    const include = {};
+    if (show && show === 'user') {
+      include['user'] = true;
+    }
     const enquiryActivities = await this.prisma.enquiryActivity.findMany({
-      where: { ...data, deleted: false },
+      where: { ...rest, deleted: false },
+      include,
     });
     return enquiryActivities;
   }

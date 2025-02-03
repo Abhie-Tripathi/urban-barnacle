@@ -63,3 +63,10 @@ const SetEnquiryOwnerHttpSchema = z.object({
 export class SetEnquiryOwnerHttpDto extends createZodDto(
   SetEnquiryOwnerHttpSchema,
 ) {}
+
+export enum UserInterest {
+  ATTEND = 'ATTEND',
+  SPEAK = 'SPEAK',
+  EXHIBIT = 'EXHIBIT',
+  SPONSOR = 'SPONSOR',
+}
