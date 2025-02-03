@@ -11,7 +11,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { EnquiryService } from './enquiry.service';
-import { SetEnquiryOwnerHttpDto, UpdateEnquiryHttpDto } from './dto';
+import {
+  SetEnquiryOwnerHttpDto,
+  UpdateEnquiryHttpDto,
+  UserInterest,
+} from './dto';
 import { GetUser } from 'src/user/decorator';
 import { TCachedUser } from 'src/utils/types';
 import { AuthGuard } from 'src/user/auth/guard';
@@ -97,7 +101,7 @@ export class EnquiryController {
   @Get(':id/:source/comments')
   async getEnquiryComments(
     @Param('id') id: string,
-    @Param('source') source: CommentSourceModule,
+    @Param('source') source: 'coordinate' | 'outreach',
     @GetUser() user: TCachedUser,
     @Query() query: GetCommentsDto,
   ) {
@@ -105,11 +109,68 @@ export class EnquiryController {
       const comments = await this.enquiryService.getEnquiryComments(
         user,
         id,
-        source,
+        source.toUpperCase() as CommentSourceModule,
         query,
       );
       return {
         data: comments,
+      };
+    } catch (error) {
+      return {
+        error: error,
+      };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get(':id/interested-users')
+  async getEnquiryInterestedUsers(
+    @Param('id') id: string,
+    @GetUser() user: TCachedUser,
+  ) {
+    try {
+      const interestedUsers =
+        await this.enquiryService.getEnquiryInterestedUsers(user, id);
+      return {
+        data: interestedUsers,
+      };
+    } catch (error) {
+      return {
+        error: error,
+      };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get(':id/interested-users/:interest')
+  async getEnquiryInterestedUsersCount(
+    @Param('id') id: string,
+    @Param('interest') interest: UserInterest,
+    @GetUser() user: TCachedUser,
+  ) {
+    try {
+      const interestedUsers =
+        await this.enquiryService.getEnquiryInterestedUsers(user, id);
+      return {
+        data: interestedUsers,
+      };
+    } catch (error) {
+      return {
+        error: error,
+      };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get(':id/followers')
+  async getEnquiryFollowers(
+    @Param('id') id: string,
+    @GetUser() user: TCachedUser,
+  ) {
+    try {
+      const followers = await this.enquiryService.getEnquiryFollowers(user, id);
+      return {
+        data: followers,
       };
     } catch (error) {
       return {

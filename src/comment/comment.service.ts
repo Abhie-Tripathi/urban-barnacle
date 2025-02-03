@@ -20,6 +20,22 @@ export class CommentService {
   ) {}
 
   async createComment(user: TCachedUser, data: CreateCommentHttpDto) {
+    if (data.parentCommentId) {
+      const parentComment = await this.commentDataService.getComments({
+        id: data.parentCommentId,
+        sourceModule: data.sourceModule,
+        sourceId: data.sourceId,
+        accountId: user.accountId,
+        limit: 1,
+        offset: 0,
+      });
+      if (parentComment.length === 0) {
+        throw new HttpException(
+          'Parent comment not found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+    }
     if (data.sourceModule === 'TRACKER') {
       const [hasAccess, result] = await this.accessService.hasAccess({
         sourceEntity: 'TRACKER',

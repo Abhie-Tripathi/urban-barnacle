@@ -38,6 +38,7 @@ const GetEnquiryActivitySchema = z.object({
   activityType: z.nativeEnum(EnquiryActivityType).optional(),
   activitySubType: z.nativeEnum(EnquiryActivitySubType).optional(),
   accountId: z.string().uuid().optional(),
+  show: z.enum(['user']).optional(),
 });
 
 export class GetEnquiryActivityDto extends createZodDto(

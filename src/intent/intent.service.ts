@@ -12,7 +12,12 @@ import {
 import { CreateEnquiryActivityHttpDto } from './dto/enquiryActivity.dto';
 import { EnquiryDataService } from 'src/enquiry/enquiry.data.service';
 import { EnquiryService } from 'src/enquiry/enquiry.service';
-import { Enquiry, IntentType } from '@prisma/client';
+import {
+  Enquiry,
+  IntentType,
+  Interest,
+  UserEventInterest,
+} from '@prisma/client';
 import { EventsService } from 'src/events/events.service';
 
 @Injectable()
@@ -97,11 +102,62 @@ export class IntentService {
     return userEventInterest;
   }
 
-  async updateUserEventInterest(data: UpdateUserEventInterestDto) {
-    return this.intentDataService.updateUserEventInterest(data);
+  async updateUserEventInterest(
+    user: TCachedUser,
+    id: string,
+    data: UpdateUserEventInterestDto,
+  ) {
+    const interests = (await this.intentDataService.getUserEventInterest({
+      id: id,
+      accountId: user.accountId,
+      show: 'enquiry',
+    })) as (UserEventInterest & { enquiry: Enquiry })[];
+    if (!interests || (interests && interests.length === 0)) {
+      throw new HttpException('Interest not found', HttpStatus.NOT_FOUND);
+    }
+    const interest = interests[0];
+    if (interest.enquiry.ownerId !== user.id) {
+      throw new HttpException(
+        'You are not allowed to update this interest',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    if (interest.status !== 'PENDING' && data.status === 'PENDING') {
+      throw new HttpException(
+        'You can not update the status back to pending',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    return this.intentDataService.updateUserEventInterest({
+      ...data,
+      id,
+      modifiedBy: user.id,
+      approvedBy: user.id,
+    });
   }
 
   async deleteUserEventInterest(user: TCachedUser, id: string) {
+    const interests = (await this.intentDataService.getUserEventInterest({
+      id: id,
+      accountId: user.accountId,
+      show: 'enquiry',
+    })) as (UserEventInterest & { enquiry: Enquiry })[];
+    if (!interests || (interests && interests.length === 0)) {
+      throw new HttpException('Interest not found', HttpStatus.NOT_FOUND);
+    }
+    const interest = interests[0];
+    if (interest.enquiry.ownerId !== user.id) {
+      throw new HttpException(
+        'You are not allowed to update this interest',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    if (interest.interest !== Interest.BOOKMARK) {
+      throw new HttpException(
+        'You are not allowed to delete this interest',
+        HttpStatus.FORBIDDEN,
+      );
+    }
     return this.intentDataService.updateUserEventInterest({
       id,
       modifiedBy: user.id,

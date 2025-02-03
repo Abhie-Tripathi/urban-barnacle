@@ -7,6 +7,7 @@ import {
   GetEnquiryCountDto,
   UpdateEnquiryDto,
 } from './dto';
+import { GetCommentCountDto, GetCommentsDto } from 'src/comment/dto';
 
 @Injectable()
 export class EnquiryDataService {
@@ -182,5 +183,39 @@ export class EnquiryDataService {
       data,
     });
     return enquiry;
+  }
+
+  async getComments(data: GetCommentsDto) {
+    const { limit, offset, ...where } = data;
+    const comments = await this.prisma.comment.findMany({
+      where: {
+        ...where,
+        deleted: false,
+      },
+      include: {
+        parentComment: {
+          include: {
+            user: true,
+          },
+        },
+        user: true,
+      },
+      skip: offset,
+      take: limit,
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+    return comments;
+  }
+
+  async getCommentCount(data: GetCommentCountDto) {
+    const commentCount = await this.prisma.comment.count({
+      where: {
+        ...data,
+        deleted: false,
+      },
+    });
+    return commentCount;
   }
 }

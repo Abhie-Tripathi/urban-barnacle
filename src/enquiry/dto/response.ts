@@ -27,6 +27,13 @@ export const EnquiryResponseSchema = z.object({
   interestedCount: EnquiryCountSchema,
   activityCount: EnquiryCountSchema,
   followerCount: z.number().optional(),
+  myActivity: z.array(
+    z.object({
+      id: z.string(),
+      activityType: z.string(),
+      activitySubType: z.string().nullable(),
+    }),
+  ),
 });
 
 export class EnquiryResponseDto extends createZodDto(EnquiryResponseSchema) {}

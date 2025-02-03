@@ -9,7 +9,7 @@ import { GetEnquiriesDto } from 'src/enquiry/dto';
 import { GetUserHttpDto } from '../dto';
 import { UserService } from '../user.service';
 import { UserDataService } from '../user.data.service';
-import { Prisma } from '@prisma/client';
+import { EnquiryActivityType, Prisma } from '@prisma/client';
 import { AccountConfigDto } from './account.config';
 import { UserDataSchema } from '../me/dto';
 import { AccountConfigKey, GetAccountEnquiriesCountDto } from './dto';
@@ -57,7 +57,7 @@ export class AccountService {
     ]);
     const transformedEnquires = await Promise.all(
       enquiries.map(async (enquiry) => {
-        const [interestedCount, activityCount] = await Promise.all([
+        const [interestedCount, activityCount, myActivity] = await Promise.all([
           this.intentDataService.getUserEventInterestCount({
             accountId: user.accountId,
             ...rest,
@@ -66,8 +66,15 @@ export class AccountService {
           }),
           this.intentDataService.getEnquiryActivityCount({
             accountId: user.accountId,
+            activityType: EnquiryActivityType.UPVOTE,
             ...rest,
             groupBy: EnquiryActivityGroupBy.activitySubType,
+          }),
+          this.intentDataService.getEnquiryActivities({
+            enquiryId: enquiry.id,
+            accountId: user.accountId,
+            userId: user.id,
+            ...rest,
           }),
         ]);
         const interestCounts = {
@@ -93,10 +100,12 @@ export class AccountService {
           activityCounts.total += curr._count.id;
           activityCounts[curr.activitySubType.toLowerCase()] = curr._count.id;
         });
+        console.log({ myActivity });
         return EnquiryResponseSchema.parse({
           ...enquiry,
           activityCount: activityCounts,
           interestedCount: interestCounts,
+          myActivity: myActivity,
         });
       }),
     );
@@ -159,10 +168,12 @@ export class AccountService {
   ) {
     const params: GetUserEventInterestCountDto = {
       accountId: user.accountId,
-      groupBy: UserInterestsGroupBy.interests,
     };
-    if (query.type === 'interest') {
-      params.interest = ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'];
+    if (query.type) {
+      params.groupBy = query.type;
+      if (query.type === UserInterestsGroupBy.interests) {
+        params.interest = ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'];
+      }
     }
     const [interests, totalEnquiries] = await Promise.all([
       this.intentDataService.getUserEventInterestCount(params),
@@ -171,17 +182,31 @@ export class AccountService {
       }),
     ]);
     let total = 0;
-    const groupedInterests = interests.reduce((acc, curr) => {
-      total += curr._count.id;
-      acc[curr.interest.toLowerCase()] = curr._count.id;
-      return acc;
-    }, {});
     let response = {};
-    if (query.type === 'interest') {
-      response = {
-        ...groupedInterests,
-        total: total,
-      };
+
+    switch (query.type) {
+      case UserInterestsGroupBy.interests:
+        const groupedInterestsByInterestType = interests.reduce((acc, curr) => {
+          total += curr._count.id;
+          acc[curr.interest.toLowerCase()] = curr._count.id;
+          return acc;
+        }, {});
+        response = {
+          ...groupedInterestsByInterestType,
+          total: total,
+        };
+        break;
+      case UserInterestsGroupBy.status:
+        const groupedInterestsByStatus = interests.reduce((acc, curr) => {
+          total += curr._count.id;
+          acc[curr.status.toLowerCase()] = curr._count.id;
+          return acc;
+        }, {});
+        response = {
+          ...groupedInterestsByStatus,
+          total: total,
+        };
+        break;
     }
 
     return {
