@@ -39,11 +39,9 @@ export class MeController {
   @Get()
   async getProfileData(@GetUser() userData: TCachedUser) {
     try {
-      console.log(userData);
       const user = UserDataSchema.parse(userData);
       return { data: user };
     } catch (error) {
-      console.log(error);
       return {
         error: new HttpException(
           error.message,

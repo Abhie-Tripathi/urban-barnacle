@@ -25,7 +25,6 @@ export class CommentController {
     @GetUser() user: TCachedUser,
   ) {
     try {
-      console.log(data);
       const comment = await this.commentService.createComment(user, data);
       return { data: comment };
     } catch (error) {

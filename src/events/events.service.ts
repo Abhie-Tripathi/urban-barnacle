@@ -34,7 +34,6 @@ export class EventsService {
       await this.eventsDataService.getEvents(convertedParams);
 
     let events = fetchedEvents;
-    console.log(query);
     if (
       ['list', 'tracker'].includes(query.view) &&
       !(query.eventTypes && query.eventTypes.includes('alert'))

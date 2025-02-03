@@ -210,12 +210,10 @@ export class TrackerService {
   }
 
   async getGroupedEventsCount(params: CountQueryDto, groupBy: CountGroup) {
-    console.log(params);
     const data = await this.eventService.getEventsCount(params, false);
     if (groupBy === CountGroup.status) {
       return data.count;
     } else if (groupBy === CountGroup.eventTypeGroup) {
-      console.log(data);
       return data.reduce((acc, curr) => {
         acc[curr.group_name] = {
           total: curr.count,
@@ -246,7 +244,6 @@ export class TrackerService {
         await this.sharedService.convertSlugParamsToIds(nonEmptyParams);
       updateParams['filterValues'] = convertedParams;
     }
-    console.log(updateParams);
     return await this.trackerDataService.updateTracker(user, updateParams);
   }
 
@@ -274,7 +271,6 @@ export class TrackerService {
     const newParams = getNonEmptyParams(params);
     const convertedParams =
       await this.sharedService.convertSlugParamsToIds(newParams);
-    console.log({ params: convertedParams });
 
     const searchByEntity = ['T_COMPETITOR', 'T_CUSTOMER_ICP'].includes(
       tracker.type,
@@ -294,7 +290,6 @@ export class TrackerService {
       offset: params.offset,
       view: View.tracker,
     } as QueryDto;
-    console.log({ eventParams });
     if (searchByEntity) {
       eventParams['searchByEntity'] = searchByEntity;
     }
@@ -342,8 +337,6 @@ export class TrackerService {
       offset: params.offset,
       view: View.tracker,
     } as QueryDto;
-
-    console.log({ eventParams });
 
     const events = await this.eventService.getAllEvents(eventParams, false);
 

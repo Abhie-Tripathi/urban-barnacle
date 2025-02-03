@@ -166,7 +166,6 @@ export class IntentDataService {
   }
 
   async getEnquiryActivityCount(data: GetEnquiryActivityCountDto) {
-    console.log(data);
     const { groupBy, ...rest } = data;
     let count;
     if (groupBy) {

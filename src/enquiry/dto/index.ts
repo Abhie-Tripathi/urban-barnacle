@@ -9,6 +9,13 @@ const eventDataSchema = z.object({
   name_lower: z.string(),
   startDate: z.string().datetime(),
   endDate: z.string().datetime(),
+  logoUrl: z.string().nullable(),
+  organizerName: z.string().nullable(),
+  location: z.object({
+    cityName: z.string().nullable(),
+    stateName: z.string().nullable().optional(),
+    countryName: z.string().nullable(),
+  }),
 });
 
 const CreateEnquirySchema = z.object({
