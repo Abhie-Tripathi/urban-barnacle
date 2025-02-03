@@ -15,6 +15,8 @@ import multipart from '@fastify/multipart';
 import { CorsGaurd } from './corsgaurd';
 import { AfterResponseInterceptor } from './after-response.interceptor';
 import { PrismaService } from './prisma/prisma.service';
+import { AuthGuard } from './user/auth/guard';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
@@ -37,6 +39,7 @@ async function bootstrap() {
 
   // CORS and Guards
   app.useGlobalGuards(new CorsGaurd(configService));
+  app.useGlobalGuards(new AuthGuard(app.get(CACHE_MANAGER), configService));
   app.enableCors({
     credentials: true,
     origin,

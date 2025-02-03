@@ -24,6 +24,11 @@ export class AuthGuard implements CanActivate {
   }
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request: FastifyRequest = context.switchToHttp().getRequest();
+    const path = request.originalUrl.split('?')[0];
+    const pathBreakdown = path.split('/').filter((p) => p !== '');
+    if (pathBreakdown.length >= 1 && pathBreakdown[0] === 'auth') {
+      return true;
+    }
     const user = await this.getUser(request);
     if (!user) {
       throw new HttpException(
