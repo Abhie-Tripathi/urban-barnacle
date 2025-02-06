@@ -56,3 +56,16 @@ const GetEnquiryActivityCountSchema = GetEnquiryActivitySchema.extend({
 export class GetEnquiryActivityCountDto extends createZodDto(
   z.strictObject(GetEnquiryActivityCountSchema.shape),
 ) {}
+
+export const EnquiryActivityResponseSchema = z.object({
+  id: z.string().uuid(),
+  activityType: z.nativeEnum(EnquiryActivityType),
+  activitySubType: z.nativeEnum(EnquiryActivitySubType).nullable(),
+  userId: z.string().uuid(),
+  enquiryId: z.string().uuid(),
+  createdAt: z.date(),
+});
+
+export class EnquiryActivityResponseDto extends createZodDto(
+  EnquiryActivityResponseSchema,
+) {}

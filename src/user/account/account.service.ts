@@ -23,6 +23,7 @@ import {
   GetEnquiryActivityCountDto,
 } from 'src/intent/dto/enquiryActivity.dto';
 import { EnquiryResponseSchema } from 'src/enquiry/dto/response';
+import { getNameFromEmail } from 'src/utils';
 
 @Injectable()
 export class AccountService {
@@ -42,17 +43,19 @@ export class AccountService {
   }
 
   async getAccountEnquiries(user: TCachedUser, query: GetEnquiriesDto) {
-    const { limit, offset, ...rest } = query;
+    const { limit, offset, status, ...rest } = query;
     const [enquiries, enquiryCount] = await Promise.all([
       this.enquiryService.getEnquiries({
         accountId: user.accountId,
         ...rest,
         limit,
         offset,
+        status,
       }),
       this.enquiryService.getEnquiryCount({
         accountId: user.accountId,
         ...rest,
+        status,
       }),
     ]);
     const transformedEnquires = await Promise.all(
@@ -77,6 +80,18 @@ export class AccountService {
             ...rest,
           }),
         ]);
+        const owner = enquiry.owner
+          ? {
+              id: enquiry.owner.id,
+              name: getNameFromEmail(
+                enquiry.owner.email,
+                enquiry.owner.firstname,
+                enquiry.owner.lastname,
+              ),
+              email: enquiry.owner.email,
+              imageUrl: enquiry.owner.imageUrl,
+            }
+          : null;
         const interestCounts = {
           total: 0,
           attend: 0,
@@ -105,6 +120,7 @@ export class AccountService {
           activityCount: activityCounts,
           interestedCount: interestCounts,
           myActivity: myActivity,
+          owner,
         });
       }),
     );

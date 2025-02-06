@@ -95,6 +95,18 @@ export class EnquiryService {
       acc[curr.activitySubType.toLowerCase()] = curr._count.id;
       return acc;
     }, {});
+    const owner = enquiry.owner
+      ? {
+          id: enquiry.owner.id,
+          name: getNameFromEmail(
+            enquiry.owner.email,
+            enquiry.owner.firstname,
+            enquiry.owner.lastname,
+          ),
+          email: enquiry.owner.email,
+          imageUrl: enquiry.owner.imageUrl,
+        }
+      : null;
     return EnquiryResponseSchema.parse({
       ...enquiry,
       activityCount: { ...groupedActivityCount, total: totalActivityCount },
@@ -103,6 +115,7 @@ export class EnquiryService {
         total: totalInterestedCount,
       },
       myActivity: myActivity,
+      owner,
       followerCount,
     });
     // return EnquiryResponseSchema.parse(enquiry);

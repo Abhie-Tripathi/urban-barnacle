@@ -50,6 +50,7 @@ const GetEnquiriesSchema = z.object({
   accountId: z.string().uuid().optional(),
   initiatedBy: z.string().uuid().optional(),
   type: z.nativeEnum(EnquiryActivitySubType).optional(),
+  status: z.nativeEnum(EnquiryStatus).optional(),
   event_active_lte: z.string().datetime().optional(),
   event_active_gte: z.string().datetime().optional(),
   upvotedBy: z.enum(['me', 'others']).optional(),
