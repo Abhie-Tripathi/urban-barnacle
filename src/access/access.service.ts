@@ -28,7 +28,7 @@ export class AccessService {
     private readonly communicationService: CommunicationService,
     private readonly configService: ConfigService,
     private readonly companyDataService: CompanyDataService,
-  ) {}
+  ) { }
 
   async createAccess(
     user: TCachedUser,
@@ -72,9 +72,9 @@ export class AccessService {
         });
         const primaryDetails = newUserPrimaryCompany
           ? {
-              primaryCompanyId: newUserPrimaryCompany.id,
-              primaryAccountId: newUserPrimaryCompany.accountId,
-            }
+            primaryCompanyId: newUserPrimaryCompany.id,
+            primaryAccountId: newUserPrimaryCompany.accountId,
+          }
           : null;
         const newUser = await this.userDataService.createUser({
           email: data.accessReceiverEmail,
@@ -125,6 +125,7 @@ export class AccessService {
             data.redirectQueryParams +
             `&email=${receiver.email}&token=${rest.token}`,
           trackerName: sourceMetaData['trackerName'] || '',
+          sourceId: access.id
         } as AccessEmailDataDto,
         user.id,
       );

@@ -25,6 +25,7 @@ interface intendCaptureData {
   userShowedInterestType: string;
   eventRedirectUrl: string;
   jobRequestId: string;
+  sourceId: string;
 }
 interface intendUpdateData {
   userShowedInterestName: string;
@@ -36,6 +37,7 @@ interface intendUpdateData {
   userShowedInterestType: string;
   eventRedirectUrl: string;
   jobRequestId: string;
+  sourceId: string;
 }
 @Processor({ name: 'intendProcessor', scope: Scope.REQUEST })
 export class IntendWorkerClass {

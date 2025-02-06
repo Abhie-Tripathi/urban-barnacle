@@ -39,7 +39,7 @@ export class AuthService {
     private readonly communicationService: CommunicationService,
     private readonly sharedService: SharedService,
     private readonly accessService: AccessService,
-  ) {}
+  ) { }
 
   async signUp(data: SignUpDto) {
     const domain = data.email.split('@')[1];
@@ -55,8 +55,8 @@ export class AuthService {
       blackListDomain.includes(domain)
         ? null
         : await this.companyDataService.getCompany({
-            domain: domain,
-          }),
+          domain: domain,
+        }),
     ]);
 
     let account = company ? { id: company.accountId } : null;
@@ -99,9 +99,9 @@ export class AuthService {
           await Promise.all([
             company
               ? this.userDataService.updateUser({
-                  id: user.id,
-                  companyId: company.id,
-                })
+                id: user.id,
+                companyId: company.id,
+              })
               : null,
             this.accountDataService.addAccountUser(account.id, user.id),
           ]);
@@ -117,6 +117,7 @@ export class AuthService {
           primaryCompanyId: company?.id,
           accountId: account.id,
           primaryAccountId: account.id,
+          firstname: data.email.split('@')[0]
         });
       }
 

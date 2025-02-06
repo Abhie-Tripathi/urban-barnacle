@@ -309,15 +309,3 @@ export class IntendDataService {
     );
   }
 }
-// userShowedInterestName - done
-// userShowedInterestEmail - done
-// eventOwnerEmail - done
-// eventOwnerName  - done
-// eventName - done
-// pending - done
-// going - done
-// waitlist - done
-// inviteCount - done
-// eventStartDate - done
-// eventEndDate - done
-// eventLocation - done

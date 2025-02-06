@@ -21,6 +21,7 @@ interface InviteData {
   jobRequestId: string;
   encryptYes: string;
   encryptNo: string;
+  sourceId: string;
 }
 @Processor({ name: 'inviteProcessor', scope: Scope.REQUEST })
 export class InvitationWorkerClass {

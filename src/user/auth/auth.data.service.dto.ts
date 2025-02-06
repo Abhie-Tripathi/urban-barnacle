@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import {} from './dto';
+import { } from './dto';
 import { Prisma, User } from '@prisma/client';
 import { randomInt } from 'crypto';
 import { CommunicationService } from 'src/communication/communication.service';
@@ -11,7 +11,7 @@ export class AuthDataService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly communicationService: CommunicationService,
-  ) {}
+  ) { }
 
   async createVerificationToken(user: User, process: string) {
     const passkey = randomInt(100000, 1000000).toString();
@@ -39,6 +39,7 @@ export class AuthDataService {
           firstname: user.firstname || user.email.split('@')[0],
         },
         process,
+        sourceId: String(passkey)
       },
       user.id,
       1,
