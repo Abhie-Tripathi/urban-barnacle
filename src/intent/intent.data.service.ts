@@ -1,6 +1,11 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Interest, InterestStatus, Prisma } from '@prisma/client';
+import {
+  EnquiryActivity,
+  Interest,
+  InterestStatus,
+  Prisma,
+} from '@prisma/client';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -16,6 +21,7 @@ import {
 import {
   CreateEnquiryActivityDto,
   EnquiryActivityGroupBy,
+  EnquiryActivityResponseSchema,
   GetEnquiryActivityCountDto,
   GetEnquiryActivityDto,
   UpdateEnquiryActivityDto,
@@ -138,10 +144,44 @@ export class IntentDataService {
         HttpStatus.BAD_REQUEST,
       );
     }
-    const enquiryActivity = await this.prisma.enquiryActivity.create({
-      data,
+    const previousActivity = await this.prisma.enquiryActivity.findFirst({
+      where: {
+        accountId: data.accountId,
+        enquiryId: data.enquiryId,
+        userId: data.userId,
+        activityType: data.activityType,
+        activitySubType: data.activitySubType || null,
+      },
     });
-    return enquiryActivity;
+    let enquiryActivity: EnquiryActivity;
+    if (previousActivity) {
+      if (previousActivity.deleted) {
+        enquiryActivity = await this.prisma.enquiryActivity.update({
+          where: {
+            id: previousActivity.id,
+          },
+          data: {
+            deleted: false,
+          },
+        });
+      } else {
+        throw new HttpException('Activity already exists', HttpStatus.CONFLICT);
+      }
+    } else {
+      enquiryActivity = await this.prisma.enquiryActivity.create({
+        data,
+      });
+    }
+
+    const enquiryActivityResponse = EnquiryActivityResponseSchema.parse({
+      id: enquiryActivity.id,
+      activityType: enquiryActivity.activityType,
+      activitySubType: enquiryActivity.activitySubType,
+      userId: enquiryActivity.userId,
+      enquiryId: enquiryActivity.enquiryId,
+      createdAt: enquiryActivity.updatedAt,
+    });
+    return enquiryActivityResponse;
   }
 
   async updateEnquiryActivity(data: UpdateEnquiryActivityDto) {

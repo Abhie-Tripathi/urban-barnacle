@@ -29,7 +29,14 @@ export const EnquiryResponseSchema = z.object({
       })
       .optional(),
   }),
-  ownerId: z.string().uuid().nullable(),
+  owner: z
+    .object({
+      id: z.string().uuid(),
+      name: z.string(),
+      email: z.string(),
+      imageUrl: z.string().nullable().optional(),
+    })
+    .nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
   interestedCount: EnquiryCountSchema,
