@@ -97,11 +97,13 @@ export const Industries = {
     Others: 'Others',
   },
   eventgtm: {
-    others: 'others',
-    media_agency: 'media_agency',
-    research: 'research',
-    industry_partners: 'industry_partners',
-    event_participant: 'event_participant',
+    Media_Marketing: 'Media_Marketing',
+    Research_MA: 'Research_MA',
+    Event_Planners: 'Event_Planners',
+    Corporate_Brands: 'Corporate_Brands',
+    Infra_Technology: 'Infra_Technology',
+    Venue_Real_Estate: 'Venue_Real_Estate',
+    Others: 'Others',
   },
 };
 
