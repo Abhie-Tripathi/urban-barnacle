@@ -50,14 +50,14 @@ async function bootstrap() {
   app.use(cookieParser(configService.get('COOKIE_SECRET')));
   await app.register(multipart);
   // Register fastifyCookie with the correct type
-  const node_env = configService.get('NODE_ENV') || 'development';
+  // const node_env = configService.get('NODE_ENV') || 'development';
   await app.register(fastifyCookie, {
-    secret: JSON.stringify(configService.get('COOKIE_SECRET')) || 'My-Key',
+    secret: JSON.stringify(configService.get('COOKIE_SECRET')),
     parseOptions: {
       maxAge: 60 * 60 * 24 * 365,
       httpOnly: true,
       sameSite: 'none',
-      secure: node_env === 'production' ? true : false,
+      secure: true,
       signed: true,
       path: '/',
       domain: configService.get('DOMAIN'),
