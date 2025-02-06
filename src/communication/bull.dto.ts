@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 // Define DTOs as Zod schemas
 
-export const AccessEmailDataSchema = z.object({
+export const AccessEmailDataSchema = z.strictObject({
   accessMetaData: z.object({
     givenToUserEmail: z.string(),
     givenByUserEmail: z.string(),
@@ -12,22 +12,22 @@ export const AccessEmailDataSchema = z.object({
   }),
   redirectUrl: z.string(),
   trackerName: z.string(),
-  // jobRequestId: z.string(),
+  sourceId: z.string(),
 });
 
-export class AccessEmailDataDto extends createZodDto(AccessEmailDataSchema) {}
+export class AccessEmailDataDto extends createZodDto(AccessEmailDataSchema) { }
 
-export const EventCancelDataSchema = z.object({
+export const EventCancelDataSchema = z.strictObject({
   email: z.array(z.string()),
   eventName: z.any(),
   userId: z.string(),
   userEmail: z.string(),
-  // jobRequestId: z.string(),
+  sourceId: z.string(),
 });
 
-export class EventCancelDataDto extends createZodDto(EventCancelDataSchema) {}
+export class EventCancelDataDto extends createZodDto(EventCancelDataSchema) { }
 
-export const IntendCaptureDataSchema = z.object({
+export const IntendCaptureDataSchema = z.strictObject({
   userShowedInterestName: z.string(),
   userShowedInterestEmail: z.string(),
   eventOwnerEmail: z.string(),
@@ -42,14 +42,14 @@ export const IntendCaptureDataSchema = z.object({
   eventLocation: z.string(),
   userShowedInterestType: z.string(),
   eventRedirectUrl: z.string(),
-  // jobRequestId: z.string(),
+  sourceId: z.string(),
 });
 
 export class IntendCaptureDataDto extends createZodDto(
   IntendCaptureDataSchema,
-) {}
+) { }
 
-export const IntendUpdateDataSchema = z.object({
+export const IntendUpdateDataSchema = z.strictObject({
   userShowedInterestName: z.string(),
   userShowedInterestEmail: z.string(),
   eventName: z.string(),
@@ -58,21 +58,21 @@ export const IntendUpdateDataSchema = z.object({
   eventLocation: z.string(),
   userShowedInterestType: z.string(),
   eventRedirectUrl: z.string(),
-  // jobRequestId: z.string(),
+  sourceId: z.string(),
 });
 
-export class IntendUpdateDataDto extends createZodDto(IntendUpdateDataSchema) {}
+export class IntendUpdateDataDto extends createZodDto(IntendUpdateDataSchema) { }
 
-export const OtpEmailDataSchema = z.object({
+export const OtpEmailDataSchema = z.strictObject({
   otp: z.string(),
   userInfo: z.any(),
   process: z.string(),
-  // jobRequestId: z.string(),
+  sourceId: z.string(),
 });
 
-export class OtpEmailDataDto extends createZodDto(OtpEmailDataSchema) {}
+export class OtpEmailDataDto extends createZodDto(OtpEmailDataSchema) { }
 
-export const InviteEmailDataSchema = z.object({
+export const InviteEmailDataSchema = z.strictObject({
   userEmail: z.string(),
   eventName: z.string(),
   eventStartDate: z.string(),
@@ -81,9 +81,10 @@ export const InviteEmailDataSchema = z.object({
   eventRedirectUrl: z.string(),
   encryptYes: z.string(),
   encryptNo: z.string(),
+  sourceId: z.string(),
 });
 
-export class InviteEmailDataDto extends createZodDto(InviteEmailDataSchema) {}
+export class InviteEmailDataDto extends createZodDto(InviteEmailDataSchema) { }
 
 // Union of all DTO schemas
 export const PayloadDTO = z.union([

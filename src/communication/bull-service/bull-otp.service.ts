@@ -12,6 +12,7 @@ interface OtpEmailData {
   userInfo: any;
   process: string;
   jobRequestId: string;
+  sourceId: string;
 }
 @Processor({ name: 'otpProcessor', scope: Scope.REQUEST })
 export class OtpEmailWorkerClass {
@@ -67,6 +68,7 @@ export class OtpEmailWorkerClass {
       return {};
     } catch (error) {
       console.log(JSON.stringify(error));
+      console.error((error));
       const data = await this.prisma.requestedJob.update({
         where: {
           id: job.data.jobRequestId,

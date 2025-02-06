@@ -620,7 +620,7 @@ model RequestedJob {
   user      User      @relation(fields: [userId], references: [id])
   source    JobSource
   sourceId  String
-  processid Int?
+  processId Int?
   status    JobStatus @default(PENDING)
   inputData Json
   createdAt DateTime  @default(now())
@@ -628,7 +628,8 @@ model RequestedJob {
 }
 
 enum JobSource {
-  SEND_OTP
+  SEND_SIGNIN_OTP
+  SEND_SIGNUP_OTP
   SEND_ACCESS
   EVENT_CANCEl
   SEND_INVITE
