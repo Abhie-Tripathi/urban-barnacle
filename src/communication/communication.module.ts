@@ -13,7 +13,7 @@ import { InvitationWorkerClass } from './bull-service/bull-invitation.service';
     BullModule.forRoot({
       redis: {
         host: '0.0.0.0',
-        port: 6381,
+        port: Number(process.env.REDIS_PORT),
         password: process.env.REDIS_PASSWORD,
       },
     }),
@@ -43,4 +43,4 @@ import { InvitationWorkerClass } from './bull-service/bull-invitation.service';
   ],
   exports: [CommunicationService],
 })
-export class CommunicationModule {}
+export class CommunicationModule { }
