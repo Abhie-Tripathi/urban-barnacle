@@ -43,7 +43,8 @@ export class OutreachConfigurationDto extends createZodDto(
   OutreachConfigurationSchema,
 ) {}
 
-const FilterConfigurationSchema = z.record(z.string(), filterValueSchema);
+// const FilterConfigurationSchema = z.record(z.string(), filterValueSchema);
+const FilterConfigurationSchema = z.record(z.string(), z.any());
 
 export class FilterConfigurationDto extends createZodDto(
   FilterConfigurationSchema,
