@@ -14,7 +14,7 @@ export class EventsDataService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
   async createLogForEncryptedQuery(encryption: string, user: TCachedUser) {
     const checkIfenccryptionIsUniqueOrNot =
       await this.prisma.userActivity.findFirst({
@@ -248,6 +248,15 @@ export class EventsDataService {
       },
     });
     return { message: 'Poc unlocked entry updated successfully' };
+  }
+  async getAccountConfiguration(configurationId: string) {
+    const configuration = await this.prisma.configuration.findUnique({
+      where: { id: configurationId },
+    });
+    if (!configuration) {
+      throw new HttpException('configuration not found', HttpStatus.NOT_FOUND);
+    }
+    return configuration.config;
   }
   async getEventsPocsunloacked(pocId: string, params: UnlockValue[]) {
     const url =

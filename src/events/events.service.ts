@@ -10,7 +10,7 @@ import {
 import { SharedService } from '../shared/shared.service';
 import { TCachedUser } from 'src/utils/types';
 import { getNonEmptyParams } from 'src/utils';
-import { transformEventData } from './global.service';
+import { eventSearchFilterCheck, transformEventData } from './global.service';
 import { IntentDataService } from 'src/intent/intent.data.service';
 import * as crypto from 'crypto';
 @Injectable()
@@ -19,7 +19,7 @@ export class EventsService {
     private readonly eventsDataService: EventsDataService,
     private readonly sharedService: SharedService,
     private readonly intentDataService: IntentDataService,
-  ) {}
+  ) { }
   // encrypt(text: string): string {
   //   const algorithm = 'aes-256-cbc';
   //   const secretKey = crypto
@@ -44,13 +44,19 @@ export class EventsService {
       show = show.filter((item) => item !== 'old');
     }
     const nonEmptyParams = getNonEmptyParams({ ...query, show });
-    // if (user) {
-    //   const queryParams: object = Object.assign(nonEmptyParams);
-    //   delete queryParams['limit'];
-    //   delete queryParams['offset'];
-    //   const encryptData = this.encrypt(JSON.stringify(queryParams));
-    //   this.eventsDataService.createLogForEncryptedQuery(encryptData, user);
-    // }
+    if (user) {
+      const queryParams: QueryDto = Object.assign(nonEmptyParams);
+      const configuration = await this.eventsDataService.getAccountConfiguration(user.accountConfigurationId);
+      if (configuration && configuration['filter'] && Object.keys(configuration['filter']).length > 0) {
+        const { result, rootTodiscard } = eventSearchFilterCheck(configuration['filter'], queryParams);
+        if (!result && rootTodiscard.length > 1) {
+          throw new HttpException(
+            `Certain selected values like ${rootTodiscard} are restricted under your current plan.`,
+            HttpStatus.NOT_ACCEPTABLE,
+          );
+        }
+      }
+    }
     const convertedParams = await this.sharedService.convertSlugParamsToIds(
       nonEmptyParams,
       validateIds,
@@ -79,11 +85,11 @@ export class EventsService {
 
           ...(query.show && query.show.includes('old')
             ? {
-                isSaved:
-                  userInterests[event.id] && userInterests[event.id]['bookmark']
-                    ? true
-                    : false,
-              }
+              isSaved:
+                userInterests[event.id] && userInterests[event.id]['bookmark']
+                  ? true
+                  : false,
+            }
             : { interests: userInterests[event.id] }),
         };
       });
