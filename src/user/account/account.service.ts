@@ -64,6 +64,7 @@ export class AccountService {
           this.intentDataService.getUserEventInterestCount({
             accountId: user.accountId,
             ...rest,
+            enquiryId: enquiry.id,
             groupBy: UserInterestsGroupBy.interests,
             interest: ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'],
           }),
@@ -71,6 +72,7 @@ export class AccountService {
             accountId: user.accountId,
             activityType: EnquiryActivityType.UPVOTE,
             ...rest,
+            enquiryId: enquiry.id,
             groupBy: EnquiryActivityGroupBy.activitySubType,
           }),
           this.intentDataService.getEnquiryActivities({

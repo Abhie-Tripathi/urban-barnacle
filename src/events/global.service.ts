@@ -350,6 +350,7 @@ const DataGroups = {
     'website',
     'eventPageUrl',
     'rating',
+    'isNew',
   ],
 
   advance: [
@@ -363,6 +364,7 @@ const DataGroups = {
     'rehostDate',
     'maturity',
     'frequency',
+    'rankings',
   ],
   insights: [
     'estimatedAttendance',
@@ -375,6 +377,7 @@ const DataGroups = {
     'reputationScore',
     'speakersCount',
     'sponsorsCount',
+    'economicImpact',
     'economicImpactBreakdown',
     'trustScore',
     'yoyGrowth',
@@ -382,6 +385,7 @@ const DataGroups = {
   ],
   audience: ['audienceSpread', 'designationSpread', 'audienceZone'],
 };
+
 export function transformEventData(data: EventDataDto) {
   const { alerts, trackerMatchInfo, ...rest } = data;
   const basic = {};

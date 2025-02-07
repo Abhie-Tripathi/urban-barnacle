@@ -70,6 +70,7 @@ export class EnquiryService {
           accountId: user.accountId,
           enquiryId: enquiry.id,
           groupBy: EnquiryActivityGroupBy.activitySubType,
+          activityType: 'UPVOTE',
         }),
         this.intentDataService.getEnquiryActivityCount({
           accountId: user.accountId,
@@ -82,19 +83,29 @@ export class EnquiryService {
           userId: user.id,
         }),
       ]);
-    let totalInterestedCount = 0;
-    const groupedInterestedCount = interestedCount.reduce((acc, curr) => {
-      totalInterestedCount += curr._count.id;
-      acc[curr.interest.toLowerCase()] = curr._count.id;
-      return acc;
-    }, {});
+    const interestCounts = {
+      total: 0,
+      attend: 0,
+      speak: 0,
+      sponsor: 0,
+      exhibit: 0,
+    };
+    interestedCount.forEach((curr) => {
+      interestCounts.total += curr._count.id;
+      interestCounts[curr.interest.toLowerCase()] = curr._count.id;
+    });
 
-    let totalActivityCount = 0;
-    const groupedActivityCount = activityCount.reduce((acc, curr) => {
-      totalActivityCount += curr._count.id;
-      acc[curr.activitySubType.toLowerCase()] = curr._count.id;
-      return acc;
-    }, {});
+    const activityCounts = {
+      total: 0,
+      attend: 0,
+      speak: 0,
+      sponsor: 0,
+      exhibit: 0,
+    };
+    activityCount.forEach((curr) => {
+      activityCounts.total += curr._count.id;
+      activityCounts[curr.activitySubType.toLowerCase()] = curr._count.id;
+    });
     const owner = enquiry.owner
       ? {
           id: enquiry.owner.id,
@@ -109,11 +120,8 @@ export class EnquiryService {
       : null;
     return EnquiryResponseSchema.parse({
       ...enquiry,
-      activityCount: { ...groupedActivityCount, total: totalActivityCount },
-      interestedCount: {
-        ...groupedInterestedCount,
-        total: totalInterestedCount,
-      },
+      activityCount: activityCounts,
+      interestedCount: interestCounts,
       myActivity: myActivity,
       owner,
       followerCount,

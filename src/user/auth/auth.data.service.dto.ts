@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { } from './dto';
+import {} from './dto';
 import { Prisma, User } from '@prisma/client';
 import { randomInt } from 'crypto';
 import { CommunicationService } from 'src/communication/communication.service';
@@ -11,7 +11,7 @@ export class AuthDataService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly communicationService: CommunicationService,
-  ) { }
+  ) {}
 
   async createVerificationToken(user: User, process: string) {
     const passkey = randomInt(100000, 1000000).toString();
@@ -23,11 +23,13 @@ export class AuthDataService {
       update: {
         passkey: passkey,
         expiresAt: expiresAt,
+        deleted: false,
       },
       create: {
         userId: user.id,
         passkey: passkey,
         expiresAt: expiresAt,
+        deleted: false,
       },
     });
     await this.communicationService.createJobForBull(
@@ -39,7 +41,7 @@ export class AuthDataService {
           firstname: user.firstname || user.email.split('@')[0],
         },
         process,
-        sourceId: String(passkey)
+        sourceId: String(passkey),
       },
       user.id,
       1,
@@ -54,6 +56,7 @@ export class AuthDataService {
         user: {
           email: email,
         },
+        deleted: false,
       },
     });
     return verificationToken;
@@ -62,6 +65,7 @@ export class AuthDataService {
     //   expiresAt: new Date(Date.now() + 1000 * 60 * 5),
     // };
   }
+
   async getAccessToken(email: string) {
     const accessToken = await this.prisma.access.findFirst({
       where: {
@@ -79,5 +83,12 @@ export class AuthDataService {
     //   passkey: '000000',
     //   expiresAt: new Date(Date.now() + 1000 * 60 * 5),
     // };
+  }
+
+  async deleteVerificationToken(userId: string) {
+    await this.prisma.verification.update({
+      where: { userId },
+      data: { deleted: true },
+    });
   }
 }
