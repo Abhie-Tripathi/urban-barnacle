@@ -56,6 +56,7 @@ const GetEnquiriesSchema = z.object({
   upvotedBy: z.enum(['me', 'others']).optional(),
   userId: z.string().uuid().optional(),
   name: z.string().optional(),
+  groupBy: z.enum(['status']).optional(),
 });
 
 export class GetEnquiriesDto extends createZodDto(

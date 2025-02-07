@@ -5,11 +5,11 @@ import { TCachedUser } from 'src/utils/types';
 import { CompanyDataService } from '../company/company.data.service';
 import { CompanyResponseSchema } from '../company/dto';
 import { EnquiryService } from 'src/enquiry/enquiry.service';
-import { GetEnquiriesDto } from 'src/enquiry/dto';
+import { GetEnquiriesDto, GetEnquiryCountDto } from 'src/enquiry/dto';
 import { GetUserHttpDto } from '../dto';
 import { UserService } from '../user.service';
 import { UserDataService } from '../user.data.service';
-import { EnquiryActivityType, Prisma } from '@prisma/client';
+import { EnquiryActivityType, EnquiryStatus, Prisma } from '@prisma/client';
 import { AccountConfigDto } from './account.config';
 import { UserDataSchema } from '../me/dto';
 import { AccountConfigKey, GetAccountEnquiriesCountDto } from './dto';
@@ -183,45 +183,82 @@ export class AccountService {
     user: TCachedUser,
     query: GetAccountEnquiriesCountDto,
   ) {
-    const params: GetUserEventInterestCountDto = {
+    let params: Record<string, any> = {
       accountId: user.accountId,
     };
     if (query.type) {
       params.groupBy = query.type;
       if (query.type === UserInterestsGroupBy.interests) {
-        params.interest = ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'];
+        const interestParams: GetUserEventInterestCountDto = {
+          ...params,
+          interest: ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'],
+        };
+        params = interestParams;
+      } else if (query.type === UserInterestsGroupBy.status) {
+        const statusParams: GetEnquiryCountDto = {
+          ...params,
+        };
+        params = statusParams;
       }
     }
-    const [interests, totalEnquiries] = await Promise.all([
+    params.groupBy = query.type;
+    if (query.type === UserInterestsGroupBy.interests) {
+      params.interest = ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'];
+    }
+
+    const [interests, totalEnquiries, enquiryCount] = await Promise.all([
       this.intentDataService.getUserEventInterestCount(params),
       this.enquiryService.getEnquiryCount({
         accountId: user.accountId,
       }),
+      params.groupBy === UserInterestsGroupBy.status
+        ? this.enquiryService.getEnquiryCount({
+            accountId: user.accountId,
+            groupBy: params.groupBy,
+          })
+        : null,
     ]);
-    let total = 0;
     let response = {};
 
     switch (query.type) {
       case UserInterestsGroupBy.interests:
+        const defaultCount = {
+          totalInterests: 0,
+          attend: 0,
+          speak: 0,
+          sponsor: 0,
+          exhibit: 0,
+        };
         const groupedInterestsByInterestType = interests.reduce((acc, curr) => {
-          total += curr._count.id;
+          defaultCount.totalInterests += curr._count.id;
           acc[curr.interest.toLowerCase()] = curr._count.id;
           return acc;
-        }, {});
+        }, defaultCount);
         response = {
           ...groupedInterestsByInterestType,
-          total: total,
+          totalInterests: defaultCount.totalInterests,
         };
         break;
       case UserInterestsGroupBy.status:
-        const groupedInterestsByStatus = interests.reduce((acc, curr) => {
-          total += curr._count.id;
-          acc[curr.status.toLowerCase()] = curr._count.id;
-          return acc;
-        }, {});
+        const defaultStatusCount = {
+          cancelled: 0,
+          confirmed: 0,
+          pending: 0,
+          shortlisted: 0,
+          in_discussion: 0,
+          in_negotiation: 0,
+          rejected: 0,
+        };
+        const groupedInterestsByStatus = enquiryCount
+          ? (
+              enquiryCount as Array<{ status: string; _count: { id: number } }>
+            ).reduce((acc, curr) => {
+              acc[curr.status.toLowerCase()] = curr._count.id;
+              return acc;
+            }, defaultStatusCount)
+          : null;
         response = {
           ...groupedInterestsByStatus,
-          total: total,
         };
         break;
     }
