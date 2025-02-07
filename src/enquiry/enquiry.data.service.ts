@@ -115,6 +115,7 @@ export class EnquiryDataService {
       event_active_lte,
       name,
       upvotedBy,
+      groupBy,
       ...rest
     } = data;
     const params: Prisma.EnquiryWhereInput = {
@@ -178,10 +179,25 @@ export class EnquiryDataService {
         },
       };
     }
-    const enquiryCount = await this.prisma.enquiry.count({
-      where: params,
-    });
-    return enquiryCount;
+    if (groupBy) {
+      const by: Prisma.EnquiryScalarFieldEnum[] = [];
+      if (groupBy === 'status') {
+        by.push('status');
+      }
+      const enquiryCount = await this.prisma.enquiry.groupBy({
+        where: params,
+        by: by,
+        _count: {
+          id: true,
+        },
+      });
+      return enquiryCount;
+    } else {
+      const enquiryCount = await this.prisma.enquiry.count({
+        where: params,
+      });
+      return enquiryCount;
+    }
   }
 
   async updateEnquiry(data: UpdateEnquiryDto) {
