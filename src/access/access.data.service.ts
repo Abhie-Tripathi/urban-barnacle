@@ -50,6 +50,9 @@ export class AccessDataService {
       },
       take: limit,
       skip: offset,
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
     return access;
   }

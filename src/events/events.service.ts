@@ -19,21 +19,21 @@ export class EventsService {
     private readonly eventsDataService: EventsDataService,
     private readonly sharedService: SharedService,
     private readonly intentDataService: IntentDataService,
-  ) { }
-  // encrypt(text: string): string {
-  //   const algorithm = 'aes-256-cbc';
-  //   const secretKey = crypto
-  //     .createHash('sha256')
-  //     .update(String(process.env.EVENT_QUERY_ENCRYPT))
-  //     .digest('base64')
-  //     .substring(0, 32);
-  //   const iv = Buffer.from(process.env.EVENT_CHIPR_IV ?? '', 'hex');
+  ) {}
+  encrypt(text: string): string {
+    const algorithm = 'aes-256-cbc';
+    const secretKey = crypto
+      .createHash('sha256')
+      .update(String(process.env.EVENT_QUERY_ENCRYPT))
+      .digest('base64')
+      .substring(0, 32);
+    const iv = Buffer.from(process.env.EVENT_CHIPR_IV ?? '', 'hex');
 
-  //   const cipher = crypto.createCipheriv(algorithm, secretKey, iv);
-  //   let encrypted = cipher.update(text, 'utf-8', 'hex');
-  //   encrypted += cipher.final('hex');
-  //   return encrypted;
-  // }
+    const cipher = crypto.createCipheriv(algorithm, secretKey, iv);
+    let encrypted = cipher.update(text, 'utf-8', 'hex');
+    encrypted += cipher.final('hex');
+    return encrypted;
+  }
   async getAllEvents(
     query: QueryDto,
     validateIds: boolean = true,
@@ -46,9 +46,19 @@ export class EventsService {
     const nonEmptyParams = getNonEmptyParams({ ...query, show });
     if (user) {
       const queryParams: QueryDto = Object.assign(nonEmptyParams);
-      const configuration = await this.eventsDataService.getAccountConfiguration(user.accountConfigurationId);
-      if (configuration && configuration['filter'] && Object.keys(configuration['filter']).length > 0) {
-        const { result, rootTodiscard } = eventSearchFilterCheck(configuration['filter'], queryParams);
+      const configuration =
+        await this.eventsDataService.getAccountConfiguration(
+          user.accountConfigurationId,
+        );
+      if (
+        configuration &&
+        configuration['filter'] &&
+        Object.keys(configuration['filter']).length > 0
+      ) {
+        const { result, rootTodiscard } = eventSearchFilterCheck(
+          configuration['filter'],
+          queryParams,
+        );
         if (!result && rootTodiscard.length > 1) {
           throw new HttpException(
             `Certain selected values like ${rootTodiscard} are restricted under your current plan.`,
@@ -85,11 +95,11 @@ export class EventsService {
 
           ...(query.show && query.show.includes('old')
             ? {
-              isSaved:
-                userInterests[event.id] && userInterests[event.id]['bookmark']
-                  ? true
-                  : false,
-            }
+                isSaved:
+                  userInterests[event.id] && userInterests[event.id]['bookmark']
+                    ? true
+                    : false,
+              }
             : { interests: userInterests[event.id] }),
         };
       });

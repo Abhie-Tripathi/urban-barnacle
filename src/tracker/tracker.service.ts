@@ -25,6 +25,7 @@ import { CommentService } from 'src/comment/comment.service';
 import { CreateAccessHttpDto, UpdateAccessHttpDto } from 'src/access/dto';
 import { createHash } from 'crypto';
 import { CommentsResponseSchema } from 'src/comment/dto/response';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class TrackerService {
@@ -37,6 +38,7 @@ export class TrackerService {
     private readonly intentDataService: IntentDataService,
     private readonly commentService: CommentService,
     private readonly userDataService: UserDataService,
+    private readonly configService: ConfigService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
@@ -75,14 +77,15 @@ export class TrackerService {
       ...lastActive,
     };
 
-    const searchByEntity =
-      tracker.type === 'T_COMPETITOR'
-        ? 'company'
-        : tracker.type === 'T_PEOPLE_FINDER'
-          ? 'user'
-          : tracker.type === 'T_SPEAKING_OPPORTUNITY'
-            ? 'speaker'
-            : undefined;
+    const searchByEntity = ['T_COMPETITOR', 'T_CUSTOMER_ICP'].includes(
+      tracker.type,
+    )
+      ? 'company'
+      : tracker.type === 'T_PEOPLE_FINDER'
+        ? 'user'
+        : tracker.type === 'T_SPEAKING_OPPORTUNITY'
+          ? 'speaker'
+          : undefined;
     tracker.filterValues = tracker.filterValues
       ? {
           ...(tracker.filterValues as Record<string, any>),
@@ -98,29 +101,36 @@ export class TrackerService {
         interestedUserId: user.id,
         accountId: user.accountId,
       });
-    const groupBy = searchByEntity
-      ? CountGroup.status
-      : CountGroup.eventTypeGroup;
+    console.log(
+      { backend: this.configService.get('BACKEND') },
+      { searchByEntity },
+    );
+    const groupBy =
+      searchByEntity || this.configService.get('BACKEND') === 'gtm'
+        ? CountGroup.status
+        : this.configService.get('BACKEND') === 'geo'
+          ? CountGroup.eventTypeGroup
+          : undefined;
     let cachedValues = (await this.cacheManager.get(tracker.id)) as {
       groupedEventsCount: object;
-      filterValue: object;
+      filterValues: object;
     };
-    let { groupedEventsCount, filterValue } = cachedValues ?? {};
-
-    if (!groupedEventsCount || !filterValue || query.refresh) {
+    let { groupedEventsCount, filterValues } = cachedValues ?? {};
+    if (!groupedEventsCount || !filterValues || query.refresh) {
       groupedEventsCount = await this.getGroupedEventsCount(
         {
           ...tracker.filterValues,
           createdAt: lastActive.last_active_gte,
-          groupBy: [groupBy],
+          ...(groupBy ? { groupBy: [groupBy] } : {}),
         } as CountQueryDto,
-        groupBy,
+        groupBy ? groupBy : undefined,
+        // groupBy,
       );
 
       tracker.filterValues = await this.sharedService.convertIdParamsToSlug(
         tracker.filterValues,
       );
-
+      console.log(tracker.filterValues);
       await this.cacheManager.set(
         tracker.id,
         { groupedEventsCount, filterValues: tracker.filterValues },
@@ -204,13 +214,15 @@ export class TrackerService {
       'SUPER_ADMIN',
       'USER',
     ]);
-
+    console.log(tracker);
     const trackerResponse = await this.getTrackerResponse(user, tracker, query);
     return trackerResponse;
   }
 
-  async getGroupedEventsCount(params: CountQueryDto, groupBy: CountGroup) {
+  async getGroupedEventsCount(params: CountQueryDto, groupBy?: CountGroup) {
     const data = await this.eventService.getEventsCount(params, false);
+    console.log({ counts: data });
+    if (!groupBy) return data.count;
     if (groupBy === CountGroup.status) {
       return data.count;
     } else if (groupBy === CountGroup.eventTypeGroup) {
@@ -473,6 +485,7 @@ export class TrackerService {
     const tracker = (
       await this.trackerDataService.getTrackers({
         ids: [trackerId],
+        accountId: user.accountId,
         limit: 1,
         offset: 0,
         type: 'trackers',

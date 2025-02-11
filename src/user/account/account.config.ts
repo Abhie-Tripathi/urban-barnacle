@@ -2,6 +2,7 @@ import { EnquiryStatus, Interest } from '@prisma/client';
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { FilterNames } from 'src/events/dto';
+import { Industries } from 'src/utils/types';
 
 export enum FilterGroup {
   BASIC = 'basic',
@@ -17,7 +18,7 @@ export const filterValueSchema = z.object({
   group: z.nativeEnum(FilterGroup),
 });
 
-const InterestConfigurationSchema = z.array(
+export const InterestConfigurationSchema = z.array(
   z.object({
     label: z.string(),
     source: z.string(),
@@ -58,39 +59,39 @@ export const AccountConfigSchema = z.strictObject({
 
 export class AccountConfigDto extends createZodDto(AccountConfigSchema) {}
 
-export const accountConfig: AccountConfigDto = {
-  interest: [
-    {
-      label: 'Bookmark',
-      source: 'research',
-      status: 'BOOKMARK',
-      position: 1,
-    },
-    {
-      label: 'Speak',
-      source: 'research',
-      status: 'SPEAK',
-      position: 2,
-    },
-    {
-      label: 'Sponsor',
-      source: 'research',
-      status: 'SPONSOR',
-      position: 3,
-    },
-    {
-      label: 'Attend',
-      source: 'research',
-      status: 'ATTEND',
-      position: 4,
-    },
-    {
-      label: 'Exhibit',
-      source: 'research',
-      status: 'EXHIBIT',
-      position: 5,
-    },
+export const InterestDefaultConfigurations: Record<
+  string,
+  InterestConfigurationDto
+> = {
+  interests: [
+    { label: 'Attend', source: 'research', status: 'ATTEND', position: 0 },
+    { label: 'Speak', source: 'research', status: 'SPEAK', position: 1 },
+    { label: 'Sponsor', source: 'research', status: 'SPONSOR', position: 2 },
+    { label: 'Exhibit', source: 'research', status: 'EXHIBIT', position: 3 },
   ],
+  leads: [
+    { label: 'Top', source: 'research', status: 'ATTEND', position: 0 },
+    { label: 'High', source: 'research', status: 'SPEAK', position: 1 },
+    { label: 'Medium', source: 'research', status: 'SPONSOR', position: 2 },
+    { label: 'Low', source: 'research', status: 'EXHIBIT', position: 3 },
+  ],
+};
+
+export const InterestDefaultConfigurationsWithIndustry: Record<
+  keyof typeof Industries.gtm,
+  InterestConfigurationDto
+> = {
+  Corporate_Brands: InterestDefaultConfigurations.interests,
+  Media_Marketing: InterestDefaultConfigurations.leads,
+  Event_Planners: InterestDefaultConfigurations.interests,
+  Research_MA: InterestDefaultConfigurations.leads,
+  Infra_Technology: InterestDefaultConfigurations.leads,
+  Venue_Real_Estate: InterestDefaultConfigurations.leads,
+  Others: InterestDefaultConfigurations.interests,
+};
+
+export const accountConfig: AccountConfigDto = {
+  interest: InterestDefaultConfigurations.interests,
   outreach: [
     {
       label: 'Pending',

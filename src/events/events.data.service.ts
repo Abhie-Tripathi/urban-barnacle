@@ -16,26 +16,34 @@ export class EventsDataService {
     private readonly prisma: PrismaService,
   ) { }
   async createLogForEncryptedQuery(encryption: string, user: TCachedUser) {
-    const checkIfenccryptionIsUniqueOrNot =
-      await this.prisma.userActivity.findFirst({
-        where: {
-          request: { equals: { data: encryption } },
-        },
-        select: {
-          id: true,
-        },
-      });
-    if (checkIfenccryptionIsUniqueOrNot?.id) {
-      return { message: 'not a unique encryption' };
-    }
-    await this.prisma.userActivity.create({
-      data: {
+    const previousActivity = await this.prisma.userActivity.findFirst({
+      where: {
+        accountId: user.accountId,
+        userId: user.id,
         path: '/events',
-        request: { data: encryption },
-        account: { connect: { id: user.accountId } },
-        user: { connect: { id: user.id } },
+        request: { equals: { data: encryption } },
+      },
+      select: {
+        id: true,
       },
     });
+    if (previousActivity) {
+      await this.prisma.userActivity.update({
+        where: { id: previousActivity.id },
+        data: {
+          updatedAt: new Date(),
+        },
+      });
+    } else {
+      await this.prisma.userActivity.create({
+        data: {
+          path: '/events',
+          request: { data: encryption },
+          account: { connect: { id: user.accountId } },
+          user: { connect: { id: user.id } },
+        },
+      });
+    }
   }
   async getEvents(params: QueryDto) {
     // params = { ...params, show: [...(params.show || []), 'newLocation'] };

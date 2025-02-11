@@ -147,7 +147,7 @@ export class MeController {
         user,
         query,
       );
-      return { data: recentSearches };
+      return { data: { recentSearches } };
     } catch (error) {
       return {
         error: new HttpException(

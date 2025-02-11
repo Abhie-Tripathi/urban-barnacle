@@ -45,10 +45,10 @@ export class AfterResponseInterceptor implements NestInterceptor {
             : {},
         };
         if (
-          (pathBreakdown[0] === 'trackers' &&
-            pathBreakdown.length === 2 &&
-            status === 200) ||
-          (pathBreakdown.length === 1 && pathBreakdown[0] === 'events')
+          pathBreakdown[0] === 'trackers' &&
+          pathBreakdown.length === 2 &&
+          status === 200
+          // || (pathBreakdown.length === 1 && pathBreakdown[0] === 'events')
         ) {
           await this.prismaService.userActivity.create({
             data: dataToSave,

@@ -41,20 +41,18 @@ export class MeDataService {
         path: '/events',
       },
       orderBy: {
-        createdAt: 'desc',
+        updatedAt: 'desc',
       },
       distinct: ['request'],
       take: limit,
       skip: offset,
     });
-    return {
-      data: recentSearches.map((data) => {
-        return {
-          ...JSON.parse(this.decrypt((data.request as any).data)),
-          createdAt: data.createdAt,
-        };
-      }),
-    };
+    return recentSearches.map((data) => {
+      return {
+        filterValues: JSON.parse(this.decrypt((data.request as any).data)),
+        requestedAt: data.updatedAt,
+      };
+    });
   }
   decrypt(encryptedText: string): string {
     const algorithm = 'aes-256-cbc';
