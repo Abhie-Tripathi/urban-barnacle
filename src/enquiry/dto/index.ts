@@ -50,7 +50,32 @@ const GetEnquiriesSchema = z.object({
   accountId: z.string().uuid().optional(),
   initiatedBy: z.string().uuid().optional(),
   type: z.nativeEnum(EnquiryActivitySubType).optional(),
-  status: z.nativeEnum(EnquiryStatus).optional(),
+  status: z
+    .string()
+    .refine(
+      (val) =>
+        val
+          .split(',')
+          .every((status) =>
+            Object.values(EnquiryStatus).includes(
+              status.trim().toUpperCase() as EnquiryStatus,
+            ),
+          ),
+      {
+        message: 'Invalid status',
+        params: {
+          values: Object.values(EnquiryStatus).map((status) =>
+            status.toLowerCase(),
+          ),
+        },
+      },
+    )
+    .transform((val) =>
+      val
+        .split(',')
+        .map((status) => status.trim().toUpperCase() as EnquiryStatus),
+    )
+    .optional(),
   event_active_lte: z.string().datetime().optional(),
   event_active_gte: z.string().datetime().optional(),
   upvotedBy: z.enum(['me', 'others']).optional(),

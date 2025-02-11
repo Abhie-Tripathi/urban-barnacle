@@ -84,7 +84,7 @@ export const CachedUserSchema: z.ZodType<SelectedUserDetails> = z.object({
 });
 
 export const Industries = {
-  eventeli: {
+  geo: {
     Hospitality: 'Hospitality',
     Local_Commerce: 'Local_Commerce',
     Transportation_Logistics: 'Transportation_Logistics',
@@ -96,7 +96,7 @@ export const Industries = {
     Corporate_Brands: 'Corporate_Brands',
     Others: 'Others',
   },
-  eventgtm: {
+  gtm: {
     Media_Marketing: 'Media_Marketing',
     Research_MA: 'Research_MA',
     Event_Planners: 'Event_Planners',
@@ -168,6 +168,7 @@ export const TrackerTypes = {
     T_PEOPLE_FINDER: 'T_PEOPLE_FINDER',
     T_COMPETITOR: 'T_COMPETITOR',
     T_SPEAKING_OPPORTUNITY: 'T_SPEAKING_OPPORTUNITY',
+    T_CUSTOMER_ICP: 'T_CUSTOMER_ICP',
     T_PRODUCT_KEYWORDS: 'T_PRODUCT_KEYWORDS',
     T_RECRUITMENT: 'T_RECRUITMENT',
     T_LOCATION: 'T_LOCATION',

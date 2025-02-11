@@ -20,20 +20,20 @@ export class EventsService {
     private readonly sharedService: SharedService,
     private readonly intentDataService: IntentDataService,
   ) {}
-  // encrypt(text: string): string {
-  //   const algorithm = 'aes-256-cbc';
-  //   const secretKey = crypto
-  //     .createHash('sha256')
-  //     .update(String(process.env.EVENT_QUERY_ENCRYPT))
-  //     .digest('base64')
-  //     .substring(0, 32);
-  //   const iv = Buffer.from(process.env.EVENT_CHIPR_IV ?? '', 'hex');
+  encrypt(text: string): string {
+    const algorithm = 'aes-256-cbc';
+    const secretKey = crypto
+      .createHash('sha256')
+      .update(String(process.env.EVENT_QUERY_ENCRYPT))
+      .digest('base64')
+      .substring(0, 32);
+    const iv = Buffer.from(process.env.EVENT_CHIPR_IV ?? '', 'hex');
 
-  //   const cipher = crypto.createCipheriv(algorithm, secretKey, iv);
-  //   let encrypted = cipher.update(text, 'utf-8', 'hex');
-  //   encrypted += cipher.final('hex');
-  //   return encrypted;
-  // }
+    const cipher = crypto.createCipheriv(algorithm, secretKey, iv);
+    let encrypted = cipher.update(text, 'utf-8', 'hex');
+    encrypted += cipher.final('hex');
+    return encrypted;
+  }
   async getAllEvents(
     query: QueryDto,
     validateIds: boolean = true,
@@ -44,13 +44,13 @@ export class EventsService {
       show = show.filter((item) => item !== 'old');
     }
     const nonEmptyParams = getNonEmptyParams({ ...query, show });
-    // if (user) {
-    //   const queryParams: object = Object.assign(nonEmptyParams);
-    //   delete queryParams['limit'];
-    //   delete queryParams['offset'];
-    //   const encryptData = this.encrypt(JSON.stringify(queryParams));
-    //   this.eventsDataService.createLogForEncryptedQuery(encryptData, user);
-    // }
+    if (user) {
+      const queryParams: object = Object.assign(nonEmptyParams);
+      delete queryParams['limit'];
+      delete queryParams['offset'];
+      const encryptData = this.encrypt(JSON.stringify(queryParams));
+      this.eventsDataService.createLogForEncryptedQuery(encryptData, user);
+    }
     const convertedParams = await this.sharedService.convertSlugParamsToIds(
       nonEmptyParams,
       validateIds,

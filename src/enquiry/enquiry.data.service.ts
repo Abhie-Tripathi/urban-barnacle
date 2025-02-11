@@ -30,10 +30,14 @@ export class EnquiryDataService {
       upvotedBy,
       limit,
       offset,
+      status,
       ...rest
     } = data;
     const params: Prisma.EnquiryWhereInput = {
       ...rest,
+      status: {
+        in: status,
+      },
     };
     if (ids) params['id'] = { in: ids };
     if (type)
@@ -116,10 +120,14 @@ export class EnquiryDataService {
       name,
       upvotedBy,
       groupBy,
+      status,
       ...rest
     } = data;
     const params: Prisma.EnquiryWhereInput = {
       ...rest,
+      status: {
+        in: status,
+      },
     };
     if (ids) params['id'] = { in: ids };
     if (type)

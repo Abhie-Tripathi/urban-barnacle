@@ -11,10 +11,14 @@ export class AccountDataService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createAccount(data: CreateAccountDto) {
-    const defaultConfig = accountConfig;
+    const { interestConfig, ...rest } = data;
+    let defaultConfig = accountConfig;
+    if (interestConfig) {
+      defaultConfig = { ...defaultConfig, interest: interestConfig };
+    }
     const account = await this.prisma.account.create({
       data: {
-        ...data,
+        ...rest,
         accountConfiguration: {
           create: {
             config: defaultConfig as unknown as InputJsonObject,

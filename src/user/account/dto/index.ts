@@ -1,13 +1,17 @@
 import { createZodDto } from 'nestjs-zod';
 import { LimitSchema } from 'src/global_dto';
 import { z } from 'zod';
-import { AccountConfigSchema } from '../account.config';
+import {
+  AccountConfigSchema,
+  InterestConfigurationSchema,
+} from '../account.config';
 import { UserInterestsGroupBy } from 'src/intent/dto';
 
 const CreateAccountSchema = z.strictObject({
   membership: z.number().optional(),
   pendingRequests: z.number().optional(),
   pendingPocUnlockRequests: z.number().optional(),
+  interestConfig: InterestConfigurationSchema.optional(),
 });
 
 export class CreateAccountDto extends createZodDto(CreateAccountSchema) {}
