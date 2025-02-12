@@ -13,6 +13,7 @@ import { getNonEmptyParams } from 'src/utils';
 import { eventSearchFilterCheck, transformEventData } from './global.service';
 import { IntentDataService } from 'src/intent/intent.data.service';
 import * as crypto from 'crypto';
+import { LimitDto } from 'src/global_dto';
 @Injectable()
 export class EventsService {
   constructor(
@@ -168,8 +169,8 @@ export class EventsService {
     return await this.eventsDataService.getEventPocs(eventId);
   }
 
-  async getEventEditions(eventId: string) {
-    return await this.eventsDataService.getEventEditions(eventId);
+  async getEventEditions(eventId: string, query: LimitDto) {
+    return await this.eventsDataService.getEventEditions(eventId, query);
   }
 
   async getEventCoorganizers(eventId: string) {
@@ -180,16 +181,16 @@ export class EventsService {
     return await this.eventsDataService.getEventRankings(eventId);
   }
 
-  async getEventSpeakers(eventId: string) {
-    return await this.eventsDataService.getEventSpeakers(eventId);
+  async getEventSpeakers(eventId: string, query: LimitDto) {
+    return await this.eventsDataService.getEventSpeakers(eventId, query);
   }
 
-  async getEventSponsors(eventId: string) {
-    return await this.eventsDataService.getEventSponsors(eventId);
+  async getEventSponsors(eventId: string, query: LimitDto) {
+    return await this.eventsDataService.getEventSponsors(eventId, query);
   }
 
-  async getEventExhibitors(eventId: string) {
-    return await this.eventsDataService.getEventExhibitors(eventId);
+  async getEventExhibitors(eventId: string, query: LimitDto) {
+    return await this.eventsDataService.getEventExhibitors(eventId, query);
   }
 
   async getEventPolygons(eventId: string) {

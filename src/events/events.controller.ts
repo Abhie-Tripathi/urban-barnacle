@@ -11,6 +11,7 @@ import { CountQueryDto, EventsTrendsDto, PocsUnmaskDto, QueryDto } from './dto';
 import { AuthGuard } from 'src/user/auth/guard';
 import { TCachedUser } from 'src/utils/types';
 import { GetUser } from 'src/user/decorator';
+import { LimitDto } from 'src/global_dto';
 
 @Controller('events')
 export class EventsController {
@@ -90,9 +91,9 @@ export class EventsController {
 
   @UseGuards(AuthGuard)
   @Get(':id/editions')
-  async getEventEditions(@Param('id') id: string) {
+  async getEventEditions(@Param('id') id: string, @Query() query: LimitDto) {
     try {
-      const editions = await this.eventsService.getEventEditions(id);
+      const editions = await this.eventsService.getEventEditions(id, query);
       return { data: editions };
     } catch (error) {
       return {
@@ -129,9 +130,9 @@ export class EventsController {
 
   @UseGuards(AuthGuard)
   @Get(':id/speakers')
-  async getEventSpeakers(@Param('id') id: string) {
+  async getEventSpeakers(@Param('id') id: string, @Query() query: LimitDto) {
     try {
-      const speakers = await this.eventsService.getEventSpeakers(id);
+      const speakers = await this.eventsService.getEventSpeakers(id, query);
       return { data: speakers };
     } catch (error) {
       return {
@@ -142,9 +143,9 @@ export class EventsController {
 
   @UseGuards(AuthGuard)
   @Get(':id/sponsors')
-  async getEventSponsors(@Param('id') id: string) {
+  async getEventSponsors(@Param('id') id: string, @Query() query: LimitDto) {
     try {
-      const sponsors = await this.eventsService.getEventSponsors(id);
+      const sponsors = await this.eventsService.getEventSponsors(id, query);
       return { data: sponsors };
     } catch (error) {
       return { error };
@@ -153,9 +154,9 @@ export class EventsController {
 
   @UseGuards(AuthGuard)
   @Get(':id/exhibitors')
-  async getEventExhibitors(@Param('id') id: string) {
+  async getEventExhibitors(@Param('id') id: string, @Query() query: LimitDto) {
     try {
-      const exhibitors = await this.eventsService.getEventExhibitors(id);
+      const exhibitors = await this.eventsService.getEventExhibitors(id, query);
       return { data: exhibitors };
     } catch (error) {
       return { error };

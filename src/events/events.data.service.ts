@@ -8,6 +8,7 @@ import { CreateExportDto } from 'src/exports/dto';
 import { FastifyReply } from 'fastify';
 import { get } from 'http';
 import { TCachedUser } from 'src/utils/types';
+import { LimitDto } from 'src/global_dto';
 
 @Injectable()
 export class EventsDataService {
@@ -92,10 +93,16 @@ export class EventsDataService {
     return data;
   }
 
-  async getEventEditions(eventId: string) {
+  async getEventEditions(eventId: string, query: LimitDto) {
+    const queryParams = new URLSearchParams({
+      take: query.limit.toString(),
+      skip: query.offset.toString(),
+    });
     const url =
       this.configService.get('MICROSERVICE_URL') +
-      microserviceEndpoints.events.eventEditions.replace(':eventId', eventId);
+      microserviceEndpoints.events.eventEditions.replace(':eventId', eventId) +
+      '?' +
+      queryParams.toString();
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (!data || error) {
@@ -131,10 +138,16 @@ export class EventsDataService {
     return data;
   }
 
-  async getEventSpeakers(eventId: string) {
+  async getEventSpeakers(eventId: string, query: LimitDto) {
+    const queryParams = new URLSearchParams({
+      take: query.limit.toString(),
+      skip: query.offset.toString(),
+    });
     const url =
       this.configService.get('MICROSERVICE_URL') +
-      microserviceEndpoints.events.eventSpeakers.replace(':eventId', eventId);
+      microserviceEndpoints.events.eventSpeakers.replace(':eventId', eventId) +
+      '?' +
+      queryParams.toString();
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (!data || error) {
@@ -143,10 +156,16 @@ export class EventsDataService {
     return data;
   }
 
-  async getEventSponsors(eventId: string) {
+  async getEventSponsors(eventId: string, query: LimitDto) {
+    const queryParams = new URLSearchParams({
+      take: query.limit.toString(),
+      skip: query.offset.toString(),
+    });
     const url =
       this.configService.get('MICROSERVICE_URL') +
-      microserviceEndpoints.events.eventSponsors.replace(':eventId', eventId);
+      microserviceEndpoints.events.eventSponsors.replace(':eventId', eventId) +
+      '?' +
+      queryParams.toString();
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (!data || error) {
@@ -155,10 +174,19 @@ export class EventsDataService {
     return data;
   }
 
-  async getEventExhibitors(eventId: string) {
+  async getEventExhibitors(eventId: string, query: LimitDto) {
+    const queryParams = new URLSearchParams({
+      take: query.limit.toString(),
+      skip: query.offset.toString(),
+    });
     const url =
       this.configService.get('MICROSERVICE_URL') +
-      microserviceEndpoints.events.eventExhibitors.replace(':eventId', eventId);
+      microserviceEndpoints.events.eventExhibitors.replace(
+        ':eventId',
+        eventId,
+      ) +
+      '?' +
+      queryParams.toString();
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (!data || error) {
