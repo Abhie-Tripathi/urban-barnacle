@@ -6,13 +6,16 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { CommentService } from './comment.service';
 import { TCachedUser } from 'src/utils/types';
 import { GetUser } from 'src/user/decorator';
 import { CreateCommentHttpDto, UpdateCommentHttpDto } from './dto';
 import { AuthGuard } from 'src/user/auth/guard';
+import { FileInterceptor } from '@nest-lab/fastify-multer';
 
 @Controller('comments')
 export class CommentController {
@@ -20,9 +23,11 @@ export class CommentController {
 
   @Post()
   @UseGuards(AuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
   async createComment(
     @Body() data: CreateCommentHttpDto,
     @GetUser() user: TCachedUser,
+    @UploadedFile() file: File,
   ) {
     try {
       const comment = await this.commentService.createComment(user, data);
