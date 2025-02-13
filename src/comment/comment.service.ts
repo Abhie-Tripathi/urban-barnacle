@@ -11,6 +11,7 @@ import { AccessService } from 'src/access/access.service';
 import { IntentService } from 'src/intent/intent.service';
 import { IntentTargetModule, InterestSourceModule } from '@prisma/client';
 import { CommentWithParentSchema } from './dto/response';
+import { CreateIntentHttpDto } from 'src/intent/dto';
 
 @Injectable()
 export class CommentService {
@@ -186,5 +187,38 @@ export class CommentService {
       deleted: true,
     });
     return comment;
+  }
+
+  async createCommentUpvote(user: TCachedUser, data: CreateIntentHttpDto) {
+    const comment = await this.commentDataService.getComments({
+      id: data.targetId,
+      limit: 1,
+      offset: 0,
+    });
+    if (comment.length === 0) {
+      throw new HttpException('Comment not found', HttpStatus.NOT_FOUND);
+    }
+    const upvote = await this.intentService.createUpvote(user, 'UPVOTE', {
+      ...data,
+      targetModule: IntentTargetModule.COMMENT,
+      targetId: comment[0].id,
+    });
+    return upvote;
+  }
+
+  async deleteCommentUpvote(user: TCachedUser, id: string) {
+    const comment = await this.commentDataService.getComments({
+      id: id,
+      limit: 1,
+      offset: 0,
+    });
+    if (comment.length === 0) {
+      throw new HttpException('Comment not found', HttpStatus.NOT_FOUND);
+    }
+    const upvote = await this.intentService.deleteUpvote(user, {
+      targetModule: IntentTargetModule.COMMENT,
+      targetId: comment[0].id,
+    });
+    return upvote;
   }
 }
