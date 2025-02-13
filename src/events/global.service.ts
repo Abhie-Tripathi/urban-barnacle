@@ -348,7 +348,7 @@ const DataGroups = {
     'timings',
     'updatedAt',
     'website',
-    'eventPageUrl',
+    '10timesEventPageUrl',
     'rating',
     'isNew',
   ],
