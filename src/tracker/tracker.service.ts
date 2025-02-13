@@ -151,6 +151,19 @@ export class TrackerService {
   }
 
   async getTrackers(user: TCachedUser, params: GetTrackersHttpDto) {
+    console.log({
+      accessReceiverId: user.id,
+      accountId: user.accountId,
+      sourceEntity: 'TRACKER',
+      accessTypes:
+        params.createdBy === 'me'
+          ? ['SUPER_ADMIN']
+          : params.createdBy === 'others'
+            ? ['ADMIN', 'USER']
+            : ['SUPER_ADMIN', 'ADMIN', 'USER'],
+      limit: params.limit,
+      offset: params.offset,
+    });
     const trackerIds = (
       await this.accessService.getAccess({
         accessReceiverId: user.id,
@@ -275,6 +288,7 @@ export class TrackerService {
     trackerId: string,
     params: GetTrackerEventsDto,
   ) {
+    console.log({ params });
     const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
       'ADMIN',
       'SUPER_ADMIN',
@@ -283,6 +297,41 @@ export class TrackerService {
     const newParams = getNonEmptyParams(params);
     const convertedParams =
       await this.sharedService.convertSlugParamsToIds(newParams);
+
+    if (params.trackerEventStatus && params.trackerEventStatus === 'past') {
+      convertedParams['active_lte'] = tracker.filterValues
+        ? new Date(
+            Math.min(
+              new Date(
+                tracker.filterValues['active_lte'] || new Date(),
+              ).valueOf(),
+              new Date().valueOf(),
+            ),
+          ).toISOString()
+        : new Date().toISOString();
+    } else if (
+      params.trackerEventStatus &&
+      params.trackerEventStatus === 'active'
+    ) {
+      convertedParams['active_gte'] = tracker.filterValues
+        ? new Date(
+            Math.max(
+              new Date(
+                tracker.filterValues['active_gte'] || new Date(),
+              ).valueOf(),
+              new Date().valueOf(),
+            ),
+          ).toISOString()
+        : new Date().toISOString();
+    }
+    if (params.trackerEventStatus && params.trackerEventStatus === 'new') {
+      const lastActive = await this.lastActive(
+        user,
+        tracker.id,
+        tracker.createdAt,
+      );
+      convertedParams['createdAt'] = lastActive.last_active_gte;
+    }
 
     const searchByEntity = ['T_COMPETITOR', 'T_CUSTOMER_ICP'].includes(
       tracker.type,
@@ -297,14 +346,15 @@ export class TrackerService {
             : undefined;
     const eventParams = {
       ...(tracker.filterValues as Object),
-      ...convertedParams,
       limit: params.limit,
       offset: params.offset,
       view: View.tracker,
+      ...convertedParams,
     } as QueryDto;
     if (searchByEntity) {
       eventParams['searchByEntity'] = searchByEntity;
     }
+    console.log({ eventParams });
     const events = await this.eventService.getAllEvents(
       eventParams,
       false,

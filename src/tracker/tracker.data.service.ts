@@ -28,7 +28,7 @@ export class TrackerDataService {
     if (data.ids && data.ids.length > 0) params['id'] = { in: data.ids };
     if (data.name)
       params['name'] = { contains: data.name, mode: 'insensitive' };
-    if (data.type) {
+    if (data.type && data.type.length > 0) {
       params['type'] = {
         in:
           data.subType && data.subType.length > 0
@@ -51,7 +51,7 @@ export class TrackerDataService {
     if (data.createdBy === 'me' && userId) params['createdBy'] = userId;
     if (data.createdBy === 'others' && userId)
       params['createdBy'] = { not: userId };
-
+    console.log({ params });
     const trackers = await this.prisma.tracker.findMany({
       where: {
         ...params,

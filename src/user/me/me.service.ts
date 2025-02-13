@@ -37,6 +37,7 @@ export class MeService {
 
   async getMyTrackers(user: TCachedUser, params: GetTrackersHttpDto) {
     const { limit, offset } = params;
+    console.log({ params });
     const [trackers, trackerCount] = await Promise.all([
       this.trackerService.getTrackers(user, { ...params, limit, offset }),
       this.trackerService.getTrackersCount(user, params),

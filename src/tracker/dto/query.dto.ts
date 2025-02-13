@@ -2,7 +2,12 @@ import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { LimitSchema } from 'src/global_dto';
 import { TrackerType } from '@prisma/client';
-import { EventTabs } from './create.dto';
+import {
+  EventTabs,
+  ParamsSchema,
+  TrackerEventStatus,
+  TrackerParamsSchema,
+} from './create.dto';
 import { CountQuerySchema, QuerySchema } from 'src/events/dto';
 
 const GetTrackersHttpSchema = LimitSchema.extend({
@@ -28,7 +33,7 @@ export class GetTrackersDto extends createZodDto(GetTrackersSchema) {}
 
 export class GetTrackersCountDto extends createZodDto(GetTrackersSchema) {}
 
-const GetTrackerEventsSchema = QuerySchema.innerType()
+const GetTrackerEventsSchema = LimitSchema.extend(ParamsSchema.shape)
   .extend({
     type: z
       .string()
@@ -39,6 +44,9 @@ const GetTrackerEventsSchema = QuerySchema.innerType()
   .transform((data) => {
     if (data.type && ['business', 'social', 'unattended'].includes(data.type)) {
       data.eventTypeGroup = data.type;
+      delete data.type;
+    } else if (data.type && ['past', 'active', 'new'].includes(data.type)) {
+      data.trackerEventStatus = data.type as keyof typeof TrackerEventStatus;
       delete data.type;
     }
     return data;
