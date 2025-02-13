@@ -26,7 +26,7 @@ const CommentResponseSchema = z.object({
   user: CommentUserSchema,
 });
 
-const CommentWithParentSchema = CommentResponseSchema.extend({
+export const CommentWithParentSchema = CommentResponseSchema.extend({
   parentComment: CommentResponseSchema.nullable(),
 });
 

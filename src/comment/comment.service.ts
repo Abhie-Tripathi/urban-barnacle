@@ -10,6 +10,7 @@ import {
 import { AccessService } from 'src/access/access.service';
 import { IntentService } from 'src/intent/intent.service';
 import { IntentTargetModule, InterestSourceModule } from '@prisma/client';
+import { CommentWithParentSchema } from './dto/response';
 
 @Injectable()
 export class CommentService {
@@ -54,7 +55,7 @@ export class CommentService {
         accountId: user.accountId,
         userId: user.id,
       });
-      return comment;
+      return CommentWithParentSchema.parse(comment);
     } else if (
       data.sourceModule === 'COORDINATE' ||
       data.sourceModule === 'OUTREACH'
@@ -113,7 +114,7 @@ export class CommentService {
           );
         }
       }
-      return comment;
+      return CommentWithParentSchema.parse(comment);
     }
     throw new HttpException('Invalid source module', 400);
   }
