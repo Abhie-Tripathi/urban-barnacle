@@ -23,7 +23,7 @@ import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { UserDataService } from 'src/user/user.data.service';
 import { CommentService } from 'src/comment/comment.service';
 import { CreateAccessHttpDto, UpdateAccessHttpDto } from 'src/access/dto';
-import { createHash } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { CommentsResponseSchema } from 'src/comment/dto/response';
 import { ConfigService } from '@nestjs/config';
 
@@ -151,45 +151,48 @@ export class TrackerService {
   }
 
   async getTrackers(user: TCachedUser, params: GetTrackersHttpDto) {
-    console.log({
-      accessReceiverId: user.id,
-      accountId: user.accountId,
-      sourceEntity: 'TRACKER',
-      accessTypes:
-        params.createdBy === 'me'
-          ? ['SUPER_ADMIN']
-          : params.createdBy === 'others'
-            ? ['ADMIN', 'USER']
-            : ['SUPER_ADMIN', 'ADMIN', 'USER'],
-      limit: params.limit,
-      offset: params.offset,
-    });
-    const trackerIds = (
-      await this.accessService.getAccess({
-        accessReceiverId: user.id,
-        accountId: user.accountId,
-        sourceEntity: 'TRACKER',
-        accessTypes:
-          params.createdBy === 'me'
-            ? ['SUPER_ADMIN']
-            : params.createdBy === 'others'
-              ? ['ADMIN', 'USER']
-              : ['SUPER_ADMIN', 'ADMIN', 'USER'],
+    // console.log({
+    //   accessReceiverId: user.id,
+    //   accountId: user.accountId,
+    //   sourceEntity: 'TRACKER',
+    //   accessTypes:
+    //     params.createdBy === 'me'
+    //       ? ['SUPER_ADMIN']
+    //       : params.createdBy === 'others'
+    //         ? ['ADMIN', 'USER']
+    //         : ['SUPER_ADMIN', 'ADMIN', 'USER'],
+    //   limit: params.limit,
+    //   offset: params.offset,
+    // });
+    // const trackerIds = (
+    //   await this.accessService.getAccess({
+    //     accessReceiverId: user.id,
+    //     accountId: user.accountId,
+    //     sourceEntity: 'TRACKER',
+    //     accessTypes:
+    //       params.createdBy === 'me'
+    //         ? ['SUPER_ADMIN']
+    //         : params.createdBy === 'others'
+    //           ? ['ADMIN', 'USER']
+    //           : ['SUPER_ADMIN', 'ADMIN', 'USER'],
+    //     limit: params.limit,
+    //     offset: params.offset,
+    //   })
+    // ).map((access) => access.sourceEntityId);
+    // const trackerParams = {};
+    // if (params.name) trackerParams['name'] = params.name;
+    // if (params.subType) trackerParams['subType'] = params.subType;
+
+    const trackers = await this.trackerDataService.getTrackers(
+      {
+        ...params,
+        type: params.type,
+        // ids: trackerIds,
         limit: params.limit,
         offset: params.offset,
-      })
-    ).map((access) => access.sourceEntityId);
-    const trackerParams = {};
-    if (params.name) trackerParams['name'] = params.name;
-    if (params.subType) trackerParams['subType'] = params.subType;
-
-    const trackers = await this.trackerDataService.getTrackers({
-      ...trackerParams,
-      type: params.type,
-      ids: trackerIds,
-      limit: params.limit,
-      offset: params.offset,
-    });
+      },
+      user,
+    );
 
     const allTrackers = await Promise.all(
       trackers.map((tracker) => {
@@ -203,17 +206,21 @@ export class TrackerService {
   }
 
   async getTrackersCount(user: TCachedUser, params: GetTrackersHttpDto) {
-    const trackerCount = await this.accessService.getAccessCount({
-      accessReceiverId: user.id,
-      accountId: user.accountId,
-      sourceEntity: 'TRACKER',
-      accessTypes:
-        params.createdBy === 'me'
-          ? ['SUPER_ADMIN']
-          : params.createdBy === 'others'
-            ? ['ADMIN', 'USER']
-            : ['SUPER_ADMIN', 'ADMIN', 'USER'],
-    });
+    // const trackerCount = await this.accessService.getAccessCount({
+    //   accessReceiverId: user.id,
+    //   accountId: user.accountId,
+    //   sourceEntity: 'TRACKER',
+    //   accessTypes:
+    //     params.createdBy === 'me'
+    //       ? ['SUPER_ADMIN']
+    //       : params.createdBy === 'others'
+    //         ? ['ADMIN', 'USER']
+    //         : ['SUPER_ADMIN', 'ADMIN', 'USER'],
+    // });
+    const trackerCount = await this.trackerDataService.getTrackersCount(
+      user,
+      params,
+    );
     return trackerCount;
   }
 
@@ -533,13 +540,16 @@ export class TrackerService {
     accessTypes: AccessType[],
   ): Promise<[Tracker, Record<string, any>]> {
     const tracker = (
-      await this.trackerDataService.getTrackers({
-        ids: [trackerId],
-        accountId: user.accountId,
-        limit: 1,
-        offset: 0,
-        type: 'trackers',
-      })
+      await this.trackerDataService.getTrackers(
+        {
+          ids: [trackerId],
+          accountId: user.accountId,
+          limit: 1,
+          offset: 0,
+          type: 'trackers',
+        },
+        user,
+      )
     )[0];
     if (!tracker)
       throw new HttpException('Tracker not found', HttpStatus.NOT_FOUND);
@@ -590,7 +600,7 @@ export class TrackerService {
       'SUPER_ADMIN',
     ]);
 
-    const hash = createHash('sha256').digest('hex');
+    const hash = createHash('sha256').update(randomUUID()).digest('hex');
     const expiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
     await this.accessService.createAccess(
@@ -604,6 +614,7 @@ export class TrackerService {
         redirectQueryParams: `targetId=${tracker.id}&target=tracker`,
         token: hash,
         expiry: expiry,
+        redirectDomain: data.redirectDomain,
       },
       {
         trackerName: tracker.name,

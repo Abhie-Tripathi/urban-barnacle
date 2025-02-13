@@ -88,31 +88,31 @@ export class IntentController {
     return this.intentService.deleteUserEventInterest(user, id);
   }
 
-  @UseGuards(AuthGuard)
-  @Post('upvote')
-  async createUpvote(
-    @Body() data: CreateIntentHttpDto,
-    @GetUser() user: TCachedUser,
-  ) {
-    try {
-      const upvote = await this.intentService.createUpvote(user, 'UPVOTE', {
-        ...data,
-      });
-      return {
-        data: upvote,
-      };
-    } catch (error) {
-      return {
-        error: error,
-      };
-    }
-  }
+  // @UseGuards(AuthGuard)
+  // @Post('upvote')
+  // async createUpvote(
+  //   @Body() data: CreateIntentHttpDto,
+  //   @GetUser() user: TCachedUser,
+  // ) {
+  //   try {
+  //     const upvote = await this.intentService.createUpvote(user, 'UPVOTE', {
+  //       ...data,
+  //     });
+  //     return {
+  //       data: upvote,
+  //     };
+  //   } catch (error) {
+  //     return {
+  //       error: error,
+  //     };
+  //   }
+  // }
 
-  @UseGuards(AuthGuard)
-  @Delete('upvote/:id')
-  async deleteUpvote(@Param('id') id: string, @GetUser() user: TCachedUser) {
-    return this.intentService.deleteUpvote(user, id);
-  }
+  // @UseGuards(AuthGuard)
+  // @Delete('upvote/:id')
+  // async deleteUpvote(@Param('id') id: string, @GetUser() user: TCachedUser) {
+  //   return this.intentService.deleteUpvote(user, id);
+  // }
 
   @UseGuards(AuthGuard)
   @Post('enquiry-activity')

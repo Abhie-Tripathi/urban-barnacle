@@ -28,7 +28,7 @@ export class AccessService {
     private readonly communicationService: CommunicationService,
     private readonly configService: ConfigService,
     private readonly companyDataService: CompanyDataService,
-  ) { }
+  ) {}
 
   async createAccess(
     user: TCachedUser,
@@ -72,9 +72,9 @@ export class AccessService {
         });
         const primaryDetails = newUserPrimaryCompany
           ? {
-            primaryCompanyId: newUserPrimaryCompany.id,
-            primaryAccountId: newUserPrimaryCompany.accountId,
-          }
+              primaryCompanyId: newUserPrimaryCompany.id,
+              primaryAccountId: newUserPrimaryCompany.accountId,
+            }
           : null;
         const newUser = await this.userDataService.createUser({
           email: data.accessReceiverEmail,
@@ -84,6 +84,21 @@ export class AccessService {
         });
         receiver = newUser;
       } else {
+        const [receiverAccess, result] = await this.hasAccess({
+          accessReceiverId: users[0].id,
+          accessTypes: ['ADMIN', 'SUPER_ADMIN', 'USER'],
+          sourceEntity: 'TRACKER',
+          sourceEntityId: data.sourceEntityId,
+          accountId: user.accountId,
+          limit: 1,
+          offset: 0,
+        });
+        if (receiverAccess) {
+          throw new HttpException(
+            'User already has access to this tracker',
+            HttpStatus.CONFLICT,
+          );
+        }
         receiver = users[0];
       }
     }
@@ -120,12 +135,14 @@ export class AccessService {
             ),
           },
           redirectUrl:
-            (this.configService.get('FRONTEND_URL') || '') +
+            (data.redirectDomain ||
+              this.configService.get('FRONTEND_URL') ||
+              '') +
             '/login?' +
             data.redirectQueryParams +
             `&email=${receiver.email}&token=${rest.token}`,
           trackerName: sourceMetaData['trackerName'] || '',
-          sourceId: access.id
+          sourceId: access.id,
         } as AccessEmailDataDto,
         user.id,
       );

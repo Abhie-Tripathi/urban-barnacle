@@ -210,9 +210,9 @@ export class IntentService {
     return true;
   }
 
-  async deleteUpvote(user: TCachedUser, id: string) {
+  async deleteUpvote(user: TCachedUser, data: GetIntentDto) {
     const intent = await this.intentDataService.getIntents({
-      id,
+      ...data,
       userId: user.id,
       accountId: user.accountId,
     });
@@ -220,7 +220,7 @@ export class IntentService {
       throw new HttpException('Upvote not found', HttpStatus.NOT_FOUND);
     }
     await this.intentDataService.updateIntent({
-      id,
+      id: intent[0].id,
       deleted: true,
     });
     return { message: 'Upvote deleted successfully' };

@@ -16,6 +16,14 @@ export class CommentDataService {
     // data.
     const comment = await this.prisma.comment.create({
       data,
+      include: {
+        parentComment: {
+          include: {
+            user: true,
+          },
+        },
+        user: true,
+      },
     });
     return comment;
   }
@@ -24,6 +32,14 @@ export class CommentDataService {
     const comment = await this.prisma.comment.update({
       where: { id: data.id },
       data,
+      include: {
+        parentComment: {
+          include: {
+            user: true,
+          },
+        },
+        user: true,
+      },
     });
     return comment;
   }
