@@ -18,30 +18,44 @@ export const filterValueSchema = z.object({
   group: z.nativeEnum(FilterGroup),
 });
 
-export const InterestConfigurationSchema = z.array(
-  z.object({
-    label: z.string(),
-    source: z.string(),
-    status: z.nativeEnum(Interest),
-    position: z.number(),
-  }),
-);
+const InterestSchema = z.object({
+  label: z.string(),
+  status: z.nativeEnum(Interest),
+  position: z.number(),
+});
+
+export const InterestConfigurationSchema = z.array(InterestSchema);
 
 export class InterestConfigurationDto extends createZodDto(
   InterestConfigurationSchema,
 ) {}
 
-const OutreachConfigurationSchema = z.array(
-  z.object({
-    label: z.string(),
-    source: z.string(),
-    status: z.nativeEnum(EnquiryStatus),
-    position: z.number(),
-  }),
+export const InterestConfigurationUpdateSchema = z.array(
+  InterestSchema.omit({ position: true }),
 );
+
+export class InterestConfigurationUpdateDto extends createZodDto(
+  InterestConfigurationUpdateSchema,
+) {}
+
+const OutreachSchema = z.object({
+  label: z.string(),
+  status: z.nativeEnum(EnquiryStatus),
+  position: z.number(),
+});
+
+export const OutreachConfigurationSchema = z.array(OutreachSchema);
 
 export class OutreachConfigurationDto extends createZodDto(
   OutreachConfigurationSchema,
+) {}
+
+export const OutreachConfigurationUpdateSchema = z.array(
+  OutreachSchema.omit({ position: true }),
+);
+
+export class OutreachConfigurationUpdateDto extends createZodDto(
+  OutreachConfigurationUpdateSchema,
 ) {}
 
 // const FilterConfigurationSchema = z.record(z.string(), filterValueSchema);
@@ -64,16 +78,16 @@ export const InterestDefaultConfigurations: Record<
   InterestConfigurationDto
 > = {
   interests: [
-    { label: 'Attend', source: 'research', status: 'ATTEND', position: 0 },
-    { label: 'Speak', source: 'research', status: 'SPEAK', position: 1 },
-    { label: 'Sponsor', source: 'research', status: 'SPONSOR', position: 2 },
-    { label: 'Exhibit', source: 'research', status: 'EXHIBIT', position: 3 },
+    { label: 'Attend', status: 'ATTEND', position: 0 },
+    { label: 'Speak', status: 'SPEAK', position: 1 },
+    { label: 'Sponsor', status: 'SPONSOR', position: 2 },
+    { label: 'Exhibit', status: 'EXHIBIT', position: 3 },
   ],
   leads: [
-    { label: 'Top', source: 'research', status: 'ATTEND', position: 0 },
-    { label: 'High', source: 'research', status: 'SPEAK', position: 1 },
-    { label: 'Medium', source: 'research', status: 'SPONSOR', position: 2 },
-    { label: 'Low', source: 'research', status: 'EXHIBIT', position: 3 },
+    { label: 'Top', status: 'ATTEND', position: 0 },
+    { label: 'High', status: 'SPEAK', position: 1 },
+    { label: 'Medium', status: 'SPONSOR', position: 2 },
+    { label: 'Low', status: 'EXHIBIT', position: 3 },
   ],
 };
 
@@ -95,43 +109,36 @@ export const accountConfig: AccountConfigDto = {
   outreach: [
     {
       label: 'Pending',
-      source: 'coordinate',
       status: 'PENDING',
       position: 1,
     },
     {
       label: 'In Discussion',
-      source: 'outreach',
       status: 'IN_DISCUSSION',
       position: 2,
     },
     {
       label: 'Shortlisted',
-      source: 'outreach',
       status: 'SHORTLISTED',
       position: 3,
     },
     {
       label: 'In Negotiation',
-      source: 'outreach',
       status: 'IN_NEGOTIATION',
       position: 4,
     },
     {
       label: 'Confirmed',
-      source: 'outreach',
       status: 'CONFIRMED',
       position: 5,
     },
     {
       label: 'Cancelled',
-      source: 'coordinate',
       status: 'CANCELLED',
       position: 6,
     },
     {
       label: 'Rejected',
-      source: 'coordinate',
       status: 'REJECTED',
       position: 7,
     },
