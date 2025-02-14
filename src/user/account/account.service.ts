@@ -10,7 +10,12 @@ import { GetUserHttpDto } from '../dto';
 import { UserService } from '../user.service';
 import { UserDataService } from '../user.data.service';
 import { EnquiryActivityType, EnquiryStatus, Prisma } from '@prisma/client';
-import { AccountConfigDto } from './account.config';
+import {
+  AccountConfigDto,
+  FilterConfigurationDto,
+  InterestConfigurationUpdateDto,
+  OutreachConfigurationUpdateDto,
+} from './account.config';
 import { UserDataSchema } from '../me/dto';
 import { AccountConfigKey, GetAccountEnquiriesCountDto } from './dto';
 import { IntentDataService } from 'src/intent/intent.data.service';
@@ -160,7 +165,10 @@ export class AccountService {
   async updateAccountConfiguration(
     user: TCachedUser,
     key: AccountConfigKey,
-    data: AccountConfigDto[keyof AccountConfigDto],
+    data:
+      | InterestConfigurationUpdateDto
+      | OutreachConfigurationUpdateDto
+      | FilterConfigurationDto,
   ) {
     const config = await this.accountDataService.getAccountConfiguration(
       user.accountConfigurationId,
@@ -168,15 +176,30 @@ export class AccountService {
     if (!config) {
       return [];
     }
-    config[key as string] = data;
-    const configuration = (
-      await this.accountDataService.updateAccountConfiguration(
-        user,
-        config as unknown as AccountConfigDto,
-      )
-    ).config;
+    if (key === 'interest') {
+      const interestConfig = data as InterestConfigurationUpdateDto;
+      config['interest'] = interestConfig.map((item, index) => {
+        return { ...item, position: index };
+      });
+    } else if (key === 'outreach') {
+      const outreachConfig = data as OutreachConfigurationUpdateDto;
+      config['outreach'] = outreachConfig.map((item, index) => {
+        return { ...item, position: index };
+      });
+    } else if (key === 'filter') {
+      const filterConfig = data as FilterConfigurationDto;
+      config['filter'] = filterConfig;
+    }
+    return config[key as string];
+    // config[key as string] = data;
+    // const configuration = (
+    //   await this.accountDataService.updateAccountConfiguration(
+    //     user,
+    //     config as unknown as AccountConfigDto,
+    //   )
+    // ).config;
 
-    return { [key]: configuration ? configuration[key] : [] };
+    // return { [key]: configuration ? configuration[key] : [] };
   }
 
   async getAccountEnquiriesCount(
