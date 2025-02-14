@@ -13,8 +13,8 @@ import { EnquiryActivityType, EnquiryStatus, Prisma } from '@prisma/client';
 import {
   AccountConfigDto,
   FilterConfigurationDto,
-  InterestConfigurationUpdateDto,
-  OutreachConfigurationUpdateDto,
+  InterestConfigurationDto,
+  OutreachConfigurationDto,
 } from './account.config';
 import { UserDataSchema } from '../me/dto';
 import { AccountConfigKey, GetAccountEnquiriesCountDto } from './dto';
@@ -166,8 +166,8 @@ export class AccountService {
     user: TCachedUser,
     key: AccountConfigKey,
     data:
-      | InterestConfigurationUpdateDto
-      | OutreachConfigurationUpdateDto
+      | InterestConfigurationDto
+      | OutreachConfigurationDto
       | FilterConfigurationDto,
   ) {
     const config = await this.accountDataService.getAccountConfiguration(
@@ -177,29 +177,23 @@ export class AccountService {
       return [];
     }
     if (key === 'interest') {
-      const interestConfig = data as InterestConfigurationUpdateDto;
-      config['interest'] = interestConfig.map((item, index) => {
-        return { ...item, position: index };
-      });
+      const interestConfig = data as InterestConfigurationDto;
+      config['interest'] = interestConfig;
     } else if (key === 'outreach') {
-      const outreachConfig = data as OutreachConfigurationUpdateDto;
-      config['outreach'] = outreachConfig.map((item, index) => {
-        return { ...item, position: index };
-      });
+      const outreachConfig = data as OutreachConfigurationDto;
+      config['outreach'] = outreachConfig;
     } else if (key === 'filter') {
       const filterConfig = data as FilterConfigurationDto;
       config['filter'] = filterConfig;
     }
-    return config[key as string];
-    // config[key as string] = data;
-    // const configuration = (
-    //   await this.accountDataService.updateAccountConfiguration(
-    //     user,
-    //     config as unknown as AccountConfigDto,
-    //   )
-    // ).config;
+    const configuration = (
+      await this.accountDataService.updateAccountConfiguration(
+        user,
+        config as unknown as AccountConfigDto,
+      )
+    ).config;
 
-    // return { [key]: configuration ? configuration[key] : [] };
+    return { [key]: configuration ? configuration[key] : [] };
   }
 
   async getAccountEnquiriesCount(

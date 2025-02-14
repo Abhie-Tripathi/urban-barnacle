@@ -18,9 +18,7 @@ import {
   AccountConfigDto,
   FilterConfigurationDto,
   InterestConfigurationDto,
-  InterestConfigurationUpdateDto,
   OutreachConfigurationDto,
-  OutreachConfigurationUpdateDto,
 } from './account.config';
 import { AccountConfigKey, GetAccountEnquiriesCountDto } from './dto';
 
@@ -108,7 +106,7 @@ export class AccountController {
   @Put('configuration/interest')
   async updateAccountConfigurationInterest(
     @GetUser() user: TCachedUser,
-    @Body() data: InterestConfigurationUpdateDto,
+    @Body() data: InterestConfigurationDto,
   ) {
     try {
       const configuration =
@@ -127,7 +125,7 @@ export class AccountController {
   @Put('configuration/outreach')
   async updateAccountConfigurationOutreach(
     @GetUser() user: TCachedUser,
-    @Body() data: OutreachConfigurationUpdateDto,
+    @Body() data: OutreachConfigurationDto,
   ) {
     try {
       const configuration =

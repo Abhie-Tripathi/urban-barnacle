@@ -18,44 +18,26 @@ export const filterValueSchema = z.object({
   group: z.nativeEnum(FilterGroup),
 });
 
-const InterestSchema = z.object({
-  label: z.string(),
-  status: z.nativeEnum(Interest),
-  position: z.number(),
-});
-
-export const InterestConfigurationSchema = z.array(InterestSchema);
+export const InterestConfigurationSchema = z.array(
+  z.object({
+    label: z.string(),
+    status: z.nativeEnum(Interest),
+  }),
+);
 
 export class InterestConfigurationDto extends createZodDto(
   InterestConfigurationSchema,
 ) {}
 
-export const InterestConfigurationUpdateSchema = z.array(
-  InterestSchema.omit({ position: true }),
+export const OutreachConfigurationSchema = z.array(
+  z.object({
+    label: z.string(),
+    status: z.nativeEnum(EnquiryStatus),
+  }),
 );
-
-export class InterestConfigurationUpdateDto extends createZodDto(
-  InterestConfigurationUpdateSchema,
-) {}
-
-const OutreachSchema = z.object({
-  label: z.string(),
-  status: z.nativeEnum(EnquiryStatus),
-  position: z.number(),
-});
-
-export const OutreachConfigurationSchema = z.array(OutreachSchema);
 
 export class OutreachConfigurationDto extends createZodDto(
   OutreachConfigurationSchema,
-) {}
-
-export const OutreachConfigurationUpdateSchema = z.array(
-  OutreachSchema.omit({ position: true }),
-);
-
-export class OutreachConfigurationUpdateDto extends createZodDto(
-  OutreachConfigurationUpdateSchema,
 ) {}
 
 // const FilterConfigurationSchema = z.record(z.string(), filterValueSchema);
@@ -78,16 +60,16 @@ export const InterestDefaultConfigurations: Record<
   InterestConfigurationDto
 > = {
   interests: [
-    { label: 'Attend', status: 'ATTEND', position: 0 },
-    { label: 'Speak', status: 'SPEAK', position: 1 },
-    { label: 'Sponsor', status: 'SPONSOR', position: 2 },
-    { label: 'Exhibit', status: 'EXHIBIT', position: 3 },
+    { label: 'Attend', status: 'ATTEND' },
+    { label: 'Speak', status: 'SPEAK' },
+    { label: 'Sponsor', status: 'SPONSOR' },
+    { label: 'Exhibit', status: 'EXHIBIT' },
   ],
   leads: [
-    { label: 'Top', status: 'ATTEND', position: 0 },
-    { label: 'High', status: 'SPEAK', position: 1 },
-    { label: 'Medium', status: 'SPONSOR', position: 2 },
-    { label: 'Low', status: 'EXHIBIT', position: 3 },
+    { label: 'Top', status: 'ATTEND' },
+    { label: 'High', status: 'SPEAK' },
+    { label: 'Medium', status: 'SPONSOR' },
+    { label: 'Low', status: 'EXHIBIT' },
   ],
 };
 
@@ -110,37 +92,30 @@ export const accountConfig: AccountConfigDto = {
     {
       label: 'Pending',
       status: 'PENDING',
-      position: 1,
     },
     {
       label: 'In Discussion',
       status: 'IN_DISCUSSION',
-      position: 2,
     },
     {
       label: 'Shortlisted',
       status: 'SHORTLISTED',
-      position: 3,
     },
     {
       label: 'In Negotiation',
       status: 'IN_NEGOTIATION',
-      position: 4,
     },
     {
       label: 'Confirmed',
       status: 'CONFIRMED',
-      position: 5,
     },
     {
       label: 'Cancelled',
       status: 'CANCELLED',
-      position: 6,
     },
     {
       label: 'Rejected',
       status: 'REJECTED',
-      position: 7,
     },
   ],
   filter: {},
