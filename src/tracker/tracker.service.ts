@@ -424,14 +424,13 @@ export class TrackerService {
     ]);
     const newParams = getNonEmptyParams(params);
     const convertedParams =
-      this.sharedService.convertSlugParamsToIds(newParams);
+      await this.sharedService.convertSlugParamsToIds(newParams);
     const eventParams = {
       ...(tracker.filterValues as Object),
       // ...convertedParams,
     } as CountQueryDto;
     console.log(eventParams, convertedParams);
-
-    const count = await this.eventService.getEventsCount({ ...eventParams, ...convertedParams }, false);
+    const count = await this.eventService.getEventsCount(eventParams, false);
     return count;
   }
 
