@@ -429,7 +429,7 @@ export class TrackerService {
       ...(tracker.filterValues as Object),
       ...convertedParams,
     } as CountQueryDto;
-    console.log(eventParams, convertedParams, newParams
+    console.log(eventParams, convertedParams, newParams,
       convertedParams);
     const count = await this.eventService.getEventsCount(eventParams, false);
     return count;
