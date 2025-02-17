@@ -79,7 +79,8 @@ export class EventsDataService {
       this.configService.get('MICROSERVICE_URL') +
       microserviceEndpoints.events.count +
       '?' +
-      queryParams.toString();
+      queryParams.toString();    
+      console.log(url);
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (!data || error) {
