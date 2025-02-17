@@ -427,9 +427,10 @@ export class TrackerService {
       await this.sharedService.convertSlugParamsToIds(newParams);
     const eventParams = {
       ...(tracker.filterValues as Object),
-      // ...convertedParams,
+      ...convertedParams,
     } as CountQueryDto;
-    console.log(eventParams, convertedParams);
+    console.log(eventParams, convertedParams, newParams
+      convertedParams);
     const count = await this.eventService.getEventsCount(eventParams, false);
     return count;
   }
