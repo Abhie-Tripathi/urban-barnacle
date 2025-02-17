@@ -51,6 +51,12 @@ export class EventsDataService {
     const queryParams = new URLSearchParams(
       params as unknown as Record<string, any>,
     );
+    if (params.limit) {
+      queryParams['take'] = params.limit;
+    }
+    if (params.offset) {
+      queryParams['skip'] = params.offset;
+    }
     const url =
       this.configService.get('MICROSERVICE_URL') +
       microserviceEndpoints.events.events +
