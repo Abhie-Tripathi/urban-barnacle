@@ -138,12 +138,16 @@ export class IntentService {
         HttpStatus.BAD_REQUEST,
       );
     }
-    return this.intentDataService.updateUserEventInterest({
-      ...data,
-      id,
-      modifiedBy: user.id,
-      approvedBy: user.id,
-    });
+    return {
+      data: {
+        ...(await this.intentDataService.updateUserEventInterest({
+          ...data,
+          id,
+          modifiedBy: user.id,
+          approvedBy: user.id,
+        }))
+      }
+    };
   }
 
   async deleteUserEventInterest(user: TCachedUser, id: string) {
@@ -168,11 +172,15 @@ export class IntentService {
         HttpStatus.FORBIDDEN,
       );
     }
-    return this.intentDataService.updateUserEventInterest({
-      id,
-      modifiedBy: user.id,
-      deleted: true,
-    });
+    return {
+      data: {
+        ...(await this.intentDataService.updateUserEventInterest({
+          id,
+          modifiedBy: user.id,
+          deleted: true,
+        }))
+      }
+    };
   }
 
   async createUpvote(
@@ -223,7 +231,7 @@ export class IntentService {
       id: intent[0].id,
       deleted: true,
     });
-    return { message: 'Upvote deleted successfully' };
+    return { data: { message: 'Upvote deleted successfully' } };
   }
 
   async createEnquiryActivity(

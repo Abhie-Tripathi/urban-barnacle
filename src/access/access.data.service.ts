@@ -12,7 +12,7 @@ import { TCachedUser } from 'src/utils/types';
 
 @Injectable()
 export class AccessDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async createAccess(data: CreateAccessDto) {
     const { accessReceiverEmail, accessReceiverId, ...rest } = data;
@@ -44,6 +44,7 @@ export class AccessDataService {
       where: {
         ...params,
         token: includesToken ? { not: null } : undefined,
+        deleted: false,
       },
       include: {
         accessReceiver: (show && show.includes('user')) || false,
