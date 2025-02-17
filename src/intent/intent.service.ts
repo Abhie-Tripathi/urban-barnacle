@@ -230,11 +230,15 @@ export class IntentService {
     user: TCachedUser,
     data: CreateEnquiryActivityHttpDto,
   ) {
-    return this.intentDataService.createEnquiryActivity({
-      ...data,
-      userId: user.id,
-      accountId: user.accountId,
-    });
+    return {
+      data: {
+        ...(await this.intentDataService.createEnquiryActivity({
+          ...data,
+          userId: user.id,
+          accountId: user.accountId,
+        }))
+      }
+    };
   }
 
   async deleteEnquiryActivity(user: TCachedUser, id: string) {
