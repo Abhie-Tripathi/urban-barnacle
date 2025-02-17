@@ -56,6 +56,7 @@ export class EventsDataService {
       microserviceEndpoints.events.events +
       '?' +
       queryParams.toString();
+    console.log(url);
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (!data || error) {
