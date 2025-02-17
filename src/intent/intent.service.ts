@@ -26,7 +26,7 @@ export class IntentService {
     private readonly intentDataService: IntentDataService,
     private readonly enquiryService: EnquiryService,
     private readonly eventService: EventsService,
-  ) {}
+  ) { }
 
   async createUserEventInterest(
     user: TCachedUser,
@@ -109,7 +109,7 @@ export class IntentService {
       await this.intentDataService.createUserEventInterest(
         userEventInterestParams,
       );
-    return userEventInterest;
+    return { data: userEventInterest };
   }
 
   async updateUserEventInterest(
