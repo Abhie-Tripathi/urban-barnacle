@@ -75,7 +75,7 @@ export class EventsService {
 
     const fetchedEvents =
       await this.eventsDataService.getEvents(convertedParams);
-    console.log({ convertedParams }, { nonEmptyParams });
+    // console.log({ convertedParams }, { nonEmptyParams });
     let events = fetchedEvents;
     if (
       ['list', 'tracker'].includes(query.view) &&

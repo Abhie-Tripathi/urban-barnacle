@@ -425,6 +425,40 @@ export class TrackerService {
     const newParams = getNonEmptyParams(params);
     const convertedParams =
       await this.sharedService.convertSlugParamsToIds(newParams);
+    if (params.type && params.type === 'past') {
+      convertedParams['active_lte'] = tracker.filterValues
+        ? new Date(
+          Math.min(
+            new Date(
+              tracker.filterValues['active_lte'] || new Date(),
+            ).valueOf(),
+            new Date().valueOf(),
+          ),
+        ).toISOString()
+        : new Date().toISOString();
+    } else if (
+      params.type &&
+      params.type === 'active'
+    ) {
+      convertedParams['active_gte'] = tracker.filterValues
+        ? new Date(
+          Math.max(
+            new Date(
+              tracker.filterValues['active_gte'] || new Date(),
+            ).valueOf(),
+            new Date().valueOf(),
+          ),
+        ).toISOString()
+        : new Date().toISOString();
+    }
+    if (params.type && params.type === 'new') {
+      const lastActive = await this.lastActive(
+        user,
+        tracker.id,
+        tracker.createdAt,
+      );
+      convertedParams['createdAt'] = lastActive.last_active_gte;
+    }
     const eventParams = {
       ...(tracker.filterValues as Object),
       ...convertedParams,
