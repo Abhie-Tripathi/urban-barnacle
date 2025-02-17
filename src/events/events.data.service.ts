@@ -52,10 +52,10 @@ export class EventsDataService {
       params as unknown as Record<string, any>,
     );
     if (params.limit) {
-      queryParams['take'] = params.limit;
+      queryParams.append('take', String(params.limit));
     }
     if (params.offset) {
-      queryParams['skip'] = params.offset;
+      queryParams.append('skip', String(params.offset));
     }
     const url =
       this.configService.get('MICROSERVICE_URL') +
