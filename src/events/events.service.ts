@@ -20,7 +20,7 @@ export class EventsService {
     private readonly eventsDataService: EventsDataService,
     private readonly sharedService: SharedService,
     private readonly intentDataService: IntentDataService,
-  ) {}
+  ) { }
   encrypt(text: string): string {
     const algorithm = 'aes-256-cbc';
     const secretKey = crypto
@@ -75,7 +75,7 @@ export class EventsService {
 
     const fetchedEvents =
       await this.eventsDataService.getEvents(convertedParams);
-
+    console.log({ convertedParams }, { nonEmptyParams });
     let events = fetchedEvents;
     if (
       ['list', 'tracker'].includes(query.view) &&
@@ -96,11 +96,11 @@ export class EventsService {
 
           ...(query.show && query.show.includes('old')
             ? {
-                isSaved:
-                  userInterests[event.id] && userInterests[event.id]['bookmark']
-                    ? true
-                    : false,
-              }
+              isSaved:
+                userInterests[event.id] && userInterests[event.id]['bookmark']
+                  ? true
+                  : false,
+            }
             : { interests: userInterests[event.id] }),
         };
       });
