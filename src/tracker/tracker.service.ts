@@ -40,7 +40,7 @@ export class TrackerService {
     private readonly userDataService: UserDataService,
     private readonly configService: ConfigService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) {}
+  ) { }
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const nonEmptyParams = getNonEmptyParams(data.filterValues);
@@ -88,9 +88,9 @@ export class TrackerService {
           : undefined;
     tracker.filterValues = tracker.filterValues
       ? {
-          ...(tracker.filterValues as Record<string, any>),
-          searchByEntity,
-        }
+        ...(tracker.filterValues as Record<string, any>),
+        searchByEntity,
+      }
       : { searchByEntity };
 
     const savedEventsCount =
@@ -308,13 +308,13 @@ export class TrackerService {
     if (params.trackerEventStatus && params.trackerEventStatus === 'past') {
       convertedParams['active_lte'] = tracker.filterValues
         ? new Date(
-            Math.min(
-              new Date(
-                tracker.filterValues['active_lte'] || new Date(),
-              ).valueOf(),
-              new Date().valueOf(),
-            ),
-          ).toISOString()
+          Math.min(
+            new Date(
+              tracker.filterValues['active_lte'] || new Date(),
+            ).valueOf(),
+            new Date().valueOf(),
+          ),
+        ).toISOString()
         : new Date().toISOString();
     } else if (
       params.trackerEventStatus &&
@@ -322,13 +322,13 @@ export class TrackerService {
     ) {
       convertedParams['active_gte'] = tracker.filterValues
         ? new Date(
-            Math.max(
-              new Date(
-                tracker.filterValues['active_gte'] || new Date(),
-              ).valueOf(),
-              new Date().valueOf(),
-            ),
-          ).toISOString()
+          Math.max(
+            new Date(
+              tracker.filterValues['active_gte'] || new Date(),
+            ).valueOf(),
+            new Date().valueOf(),
+          ),
+        ).toISOString()
         : new Date().toISOString();
     }
     if (params.trackerEventStatus && params.trackerEventStatus === 'new') {
@@ -429,7 +429,7 @@ export class TrackerService {
       ...(tracker.filterValues as Object),
       ...convertedParams,
     } as CountQueryDto;
-
+    console.log(eventParams);
     const count = await this.eventService.getEventsCount(eventParams, false);
     return count;
   }
