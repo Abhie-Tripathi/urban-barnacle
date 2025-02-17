@@ -257,6 +257,6 @@ export class IntentService {
       id,
       deleted: true,
     });
-    return { message: 'Enquiry activity deleted successfully' };
+    return { data: { message: 'Enquiry activity deleted successfully' } };
   }
 }
