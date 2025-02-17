@@ -111,7 +111,7 @@ export class SuggestionDataService {
         ids: dto.ids,
         take: dto.limit,
         skip: dto.offset,
-        query: dto.query,
+        name: dto.query,
         slugs: dto.slugs,
       };
       const nonEmptyParams = getNonEmptyParams(params);
@@ -142,7 +142,7 @@ export class SuggestionDataService {
         ids: dto.ids,
         take: dto.limit,
         skip: dto.offset,
-        query: dto.query,
+        name: dto.query,
         slugs: dto.slugs,
       };
       const nonEmptyParams = getNonEmptyParams(params);
