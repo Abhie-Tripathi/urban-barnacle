@@ -494,7 +494,7 @@ export class TrackerService {
 
     const newParams = getNonEmptyParams(params);
     const convertedParams =
-      this.sharedService.convertSlugParamsToIds(newParams);
+      await this.sharedService.convertSlugParamsToIds(newParams);
     const eventParams = {
       eventIds: savedEventsIds,
       ...convertedParams,
