@@ -15,7 +15,7 @@ export class KitService {
   constructor(
     private configService: ConfigService,
     private readonly widgetDataService: WidgetDataService,
-  ) {}
+  ) { }
   async getFontFamily(url: string) {
     try {
       const browser = await puppeteer.launch({
@@ -107,16 +107,14 @@ export class KitService {
         .replace('http://', '')
         .replace('https://', '')
         .replace('www.', '');
-      const baseURL = this.configService.get('API10TIMES') || '';
-      const endpoint = 'v4/company/detail';
+      const baseURL = this.configService.get('MICROSERVICE_URL') || '';
+      const endpoint = '/company/logo';
       const queryString = new URLSearchParams({
         website: extractDomain.split('/')[0],
         infoType: 'basic',
       } as unknown as Record<string, string>).toString();
 
-      const url = `${baseURL}${endpoint}?${queryString}&username=${
-        this.configService.get('USERNAME10TIMES') || ''
-      }&password=${this.configService.get('PASSWORD10TIMES') || ''}`;
+      const url = `${baseURL}${endpoint}?${queryString}`;
       console.log(url);
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
@@ -236,7 +234,7 @@ export class KitService {
       console.log('fetchimage', fetchimage);
       const colors: string[] = await this.extractColors(
         './public/temp' +
-          fetchimage?.image?.substring(fetchimage?.image?.lastIndexOf('/')),
+        fetchimage?.image?.substring(fetchimage?.image?.lastIndexOf('/')),
       );
       let data: any = {};
       // const check2 = await this.prisma.customBrandKit.findUnique({

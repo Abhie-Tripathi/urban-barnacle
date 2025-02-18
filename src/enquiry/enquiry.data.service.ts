@@ -26,6 +26,7 @@ export class EnquiryDataService {
       type,
       event_active_gte,
       event_active_lte,
+      eventTypes,
       name,
       upvotedBy,
       limit,
