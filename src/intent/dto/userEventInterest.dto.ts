@@ -12,7 +12,7 @@ const CreateUserEventInterestHttpSchema = z.object({
 
 export class CreateUserEventInterestHttpDto extends createZodDto(
   CreateUserEventInterestHttpSchema,
-) {}
+) { }
 
 const CreateUserEventInterestSchema = CreateUserEventInterestHttpSchema.extend({
   eventId: z.string().uuid().optional(),
@@ -27,7 +27,7 @@ const CreateUserEventInterestSchema = CreateUserEventInterestHttpSchema.extend({
 
 export class CreateUserEventInterestDto extends createZodDto(
   CreateUserEventInterestSchema,
-) {}
+) { }
 
 const UpdateUserEventInterestHttpSchema = z.object({
   status: z.nativeEnum(InterestStatus).optional(),
@@ -36,7 +36,7 @@ const UpdateUserEventInterestHttpSchema = z.object({
 
 export class UpdateUserEventInterestHttpDto extends createZodDto(
   UpdateUserEventInterestHttpSchema,
-) {}
+) { }
 
 const UpdateUserEventInterestSchema = UpdateUserEventInterestHttpSchema.extend({
   id: z.string().uuid().optional(),
@@ -47,7 +47,7 @@ const UpdateUserEventInterestSchema = UpdateUserEventInterestHttpSchema.extend({
 
 export class UpdateUserEventInterestDto extends createZodDto(
   UpdateUserEventInterestSchema,
-) {}
+) { }
 
 const GetUserEventInterestSchema = z.object({
   id: z.string().uuid().optional(),
@@ -67,17 +67,17 @@ const GetUserEventInterestSchema = z.object({
 
 export class GetUserEventInterestDto extends createZodDto(
   LimitSchema.partial().extend(GetUserEventInterestSchema.shape),
-) {}
+) { }
 
 export enum UserInterestsGroupBy {
   interests = 'interests',
   status = 'status',
 }
 
-const GetUserEventInterestCountSchema = GetUserEventInterestSchema.extend({
+export const GetUserEventInterestCountSchema = GetUserEventInterestSchema.extend({
   groupBy: z.nativeEnum(UserInterestsGroupBy).optional(),
 });
 
 export class GetUserEventInterestCountDto extends createZodDto(
   z.strictObject(GetUserEventInterestCountSchema.shape),
-) {}
+) { }

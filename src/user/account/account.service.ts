@@ -21,11 +21,14 @@ import { AccountConfigKey, GetAccountEnquiriesCountDto } from './dto';
 import { IntentDataService } from 'src/intent/intent.data.service';
 import {
   GetUserEventInterestCountDto,
+  GetUserEventInterestCountSchema,
   UserInterestsGroupBy,
 } from 'src/intent/dto';
 import {
   EnquiryActivityGroupBy,
   GetEnquiryActivityCountDto,
+  GetEnquiryActivityCountSchema,
+  GetEnquiryActivitySchema,
 } from 'src/intent/dto/enquiryActivity.dto';
 import { EnquiryResponseSchema } from 'src/enquiry/dto/response';
 import { getNameFromEmail } from 'src/utils';
@@ -38,7 +41,7 @@ export class AccountService {
     private readonly enquiryService: EnquiryService,
     private readonly userDataService: UserDataService,
     private readonly intentDataService: IntentDataService,
-  ) {}
+  ) { }
 
   async getAccountCompany(user: TCachedUser) {
     const company = await this.companyDataService.getCompany({
@@ -66,38 +69,38 @@ export class AccountService {
     const transformedEnquires = await Promise.all(
       enquiries.map(async (enquiry) => {
         const [interestedCount, activityCount, myActivity] = await Promise.all([
-          this.intentDataService.getUserEventInterestCount({
+          this.intentDataService.getUserEventInterestCount(GetUserEventInterestCountSchema.parse({
             accountId: user.accountId,
             ...rest,
             enquiryId: enquiry.id,
             groupBy: UserInterestsGroupBy.interests,
             interest: ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'],
-          }),
-          this.intentDataService.getEnquiryActivityCount({
+          })),
+          this.intentDataService.getEnquiryActivityCount(GetEnquiryActivityCountSchema.parse({
             accountId: user.accountId,
             activityType: EnquiryActivityType.UPVOTE,
             ...rest,
             enquiryId: enquiry.id,
             groupBy: EnquiryActivityGroupBy.activitySubType,
-          }),
-          this.intentDataService.getEnquiryActivities({
+          })),
+          this.intentDataService.getEnquiryActivities(GetEnquiryActivitySchema.parse({
             enquiryId: enquiry.id,
             accountId: user.accountId,
             userId: user.id,
             ...rest,
-          }),
+          })),
         ]);
         const owner = enquiry.owner
           ? {
-              id: enquiry.owner.id,
-              name: getNameFromEmail(
-                enquiry.owner.email,
-                enquiry.owner.firstname,
-                enquiry.owner.lastname,
-              ),
-              email: enquiry.owner.email,
-              imageUrl: enquiry.owner.imageUrl,
-            }
+            id: enquiry.owner.id,
+            name: getNameFromEmail(
+              enquiry.owner.email,
+              enquiry.owner.firstname,
+              enquiry.owner.lastname,
+            ),
+            email: enquiry.owner.email,
+            imageUrl: enquiry.owner.imageUrl,
+          }
           : null;
         const interestCounts = {
           total: 0,
@@ -230,9 +233,9 @@ export class AccountService {
       }),
       params.groupBy === UserInterestsGroupBy.status
         ? this.enquiryService.getEnquiryCount({
-            accountId: user.accountId,
-            groupBy: params.groupBy,
-          })
+          accountId: user.accountId,
+          groupBy: params.groupBy,
+        })
         : null,
     ]);
     let response = {};
@@ -268,11 +271,11 @@ export class AccountService {
         };
         const groupedInterestsByStatus = enquiryCount
           ? (
-              enquiryCount as Array<{ status: string; _count: { id: number } }>
-            ).reduce((acc, curr) => {
-              acc[curr.status.toLowerCase()] = curr._count.id;
-              return acc;
-            }, defaultStatusCount)
+            enquiryCount as Array<{ status: string; _count: { id: number } }>
+          ).reduce((acc, curr) => {
+            acc[curr.status.toLowerCase()] = curr._count.id;
+            return acc;
+          }, defaultStatusCount)
           : null;
         response = {
           ...groupedInterestsByStatus,

@@ -11,7 +11,7 @@ import { GetCommentCountDto, GetCommentsDto } from 'src/comment/dto';
 
 @Injectable()
 export class EnquiryDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async createEnquiry(data: CreateEnquiryDto) {
     const enquiry = await this.prisma.enquiry.create({
@@ -26,7 +26,6 @@ export class EnquiryDataService {
       type,
       event_active_gte,
       event_active_lte,
-      eventTypes,
       name,
       upvotedBy,
       limit,
@@ -50,27 +49,27 @@ export class EnquiryDataService {
 
     const endDate = event_active_gte
       ? {
-          eventData: {
-            path: ['startDate'],
-            lte: event_active_lte,
-          },
-        }
+        eventData: {
+          path: ['startDate'],
+          lte: event_active_lte,
+        },
+      }
       : null;
     const startDate = event_active_lte
       ? {
-          eventData: {
-            path: ['endDate'],
-            gte: event_active_gte,
-          },
-        }
+        eventData: {
+          path: ['endDate'],
+          gte: event_active_gte,
+        },
+      }
       : null;
     const eventName = name
       ? {
-          eventData: {
-            path: ['name_lower'],
-            string_contains: name.toLowerCase(),
-          },
-        }
+        eventData: {
+          path: ['name_lower'],
+          string_contains: name.toLowerCase(),
+        },
+      }
       : null;
 
     if (endDate || startDate || name) {
@@ -140,27 +139,27 @@ export class EnquiryDataService {
 
     const endDate = event_active_gte
       ? {
-          eventData: {
-            path: ['startDate'],
-            lte: event_active_lte,
-          },
-        }
+        eventData: {
+          path: ['startDate'],
+          lte: event_active_lte,
+        },
+      }
       : null;
     const startDate = event_active_lte
       ? {
-          eventData: {
-            path: ['endDate'],
-            gte: event_active_gte,
-          },
-        }
+        eventData: {
+          path: ['endDate'],
+          gte: event_active_gte,
+        },
+      }
       : null;
     const eventName = name
       ? {
-          eventData: {
-            path: ['name_lower'],
-            string_contains: name.toLowerCase(),
-          },
-        }
+        eventData: {
+          path: ['name_lower'],
+          string_contains: name.toLowerCase(),
+        },
+      }
       : null;
 
     if (endDate || startDate || name) {
