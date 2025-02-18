@@ -44,7 +44,7 @@ const UpdateEnquirySchema = z.object({
 
 export class UpdateEnquiryDto extends createZodDto(UpdateEnquirySchema) {}
 
-const GetEnquiriesSchema = z.object({
+export const GetEnquiriesSchema = z.strictObject({
   ids: z.array(z.string().uuid()).optional(),
   eventId: z.string().uuid().optional(),
   accountId: z.string().uuid().optional(),

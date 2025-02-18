@@ -31,6 +31,7 @@ export class EnquiryDataService {
       limit,
       offset,
       status,
+      userId,
       ...rest
     } = data;
     const params: Prisma.EnquiryWhereInput = {
@@ -121,6 +122,7 @@ export class EnquiryDataService {
       upvotedBy,
       groupBy,
       status,
+      userId,
       ...rest
     } = data;
     const params: Prisma.EnquiryWhereInput = {

@@ -5,7 +5,7 @@ import { TCachedUser } from 'src/utils/types';
 import { CompanyDataService } from '../company/company.data.service';
 import { CompanyResponseSchema } from '../company/dto';
 import { EnquiryService } from 'src/enquiry/enquiry.service';
-import { GetEnquiriesDto, GetEnquiryCountDto } from 'src/enquiry/dto';
+import { GetEnquiriesDto, GetEnquiriesSchema, GetEnquiryCountDto } from 'src/enquiry/dto';
 import { GetUserHttpDto } from '../dto';
 import { UserService } from '../user.service';
 import { UserDataService } from '../user.data.service';
@@ -54,17 +54,21 @@ export class AccountService {
     const { limit, offset, status, ...rest } = query;
     const [enquiries, enquiryCount] = await Promise.all([
       this.enquiryService.getEnquiries({
-        accountId: user.accountId,
-        ...rest,
+        ...GetEnquiriesSchema.parse({
+          accountId: user.accountId,
+          userId: user.id,
+          ...rest,
+          status,
+        }),
         limit,
         offset,
-        status,
       }),
-      this.enquiryService.getEnquiryCount({
+      this.enquiryService.getEnquiryCount(GetEnquiriesSchema.parse({
         accountId: user.accountId,
+        userId: user.id,
         ...rest,
         status,
-      }),
+      })),
     ]);
     const transformedEnquires = await Promise.all(
       enquiries.map(async (enquiry) => {
