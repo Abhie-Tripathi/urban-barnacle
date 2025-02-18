@@ -18,6 +18,9 @@ export class KitService {
   ) { }
   async getFontFamily(url: string) {
     try {
+      if (!/^https?:\/\//.test(url)) {
+        url = `https://${url}`;
+      }
       const browser = await puppeteer.launch({
         headless: true,
         executablePath: process.env.PUPPETEER_PATH,
