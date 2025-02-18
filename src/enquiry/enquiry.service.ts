@@ -35,7 +35,7 @@ export class EnquiryService {
     private readonly enquiryDataService: EnquiryDataService,
     private readonly intentDataService: IntentDataService,
     private readonly userDataService: UserDataService,
-  ) {}
+  ) { }
 
   async createEnquiry(user: TCachedUser, data: CreateEnquiryDto) {
     const enquiry = await this.enquiryDataService.createEnquiry(data);
@@ -108,15 +108,15 @@ export class EnquiryService {
     });
     const owner = enquiry.owner
       ? {
-          id: enquiry.owner.id,
-          name: getNameFromEmail(
-            enquiry.owner.email,
-            enquiry.owner.firstname,
-            enquiry.owner.lastname,
-          ),
-          email: enquiry.owner.email,
-          imageUrl: enquiry.owner.imageUrl,
-        }
+        id: enquiry.owner.id,
+        name: getNameFromEmail(
+          enquiry.owner.email,
+          enquiry.owner.firstname,
+          enquiry.owner.lastname,
+        ),
+        email: enquiry.owner.email,
+        imageUrl: enquiry.owner.imageUrl,
+      }
       : null;
     return EnquiryResponseSchema.parse({
       ...enquiry,
@@ -334,6 +334,7 @@ export class EnquiryService {
       const user = interest.interestedUser;
       return {
         id: user.id,
+        userInterestId: interest.id,
         name: getNameFromEmail(user.email, user.firstname, user.lastname),
         email: user.email,
         profileImage: user.imageUrl,

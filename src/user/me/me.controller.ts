@@ -105,6 +105,7 @@ export class MeController {
       const trackers = await this.meService.getMyTrackers(user, query);
       return { data: trackers };
     } catch (error) {
+      console.error(error);
       return {
         error: new HttpException(
           error.message,
