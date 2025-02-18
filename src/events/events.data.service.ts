@@ -79,8 +79,8 @@ export class EventsDataService {
       this.configService.get('MICROSERVICE_URL') +
       microserviceEndpoints.events.count +
       '?' +
-      queryParams.toString();    
-      console.log(url);
+      queryParams.toString();
+    console.log(url);
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (!data || error) {
@@ -89,11 +89,11 @@ export class EventsDataService {
     return data;
   }
 
-  async getEventPocs(eventId: string) {
+  async getEventPocs(eventId: string, sortBy: string) {
     const url =
       this.configService.get('MICROSERVICE_URL') +
       microserviceEndpoints.events.eventPocs.replace(':eventId', eventId);
-    const response = await fetch(url);
+    const response = await fetch(url + `?sortBy=${sortBy}`);
     const { data, error } = await response.json();
     if (!data || error) {
       throw new HttpException(error, HttpStatus.BAD_REQUEST);

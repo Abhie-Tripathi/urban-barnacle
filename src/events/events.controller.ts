@@ -7,7 +7,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { EventsService } from './events.service';
-import { CountQueryDto, EventsTrendsDto, PocsUnmaskDto, QueryDto } from './dto';
+import { CountQueryDto, EventsTrendsDto, PocsUnmaskDto, QueryDto, SortingDto } from './dto';
 import { AuthGuard } from 'src/user/auth/guard';
 import { TCachedUser } from 'src/utils/types';
 import { GetUser } from 'src/user/decorator';
@@ -15,7 +15,7 @@ import { LimitDto } from 'src/global_dto';
 
 @Controller('events')
 export class EventsController {
-  constructor(private readonly eventsService: EventsService) {}
+  constructor(private readonly eventsService: EventsService) { }
 
   @UseGuards(AuthGuard)
   @Get()
@@ -78,9 +78,9 @@ export class EventsController {
 
   @UseGuards(AuthGuard)
   @Get(':id/pocs')
-  async getEventPocs(@Param('id') id: string) {
+  async getEventPocs(@Param('id') id: string, @Query() query: SortingDto) {
     try {
-      const pocs = await this.eventsService.getEventPocs(id);
+      const pocs = await this.eventsService.getEventPocs(id, query);
       return { data: pocs };
     } catch (error) {
       return {

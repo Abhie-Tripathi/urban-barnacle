@@ -5,6 +5,7 @@ import {
   EventsTrendsDto,
   PocsUnmaskDto,
   QueryDto,
+  SortingDto,
   View,
 } from './dto';
 import { SharedService } from '../shared/shared.service';
@@ -165,8 +166,8 @@ export class EventsService {
     return count;
   }
 
-  async getEventPocs(eventId: string) {
-    return await this.eventsDataService.getEventPocs(eventId);
+  async getEventPocs(eventId: string, query: SortingDto) {
+    return await this.eventsDataService.getEventPocs(eventId, query.sortBy ? query.sortBy : 'desc');
   }
 
   async getEventEditions(eventId: string, query: LimitDto) {
