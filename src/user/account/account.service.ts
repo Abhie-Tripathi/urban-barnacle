@@ -57,8 +57,8 @@ export class AccountService {
         ...GetEnquiriesSchema.parse({
           accountId: user.accountId,
           userId: user.id,
+          status: status?.join(','),
           ...rest,
-          status,
         }),
         limit,
         offset,
@@ -66,8 +66,8 @@ export class AccountService {
       this.enquiryService.getEnquiryCount(GetEnquiriesSchema.parse({
         accountId: user.accountId,
         userId: user.id,
+        status: status?.join(','),
         ...rest,
-        status,
       })),
     ]);
     const transformedEnquires = await Promise.all(
