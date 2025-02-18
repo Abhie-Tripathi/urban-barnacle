@@ -544,7 +544,7 @@ export class TrackerService {
       'SUPER_ADMIN',
       'USER',
     ]);
-    const resposeForAccessUser: { superAdmin: object, others: object[] } = { others: [], superAdmin: {} };
+    const resposeForAccessUser: { superAdmin: object[], others: object[] } = { others: [], superAdmin: [] };
     const users = (
       await this.accessService.getAccess({
         sourceEntity: 'TRACKER',
@@ -557,14 +557,14 @@ export class TrackerService {
     ).map((item) => {
       const user = item.accessReceiver;
       if (item.accessType === 'SUPER_ADMIN') {
-        resposeForAccessUser.superAdmin = {
+        resposeForAccessUser.superAdmin = [{
           id: user.id,
           name: getNameFromEmail(user.email, user.firstname, user.lastname),
           email: user.email,
           imageUrl: user.imageUrl,
           accessType: item.accessType,
           accessId: item.id,
-        };
+        }];
       }
       else if (['ADMIN',
         'USER',].includes(item.accessType)) {
