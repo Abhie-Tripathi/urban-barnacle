@@ -87,6 +87,7 @@ export class EventsService {
         userInterests = await this.getGroupedEventInterests(
           user,
           events.events.map((event) => event.id),
+          query.trackerId,
         );
       }
       const transformedEvents = events.events.map((event) => {
@@ -130,7 +131,7 @@ export class EventsService {
     const event = data.events[0];
     let userInterests = {};
     if (user) {
-      userInterests = await this.getGroupedEventInterests(user, [event.id]);
+      userInterests = await this.getGroupedEventInterests(user, [event.id], undefined);
     }
     const eventResponse = {
       ...transformEventData(event),
@@ -139,10 +140,11 @@ export class EventsService {
     return eventResponse;
   }
 
-  async getGroupedEventInterests(user: TCachedUser, eventIds: string[]) {
+  async getGroupedEventInterests(user: TCachedUser, eventIds: string[], trackerId: string | undefined = undefined) {
     const interests = await this.intentDataService.getAllEventInterestsByUser(
       user,
       eventIds,
+      trackerId
     );
 
     const groupedInterests = interests.reduce((acc, interest) => {

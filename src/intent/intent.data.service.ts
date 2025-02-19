@@ -31,7 +31,7 @@ import { TCachedUser } from 'src/utils/types';
 
 @Injectable()
 export class IntentDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async createUserEventInterest(data: CreateUserEventInterestDto) {
     if (!data.eventId) {
@@ -84,7 +84,12 @@ export class IntentDataService {
     return userEventInterests;
   }
 
-  async getAllEventInterestsByUser(user: TCachedUser, eventIds: string[]) {
+  async getAllEventInterestsByUser(user: TCachedUser, eventIds: string[], trackerId: string | undefined = undefined) {
+    const trackerWhere: object = {};
+    if (trackerId) {
+      trackerWhere['sourceId'] = trackerId;
+      trackerWhere['sourceModule'] = 'TRACKER';
+    }
     const userEventInterests = await this.prisma.userEventInterest.findMany({
       where: {
         interestedUserId: user.id,
@@ -96,6 +101,7 @@ export class IntentDataService {
         interest: {
           not: Interest.ORGANIZE,
         },
+        ...trackerWhere
       },
       select: {
         id: true,

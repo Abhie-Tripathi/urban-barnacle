@@ -357,6 +357,7 @@ export class TrackerService {
       offset: params.offset,
       view: View.tracker,
       ...convertedParams,
+      trackerId: trackerId
     } as QueryDto;
     if (searchByEntity) {
       eventParams['searchByEntity'] = searchByEntity;

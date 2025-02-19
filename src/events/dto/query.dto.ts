@@ -538,6 +538,7 @@ export const QuerySchema = LimitSchema.extend(QueryFilter.shape)
       .optional(),
     view: z.nativeEnum(View).optional().default(View.list),
     calendar_type: z.nativeEnum(CalendarViewType).optional(),
+    trackerId: z.string().optional()
   })
   .transform((data) => {
     // const intersectedKeys = Object.keys(data).filter((key) =>
