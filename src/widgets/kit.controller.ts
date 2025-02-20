@@ -34,16 +34,16 @@ export class KitController {
       return { error };
     }
   }
-  // @UseGuards(AuthGuard)
-  // @UseInterceptors(FileInterceptor('file'))
-  // @Patch()
-  // updateWidgetKit(
-  //   @Body() body: UpdateWidgetKitDto,
-  //   @UploadedFile() file: File,
-  //   @GetUser() user: SelectedUserDetails,
-  // ) {
-  //   return this.service.updateWidgetKit(body, file, user);
-  // }
+  @UseGuards(AuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  @Patch()
+  updateWidgetKit(
+    @Body() body: UpdateWidgetKitDto,
+    @UploadedFile() file: File,
+    @GetUser() user: SelectedUserDetails,
+  ) {
+    return this.service.updateWidgetKit(body, file, user);
+  }
   @UseGuards(AuthGuard)
   @Get()
   getWidgetKit(@GetUser() user: SelectedUserDetails) {

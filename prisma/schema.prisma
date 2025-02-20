@@ -136,6 +136,7 @@ enum AttachmentSourceModule {
   ACCOUNT
   EVENT
   BRANDKIT
+  PROMOTED_EVENT
 }
 
 // discuss source : gtm geni usecase
