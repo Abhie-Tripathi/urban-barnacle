@@ -116,6 +116,7 @@ export class InviteService {
           status: 'INVITATION',
           note: 'admin@eventgeni.admin.com',
           redirectUrl: query.redirectUrl,
+          source: 'PROMOTE_EVENT_INVITE'
         });
         if (data && data.id) {
           const invitation = await this.inviteDataService.createInvitation(

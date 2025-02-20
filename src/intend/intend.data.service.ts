@@ -17,7 +17,7 @@ export class IntendDataService {
     private readonly userDataservice: UserDataService,
     private readonly communcationService: CommunicationService,
     private readonly accountDataService: AccountDataService,
-  ) {}
+  ) { }
   async checkUserAndEventExist(userEmail: string, eventId: string) {
     const [usercheck, event] = await Promise.all([
       this.prisma.user.findUnique({
@@ -78,6 +78,7 @@ export class IntendDataService {
         ...data,
         currentOnboardingState: 'PROMOTED_USER',
         accountId: account.id,
+        source: data.source
       })),
       primaryAccountId: account.id,
       accountId: account.id,

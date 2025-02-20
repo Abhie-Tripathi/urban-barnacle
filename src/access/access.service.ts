@@ -80,6 +80,7 @@ export class AccessService {
           }
           : null;
         const newUser = await this.userDataService.createUser({
+          source: 'ACCESS_INVITE',
           email: data.accessReceiverEmail,
           accountId: user.accountId,
           role: 'CUSTOMER',
