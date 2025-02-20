@@ -121,7 +121,7 @@ export class AccountDataService {
       email: string;
       eventname: string;
       eventId: string;
-    }>(Prisma.raw(`
+    }[]>(Prisma.raw(`
             SELECT c.id commentid, c.content, c."createdAt", 
             c."sourceModule", e.id enquiryId, e.status enquirystatus, u.firstname|| ' '|| u.lastname username,u.email
             , e."eventData" ->> 'name' eventname, e."eventId"
@@ -129,29 +129,29 @@ export class AccountDataService {
                 "Comment" c
                 INNER JOIN "Enquiry" e on c."sourceId" = e.id::text
                 and c."sourceModule" = 'OUTREACH'
-                INNER join "User" u on c."userId" = u.id and u.id='${user.id}'
+                INNER join "User" u on c."userId" = u.id and u."accountId"='${user.accountId}'
                 ORDER BY c."createdAt" desc
             LIMIT 1;
       `)), this.getAccountConfiguration(user.accountConfigurationId)]);
-    console.log(config, { comment }, comment.enquirystatus)
+    console.log(config, { comment }, comment[0].enquirystatus)
     return {
       "comment": {
-        "id": comment.commentid,
-        "content": comment.content,
-        "createdAt": comment.createdAt,
-        "stage": comment.sourceModule,
+        "id": comment[0].commentid,
+        "content": comment[0].content,
+        "createdAt": comment[0].createdAt,
+        "stage": comment[0].sourceModule,
       },
       "enquiry": {
-        "enquiryId": comment.enquiryId,
-        "enquiryStatusLabel": config ? config['outreach'].find(val => val.status.toLowerCase() === comment.enquirystatus.toLowerCase()).label : null,
-        "enquiryStatus": comment.enquirystatus,
+        "enquiryId": comment[0].enquiryId,
+        "enquiryStatusLabel": config ? config['outreach'].find(val => val.status.toLowerCase() === comment[0].enquirystatus.toLowerCase()).label : null,
+        "enquiryStatus": comment[0].enquirystatus,
       },
       "event": {
-        "id": comment.eventId,
-        "name": comment.eventname,
+        "id": comment[0].eventId,
+        "name": comment[0].eventname,
       },
       "user": {
-        "name": comment.username || getNameFromEmail(comment.email, null, null),
+        "name": comment[0].username || getNameFromEmail(comment[0].email, null, null),
       }
     };
   }
