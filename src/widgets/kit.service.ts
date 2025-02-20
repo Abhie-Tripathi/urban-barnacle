@@ -327,13 +327,13 @@ export class KitService {
         };
       }
       let logoURL: any = {};
-      if (file) {
+      if (file.buffer) {
         const fileName = `${randomUUID() + new Date().toISOString()}.jpg`;
         const { error, fileData } = await this.fileCreate.createFile(fileName, file, user.id, 'IMAGE', 'PROMOTED_EVENT', logodata.id);
         if (error) {
           return error;
         }
-
+        console.log(fileData, error);
         let logo = '';
         // if (
         //   uopdateWidgetKitDto.logoUrl &&
@@ -374,7 +374,7 @@ export class KitService {
         ...logoURL,
       }, user.accountId);
       if (uopdateWidgetKitDto.published === false) {
-        return { message: 'kit deleted' };
+        return { data: { message: 'kit deleted' } };
       }
       return {
         data: {
@@ -389,7 +389,7 @@ export class KitService {
         },
       };
     } catch (error) {
-      console.log(error);
+      console.error(error);
 
       return {
         error: new HttpException(

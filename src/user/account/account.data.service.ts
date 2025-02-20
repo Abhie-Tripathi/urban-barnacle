@@ -115,7 +115,7 @@ export class AccountDataService {
       content: string;
       createdAt: Date;
       sourceModule: string;
-      enquiryId: string;
+      enquiryid: string;
       enquirystatus: string;
       username: string | null;
       email: string;
@@ -133,7 +133,7 @@ export class AccountDataService {
                 ORDER BY c."createdAt" desc
             LIMIT 1;
       `)), this.getAccountConfiguration(user.accountConfigurationId)]);
-    console.log(config, { comment }, comment[0].enquirystatus)
+    // console.log(config, { comment }, comment[0].enquirystatus)
     return comment[0].commentid ? {
       "comment": {
         "id": comment[0].commentid,
@@ -142,7 +142,7 @@ export class AccountDataService {
         "stage": comment[0].sourceModule,
       },
       "enquiry": {
-        "enquiryId": comment[0].enquiryId,
+        "enquiryId": comment[0].enquiryid,
         "enquiryStatusLabel": config ? config['outreach'].find(val => val.status.toLowerCase() === comment[0].enquirystatus.toLowerCase()).label : null,
         "enquiryStatus": comment[0].enquirystatus,
       },
