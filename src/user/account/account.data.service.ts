@@ -142,7 +142,7 @@ export class AccountDataService {
       },
       "enquiry": {
         "enquiryId": comment.enquiryId,
-        "enquiryStatusLabel": config ? config['outreach'].find(val => val.status === comment.enquirystatus).label : null,
+        "enquiryStatusLabel": config ? config['outreach'].find(val => val.status.toLowerCase() === comment.enquirystatus.toLowerCase()).label : null,
         "enquiryStatus": comment.enquirystatus,
       },
       "event": {
