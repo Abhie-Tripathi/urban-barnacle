@@ -134,7 +134,7 @@ export class AccountDataService {
             LIMIT 1;
       `)), this.getAccountConfiguration(user.accountConfigurationId)]);
     console.log(config, { comment }, comment[0].enquirystatus)
-    return {
+    return comment[0].commentid ? {
       "comment": {
         "id": comment[0].commentid,
         "content": comment[0].content,
@@ -153,6 +153,6 @@ export class AccountDataService {
       "user": {
         "name": comment[0].username || getNameFromEmail(comment[0].email, null, null),
       }
-    };
+    } : {};
   }
 }
