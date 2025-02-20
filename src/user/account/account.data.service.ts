@@ -133,7 +133,7 @@ export class AccountDataService {
                 ORDER BY c."createdAt" desc
             LIMIT 1;
       `)), this.getAccountConfiguration(user.accountConfigurationId)]);
-    console.log(config, config ? config['outreach'].find(val => val.status.toLowerCase() === comment.enquirystatus.toLowerCase()).label : null,)
+    console.log(config, comment.enquirystatus.toLowerCase())
     return {
       "comment": {
         "id": comment.commentid,
