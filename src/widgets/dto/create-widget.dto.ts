@@ -40,7 +40,7 @@ const Central = z.strictObject({
     .string()
     .optional()
     .transform((val) => (val !== undefined ? JSON.parse(val) : undefined)),
-  otherdata: z
+  otherData: z
     .string()
     .optional()
     .transform((val) => (val !== undefined ? JSON.parse(val) : undefined)),
