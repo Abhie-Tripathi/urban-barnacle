@@ -5,10 +5,11 @@ import { Prisma } from '@prisma/client';
 import { accountConfig, AccountConfigDto } from './account.config';
 import { TCachedUser } from 'src/utils/types';
 import { InputJsonObject, JsonArray } from '@prisma/client/runtime/library';
+import { getNameFromEmail } from 'src/utils';
 
 @Injectable()
 export class AccountDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async createAccount(data: CreateAccountDto) {
     const { interestConfig, ...rest } = data;
@@ -56,12 +57,12 @@ export class AccountDataService {
     const { configuration, ...rest } = data;
     const config = configuration
       ? {
-          accountConfiguration: {
-            update: {
-              config: configuration,
-            },
+        accountConfiguration: {
+          update: {
+            config: configuration,
           },
-        }
+        },
+      }
       : {};
     const account = await this.prisma.account.update({
       where: { id: data.id },
@@ -105,5 +106,52 @@ export class AccountDataService {
       throw new HttpException('configuration not found', HttpStatus.NOT_FOUND);
     }
     return configuration.config;
+  }
+
+  async getLatestComment(user: TCachedUser) {
+    //getNameFromEmail
+    const [comment, config] = await Promise.all([this.prisma.$queryRaw<{
+      commentid: string;
+      content: string;
+      createdAt: Date;
+      sourceModule: string;
+      enquiryId: string;
+      enquirystatus: string;
+      username: string | null;
+      email: string;
+      eventname: string;
+      eventId: string;
+    }>(Prisma.raw(`
+            SELECT c.id commentid, c.content, c."createdAt", 
+            c."sourceModule", e.id enquiryId, e.status enquirystatus, u.firstname|| ' '|| u.lastname username,u.email
+            , e."eventData" ->> 'name' eventname, e."eventId"
+            FROM
+                "Comment" c
+                INNER JOIN "Enquiry" e on c."sourceId" = e.id::text
+                and c."sourceModule" = 'OUTREACH'
+                INNER join "User" u on c."userId" = u.id and u.id='${user.id}'
+                ORDER BY c."createdAt" desc
+            LIMIT 1;
+      `)), this.getAccountConfiguration(user.accountConfigurationId)])
+    return {
+      "comment": {
+        "id": comment.commentid,
+        "content": comment.content,
+        "createdAt": comment.createdAt,
+        "stage": comment.sourceModule,
+      },
+      "enquiry": {
+        "enquiryId": comment.enquiryId,
+        "enquiryStatusLabel": config ? config['outreach'].find(val => val.status === comment.enquirystatus).label : null,
+        "enquiryStatus": comment.enquirystatus,
+      },
+      "event": {
+        "id": comment.eventId,
+        "name": comment.eventname,
+      },
+      "user": {
+        "name": comment.username || getNameFromEmail(comment.email, null, null),
+      }
+    };
   }
 }

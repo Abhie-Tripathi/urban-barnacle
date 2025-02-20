@@ -2,10 +2,12 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, GetUsersDto, UpdateUserDto } from './dto';
 import { TCachedUser } from 'src/utils/types';
+import { Prisma } from '@prisma/client';
+import { getNameFromEmail } from 'src/utils';
 
 @Injectable()
 export class UserDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async createUser(data: CreateUserDto) {
     const { accountId, primaryCompanyId, ...rest } = data;
@@ -17,21 +19,21 @@ export class UserDataService {
     }
     const account: object = accountId
       ? {
-          accounts: {
-            connect: {
-              id: data.accountId,
-            },
+        accounts: {
+          connect: {
+            id: data.accountId,
           },
-        }
+        },
+      }
       : {};
     const company = primaryCompanyId
       ? {
-          company: {
-            connect: {
-              id: data.primaryCompanyId,
-            },
+        company: {
+          connect: {
+            id: data.primaryCompanyId,
           },
-        }
+        },
+      }
       : {};
     const user = await this.prisma.user.create({
       data: {

@@ -36,7 +36,16 @@ export class AccountController {
       return { error: error };
     }
   }
-
+  @UseGuards(AuthGuard)
+  @Get('latest-comment')
+  async getLatestComment(@GetUser() user: TCachedUser) {
+    try {
+      const company = await this.accountService.getAccountCompany(user);
+      return { data: company };
+    } catch (error) {
+      return { error: error };
+    }
+  }
   @UseGuards(AuthGuard)
   @Get('enquiries')
   async getAccountEnquiries(

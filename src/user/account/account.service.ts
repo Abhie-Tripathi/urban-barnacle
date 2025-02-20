@@ -49,7 +49,10 @@ export class AccountService {
     });
     return CompanyResponseSchema.parse(company);
   }
-
+  async getLatestComment(user: TCachedUser) {
+    const comment = await this.accountDataService.getLatestComment(user)
+    return comment;
+  }
   async getAccountEnquiries(user: TCachedUser, query: GetEnquiriesDto) {
     const { limit, offset, status, ...rest } = query;
     const [enquiries, enquiryCount] = await Promise.all([
