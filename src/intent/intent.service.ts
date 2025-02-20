@@ -160,7 +160,8 @@ export class IntentService {
       throw new HttpException('Interest not found', HttpStatus.NOT_FOUND);
     }
     const interest = interests[0];
-    if (interest.enquiry.ownerId !== user.id) {
+    console.log({ interest })
+    if (interest.enquiry?.ownerId && interest.enquiry.ownerId !== user.id && (interest.interest !== 'BOOKMARK')) {
       throw new HttpException(
         'You are not allowed to update this interest',
         HttpStatus.FORBIDDEN,

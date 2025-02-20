@@ -23,7 +23,7 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Controller('intents')
 export class IntentController {
-  constructor(private readonly intentService: IntentService) {}
+  constructor(private readonly intentService: IntentService) { }
 
   @UseGuards(AuthGuard)
   @Post('user-event-interest')
@@ -40,6 +40,7 @@ export class IntentController {
         });
       return userEventInterest;
     } catch (error) {
+      console.error(error);
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           return {

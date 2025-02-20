@@ -165,7 +165,7 @@ model UserEventInterest {
   interestedUserId String               @db.Uuid
   enquiry          Enquiry?             @relation(fields: [enquiryId], references: [id])
 
-  @@unique([accountId, eventId, interestedUserId, interest], name: "unique_user_interest") // adds constraint to the table to avoid duplicate entries for a given user interest for a given user of specific account
+  @@unique([accountId, eventId, interestedUserId, interest, sourceModule, sourceId], name: "unique_user_interest") // adds constraint to the table to avoid duplicate entries for a given user interest for a given user of specific account
 }
 
 // discuss with vipul, if we want to create enquiry without creating user interest first

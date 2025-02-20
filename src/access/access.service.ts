@@ -35,7 +35,7 @@ export class AccessService {
     data: CreateAccessDto,
     sourceMetaData: Record<string, any>,
   ) {
-    const { redirectQueryParams, ...rest } = data;
+    const { redirectQueryParams, redirectDomain, ...rest } = data;
     if (data.sourceEntity === 'TRACKER' && data.sourceEntityId) {
       const [hasAccess, result] = await this.hasAccess({
         ...data,
@@ -61,6 +61,9 @@ export class AccessService {
       }
       receiver = users[0];
     } else if (data.accessReceiverEmail) {
+      if (data.accessReceiverEmail.split('@')[1] !== user.email.split('@')[1]) {
+        throw new HttpException('User domain not matched', HttpStatus.NOT_FOUND);
+      }
       const users = await this.userDataService.getUsers({
         email: [data.accessReceiverEmail],
         limit: 1,
