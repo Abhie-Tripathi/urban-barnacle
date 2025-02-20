@@ -129,7 +129,7 @@ export class AccountDataService {
                 "Comment" c
                 INNER JOIN "Enquiry" e on c."sourceId" = e.id::text
                 and c."sourceModule" = 'OUTREACH'
-                INNER join "User" u on c."userId" = u.id and u."accountId"='${user.accountId}'
+                INNER join "User" u on c."userId" = u.id and c."accountId"='${user.accountId}'
                 ORDER BY c."createdAt" desc
             LIMIT 1;
       `)), this.getAccountConfiguration(user.accountConfigurationId)]);
