@@ -397,7 +397,7 @@ export class PromotedEventsService {
       }
       console.log('count', count);
 
-      return { totalCount: Number(count[0]?.id ?? 0), data: outData };
+      return { data: { totalCount: Number(count[0]?.id ?? 0), data: outData } };
     } catch (error) {
       console.log(error);
       console.error(error);
