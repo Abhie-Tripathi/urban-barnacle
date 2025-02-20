@@ -132,7 +132,8 @@ export class AccountDataService {
                 INNER join "User" u on c."userId" = u.id and u.id='${user.id}'
                 ORDER BY c."createdAt" desc
             LIMIT 1;
-      `)), this.getAccountConfiguration(user.accountConfigurationId)])
+      `)), this.getAccountConfiguration(user.accountConfigurationId)]);
+    console.log(config, config ? config['outreach'].find(val => val.status.toLowerCase() === comment.enquirystatus.toLowerCase()).label : null,)
     return {
       "comment": {
         "id": comment.commentid,
