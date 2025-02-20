@@ -81,7 +81,7 @@ export class WidgetsService {
           templatePublicId: dto.templatePublicId,
           type: dto.type,
           customizationData: dto.customizationData,
-          otherData: dto.otherdata,
+          otherData: dto.otherData,
           domain: dto.domain,
           ...eventId,
         });
