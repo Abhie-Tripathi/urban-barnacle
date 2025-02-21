@@ -8,6 +8,7 @@ import * as getImageColors from 'get-image-colors';
 import puppeteer from 'puppeteer';
 import { WidgetDataService } from './widget.data.service';
 import { SelectedUserDetails } from 'src/utils/types';
+import { FileCreationService } from 'src/shared/file-creation.service';
 
 @Injectable()
 export class KitService {
@@ -15,9 +16,13 @@ export class KitService {
   constructor(
     private configService: ConfigService,
     private readonly widgetDataService: WidgetDataService,
-  ) {}
+    private readonly fileCreate: FileCreationService
+  ) { }
   async getFontFamily(url: string) {
     try {
+      if (!/^https?:\/\//.test(url)) {
+        url = `https://${url}`;
+      }
       const browser = await puppeteer.launch({
         headless: true,
         executablePath: process.env.PUPPETEER_PATH,
@@ -107,16 +112,14 @@ export class KitService {
         .replace('http://', '')
         .replace('https://', '')
         .replace('www.', '');
-      const baseURL = this.configService.get('API10TIMES') || '';
-      const endpoint = 'v4/company/detail';
+      const baseURL = this.configService.get('MICROSERVICE_URL') || '';
+      const endpoint = '/company/logo';
       const queryString = new URLSearchParams({
         website: extractDomain.split('/')[0],
         infoType: 'basic',
       } as unknown as Record<string, string>).toString();
 
-      const url = `${baseURL}${endpoint}?${queryString}&username=${
-        this.configService.get('USERNAME10TIMES') || ''
-      }&password=${this.configService.get('PASSWORD10TIMES') || ''}`;
+      const url = `${baseURL}${endpoint}?${queryString}`;
       console.log(url);
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
@@ -236,7 +239,7 @@ export class KitService {
       console.log('fetchimage', fetchimage);
       const colors: string[] = await this.extractColors(
         './public/temp' +
-          fetchimage?.image?.substring(fetchimage?.image?.lastIndexOf('/')),
+        fetchimage?.image?.substring(fetchimage?.image?.lastIndexOf('/')),
       );
       let data: any = {};
       // const check2 = await this.prisma.customBrandKit.findUnique({
@@ -300,112 +303,102 @@ export class KitService {
       return { error };
     }
   }
-  // async updateWidgetKit(
-  //   uopdateWidgetKitDto: UpdateWidgetKitDto,
-  //   file: File,
-  //   user: SelectedUserDetails,
-  // ) {
-  //   try {
-  //     const logodata = await this.prisma.customBrandKit.findFirst({
-  //       where: {
-  //         accountId: user.accountId,
-  //         deleted: false,
-  //       },
-  //       select: {
-  //         id: true,
-  //         logoUrl: true,
-  //       },
-  //     });
-  //     if (!logodata?.id) {
-  //       return {
-  //         error: new HttpException('kit not found', HttpStatus.NOT_FOUND),
-  //       };
-  //     }
-  //     let logoURL: any = {};
-  //     if (file) {
-  //       const fileName = `${randomUUID() + new Date().toISOString()}.jpg`;
-  //       const { error, fileData } = await this.fileService.createFile(
-  //         fileName,
-  //         file,
-  //         user.id,
-  //         'IMAGE',
-  //         'BRANDKIT',
-  //         logodata.id,
-  //       );
-  //       if (error) {
-  //         return error;
-  //       }
+  async updateWidgetKit(
+    uopdateWidgetKitDto: UpdateWidgetKitDto,
+    file: File,
+    user: SelectedUserDetails,
+  ) {
+    try {
+      const logodata = await this.widgetDataService.findKit(user.accountId, true);
 
-  //       let logo = '';
-  //       // if (
-  //       //   uopdateWidgetKitDto.logoUrl &&
-  //       //   logodata?.logoUrl?.includes(
-  //       //     uopdateWidgetKitDto.logoUrl ?? '&^%$#@@@@@@#$',
-  //       //   )
-  //       // ) {
-  //       //   logo = logodata?.logoUrl?.replace(
-  //       //     (uopdateWidgetKitDto.logoUrl || '') + ',',
-  //       //     attachmenId.filePath,
-  //       //   );
-  //       // } else {
-  //       logo = fileData.fileUrl;
-  //       // }
-  //       logoURL['logoUrl'] = logo;
-  //       uopdateWidgetKitDto.color = (
-  //         (await this.extractColors(
-  //           './public/temp' + logo.substring(logo.lastIndexOf('/')),
-  //         )) as string[]
-  //       ).join(',');
-  //     } else {
-  //       if (
-  //         uopdateWidgetKitDto.logoUrl &&
-  //         logodata?.logoUrl?.includes(
-  //           uopdateWidgetKitDto.logoUrl || '&^%$#@@@@@@#$',
-  //         )
-  //       ) {
-  //         logoURL['logoUrl'] = logodata?.logoUrl?.replace(
-  //           (uopdateWidgetKitDto.logoUrl || '') + ',',
-  //           '',
-  //         );
-  //       } else {
-  //         logoURL['logoUrl'] = logodata?.logoUrl;
-  //       }
-  //     }
-  //     const data = await this.prisma.customBrandKit.update({
-  //       where: {
-  //         accountId: user.accountId,
-  //       },
-  //       data: {
-  //         ...uopdateWidgetKitDto,
-  //         ...logoURL,
-  //       },
-  //     });
-  //     if (uopdateWidgetKitDto.published === false) {
-  //       return { message: 'kit deleted' };
-  //     }
-  //     return {
-  //       data: {
-  //         message: 'data updated',
-  //         data: {
-  //           color: data.color,
-  //           fontFamily: data.fontFamily,
-  //           logo: data.logoUrl,
-  //           data: data.data,
-  //           otherData: data.otherData,
-  //         },
-  //       },
-  //     };
-  //   } catch (error) {
-  //     console.log(error);
+      //   prisma.customBrandKit.findFirst({
+      //   where: {
+      //     accountId: user.accountId,
+      //     deleted: false,
+      //   },
+      //   select: {
+      //     id: true,
+      //     logoUrl: true,
+      //   },
+      // });
+      if (!logodata?.id) {
+        return {
+          error: new HttpException('kit not found', HttpStatus.NOT_FOUND),
+        };
+      }
+      let logoURL: any = {};
+      if (file.buffer) {
+        const fileName = `${randomUUID() + new Date().toISOString()}.jpg`;
+        const { error, fileData } = await this.fileCreate.createFile(fileName, file, user.id, 'IMAGE', 'PROMOTED_EVENT', logodata.id);
+        if (error) {
+          return error;
+        }
+        console.log(fileData, error);
+        let logo = '';
+        // if (
+        //   uopdateWidgetKitDto.logoUrl &&
+        //   logodata?.logoUrl?.includes(
+        //     uopdateWidgetKitDto.logoUrl ?? '&^%$#@@@@@@#$',
+        //   )
+        // ) {
+        //   logo = logodata?.logoUrl?.replace(
+        //     (uopdateWidgetKitDto.logoUrl || '') + ',',
+        //     attachmenId.filePath,
+        //   );
+        // } else {
+        logo = fileData?.fileUrl ?? '';
+        // }
+        logoURL['logoUrl'] = logo;
+        uopdateWidgetKitDto.color = (
+          (await this.extractColors(
+            './public/temp' + logo.substring(logo.lastIndexOf('/')),
+          )) as string[]
+        ).join(',');
+      } else {
+        if (
+          uopdateWidgetKitDto.logoUrl &&
+          logodata?.logoUrl?.includes(
+            uopdateWidgetKitDto.logoUrl || '&^%$#@@@@@@#$',
+          )
+        ) {
+          logoURL['logoUrl'] = logodata?.logoUrl?.replace(
+            (uopdateWidgetKitDto.logoUrl || '') + ',',
+            '',
+          );
+        } else {
+          logoURL['logoUrl'] = logodata?.logoUrl;
+        }
+      }
+      const data = await this.widgetDataService.updateKit({
+        ...uopdateWidgetKitDto,
+        ...logoURL,
+      }, user.accountId);
+      if (uopdateWidgetKitDto.published === false) {
+        return { data: { message: 'kit deleted' } };
+      }
+      return {
+        data: {
+          message: 'data updated',
+          data: {
+            color: data.color,
+            fontFamily: data.fontFamily,
+            logo: data.logoUrl,
+            data: data.data,
+            otherData: data.otherData,
+          },
+        },
+      };
+    } catch (error) {
+      console.error(error);
 
-  //     return {
-  //       error: new HttpException(
-  //         'Internal Server down',
-  //         HttpStatus.INTERNAL_SERVER_ERROR,
-  //       ),
-  //     };
-  //   }
-  // }
+      return {
+        error: new HttpException(
+          'Internal Server down',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        ),
+      };
+    }
+  }
   async getKit(user: SelectedUserDetails) {
     try {
       const data = await this.widgetDataService.findKit(user.accountId, true);

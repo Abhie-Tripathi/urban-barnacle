@@ -34,6 +34,7 @@ import { EventWorkerClass } from './communication/bull-service/bull-event.servic
 import { IntendWorkerClass } from './communication/bull-service/bull-intend.service';
 import { InvitationWorkerClass } from './communication/bull-service/bull-invitation.service';
 import { AfterResponseInterceptor } from './after-response.interceptor';
+import { PublicApiModule } from './public-api/public-api.module';
 
 @Module({
   imports: [
@@ -85,6 +86,7 @@ import { AfterResponseInterceptor } from './after-response.interceptor';
     AccountModule,
     CommunicationModule,
     IntendModule,
+    PublicApiModule
   ],
   controllers: [AppController],
   providers: [

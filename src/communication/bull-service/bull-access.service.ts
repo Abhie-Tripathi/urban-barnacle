@@ -12,6 +12,7 @@ interface AccessEmailData {
   redirectUrl: string;
   trackerName: string;
   jobRequestId: string;
+  sourceId: string;
 }
 interface UserMetaData {
   givenToUserEmail: string;

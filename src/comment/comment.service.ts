@@ -2,16 +2,16 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CommentDataService } from './comment.data.service';
 import { TCachedUser } from 'src/utils/types';
 import {
-  CreateCommentDto,
   CreateCommentHttpDto,
+  GetCommentCountDto,
   GetCommentsDto,
   UpdateCommentDto,
 } from './dto';
 import { AccessService } from 'src/access/access.service';
 import { IntentService } from 'src/intent/intent.service';
-import { EnquiryService } from 'src/enquiry/enquiry.service';
-import { IntentDataService } from 'src/intent/intent.data.service';
 import { IntentTargetModule, InterestSourceModule } from '@prisma/client';
+import { CommentWithParentSchema } from './dto/response';
+import { CreateIntentHttpDto } from 'src/intent/dto';
 
 @Injectable()
 export class CommentService {
@@ -19,11 +19,25 @@ export class CommentService {
     private readonly commentDataService: CommentDataService,
     private readonly accessService: AccessService,
     private readonly intentService: IntentService,
-    // private readonly intentDataService: IntentDataService,
-    // private readonly enquiryService: EnquiryService,
   ) {}
 
   async createComment(user: TCachedUser, data: CreateCommentHttpDto) {
+    if (data.parentCommentId) {
+      const parentComment = await this.commentDataService.getComments({
+        id: data.parentCommentId,
+        sourceModule: data.sourceModule,
+        sourceId: data.sourceId,
+        accountId: user.accountId,
+        limit: 1,
+        offset: 0,
+      });
+      if (parentComment.length === 0) {
+        throw new HttpException(
+          'Parent comment not found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+    }
     if (data.sourceModule === 'TRACKER') {
       const [hasAccess, result] = await this.accessService.hasAccess({
         sourceEntity: 'TRACKER',
@@ -42,7 +56,7 @@ export class CommentService {
         accountId: user.accountId,
         userId: user.id,
       });
-      return comment;
+      return CommentWithParentSchema.parse(comment);
     } else if (
       data.sourceModule === 'COORDINATE' ||
       data.sourceModule === 'OUTREACH'
@@ -101,29 +115,40 @@ export class CommentService {
           );
         }
       }
-      return comment;
+      return CommentWithParentSchema.parse(comment);
     }
     throw new HttpException('Invalid source module', 400);
   }
 
-  async getComments(user: TCachedUser, data: GetCommentsDto) {
-    const comments = await this.commentDataService.getComments(data);
-    const commentsWithUserUpvoted = await Promise.all(
-      comments.map(async (comment) => {
-        const userUpvoted = await this.intentService.checkUserUpvote({
-          userId: user.id,
-          targetModule: IntentTargetModule.COMMENT,
-          targetId: comment.id,
-          accountId: user.accountId,
-        });
-        return {
-          ...comment,
-          userUpvoted,
-        };
-      }),
-    );
-
+  async getComments(data: GetCommentsDto, user?: TCachedUser) {
+    const { limit, offset, ...rest } = data;
+    const [comments, commentsCount] = await Promise.all([
+      this.commentDataService.getComments({ ...rest, limit, offset }),
+      this.commentDataService.getCommentCount(rest),
+    ]);
+    const commentsWithUserUpvoted = { count: commentsCount, comments };
+    if (user) {
+      commentsWithUserUpvoted.comments = await Promise.all(
+        comments.map(async (comment) => {
+          const userUpvoted = await this.intentService.checkUserUpvote({
+            userId: user.id,
+            targetModule: IntentTargetModule.COMMENT,
+            targetId: comment.id,
+            accountId: user.accountId,
+          });
+          return {
+            ...comment,
+            userUpvoted,
+          };
+        }),
+      );
+    }
     return commentsWithUserUpvoted;
+  }
+
+  async getCommentCount(data: GetCommentCountDto) {
+    const commentCount = await this.commentDataService.getCommentCount(data);
+    return commentCount;
   }
 
   async updateComment(user: TCachedUser, data: UpdateCommentDto) {
@@ -162,5 +187,38 @@ export class CommentService {
       deleted: true,
     });
     return comment;
+  }
+
+  async createCommentUpvote(user: TCachedUser, data: CreateIntentHttpDto) {
+    const comment = await this.commentDataService.getComments({
+      id: data.targetId,
+      limit: 1,
+      offset: 0,
+    });
+    if (comment.length === 0) {
+      throw new HttpException('Comment not found', HttpStatus.NOT_FOUND);
+    }
+    const upvote = await this.intentService.createUpvote(user, 'UPVOTE', {
+      ...data,
+      targetModule: IntentTargetModule.COMMENT,
+      targetId: comment[0].id,
+    });
+    return upvote;
+  }
+
+  async deleteCommentUpvote(user: TCachedUser, id: string) {
+    const comment = await this.commentDataService.getComments({
+      id: id,
+      limit: 1,
+      offset: 0,
+    });
+    if (comment.length === 0) {
+      throw new HttpException('Comment not found', HttpStatus.NOT_FOUND);
+    }
+    const upvote = await this.intentService.deleteUpvote(user, {
+      targetModule: IntentTargetModule.COMMENT,
+      targetId: comment[0].id,
+    });
+    return upvote;
   }
 }

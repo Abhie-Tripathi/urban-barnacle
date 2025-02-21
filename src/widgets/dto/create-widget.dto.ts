@@ -7,7 +7,7 @@ export const Widget = z.object({
   type: z.string().transform((val) => val as WidgetType),
   status: z.string().transform((val) => val as WidgetStatus),
   customizationData: z.record(z.any(), z.any()),
-  otherdata: z.record(z.any(), z.any()).optional(),
+  otherData: z.record(z.any(), z.any()).optional(),
   domain: z.string().optional(),
 });
 
@@ -40,7 +40,7 @@ const Central = z.strictObject({
     .string()
     .optional()
     .transform((val) => (val !== undefined ? JSON.parse(val) : undefined)),
-  otherdata: z
+  otherData: z
     .string()
     .optional()
     .transform((val) => (val !== undefined ? JSON.parse(val) : undefined)),

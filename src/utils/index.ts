@@ -19,3 +19,13 @@ export function getNonEmptyParams(params: any) {
     {} as Record<string, any>,
   );
 }
+
+export function getNameFromEmail(
+  email: string,
+  firstname: string | null,
+  lastname: string | null,
+) {
+  return firstname || lastname
+    ? `${firstname} ${lastname || ''}`
+    : email.split('@')[0];
+}

@@ -4,7 +4,7 @@ import { Prisma, WidgetStatus } from '@prisma/client';
 
 @Injectable()
 export class WidgetDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
   async widgetCountForKit(userId: string) {
     const count = await this.prisma.widget.count({
       where: {
@@ -118,6 +118,7 @@ export class WidgetDataService {
                           `,
         ),
       );
+      data['deleted'] = true;
     }
     const updateWidget = await this.prisma.widget.update({
       where: {

@@ -7,6 +7,7 @@ import { LimitSchema } from 'src/global_dto';
 const CreateAccessHttpSchema = z.object({
   accessReceiverId: z.string().uuid().optional(),
   accessReceiverEmail: z.string().email().optional(),
+  redirectDomain: z.string().optional(),
   accessType: z
     .string()
     .refine(
@@ -78,3 +79,11 @@ const GetAccessSchema = LimitSchema.extend({
 });
 
 export class GetAccessDto extends createZodDto(GetAccessSchema) {}
+
+const GetAccessCountSchema = GetAccessSchema.omit({
+  show: true,
+  limit: true,
+  offset: true,
+});
+
+export class GetAccessCountDto extends createZodDto(GetAccessCountSchema) {}

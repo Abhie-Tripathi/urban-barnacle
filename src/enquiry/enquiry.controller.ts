@@ -7,13 +7,20 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { EnquiryService } from './enquiry.service';
-import { UpdateEnquiryHttpDto } from './dto';
+import {
+  SetEnquiryOwnerHttpDto,
+  UpdateEnquiryHttpDto,
+  UserInterest,
+} from './dto';
 import { GetUser } from 'src/user/decorator';
 import { TCachedUser } from 'src/utils/types';
 import { AuthGuard } from 'src/user/auth/guard';
+import { GetCommentsDto } from 'src/comment/dto';
+import { CommentSourceModule, Interest } from '@prisma/client';
 
 @Controller('enquiries')
 export class EnquiryController {
@@ -48,6 +55,126 @@ export class EnquiryController {
       const enquiry = await this.enquiryService.getEnquiry(user, id);
       return {
         data: enquiry,
+      };
+    } catch (error) {
+      return {
+        error: error,
+      };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Post(':id/owner')
+  async setEnquiryOwner(
+    @Param('id') id: string,
+    @Body() data: SetEnquiryOwnerHttpDto,
+    @GetUser() user: TCachedUser,
+  ) {
+    try {
+      const owner = await this.enquiryService.setEnquiryOwner(user, id, data);
+      return {
+        data: { owner },
+      };
+    } catch (error) {
+      return {
+        error: error,
+      };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get(':id/owner')
+  async getEnquiryOwner(@Param('id') id: string, @GetUser() user: TCachedUser) {
+    try {
+      const owner = await this.enquiryService.getEnquiryOwner(user, id);
+      return {
+        data: { owner },
+      };
+    } catch (error) {
+      return {
+        error: error,
+      };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get(':id/:source/comments')
+  async getEnquiryComments(
+    @Param('id') id: string,
+    @Param('source') source: 'coordinate' | 'outreach',
+    @GetUser() user: TCachedUser,
+    @Query() query: GetCommentsDto,
+  ) {
+    try {
+      const comments = await this.enquiryService.getEnquiryComments(
+        user,
+        id,
+        source.toUpperCase() as CommentSourceModule,
+        query,
+      );
+      return {
+        data: comments,
+      };
+    } catch (error) {
+      return {
+        error: error,
+      };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get(':id/interested-users')
+  async getEnquiryInterestedUsers(
+    @Param('id') id: string,
+    @GetUser() user: TCachedUser,
+  ) {
+    try {
+      const interestedUsers =
+        await this.enquiryService.getEnquiryInterestedUsers(user, id);
+      return {
+        data: interestedUsers,
+      };
+    } catch (error) {
+      return {
+        error: error,
+      };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get(':id/interested-users/:interest')
+  async getEnquiryInterestedUsersCount(
+    @Param('id') id: string,
+    @Param('interest') interest: UserInterest,
+    @GetUser() user: TCachedUser,
+  ) {
+    try {
+      const interestedUsers =
+        await this.enquiryService.getEnquiryInterestedUsers(
+          user,
+          id,
+          interest.toUpperCase() as Interest,
+        );
+      return {
+        data: interestedUsers,
+      };
+    } catch (error) {
+      return {
+        error: error,
+      };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get(':id/followers')
+  async getEnquiryFollowers(
+    @Param('id') id: string,
+    @GetUser() user: TCachedUser,
+  ) {
+    try {
+      const followers = await this.enquiryService.getEnquiryFollowers(user, id);
+      return {
+        data: followers,
       };
     } catch (error) {
       return {

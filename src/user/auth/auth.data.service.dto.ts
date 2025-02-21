@@ -23,11 +23,13 @@ export class AuthDataService {
       update: {
         passkey: passkey,
         expiresAt: expiresAt,
+        deleted: false,
       },
       create: {
         userId: user.id,
         passkey: passkey,
         expiresAt: expiresAt,
+        deleted: false,
       },
     });
     await this.communicationService.createJobForBull(
@@ -39,6 +41,7 @@ export class AuthDataService {
           firstname: user.firstname || user.email.split('@')[0],
         },
         process,
+        sourceId: String(passkey),
       },
       user.id,
       1,
@@ -53,6 +56,7 @@ export class AuthDataService {
         user: {
           email: email,
         },
+        deleted: false,
       },
     });
     return verificationToken;
@@ -61,6 +65,7 @@ export class AuthDataService {
     //   expiresAt: new Date(Date.now() + 1000 * 60 * 5),
     // };
   }
+
   async getAccessToken(email: string) {
     const accessToken = await this.prisma.access.findFirst({
       where: {
@@ -78,5 +83,12 @@ export class AuthDataService {
     //   passkey: '000000',
     //   expiresAt: new Date(Date.now() + 1000 * 60 * 5),
     // };
+  }
+
+  async deleteVerificationToken(userId: string) {
+    await this.prisma.verification.update({
+      where: { userId },
+      data: { deleted: true },
+    });
   }
 }

@@ -15,6 +15,8 @@ import multipart from '@fastify/multipart';
 import { CorsGaurd } from './corsgaurd';
 import { AfterResponseInterceptor } from './after-response.interceptor';
 import { PrismaService } from './prisma/prisma.service';
+import { AuthGuard } from './user/auth/guard';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
@@ -37,6 +39,7 @@ async function bootstrap() {
 
   // CORS and Guards
   app.useGlobalGuards(new CorsGaurd(configService));
+  app.useGlobalGuards(new AuthGuard(app.get(CACHE_MANAGER), configService));
   app.enableCors({
     credentials: true,
     origin,
@@ -47,14 +50,14 @@ async function bootstrap() {
   app.use(cookieParser(configService.get('COOKIE_SECRET')));
   await app.register(multipart);
   // Register fastifyCookie with the correct type
-  const node_env = configService.get('NODE_ENV') || 'development';
+  // const node_env = configService.get('NODE_ENV') || 'development';
   await app.register(fastifyCookie, {
-    secret: JSON.stringify(configService.get('COOKIE_SECRET')) || 'My-Key',
+    secret: JSON.stringify(configService.get('COOKIE_SECRET')),
     parseOptions: {
       maxAge: 60 * 60 * 24 * 365,
       httpOnly: true,
       sameSite: 'none',
-      secure: node_env === 'production' ? true : false,
+      secure: true,
       signed: true,
       path: '/',
       domain: configService.get('DOMAIN'),

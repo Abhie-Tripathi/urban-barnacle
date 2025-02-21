@@ -3,6 +3,7 @@ import { AccessDataService } from './access.data.service';
 import {
   CreateAccessDto,
   CreateAccessHttpDto,
+  GetAccessCountDto,
   GetAccessDto,
   UpdateAccessHttpDto,
 } from './dto';
@@ -17,6 +18,7 @@ import { AccessEmailDataDto } from 'src/communication/bull.dto';
 import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
 import { CompanyDataService } from 'src/user/company/company.data.service';
+import { getNameFromEmail } from 'src/utils';
 
 @Injectable()
 export class AccessService {
@@ -26,14 +28,14 @@ export class AccessService {
     private readonly communicationService: CommunicationService,
     private readonly configService: ConfigService,
     private readonly companyDataService: CompanyDataService,
-  ) {}
+  ) { }
 
   async createAccess(
     user: TCachedUser,
     data: CreateAccessDto,
     sourceMetaData: Record<string, any>,
   ) {
-    const { redirectQueryParams, ...rest } = data;
+    const { redirectQueryParams, redirectDomain, ...rest } = data;
     if (data.sourceEntity === 'TRACKER' && data.sourceEntityId) {
       const [hasAccess, result] = await this.hasAccess({
         ...data,
@@ -59,6 +61,9 @@ export class AccessService {
       }
       receiver = users[0];
     } else if (data.accessReceiverEmail) {
+      if (data.accessReceiverEmail.split('@')[1] !== user.email.split('@')[1]) {
+        throw new HttpException('User domain not matched', HttpStatus.NOT_FOUND);
+      }
       const users = await this.userDataService.getUsers({
         email: [data.accessReceiverEmail],
         limit: 1,
@@ -70,11 +75,12 @@ export class AccessService {
         });
         const primaryDetails = newUserPrimaryCompany
           ? {
-              primaryCompanyId: newUserPrimaryCompany.id,
-              primaryAccountId: newUserPrimaryCompany.accountId,
-            }
+            primaryCompanyId: newUserPrimaryCompany.id,
+            primaryAccountId: newUserPrimaryCompany.accountId,
+          }
           : null;
         const newUser = await this.userDataService.createUser({
+          source: 'ACCESS_INVITE',
           email: data.accessReceiverEmail,
           accountId: user.accountId,
           role: 'CUSTOMER',
@@ -82,6 +88,21 @@ export class AccessService {
         });
         receiver = newUser;
       } else {
+        const [receiverAccess, result] = await this.hasAccess({
+          accessReceiverId: users[0].id,
+          accessTypes: ['ADMIN', 'SUPER_ADMIN', 'USER'],
+          sourceEntity: 'TRACKER',
+          sourceEntityId: data.sourceEntityId,
+          accountId: user.accountId,
+          limit: 1,
+          offset: 0,
+        });
+        if (receiverAccess) {
+          throw new HttpException(
+            'User already has access to this tracker',
+            HttpStatus.CONFLICT,
+          );
+        }
         receiver = users[0];
       }
     }
@@ -106,21 +127,26 @@ export class AccessService {
             givenToUserEmail: receiver?.email,
             givenByUserEmail: user.email,
             givenByUserDesignation: user.designation,
-            givenToUserName:
-              receiver.firstname || receiver.lastname
-                ? `${receiver.firstname} ${receiver.lastname || ''}`
-                : receiver.email.split('@')[0],
-            givenByUserName:
-              user.firstname || user.lastname
-                ? `${user.firstname} ${user.lastname || ''}`
-                : user.email.split('@')[0],
+            givenToUserName: getNameFromEmail(
+              receiver.email,
+              receiver.firstname,
+              receiver.lastname,
+            ),
+            givenByUserName: getNameFromEmail(
+              user.email,
+              user.firstname,
+              user.lastname,
+            ),
           },
           redirectUrl:
-            (this.configService.get('FRONTEND_URL') || '') +
+            (data.redirectDomain ||
+              this.configService.get('FRONTEND_URL') ||
+              '') +
             '/login?' +
             data.redirectQueryParams +
-            `&email=${receiver.email}&token=${rest.token}`,
+            `&email=${receiver.email}&otp=${rest.token}`,
           trackerName: sourceMetaData['trackerName'] || '',
+          sourceId: access.id,
         } as AccessEmailDataDto,
         user.id,
       );
@@ -187,7 +213,6 @@ export class AccessService {
         data.accountId
       )
     ) {
-      console.log(data);
       return [
         false,
         {
@@ -210,5 +235,13 @@ export class AccessService {
       return [true, { access }];
     }
     return [false, { message: 'Access not found' }];
+  }
+
+  async getAccessCount(data: GetAccessCountDto) {
+    const accessCount = await this.accessDataService.getAccessCount({
+      ...data,
+      accountId: data.accountId,
+    });
+    return accessCount;
   }
 }

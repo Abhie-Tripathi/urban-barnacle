@@ -17,7 +17,7 @@ export class InviteService {
     private readonly prisma: PrismaService,
     private readonly inviteDataService: InviteDataService,
     private readonly intendService: IntendService,
-  ) {}
+  ) { }
   async getInvite(query: QueryInvite_Dto, user: SelectedUserDetails) {
     try {
       if (query.invites) {
@@ -110,12 +110,13 @@ export class InviteService {
           lastname: '',
           interest:
             convertInterestOfevnt[
-              (event?.data as any)['participationType'].toUpperCase()
+            (event?.data as any)['participationType'].toUpperCase()
             ],
           sourceId: 'widget',
           status: 'INVITATION',
           note: 'admin@eventgeni.admin.com',
           redirectUrl: query.redirectUrl,
+          source: 'PROMOTE_EVENT_INVITE'
         });
         if (data && data.id) {
           const invitation = await this.inviteDataService.createInvitation(
@@ -132,6 +133,7 @@ export class InviteService {
             query.redirectUrl,
             data.id,
             user.id,
+            invitation.id
           );
           console.log('loop', count);
         }

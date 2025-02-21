@@ -13,7 +13,7 @@ import {
 } from './dto';
 import { AccessService } from 'src/access/access.service';
 import { AccessDataService } from 'src/access/access.data.service';
-import { getNonEmptyParams } from 'src/utils';
+import { getNameFromEmail, getNonEmptyParams } from 'src/utils';
 import { SharedService } from 'src/shared/shared.service';
 import { EventsService } from 'src/events/events.service';
 import { CountGroup, CountQueryDto, QueryDto, View } from 'src/events/dto';
@@ -23,7 +23,9 @@ import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { UserDataService } from 'src/user/user.data.service';
 import { CommentService } from 'src/comment/comment.service';
 import { CreateAccessHttpDto, UpdateAccessHttpDto } from 'src/access/dto';
-import { createHash } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
+import { CommentsResponseSchema } from 'src/comment/dto/response';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class TrackerService {
@@ -36,8 +38,9 @@ export class TrackerService {
     private readonly intentDataService: IntentDataService,
     private readonly commentService: CommentService,
     private readonly userDataService: UserDataService,
+    private readonly configService: ConfigService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) {}
+  ) { }
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const nonEmptyParams = getNonEmptyParams(data.filterValues);
@@ -74,52 +77,60 @@ export class TrackerService {
       ...lastActive,
     };
 
-    const searchByEntity =
-      tracker.type === 'T_COMPETITOR'
-        ? 'company'
-        : tracker.type === 'T_PEOPLE_FINDER'
-          ? 'user'
-          : tracker.type === 'T_SPEAKING_OPPORTUNITY'
-            ? 'speaker'
-            : undefined;
+    const searchByEntity = ['T_COMPETITOR', 'T_CUSTOMER_ICP'].includes(
+      tracker.type,
+    )
+      ? 'company'
+      : tracker.type === 'T_PEOPLE_FINDER'
+        ? 'user'
+        : tracker.type === 'T_SPEAKING_OPPORTUNITY'
+          ? 'speaker'
+          : undefined;
     tracker.filterValues = tracker.filterValues
       ? {
-          ...(tracker.filterValues as Record<string, any>),
-          searchByEntity,
-        }
+        ...(tracker.filterValues as Record<string, any>),
+        searchByEntity,
+      }
       : { searchByEntity };
 
     const savedEventsCount =
       await this.intentDataService.getUserEventInterestCount({
-        interest: 'BOOKMARK',
+        interest: ['BOOKMARK'],
         sourceModule: 'TRACKER',
         sourceId: tracker.id,
         interestedUserId: user.id,
         accountId: user.accountId,
       });
-    const groupBy = searchByEntity
-      ? CountGroup.status
-      : CountGroup.eventTypeGroup;
+    console.log(
+      { backend: this.configService.get('BACKEND') },
+      { searchByEntity },
+    );
+    const groupBy =
+      searchByEntity || this.configService.get('BACKEND') === 'gtm'
+        ? CountGroup.status
+        : this.configService.get('BACKEND') === 'geo'
+          ? CountGroup.eventTypeGroup
+          : undefined;
     let cachedValues = (await this.cacheManager.get(tracker.id)) as {
       groupedEventsCount: object;
-      filterValue: object;
+      filterValues: object;
     };
-    let { groupedEventsCount, filterValue } = cachedValues ?? {};
-
-    if (!groupedEventsCount || !filterValue || query.refresh) {
+    let { groupedEventsCount, filterValues } = cachedValues ?? {};
+    if (!groupedEventsCount || !filterValues || query.refresh) {
       groupedEventsCount = await this.getGroupedEventsCount(
         {
           ...tracker.filterValues,
           createdAt: lastActive.last_active_gte,
-          groupBy: [groupBy],
+          ...(groupBy ? { groupBy: [groupBy] } : {}),
         } as CountQueryDto,
-        groupBy,
+        groupBy ? groupBy : undefined,
+        // groupBy,
       );
 
       tracker.filterValues = await this.sharedService.convertIdParamsToSlug(
         tracker.filterValues,
       );
-
+      console.log(tracker.filterValues);
       await this.cacheManager.set(
         tracker.id,
         { groupedEventsCount, filterValues: tracker.filterValues },
@@ -140,32 +151,48 @@ export class TrackerService {
   }
 
   async getTrackers(user: TCachedUser, params: GetTrackersHttpDto) {
-    const trackerIds = (
-      await this.accessService.getAccess({
-        accessReceiverId: user.id,
-        accountId: user.accountId,
-        sourceEntity: 'TRACKER',
-        accessTypes:
-          params.createdBy === 'me'
-            ? ['SUPER_ADMIN']
-            : params.createdBy === 'others'
-              ? ['ADMIN', 'USER']
-              : ['SUPER_ADMIN', 'ADMIN', 'USER'],
+    // console.log({
+    //   accessReceiverId: user.id,
+    //   accountId: user.accountId,
+    //   sourceEntity: 'TRACKER',
+    //   accessTypes:
+    //     params.createdBy === 'me'
+    //       ? ['SUPER_ADMIN']
+    //       : params.createdBy === 'others'
+    //         ? ['ADMIN', 'USER']
+    //         : ['SUPER_ADMIN', 'ADMIN', 'USER'],
+    //   limit: params.limit,
+    //   offset: params.offset,
+    // });
+    // const trackerIds = (
+    //   await this.accessService.getAccess({
+    //     accessReceiverId: user.id,
+    //     accountId: user.accountId,
+    //     sourceEntity: 'TRACKER',
+    //     accessTypes:
+    //       params.createdBy === 'me'
+    //         ? ['SUPER_ADMIN']
+    //         : params.createdBy === 'others'
+    //           ? ['ADMIN', 'USER']
+    //           : ['SUPER_ADMIN', 'ADMIN', 'USER'],
+    //     limit: params.limit,
+    //     offset: params.offset,
+    //   })
+    // ).map((access) => access.sourceEntityId);
+    // const trackerParams = {};
+    // if (params.name) trackerParams['name'] = params.name;
+    // if (params.subType) trackerParams['subType'] = params.subType;
+
+    const trackers = await this.trackerDataService.getTrackers(
+      {
+        ...params,
+        type: params.type,
+        // ids: trackerIds,
         limit: params.limit,
         offset: params.offset,
-      })
-    ).map((access) => access.sourceEntityId);
-    const trackerParams = {};
-    if (params.name) trackerParams['name'] = params.name;
-    if (params.subType) trackerParams['subType'] = params.subType;
-
-    const trackers = await this.trackerDataService.getTrackers({
-      ...trackerParams,
-      type: params.type,
-      ids: trackerIds,
-      limit: params.limit,
-      offset: params.offset,
-    });
+      },
+      user,
+    );
 
     const allTrackers = await Promise.all(
       trackers.map((tracker) => {
@@ -178,6 +205,25 @@ export class TrackerService {
     return allTrackers;
   }
 
+  async getTrackersCount(user: TCachedUser, params: GetTrackersHttpDto) {
+    // const trackerCount = await this.accessService.getAccessCount({
+    //   accessReceiverId: user.id,
+    //   accountId: user.accountId,
+    //   sourceEntity: 'TRACKER',
+    //   accessTypes:
+    //     params.createdBy === 'me'
+    //       ? ['SUPER_ADMIN']
+    //       : params.createdBy === 'others'
+    //         ? ['ADMIN', 'USER']
+    //         : ['SUPER_ADMIN', 'ADMIN', 'USER'],
+    // });
+    const trackerCount = await this.trackerDataService.getTrackersCount(
+      user,
+      params,
+    );
+    return trackerCount;
+  }
+
   async getTracker(
     user: TCachedUser,
     trackerId: string,
@@ -188,18 +234,18 @@ export class TrackerService {
       'SUPER_ADMIN',
       'USER',
     ]);
-
+    console.log(tracker);
     const trackerResponse = await this.getTrackerResponse(user, tracker, query);
     return trackerResponse;
   }
 
-  async getGroupedEventsCount(params: CountQueryDto, groupBy: CountGroup) {
-    console.log(params);
+  async getGroupedEventsCount(params: CountQueryDto, groupBy?: CountGroup) {
     const data = await this.eventService.getEventsCount(params, false);
+    console.log({ counts: data });
+    if (!groupBy) return data.count;
     if (groupBy === CountGroup.status) {
       return data.count;
     } else if (groupBy === CountGroup.eventTypeGroup) {
-      console.log(data);
       return data.reduce((acc, curr) => {
         acc[curr.group_name] = {
           total: curr.count,
@@ -230,7 +276,6 @@ export class TrackerService {
         await this.sharedService.convertSlugParamsToIds(nonEmptyParams);
       updateParams['filterValues'] = convertedParams;
     }
-    console.log(updateParams);
     return await this.trackerDataService.updateTracker(user, updateParams);
   }
 
@@ -250,6 +295,7 @@ export class TrackerService {
     trackerId: string,
     params: GetTrackerEventsDto,
   ) {
+    console.log({ params });
     const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
       'ADMIN',
       'SUPER_ADMIN',
@@ -258,7 +304,41 @@ export class TrackerService {
     const newParams = getNonEmptyParams(params);
     const convertedParams =
       await this.sharedService.convertSlugParamsToIds(newParams);
-    console.log({ params: convertedParams });
+
+    if (params.trackerEventStatus && params.trackerEventStatus === 'past') {
+      convertedParams['active_lte'] = tracker.filterValues
+        ? new Date(
+          Math.min(
+            new Date(
+              tracker.filterValues['active_lte'] || new Date(),
+            ).valueOf(),
+            new Date().valueOf(),
+          ),
+        ).toISOString()
+        : new Date().toISOString();
+    } else if (
+      params.trackerEventStatus &&
+      params.trackerEventStatus === 'active'
+    ) {
+      convertedParams['active_gte'] = tracker.filterValues
+        ? new Date(
+          Math.max(
+            new Date(
+              tracker.filterValues['active_gte'] || new Date(),
+            ).valueOf(),
+            new Date().valueOf(),
+          ),
+        ).toISOString()
+        : new Date().toISOString();
+    }
+    if (params.trackerEventStatus && params.trackerEventStatus === 'new') {
+      const lastActive = await this.lastActive(
+        user,
+        tracker.id,
+        tracker.createdAt,
+      );
+      convertedParams['createdAt'] = lastActive.last_active_gte;
+    }
 
     const searchByEntity = ['T_COMPETITOR', 'T_CUSTOMER_ICP'].includes(
       tracker.type,
@@ -273,15 +353,16 @@ export class TrackerService {
             : undefined;
     const eventParams = {
       ...(tracker.filterValues as Object),
-      ...convertedParams,
       limit: params.limit,
       offset: params.offset,
       view: View.tracker,
+      ...convertedParams,
+      trackerId: trackerId
     } as QueryDto;
-    console.log({ eventParams });
     if (searchByEntity) {
       eventParams['searchByEntity'] = searchByEntity;
     }
+    console.log({ eventParams });
     const events = await this.eventService.getAllEvents(
       eventParams,
       false,
@@ -302,11 +383,13 @@ export class TrackerService {
     ]);
     const savedEventsIds = (
       await this.intentDataService.getUserEventInterest({
-        interest: 'BOOKMARK',
+        interest: ['BOOKMARK'],
         sourceModule: 'TRACKER',
         sourceId: tracker.id,
         interestedUserId: user.id,
         accountId: user.accountId,
+        limit: params.limit,
+        offset: params.offset,
       })
     ).map((item) => item.eventId);
 
@@ -316,7 +399,7 @@ export class TrackerService {
 
     const newParams = getNonEmptyParams(params);
     const convertedParams =
-      this.sharedService.convertSlugParamsToIds(newParams);
+      await this.sharedService.convertSlugParamsToIds(newParams);
     const eventParams = {
       eventIds: savedEventsIds,
       ...convertedParams,
@@ -324,8 +407,6 @@ export class TrackerService {
       offset: params.offset,
       view: View.tracker,
     } as QueryDto;
-
-    console.log({ eventParams });
 
     const events = await this.eventService.getAllEvents(eventParams, false);
 
@@ -344,12 +425,45 @@ export class TrackerService {
     ]);
     const newParams = getNonEmptyParams(params);
     const convertedParams =
-      this.sharedService.convertSlugParamsToIds(newParams);
+      await this.sharedService.convertSlugParamsToIds(newParams);
+    if (params.type && params.type === 'past') {
+      convertedParams['active_lte'] = tracker.filterValues
+        ? new Date(
+          Math.min(
+            new Date(
+              tracker.filterValues['active_lte'] || new Date(),
+            ).valueOf(),
+            new Date().valueOf(),
+          ),
+        ).toISOString()
+        : new Date().toISOString();
+    } else if (
+      params.type &&
+      params.type === 'active'
+    ) {
+      convertedParams['active_gte'] = tracker.filterValues
+        ? new Date(
+          Math.max(
+            new Date(
+              tracker.filterValues['active_gte'] || new Date(),
+            ).valueOf(),
+            new Date().valueOf(),
+          ),
+        ).toISOString()
+        : new Date().toISOString();
+    }
+    if (params.type && params.type === 'new') {
+      const lastActive = await this.lastActive(
+        user,
+        tracker.id,
+        tracker.createdAt,
+      );
+      convertedParams['createdAt'] = lastActive.last_active_gte;
+    }
     const eventParams = {
       ...(tracker.filterValues as Object),
       ...convertedParams,
     } as CountQueryDto;
-
     const count = await this.eventService.getEventsCount(eventParams, false);
     return count;
   }
@@ -367,7 +481,7 @@ export class TrackerService {
 
     const savedEventsIds = (
       await this.intentDataService.getUserEventInterest({
-        interest: 'BOOKMARK',
+        interest: ['BOOKMARK'],
         sourceModule: 'TRACKER',
         sourceId: tracker.id,
         interestedUserId: user.id,
@@ -381,7 +495,7 @@ export class TrackerService {
 
     const newParams = getNonEmptyParams(params);
     const convertedParams =
-      this.sharedService.convertSlugParamsToIds(newParams);
+      await this.sharedService.convertSlugParamsToIds(newParams);
     const eventParams = {
       eventIds: savedEventsIds,
       ...convertedParams,
@@ -401,14 +515,24 @@ export class TrackerService {
       'SUPER_ADMIN',
       'USER',
     ]);
-    const comments = await this.commentService.getComments(user, {
-      accountId: user.accountId,
-      sourceModule: 'TRACKER',
-      sourceId: tracker.id,
-      limit: params.limit,
-      offset: params.offset,
-    });
-    return comments;
+    const [data] = await Promise.all([
+      this.commentService.getComments(
+        {
+          accountId: user.accountId,
+          sourceModule: 'TRACKER',
+          sourceId: tracker.id,
+          limit: params.limit,
+          offset: params.offset,
+        },
+        user,
+      ),
+      // this.commentService.getCommentCount({
+      //   accountId: user.accountId,
+      //   sourceModule: 'TRACKER',
+      //   sourceId: tracker.id,
+      // }),
+    ]);
+    return CommentsResponseSchema.parse(data);
   }
 
   async getTrackerUsers(
@@ -421,6 +545,7 @@ export class TrackerService {
       'SUPER_ADMIN',
       'USER',
     ]);
+    const resposeForAccessUser: { superAdmin: object[], others: object[] } = { others: [], superAdmin: [] };
     const users = (
       await this.accessService.getAccess({
         sourceEntity: 'TRACKER',
@@ -432,19 +557,29 @@ export class TrackerService {
       })
     ).map((item) => {
       const user = item.accessReceiver;
-      return {
-        id: user.id,
-        name:
-          user.firstname || user.lastname
-            ? `${user.firstname} ${user.lastname || ''}`
-            : user.email.split('@')[0],
-        email: user.email,
-        imageUrl: user.imageUrl,
-        accessType: item.accessType,
-        accessId: item.id,
-      };
+      if (item.accessType === 'SUPER_ADMIN') {
+        resposeForAccessUser.superAdmin = [{
+          id: user.id,
+          name: getNameFromEmail(user.email, user.firstname, user.lastname),
+          email: user.email,
+          imageUrl: user.imageUrl,
+          accessType: item.accessType,
+          accessId: item.id,
+        }];
+      }
+      else if (['ADMIN',
+        'USER',].includes(item.accessType)) {
+        resposeForAccessUser.others.push({
+          id: user.id,
+          name: getNameFromEmail(user.email, user.firstname, user.lastname),
+          email: user.email,
+          imageUrl: user.imageUrl,
+          accessType: item.accessType,
+          accessId: item.id,
+        })
+      }
     });
-    return users;
+    return resposeForAccessUser;
   }
 
   async hasTrackerAccess(
@@ -453,12 +588,16 @@ export class TrackerService {
     accessTypes: AccessType[],
   ): Promise<[Tracker, Record<string, any>]> {
     const tracker = (
-      await this.trackerDataService.getTrackers({
-        ids: [trackerId],
-        limit: 1,
-        offset: 0,
-        type: 'trackers',
-      })
+      await this.trackerDataService.getTrackers(
+        {
+          ids: [trackerId],
+          accountId: user.accountId,
+          limit: 1,
+          offset: 0,
+          type: 'trackers',
+        },
+        user,
+      )
     )[0];
     if (!tracker)
       throw new HttpException('Tracker not found', HttpStatus.NOT_FOUND);
@@ -509,7 +648,7 @@ export class TrackerService {
       'SUPER_ADMIN',
     ]);
 
-    const hash = createHash('sha256').digest('hex');
+    const hash = createHash('sha256').update(randomUUID()).digest('hex');
     const expiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
     await this.accessService.createAccess(
@@ -523,6 +662,7 @@ export class TrackerService {
         redirectQueryParams: `targetId=${tracker.id}&target=tracker`,
         token: hash,
         expiry: expiry,
+        redirectDomain: data.redirectDomain,
       },
       {
         trackerName: tracker.name,

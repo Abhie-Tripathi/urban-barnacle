@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTrackerDto, GetTrackersDto, UpdateTrackerDto } from './dto';
-import { Prisma, TrackerType } from '@prisma/client';
+import { Prisma, PrismaClient, Tracker, TrackerType } from '@prisma/client';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { ConfigService } from '@nestjs/config';
 import { TCachedUser, TrackerTypes } from 'src/utils/types';
@@ -23,54 +23,99 @@ export class TrackerDataService {
     return tracker;
   }
 
-  async getTrackers(data: GetTrackersDto, userId?: string) {
-    const params = {};
-    if (data.ids) params['id'] = { in: data.ids };
-    if (data.name)
-      params['name'] = { contains: data.name, mode: 'insensitive' };
-    if (data.type)
-      params['type'] = {
-        in: Object.values(TrackerTypes[data.type]) as TrackerType[],
-      };
-    if (data.accountId) params['accountId'] = data.accountId;
-    if (data.createdBy && !userId) {
-      throw new HttpException(
-        'User id is required to filter by createdBy',
-        HttpStatus.BAD_REQUEST,
+  async getTrackersByUser(
+    user: TCachedUser,
+    where: Prisma.Sql[],
+    limit: number,
+    offset: number,
+  ) {
+    const trackers: Tracker[] = await this.prisma.$queryRaw`
+      SELECT
+        T.*
+      FROM
+        "Tracker" T
+        JOIN "Access" A ON T.ID = A."sourceEntityId"::UUID
+        AND A."sourceEntity" = 'TRACKER'
+        AND A."accessReceiverId" = ${Prisma.sql`${user.id}::UUID`}
+        AND A."accountId" = ${Prisma.sql`${user.accountId}::UUID`}
+      WHERE
+        T.DELETED = false
+          ${where.length > 0 ? Prisma.sql`AND ${Prisma.join(where, ' AND ')}` : ''}
+      ORDER BY
+        T."createdAt" DESC
+      LIMIT
+        ${limit}
+      OFFSET
+        ${offset}`;
+
+    return trackers;
+  }
+
+  async getTrackersCountByUser(user: TCachedUser, where: Prisma.Sql[]) {
+    const trackerCount: { count: number }[] = await this.prisma.$queryRaw`
+      SELECT
+        count(1)
+      FROM
+        "Tracker" T
+        INNER JOIN "Access" A ON T.ID = A."sourceEntityId"::UUID
+        AND A."sourceEntity" = 'TRACKER'
+        AND A."accessReceiverId" = ${Prisma.sql`${user.id}::UUID`}
+        AND A."accountId" = ${Prisma.sql`${user.accountId}::UUID`}
+      WHERE
+        T.DELETED = false
+          ${where.length > 0 ? Prisma.sql`AND ${Prisma.join(where, ' AND ')}` : ''}
+          `;
+    console.log({ trackerCount });
+    return trackerCount[0].count;
+  }
+
+  async getTrackers(data: GetTrackersDto, user: TCachedUser) {
+    const where: Prisma.Sql[] = [];
+    if (data.ids && data.ids.length > 0)
+      where.push(Prisma.sql`T.ID::TEXT IN (${Prisma.join(data.ids, ',')})`);
+    if (data.name) where.push(Prisma.sql`T.NAME ILIKE ${data.name}`);
+    if (data.subType)
+      where.push(Prisma.sql`T.TYPE = ${data.subType}::"TrackerType"`);
+    if (data.type) {
+      where.push(
+        Prisma.sql`T.TYPE::TEXT LIKE ${data.type === 'trackers' ? 'T_%' : data.type === 'trends' ? 'TR_%' : ''}`,
       );
     }
-    if (data.createdBy === 'me' && userId)
-      params['createdByUser'] = { createdBy: userId };
-    const trackers = await this.prisma.tracker.findMany({
-      where: {
-        ...params,
-        deleted: false,
-      },
-      skip: data.offset,
-      take: data.limit,
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    if (data.createdBy) {
+      if (data.createdBy === 'me')
+        where.push(Prisma.sql`T."createdBy" = ${user.id}::UUID`);
+      if (data.createdBy === 'others')
+        where.push(Prisma.sql`T."createdBy" != ${user.id}::UUID`);
+    }
+    const trackers = await this.getTrackersByUser(
+      user,
+      where,
+      data.limit,
+      data.offset,
+    );
     return trackers;
   }
 
   async getTrackersCount(user: TCachedUser, data: GetTrackersDto) {
-    const params = {};
-    if (data.ids) params['id'] = { in: data.ids };
-    if (data.name)
-      params['name'] = { contains: data.name, mode: 'insensitive' };
-    if (data.type)
-      params['type'] = {
-        in: Object.values(TrackerTypes[data.type]) as TrackerType[],
-      };
-    if (data.accountId) params['accountId'] = data.accountId;
-    if (data.createdBy === 'me')
-      params['createdByUser'] = { createdBy: user.id };
-    const count = await this.prisma.tracker.count({
-      where: { ...params, deleted: false },
-    });
-    return count;
+    const where: Prisma.Sql[] = [];
+    if (data.ids && data.ids.length > 0)
+      where.push(Prisma.sql`T.ID::TEXT IN (${Prisma.join(data.ids, ',')})`);
+    if (data.name) where.push(Prisma.sql`T.NAME ILIKE ${data.name}`);
+    if (data.subType)
+      where.push(Prisma.sql`T.TYPE = ${data.subType}::"TrackerType"`);
+    if (data.type) {
+      where.push(
+        Prisma.sql`T.TYPE::TEXT LIKE ${data.type === 'trackers' ? 'T_%' : data.type === 'trends' ? 'TR_%' : ''}`,
+      );
+    }
+    if (data.createdBy) {
+      if (data.createdBy === 'me')
+        where.push(Prisma.sql`T."createdBy" = ${user.id}::UUID`);
+      if (data.createdBy === 'others')
+        where.push(Prisma.sql`T."createdBy" != ${user.id}::UUID`);
+    }
+    const count = await this.getTrackersCountByUser(user, where);
+    return Number(count);
   }
 
   async updateTracker(user: TCachedUser, data: UpdateTrackerDto) {

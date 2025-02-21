@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Delete,
+  HttpException,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -17,10 +19,11 @@ import { GetUser } from 'src/user/decorator';
 import { TCachedUser } from 'src/utils/types';
 import { CreateEnquiryActivityHttpDto } from './dto/enquiryActivity.dto';
 import { AuthGuard } from 'src/user/auth/guard';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Controller('intents')
 export class IntentController {
-  constructor(private readonly intentService: IntentService) {}
+  constructor(private readonly intentService: IntentService) { }
 
   @UseGuards(AuthGuard)
   @Post('user-event-interest')
@@ -28,16 +31,30 @@ export class IntentController {
     @Body() data: CreateUserEventInterestHttpDto,
     @GetUser() user: TCachedUser,
   ) {
-    console.log({ data });
-    const userEventInterest = await this.intentService.createUserEventInterest(
-      user,
-      {
-        ...data,
-        accountId: user.accountId,
-        interestedUserId: user.id,
-      },
-    );
-    return userEventInterest;
+    try {
+      const userEventInterest =
+        await this.intentService.createUserEventInterest(user, {
+          ...data,
+          accountId: user.accountId,
+          interestedUserId: user.id,
+        });
+      return userEventInterest;
+    } catch (error) {
+      console.error(error);
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          return {
+            error: new HttpException(
+              'Interest already exists',
+              HttpStatus.BAD_REQUEST,
+            ),
+          };
+        }
+      }
+      return {
+        error: error,
+      };
+    }
   }
 
   @UseGuards(AuthGuard)
@@ -47,12 +64,20 @@ export class IntentController {
     @Body() data: UpdateUserEventInterestHttpDto,
     @GetUser() user: TCachedUser,
   ) {
-    return this.intentService.updateUserEventInterest({
-      ...data,
-      id,
-      approvedBy: user.id,
-      modifiedBy: user.id,
-    });
+    try {
+      const updatedInterest = await this.intentService.updateUserEventInterest(
+        user,
+        id,
+        data,
+      );
+      return {
+        data: updatedInterest,
+      };
+    } catch (error) {
+      return {
+        error: error,
+      };
+    }
   }
 
   @UseGuards(AuthGuard)
@@ -64,31 +89,31 @@ export class IntentController {
     return this.intentService.deleteUserEventInterest(user, id);
   }
 
-  @UseGuards(AuthGuard)
-  @Post('upvote')
-  async createUpvote(
-    @Body() data: CreateIntentHttpDto,
-    @GetUser() user: TCachedUser,
-  ) {
-    try {
-      const upvote = await this.intentService.createUpvote(user, 'UPVOTE', {
-        ...data,
-      });
-      return {
-        data: upvote,
-      };
-    } catch (error) {
-      return {
-        error: error,
-      };
-    }
-  }
+  // @UseGuards(AuthGuard)
+  // @Post('upvote')
+  // async createUpvote(
+  //   @Body() data: CreateIntentHttpDto,
+  //   @GetUser() user: TCachedUser,
+  // ) {
+  //   try {
+  //     const upvote = await this.intentService.createUpvote(user, 'UPVOTE', {
+  //       ...data,
+  //     });
+  //     return {
+  //       data: upvote,
+  //     };
+  //   } catch (error) {
+  //     return {
+  //       error: error,
+  //     };
+  //   }
+  // }
 
-  @UseGuards(AuthGuard)
-  @Delete('upvote/:id')
-  async deleteUpvote(@Param('id') id: string, @GetUser() user: TCachedUser) {
-    return this.intentService.deleteUpvote(user, id);
-  }
+  // @UseGuards(AuthGuard)
+  // @Delete('upvote/:id')
+  // async deleteUpvote(@Param('id') id: string, @GetUser() user: TCachedUser) {
+  //   return this.intentService.deleteUpvote(user, id);
+  // }
 
   @UseGuards(AuthGuard)
   @Post('enquiry-activity')
@@ -96,6 +121,7 @@ export class IntentController {
     @Body() data: CreateEnquiryActivityHttpDto,
     @GetUser() user: TCachedUser,
   ) {
+    console.log({ data });
     return this.intentService.createEnquiryActivity(user, data);
   }
 

@@ -19,7 +19,7 @@ const CreateCommentHttpSchema = z.object({
     .optional(),
   sourceModule: z.nativeEnum(CommentSourceModule),
   sourceId: z.string(),
-  parentId: z.string().uuid().optional(),
+  parentCommentId: z.string().uuid().optional(),
   interestedUserId: z.string().uuid().optional(),
 });
 
@@ -67,3 +67,10 @@ const GetCommentsSchema = LimitSchema.extend({
 });
 
 export class GetCommentsDto extends createZodDto(GetCommentsSchema) {}
+
+const GetCommentCountSchema = GetCommentsSchema.omit({
+  limit: true,
+  offset: true,
+});
+
+export class GetCommentCountDto extends createZodDto(GetCommentCountSchema) {}

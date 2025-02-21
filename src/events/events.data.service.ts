@@ -1,29 +1,68 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { QueryDto, CountQueryDto, EventsTrendsDto } from './dto';
-import { Export, Prisma } from '@prisma/client';
+import { QueryDto, CountQueryDto, EventsTrendsDto, PocsUnmaskDto } from './dto';
+import { Export, Prisma, UnlockValue } from '@prisma/client';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { ConfigService } from '@nestjs/config';
 import { CreateExportDto } from 'src/exports/dto';
 import { FastifyReply } from 'fastify';
 import { get } from 'http';
+import { TCachedUser } from 'src/utils/types';
+import { LimitDto } from 'src/global_dto';
 
 @Injectable()
 export class EventsDataService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-  ) {}
-
+  ) { }
+  async createLogForEncryptedQuery(encryption: string, user: TCachedUser) {
+    const previousActivity = await this.prisma.userActivity.findFirst({
+      where: {
+        accountId: user.accountId,
+        userId: user.id,
+        path: '/events',
+        request: { equals: { data: encryption } },
+      },
+      select: {
+        id: true,
+      },
+    });
+    if (previousActivity) {
+      await this.prisma.userActivity.update({
+        where: { id: previousActivity.id },
+        data: {
+          updatedAt: new Date(),
+        },
+      });
+    } else {
+      await this.prisma.userActivity.create({
+        data: {
+          path: '/events',
+          request: { data: encryption },
+          account: { connect: { id: user.accountId } },
+          user: { connect: { id: user.id } },
+        },
+      });
+    }
+  }
   async getEvents(params: QueryDto) {
+    // params = { ...params, show: [...(params.show || []), 'newLocation'] };
     const queryParams = new URLSearchParams(
       params as unknown as Record<string, any>,
     );
+    if (params.limit) {
+      queryParams.append('take', String(params.limit));
+    }
+    if (params.offset) {
+      queryParams.append('skip', String(params.offset));
+    }
     const url =
       this.configService.get('MICROSERVICE_URL') +
       microserviceEndpoints.events.events +
       '?' +
       queryParams.toString();
+    console.log(url);
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (!data || error) {
@@ -41,6 +80,7 @@ export class EventsDataService {
       microserviceEndpoints.events.count +
       '?' +
       queryParams.toString();
+    console.log(url);
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (!data || error) {
@@ -49,11 +89,11 @@ export class EventsDataService {
     return data;
   }
 
-  async getEventPocs(eventId: string) {
+  async getEventPocs(eventId: string, sortBy: string) {
     const url =
       this.configService.get('MICROSERVICE_URL') +
       microserviceEndpoints.events.eventPocs.replace(':eventId', eventId);
-    const response = await fetch(url);
+    const response = await fetch(url + `?sortBy=${sortBy}`);
     const { data, error } = await response.json();
     if (!data || error) {
       throw new HttpException(error, HttpStatus.BAD_REQUEST);
@@ -61,10 +101,16 @@ export class EventsDataService {
     return data;
   }
 
-  async getEventEditions(eventId: string) {
+  async getEventEditions(eventId: string, query: LimitDto) {
+    const queryParams = new URLSearchParams({
+      take: query.limit.toString(),
+      skip: query.offset.toString(),
+    });
     const url =
       this.configService.get('MICROSERVICE_URL') +
-      microserviceEndpoints.events.eventEditions.replace(':eventId', eventId);
+      microserviceEndpoints.events.eventEditions.replace(':eventId', eventId) +
+      '?' +
+      queryParams.toString();
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (!data || error) {
@@ -100,10 +146,16 @@ export class EventsDataService {
     return data;
   }
 
-  async getEventSpeakers(eventId: string) {
+  async getEventSpeakers(eventId: string, query: LimitDto) {
+    const queryParams = new URLSearchParams({
+      take: query.limit.toString(),
+      skip: query.offset.toString(),
+    });
     const url =
       this.configService.get('MICROSERVICE_URL') +
-      microserviceEndpoints.events.eventSpeakers.replace(':eventId', eventId);
+      microserviceEndpoints.events.eventSpeakers.replace(':eventId', eventId) +
+      '?' +
+      queryParams.toString();
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (!data || error) {
@@ -112,10 +164,16 @@ export class EventsDataService {
     return data;
   }
 
-  async getEventSponsors(eventId: string) {
+  async getEventSponsors(eventId: string, query: LimitDto) {
+    const queryParams = new URLSearchParams({
+      take: query.limit.toString(),
+      skip: query.offset.toString(),
+    });
     const url =
       this.configService.get('MICROSERVICE_URL') +
-      microserviceEndpoints.events.eventSponsors.replace(':eventId', eventId);
+      microserviceEndpoints.events.eventSponsors.replace(':eventId', eventId) +
+      '?' +
+      queryParams.toString();
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (!data || error) {
@@ -124,10 +182,19 @@ export class EventsDataService {
     return data;
   }
 
-  async getEventExhibitors(eventId: string) {
+  async getEventExhibitors(eventId: string, query: LimitDto) {
+    const queryParams = new URLSearchParams({
+      take: query.limit.toString(),
+      skip: query.offset.toString(),
+    });
     const url =
       this.configService.get('MICROSERVICE_URL') +
-      microserviceEndpoints.events.eventExhibitors.replace(':eventId', eventId);
+      microserviceEndpoints.events.eventExhibitors.replace(
+        ':eventId',
+        eventId,
+      ) +
+      '?' +
+      queryParams.toString();
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (!data || error) {
@@ -164,7 +231,93 @@ export class EventsDataService {
     }
     return data;
   }
+  async getUserPocLimitAndPocunloackedValues(
+    eventId: string,
+    pocId: string,
+    query: PocsUnmaskDto,
+    user: TCachedUser,
+  ) {
+    const [checkForEntry, limitForPoc] = await Promise.all([
+      this.prisma.unlockedTransaction.findMany({
+        where: {
+          accountId: user.accountId,
+          eventId: eventId,
+          unlockValue: { in: query.unlockValue },
+          unlockByUserId: pocId,
+        },
+      }),
+      this.prisma.account.findFirst({
+        where: {
+          id: user.accountId,
+        },
+      }),
+    ]);
+    return { checkForEntry, limitForPoc };
+  }
+  async createUnlocakedPocEntryAndDeductPocLimitPoint(
+    eventId: string,
+    pocId: string,
+    unlockValue: UnlockValue,
+    user: TCachedUser,
+    limit: number,
+  ) {
+    await this.prisma.unlockedTransaction.create({
+      data: {
+        accountId: user.accountId,
+        eventId: eventId,
+        unlockValue: unlockValue,
+        unlockByUserId: pocId,
+        source: 'CONTACT_DETAIL',
+        unlockedById: user.id,
+        unlockType: 'USER',
+      },
+    });
+    // }
+    await this.prisma.account.update({
+      where: {
+        id: user.accountId,
+      },
+      data: {
+        pendingPocUnlockRequests: limit,
+      },
+    });
+    return { message: 'Poc unlocked successfully' };
+  }
+  async updateEventPocunlocakedEntry(unlocakedEntryId: string, userId: string) {
+    await this.prisma.unlockedTransaction.update({
+      where: {
+        id: unlocakedEntryId,
+      },
+      data: {
+        unlockedById: userId,
+      },
+    });
+    return { message: 'Poc unlocked entry updated successfully' };
+  }
+  async getAccountConfiguration(configurationId: string) {
+    const configuration = await this.prisma.configuration.findUnique({
+      where: { id: configurationId },
+    });
+    if (!configuration) {
+      throw new HttpException('configuration not found', HttpStatus.NOT_FOUND);
+    }
+    return configuration.config;
+  }
+  async getEventsPocsunloacked(pocId: string, params: UnlockValue[]) {
+    const url =
+      this.configService.get('MICROSERVICE_URL') +
+      microserviceEndpoints.events.eventPocsUnlocked +
+      '?' +
+      `unlockValue=${params.join(',').toLowerCase()}&pocId=${pocId}`;
+    const response = await fetch(url);
+    const { data, error } = await response.json();
+    console.log(url, error, data);
 
+    if (!data || error) {
+      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+    }
+    return data;
+  }
   async createEventExport(exportData: Export) {
     try {
       const url =

@@ -51,13 +51,19 @@ export class SharedService {
   generateSlug(title: string) {
     return title.toLowerCase().replace(/ /g, '-');
   }
-  async jobCreation(userId: string, inputData: any, source: JobSource) {
+  async jobCreation(
+    userId: string,
+    inputData: any,
+    source: JobSource,
+    sourceId: string,
+  ) {
     try {
       const job = await this.prisma.requestedJob.create({
         data: {
           userId: String(userId),
           inputData: inputData,
           source: source,
+          sourceId: sourceId,
         },
       });
       return { job };
@@ -200,6 +206,7 @@ export class SharedService {
           acc[category.id] = {
             id: category.id,
             slug: category.slug,
+            name: category.name,
           };
           return acc;
         }, {});

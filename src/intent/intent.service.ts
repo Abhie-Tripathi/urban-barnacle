@@ -12,7 +12,12 @@ import {
 import { CreateEnquiryActivityHttpDto } from './dto/enquiryActivity.dto';
 import { EnquiryDataService } from 'src/enquiry/enquiry.data.service';
 import { EnquiryService } from 'src/enquiry/enquiry.service';
-import { Enquiry, IntentType } from '@prisma/client';
+import {
+  Enquiry,
+  IntentType,
+  Interest,
+  UserEventInterest,
+} from '@prisma/client';
 import { EventsService } from 'src/events/events.service';
 
 @Injectable()
@@ -21,7 +26,7 @@ export class IntentService {
     private readonly intentDataService: IntentDataService,
     private readonly enquiryService: EnquiryService,
     private readonly eventService: EventsService,
-  ) {}
+  ) { }
 
   async createUserEventInterest(
     user: TCachedUser,
@@ -59,6 +64,7 @@ export class IntentService {
         if (!event) {
           throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
         }
+        const location = event.basic['eventLocation'];
         enquiry = await this.enquiryService.createEnquiry(user, {
           accountId: user.accountId,
           eventId: data.eventId,
@@ -68,6 +74,15 @@ export class IntentService {
             eventId: event.basic['id'],
             startDate: event.basic['startDateTime'],
             endDate: event.basic['endDateTime'],
+            logoUrl: event.basic['logoUrl'],
+            organizerName: event.basic['organizer']
+              ? event.basic['organizer']['name']
+              : null,
+            location: {
+              cityName: location.city.name,
+              countryName: location.country.name,
+              stateName: location.state ? location.state.name : null,
+            },
           },
           initiatedBy: data.recommendedBy || data.interestedUserId,
         });
@@ -94,19 +109,79 @@ export class IntentService {
       await this.intentDataService.createUserEventInterest(
         userEventInterestParams,
       );
-    return userEventInterest;
+    return { data: userEventInterest };
   }
 
-  async updateUserEventInterest(data: UpdateUserEventInterestDto) {
-    return this.intentDataService.updateUserEventInterest(data);
+  async updateUserEventInterest(
+    user: TCachedUser,
+    id: string,
+    data: UpdateUserEventInterestDto,
+  ) {
+    const interests = (await this.intentDataService.getUserEventInterest({
+      id: id,
+      accountId: user.accountId,
+      show: 'enquiry',
+    })) as (UserEventInterest & { enquiry: Enquiry })[];
+    if (!interests || (interests && interests.length === 0)) {
+      throw new HttpException('Interest not found', HttpStatus.NOT_FOUND);
+    }
+    const interest = interests[0];
+    if (interest.enquiry.ownerId !== user.id) {
+      throw new HttpException(
+        'You are not allowed to update this interest',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    if (interest.status !== 'PENDING' && data.status === 'PENDING') {
+      throw new HttpException(
+        'You can not update the status back to pending',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    return {
+      data: {
+        ...(await this.intentDataService.updateUserEventInterest({
+          ...data,
+          id,
+          modifiedBy: user.id,
+          approvedBy: user.id,
+        }))
+      }
+    };
   }
 
   async deleteUserEventInterest(user: TCachedUser, id: string) {
-    return this.intentDataService.updateUserEventInterest({
-      id,
-      modifiedBy: user.id,
-      deleted: true,
-    });
+    const interests = (await this.intentDataService.getUserEventInterest({
+      id: id,
+      accountId: user.accountId,
+      show: 'enquiry',
+    })) as (UserEventInterest & { enquiry: Enquiry })[];
+    if (!interests || (interests && interests.length === 0)) {
+      throw new HttpException('Interest not found', HttpStatus.NOT_FOUND);
+    }
+    const interest = interests[0];
+    console.log({ interest })
+    if (interest.enquiry?.ownerId && interest.enquiry.ownerId !== user.id && (interest.interest !== 'BOOKMARK')) {
+      throw new HttpException(
+        'You are not allowed to update this interest',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    if (interest.interest !== Interest.BOOKMARK) {
+      throw new HttpException(
+        'You are not allowed to delete this interest',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    return {
+      data: {
+        ...(await this.intentDataService.updateUserEventInterest({
+          id,
+          modifiedBy: user.id,
+          deleted: true,
+        }))
+      }
+    };
   }
 
   async createUpvote(
@@ -144,9 +219,9 @@ export class IntentService {
     return true;
   }
 
-  async deleteUpvote(user: TCachedUser, id: string) {
+  async deleteUpvote(user: TCachedUser, data: GetIntentDto) {
     const intent = await this.intentDataService.getIntents({
-      id,
+      ...data,
       userId: user.id,
       accountId: user.accountId,
     });
@@ -154,21 +229,25 @@ export class IntentService {
       throw new HttpException('Upvote not found', HttpStatus.NOT_FOUND);
     }
     await this.intentDataService.updateIntent({
-      id,
+      id: intent[0].id,
       deleted: true,
     });
-    return { message: 'Upvote deleted successfully' };
+    return { data: { message: 'Upvote deleted successfully' } };
   }
 
   async createEnquiryActivity(
     user: TCachedUser,
     data: CreateEnquiryActivityHttpDto,
   ) {
-    return this.intentDataService.createEnquiryActivity({
-      ...data,
-      userId: user.id,
-      accountId: user.accountId,
-    });
+    return {
+      data: {
+        ...(await this.intentDataService.createEnquiryActivity({
+          ...data,
+          userId: user.id,
+          accountId: user.accountId,
+        }))
+      }
+    };
   }
 
   async deleteEnquiryActivity(user: TCachedUser, id: string) {
@@ -187,6 +266,6 @@ export class IntentService {
       id,
       deleted: true,
     });
-    return { message: 'Enquiry activity deleted successfully' };
+    return { data: { message: 'Enquiry activity deleted successfully' } };
   }
 }

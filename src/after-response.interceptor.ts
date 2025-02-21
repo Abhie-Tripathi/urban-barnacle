@@ -19,7 +19,6 @@ export class AfterResponseInterceptor implements NestInterceptor {
       tap(async () => {
         const res: FastifyReply = context.switchToHttp().getResponse();
         const req: RequestWithUser = context.switchToHttp().getRequest();
-        console.log(res.raw.statusMessage);
         const path = req.originalUrl.split('?')[0];
         const pathBreakdown = path.split('/').filter((p) => p !== '');
         if (pathBreakdown.length >= 1 && pathBreakdown[0] === 'auth') {
@@ -34,18 +33,22 @@ export class AfterResponseInterceptor implements NestInterceptor {
             body: req.body ?? null,
             headers: req.headers,
           } as Record<string, any>,
-          user: {
-            connect: { id: String(req.user.id) },
-          },
-          account: {
-            connect: { id: req.user.accountId },
-          },
+          user: req?.user?.id
+            ? {
+                connect: { id: String(req.user.id) },
+              }
+            : {},
+          account: req?.user?.accountId
+            ? {
+                connect: { id: req.user.accountId },
+              }
+            : {},
         };
         if (
-          (pathBreakdown[0] === 'trackers' &&
-            pathBreakdown.length === 2 &&
-            status === 200) ||
-          (pathBreakdown.length === 1 && pathBreakdown[0] === 'events')
+          pathBreakdown[0] === 'trackers' &&
+          pathBreakdown.length === 2 &&
+          status === 200
+          // || (pathBreakdown.length === 1 && pathBreakdown[0] === 'events')
         ) {
           await this.prismaService.userActivity.create({
             data: dataToSave,

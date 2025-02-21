@@ -9,7 +9,7 @@ import { Update_Dto } from './dto/update.dto';
 import { SelectedUserDetails } from 'src/utils/types';
 @Injectable()
 export class IntendService {
-  constructor(private readonly intendDataService: IntendDataService) {}
+  constructor(private readonly intendDataService: IntendDataService) { }
   async createIntend(body: CreateIntendDto) {
     try {
       let status: InterestStatus = 'PENDING';
@@ -53,7 +53,7 @@ export class IntendService {
         userid = userCreate.id;
         // userAccountId = userCreate.accountId;
       } else if (usercheck.currentOnboardingState === 'PROMOTED_USER') {
-        const userUpdate= await this.intendDataService.updateUser({
+        const userUpdate = await this.intendDataService.updateUser({
           id: usercheck.id,
           firstname: body.firstname,
           lastname: body.lastname,
@@ -107,6 +107,7 @@ export class IntendService {
           {
             eventRedirectUrl: body.redirectUrl,
             userShowedInterestType: body.interest,
+            sourceId: interestId
           },
           true,
         );
@@ -249,6 +250,7 @@ export class IntendService {
           {
             eventRedirectUrl: body.redirectUrl,
             userShowedInterestType: updateInterest.interest,
+            sourceId: updateInterest.id
           },
           false,
         );

@@ -44,7 +44,6 @@ export class SavedLocationService {
           : radius;
       area = +(Math.PI * Math.pow(radiusInKm, 2)).toFixed(2);
     }
-    console.log({ savedLocation, area });
     await this.savedLocationDataService.updateSavedLocation({
       id: savedLocation.id,
       area,

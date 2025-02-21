@@ -13,16 +13,16 @@ export const SignUpSchema = z.strictObject({
   industry: z
     .string()
     .refine((industry) => {
-      if (process.env.BACKEND === 'eventeli') {
-        return Object.values(Industries.eventeli).includes(industry);
+      if (process.env.BACKEND === 'geo') {
+        return Object.values(Industries.geo).includes(industry);
       }
-      return Object.values(Industries.eventgtm).includes(industry);
+      return Object.values(Industries.gtm).includes(industry);
     })
     .optional(),
   subIndustry: z
     .string()
     .refine((subIndustry) => {
-      if (process.env.BACKEND === 'eventeli') {
+      if (process.env.BACKEND === 'geo') {
         return Object.values(SubIndustries).includes(subIndustry);
       }
       return true;

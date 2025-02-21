@@ -5,16 +5,21 @@ import { Prisma } from '@prisma/client';
 import { accountConfig, AccountConfigDto } from './account.config';
 import { TCachedUser } from 'src/utils/types';
 import { InputJsonObject, JsonArray } from '@prisma/client/runtime/library';
+import { getNameFromEmail } from 'src/utils';
 
 @Injectable()
 export class AccountDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async createAccount(data: CreateAccountDto) {
-    const defaultConfig = accountConfig;
+    const { interestConfig, ...rest } = data;
+    let defaultConfig = accountConfig;
+    if (interestConfig) {
+      defaultConfig = { ...defaultConfig, interest: interestConfig };
+    }
     const account = await this.prisma.account.create({
       data: {
-        ...data,
+        ...rest,
         accountConfiguration: {
           create: {
             config: defaultConfig as unknown as InputJsonObject,
@@ -52,12 +57,12 @@ export class AccountDataService {
     const { configuration, ...rest } = data;
     const config = configuration
       ? {
-          accountConfiguration: {
-            update: {
-              config: configuration,
-            },
+        accountConfiguration: {
+          update: {
+            config: configuration,
           },
-        }
+        },
+      }
       : {};
     const account = await this.prisma.account.update({
       where: { id: data.id },
@@ -101,5 +106,53 @@ export class AccountDataService {
       throw new HttpException('configuration not found', HttpStatus.NOT_FOUND);
     }
     return configuration.config;
+  }
+
+  async getLatestComment(user: TCachedUser) {
+    //getNameFromEmail
+    const [comment, config] = await Promise.all([this.prisma.$queryRaw<{
+      commentid: string;
+      content: string;
+      createdAt: Date;
+      sourceModule: string;
+      enquiryid: string;
+      enquirystatus: string;
+      username: string | null;
+      email: string;
+      eventname: string;
+      eventId: string;
+    }[]>(Prisma.raw(`
+            SELECT c.id commentid, c.content, c."createdAt", 
+            c."sourceModule", e.id enquiryId, e.status enquirystatus, u.firstname|| ' '|| u.lastname username,u.email
+            , e."eventData" ->> 'name' eventname, e."eventId"
+            FROM
+                "Comment" c
+                INNER JOIN "Enquiry" e on c."sourceId" = e.id::text
+                and c."sourceModule" = 'OUTREACH'
+                INNER join "User" u on c."userId" = u.id and c."accountId"='${user.accountId}'
+                ORDER BY c."createdAt" desc
+            LIMIT 1;
+      `)), this.getAccountConfiguration(user.accountConfigurationId)]);
+    // console.log(config, { comment }, comment[0].enquirystatus)
+    return comment[0].commentid ? {
+      "comment": {
+        "id": comment[0].commentid,
+        "content": comment[0].content,
+        "createdAt": comment[0].createdAt,
+        "stage": comment[0].sourceModule,
+      },
+      "enquiry": {
+        "enquiryId": comment[0].enquiryid,
+        "enquiryStatusLabel": config ? config['outreach'].find(val => val.status.toLowerCase() === comment[0].enquirystatus.toLowerCase()).label : null,
+        "enquiryStatus": comment[0].enquirystatus,
+      },
+      "event": {
+        "id": comment[0].eventId,
+        "name": comment[0].eventname,
+      },
+      "user": {
+        "name": comment[0].username || getNameFromEmail(comment[0].email, null, null),
+      }
+    } : {};
   }
 }

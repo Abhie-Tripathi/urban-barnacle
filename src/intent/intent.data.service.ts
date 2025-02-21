@@ -1,18 +1,28 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Interest, InterestStatus, Prisma } from '@prisma/client';
+import {
+  EnquiryActivity,
+  Interest,
+  InterestStatus,
+  Prisma,
+} from '@prisma/client';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { ConfigService } from '@nestjs/config';
 import {
   CreateIntentDto,
   CreateUserEventInterestDto,
   GetIntentDto,
+  GetUserEventInterestCountDto,
   GetUserEventInterestDto,
   UpdateIntentDto,
   UpdateUserEventInterestDto,
+  UserInterestsGroupBy,
 } from './dto/';
 import {
   CreateEnquiryActivityDto,
+  EnquiryActivityGroupBy,
+  EnquiryActivityResponseSchema,
+  GetEnquiryActivityCountDto,
   GetEnquiryActivityDto,
   UpdateEnquiryActivityDto,
 } from './dto/enquiryActivity.dto';
@@ -21,7 +31,7 @@ import { TCachedUser } from 'src/utils/types';
 
 @Injectable()
 export class IntentDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async createUserEventInterest(data: CreateUserEventInterestDto) {
     if (!data.eventId) {
@@ -56,13 +66,30 @@ export class IntentDataService {
   }
 
   async getUserEventInterest(data: GetUserEventInterestDto) {
+    const { limit, offset, interest, show, ...rest } = data;
+    if (interest && interest.length > 0) {
+      rest['interest'] = { in: interest };
+    }
+    const include = {};
+    if (show) {
+      if (show === 'user') include['interestedUser'] = true;
+      else if (show === 'enquiry') include['enquiry'] = true;
+    }
     const userEventInterests = await this.prisma.userEventInterest.findMany({
-      where: { ...data, deleted: false },
+      where: { ...rest, deleted: false },
+      include,
+      skip: offset,
+      take: limit,
     });
     return userEventInterests;
   }
 
-  async getAllEventInterestsByUser(user: TCachedUser, eventIds: string[]) {
+  async getAllEventInterestsByUser(user: TCachedUser, eventIds: string[], trackerId: string | undefined = undefined) {
+    const trackerWhere: object = {};
+    if (trackerId) {
+      trackerWhere['sourceId'] = trackerId;
+      trackerWhere['sourceModule'] = 'TRACKER';
+    }
     const userEventInterests = await this.prisma.userEventInterest.findMany({
       where: {
         interestedUserId: user.id,
@@ -74,6 +101,7 @@ export class IntentDataService {
         interest: {
           not: Interest.ORGANIZE,
         },
+        ...trackerWhere
       },
       select: {
         id: true,
@@ -84,11 +112,35 @@ export class IntentDataService {
     return userEventInterests;
   }
 
-  async getUserEventInterestCount(data: GetUserEventInterestDto) {
-    const userEventInterests = await this.prisma.userEventInterest.count({
-      where: { ...data, deleted: false },
-    });
-    return userEventInterests;
+  async getUserEventInterestCount(data: GetUserEventInterestCountDto) {
+    const { groupBy, interest, ...rest } = data;
+    if (interest && interest.length > 0) {
+      rest['interest'] = {
+        in: interest,
+      };
+    }
+    let count;
+    if (groupBy) {
+      const by: Prisma.UserEventInterestScalarFieldEnum[] = [];
+      if (groupBy === UserInterestsGroupBy.interests) {
+        by.push('interest');
+      } else if (groupBy === UserInterestsGroupBy.status) {
+        by.push('status');
+      }
+      count = await this.prisma.userEventInterest.groupBy({
+        where: { ...rest, deleted: false },
+        by: by,
+        _count: {
+          id: true,
+        },
+      });
+    } else {
+      count = await this.prisma.userEventInterest.count({
+        where: { ...rest, deleted: false },
+      });
+    }
+
+    return count;
   }
 
   async createEnquiryActivity(data: CreateEnquiryActivityDto) {
@@ -98,10 +150,44 @@ export class IntentDataService {
         HttpStatus.BAD_REQUEST,
       );
     }
-    const enquiryActivity = await this.prisma.enquiryActivity.create({
-      data,
+    const previousActivity = await this.prisma.enquiryActivity.findFirst({
+      where: {
+        accountId: data.accountId,
+        enquiryId: data.enquiryId,
+        userId: data.userId,
+        activityType: data.activityType,
+        activitySubType: data.activitySubType || null,
+      },
     });
-    return enquiryActivity;
+    let enquiryActivity: EnquiryActivity;
+    if (previousActivity) {
+      if (previousActivity.deleted) {
+        enquiryActivity = await this.prisma.enquiryActivity.update({
+          where: {
+            id: previousActivity.id,
+          },
+          data: {
+            deleted: false,
+          },
+        });
+      } else {
+        throw new HttpException('Activity already exists', HttpStatus.CONFLICT);
+      }
+    } else {
+      enquiryActivity = await this.prisma.enquiryActivity.create({
+        data,
+      });
+    }
+
+    const enquiryActivityResponse = EnquiryActivityResponseSchema.parse({
+      id: enquiryActivity.id,
+      activityType: enquiryActivity.activityType,
+      activitySubType: enquiryActivity.activitySubType,
+      userId: enquiryActivity.userId,
+      enquiryId: enquiryActivity.enquiryId,
+      createdAt: enquiryActivity.updatedAt,
+    });
+    return enquiryActivityResponse;
   }
 
   async updateEnquiryActivity(data: UpdateEnquiryActivityDto) {
@@ -113,10 +199,39 @@ export class IntentDataService {
   }
 
   async getEnquiryActivities(data: GetEnquiryActivityDto) {
+    const { show, ...rest } = data;
+    const include = {};
+    if (show && show === 'user') {
+      include['user'] = true;
+    }
     const enquiryActivities = await this.prisma.enquiryActivity.findMany({
-      where: { ...data, deleted: false },
+      where: { ...rest, deleted: false },
+      include,
     });
     return enquiryActivities;
+  }
+
+  async getEnquiryActivityCount(data: GetEnquiryActivityCountDto) {
+    const { groupBy, ...rest } = data;
+    let count;
+    if (groupBy) {
+      const by: Prisma.EnquiryActivityScalarFieldEnum[] = [];
+      if (groupBy === EnquiryActivityGroupBy.activitySubType) {
+        by.push('activitySubType');
+      }
+      count = await this.prisma.enquiryActivity.groupBy({
+        where: { ...rest, deleted: false },
+        by: by,
+        _count: {
+          id: true,
+        },
+      });
+    } else {
+      count = await this.prisma.enquiryActivity.count({
+        where: { ...rest, deleted: false },
+      });
+    }
+    return count;
   }
 
   async createIntent(data: CreateIntentDto) {

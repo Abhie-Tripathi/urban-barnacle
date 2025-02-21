@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { EventsController } from './events.controller';
 import { EventsService } from './events.service';
 import { EventsDataService } from './events.data.service';
-import { IntentModule } from 'src/intent/intent.module';
 import { IntentDataService } from 'src/intent/intent.data.service';
 
 @Module({
@@ -10,4 +9,4 @@ import { IntentDataService } from 'src/intent/intent.data.service';
   providers: [EventsService, EventsDataService, IntentDataService],
   exports: [EventsService, EventsDataService],
 })
-export class EventsModule {}
+export class EventsModule { }

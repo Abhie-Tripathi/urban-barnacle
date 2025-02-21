@@ -31,7 +31,7 @@ export class PromotedEventsService {
     private readonly posterService: PosterService,
     private readonly fileCreate: FileCreationService,
     // @InjectQueue('eventProcessor') private readonly eventCanelQueue: Queue,
-  ) {}
+  ) { }
 
   async getGeniEventById(id: string) {
     try {
@@ -204,6 +204,7 @@ export class PromotedEventsService {
         accountId: user.accountId,
         attachmentId: attachment_id,
         createdBy: user.id,
+        type: body.type,
         ...eventBody,
       });
       if (data.data) {
@@ -397,7 +398,7 @@ export class PromotedEventsService {
       }
       console.log('count', count);
 
-      return { totalCount: Number(count[0]?.id ?? 0), data: outData };
+      return { data: { totalCount: Number(count[0]?.id ?? 0), data: outData } };
     } catch (error) {
       console.log(error);
       console.error(error);
@@ -737,13 +738,14 @@ export class PromotedEventsService {
       const jobPayLoad: any = {
         email: (
           await this.eventDataService.getUserRegisteredForPromotedEvent(
-           '9c47b7cc-ff9d-4c36-ab4e-25b39966cb5e',// user.accountId,
+            '9c47b7cc-ff9d-4c36-ab4e-25b39966cb5e',// user.accountId,
             eventId,
           )
         ).map((interest) => interest.interestedUser.email),
         eventName: deletePromotedEvent.name,
         userId: user.id,
         userEmail: user.email,
+        sourceId: eventId
       };
       this.eventDataService.createEventCancelJob(jobPayLoad, user.id);
       await this.eventDataService.deletePromotedEvent(eventId);

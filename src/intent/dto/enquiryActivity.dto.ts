@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { EnquiryActivitySubType, EnquiryActivityType } from '@prisma/client';
+import { LimitSchema } from 'src/global_dto';
 
 const CreateEnquiryActivityHttpSchema = z.object({
   enquiryId: z.string().uuid(),
@@ -10,7 +11,7 @@ const CreateEnquiryActivityHttpSchema = z.object({
 
 export class CreateEnquiryActivityHttpDto extends createZodDto(
   CreateEnquiryActivityHttpSchema,
-) {}
+) { }
 
 const CreateEnquiryActivitySchema = CreateEnquiryActivityHttpSchema.extend({
   userId: z.string().uuid(),
@@ -19,7 +20,7 @@ const CreateEnquiryActivitySchema = CreateEnquiryActivityHttpSchema.extend({
 
 export class CreateEnquiryActivityDto extends createZodDto(
   CreateEnquiryActivitySchema,
-) {}
+) { }
 
 const UpdateEnquiryActivitySchema = z.object({
   id: z.string().uuid(),
@@ -28,17 +29,43 @@ const UpdateEnquiryActivitySchema = z.object({
 
 export class UpdateEnquiryActivityDto extends createZodDto(
   UpdateEnquiryActivitySchema,
-) {}
+) { }
 
-const GetEnquiryActivitySchema = z.object({
+export const GetEnquiryActivitySchema = z.object({
   id: z.string().uuid().optional(),
   enquiryId: z.string().uuid().optional(),
   userId: z.string().uuid().optional(),
   activityType: z.nativeEnum(EnquiryActivityType).optional(),
   activitySubType: z.nativeEnum(EnquiryActivitySubType).optional(),
   accountId: z.string().uuid().optional(),
+  show: z.enum(['user']).optional(),
 });
 
 export class GetEnquiryActivityDto extends createZodDto(
-  GetEnquiryActivitySchema,
-) {}
+  LimitSchema.partial().extend(GetEnquiryActivitySchema.shape),
+) { }
+
+export enum EnquiryActivityGroupBy {
+  activitySubType = 'subType',
+}
+
+export const GetEnquiryActivityCountSchema = GetEnquiryActivitySchema.extend({
+  groupBy: z.nativeEnum(EnquiryActivityGroupBy).optional(),
+});
+
+export class GetEnquiryActivityCountDto extends createZodDto(
+  z.strictObject(GetEnquiryActivityCountSchema.shape),
+) { }
+
+export const EnquiryActivityResponseSchema = z.object({
+  id: z.string().uuid(),
+  activityType: z.nativeEnum(EnquiryActivityType),
+  activitySubType: z.nativeEnum(EnquiryActivitySubType).nullable(),
+  userId: z.string().uuid(),
+  enquiryId: z.string().uuid(),
+  createdAt: z.date(),
+});
+
+export class EnquiryActivityResponseDto extends createZodDto(
+  EnquiryActivityResponseSchema,
+) { }

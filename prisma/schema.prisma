@@ -13,12 +13,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserSource {
+  SELF
+  PROMOTE_EVENT
+  PROMOTE_EVENT_INVITE
+  ACCESS_INVITE
+}
+
 model User {
   id                         String                @id @default(uuid()) @db.Uuid
   firstname                  String?
   lastname                   String?
   email                      String                @unique
   role                       UserRole              @default(CUSTOMER)
+  source                     UserSource            @default(SELF)
   industry                   String?
   category                   String?
   subIndustry                String?
@@ -136,6 +144,7 @@ enum AttachmentSourceModule {
   ACCOUNT
   EVENT
   BRANDKIT
+  PROMOTED_EVENT
 }
 
 // discuss source : gtm geni usecase
@@ -165,7 +174,7 @@ model UserEventInterest {
   interestedUserId String               @db.Uuid
   enquiry          Enquiry?             @relation(fields: [enquiryId], references: [id])
 
-  @@unique([accountId, eventId, interestedUserId, interest], name: "unique_user_interest") // adds constraint to the table to avoid duplicate entries for a given user interest for a given user of specific account
+  @@unique([accountId, eventId, interestedUserId, interest, sourceModule, sourceId], name: "unique_user_interest") // adds constraint to the table to avoid duplicate entries for a given user interest for a given user of specific account
 }
 
 // discuss with vipul, if we want to create enquiry without creating user interest first
@@ -195,8 +204,8 @@ model Comment {
   commentType     CommentType
   user            User                @relation(fields: [userId], references: [id])
   userId          String              @db.Uuid
-  accountId       String?             @db.Uuid
-  account         Account?            @relation(fields: [accountId], references: [id])
+  accountId       String              @db.Uuid
+  account         Account             @relation(fields: [accountId], references: [id])
   sourceModule    CommentSourceModule
   sourceId        String
   parentCommentId String?             @db.Uuid
@@ -490,6 +499,11 @@ enum UnlockValue {
   ADVANCE
 }
 
+enum EventType {
+  PARENT
+  CHILD
+}
+
 // EVENT GENI
 model Event {
   id            String      @id @default(uuid()) @db.Uuid
@@ -497,6 +511,7 @@ model Event {
   data          Json
   deleted       Boolean     @default(false)
   attachmentId  String?     @db.Uuid
+  type          EventType   @default(PARENT)
   createdAt     DateTime    @default(now())
   updateAt      DateTime    @updatedAt
   createdBy     String      @db.Uuid
@@ -619,6 +634,8 @@ model RequestedJob {
   userId    String    @db.Uuid
   user      User      @relation(fields: [userId], references: [id])
   source    JobSource
+  sourceId  String
+  processId Int?
   status    JobStatus @default(PENDING)
   inputData Json
   createdAt DateTime  @default(now())
@@ -626,7 +643,8 @@ model RequestedJob {
 }
 
 enum JobSource {
-  SEND_OTP
+  SEND_SIGNIN_OTP
+  SEND_SIGNUP_OTP
   SEND_ACCESS
   EVENT_CANCEl
   SEND_INVITE

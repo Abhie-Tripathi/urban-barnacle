@@ -25,6 +25,8 @@ import { UserResponseSchema } from '../me/dto';
 import { UserService } from '../user.service';
 import { AccessService } from 'src/access/access.service';
 import { GetAccessDto } from 'src/access/dto';
+import { InterestDefaultConfigurations } from '../account/account.config';
+import { InterestDefaultConfigurationsWithIndustry } from '../account/account.config';
 
 @Injectable()
 export class AuthService {
@@ -86,6 +88,9 @@ export class AuthService {
         }
         account = await this.accountDataService.createAccount({
           ...accountDefault,
+          interestConfig: data.industry
+            ? InterestDefaultConfigurationsWithIndustry[data.industry]
+            : InterestDefaultConfigurations.interests,
         });
         if (!blackListDomain.includes(domain)) {
           company = await this.companyDataService.createCompany({
@@ -117,6 +122,7 @@ export class AuthService {
           primaryCompanyId: company?.id,
           accountId: account.id,
           primaryAccountId: account.id,
+          firstname: data.email.split('@')[0],
         });
       }
 
@@ -160,14 +166,16 @@ export class AuthService {
     const verificationToken = await this.authDataService.getVerificationToken(
       data.email,
     );
+
     if (
       !verificationToken ||
       (verificationToken &&
-        verificationToken.passkey !== data.otp &&
-        verificationToken.expiresAt > new Date())
+        (verificationToken.passkey !== data.otp ||
+          verificationToken.expiresAt < new Date()))
     ) {
-      throw new HttpException('Invalid OTP', HttpStatus.UNAUTHORIZED);
+      throw new HttpException('Invalid OTP', HttpStatus.BAD_REQUEST);
     }
+    await this.authDataService.deleteVerificationToken(user.id);
     const accounts = await this.accountDataService.getAccounts({
       userId: user.id,
       limit: 10,
@@ -229,7 +237,7 @@ export class AuthService {
     const access = await this.accessService.getAccess(accessParams, true);
 
     if (!access || (access && access.length === 0)) {
-      throw new HttpException('Invalid Access', HttpStatus.UNAUTHORIZED);
+      throw new HttpException('Invalid Access', HttpStatus.BAD_REQUEST);
     }
     const foundAccess = access[0];
 

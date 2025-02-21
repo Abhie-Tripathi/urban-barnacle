@@ -538,6 +538,7 @@ export const QuerySchema = LimitSchema.extend(QueryFilter.shape)
       .optional(),
     view: z.nativeEnum(View).optional().default(View.list),
     calendar_type: z.nativeEnum(CalendarViewType).optional(),
+    trackerId: z.string().optional()
   })
   .transform((data) => {
     // const intersectedKeys = Object.keys(data).filter((key) =>
@@ -565,7 +566,7 @@ export const QuerySchema = LimitSchema.extend(QueryFilter.shape)
     return data;
   });
 
-export class QueryDto extends createZodDto(QuerySchema) {}
+export class QueryDto extends createZodDto(QuerySchema) { }
 
 export enum CountGroup {
   'year' = 'year',
@@ -613,7 +614,7 @@ export const CountQuerySchema = QueryFilter.extend({
   return data;
 });
 
-export class CountQueryDto extends createZodDto(CountQuerySchema) {}
+export class CountQueryDto extends createZodDto(CountQuerySchema) { }
 
 const groupByOptions = {
   date: 'date',
@@ -653,4 +654,10 @@ export const EventsTrendsSchema = QueryFilter.extend({
   }),
 });
 
-export class EventsTrendsDto extends createZodDto(EventsTrendsSchema) {}
+export class EventsTrendsDto extends createZodDto(EventsTrendsSchema) { }
+
+const sortSchema = z.strictObject({
+  sortBy: z.string().optional()
+})
+
+export class SortingDto extends createZodDto(sortSchema) { }

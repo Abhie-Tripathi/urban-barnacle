@@ -1,20 +1,46 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { EventsDataService } from './events.data.service';
-import { CountQueryDto, EventsTrendsDto, QueryDto, View } from './dto';
+import {
+  CountQueryDto,
+  EventsTrendsDto,
+  PocsUnmaskDto,
+  QueryDto,
+  SortingDto,
+  View,
+} from './dto';
 import { SharedService } from '../shared/shared.service';
 import { TCachedUser } from 'src/utils/types';
 import { getNonEmptyParams } from 'src/utils';
-import { transformEventData } from './global.service';
+import { eventSearchFilterCheck, transformEventData } from './global.service';
 import { IntentDataService } from 'src/intent/intent.data.service';
-
+import * as crypto from 'crypto';
+import { LimitDto } from 'src/global_dto';
+import { AccountService } from 'src/user/account/account.service';
 @Injectable()
 export class EventsService {
   constructor(
     private readonly eventsDataService: EventsDataService,
     private readonly sharedService: SharedService,
     private readonly intentDataService: IntentDataService,
-  ) {}
+  ) { }
+  encrypt(text: string): string {
+    const algorithm = 'aes-256-cbc';
+    const secretKey = crypto
+      .createHash('sha256')
+      .update(String(process.env.EVENT_QUERY_ENCRYPT))
+      .digest('base64')
+      .substring(0, 32);
+    const iv = Buffer.from(process.env.EVENT_CHIPR_IV ?? '', 'hex');
 
+    const cipher = crypto.createCipheriv(algorithm, secretKey, iv);
+    let encrypted = cipher.update(text, 'utf-8', 'hex');
+    encrypted += cipher.final('hex');
+    return encrypted;
+  }
+  async createLogForEncryptedQuery(query: QueryDto,
+    user: TCachedUser,) {
+    await this.eventsDataService.createLogForEncryptedQuery(this.encrypt(JSON.stringify(query)), user);
+  }
   async getAllEvents(
     query: QueryDto,
     validateIds: boolean = true,
@@ -25,6 +51,28 @@ export class EventsService {
       show = show.filter((item) => item !== 'old');
     }
     const nonEmptyParams = getNonEmptyParams({ ...query, show });
+    if (user) {
+      const queryParams: QueryDto = Object.assign(nonEmptyParams);
+      const configuration = await
+        this.eventsDataService.getAccountConfiguration(
+          user.accountConfigurationId,
+        );
+      if (
+        configuration && configuration['filter'] &&
+        Object.keys(configuration['filter']).length > 0
+      ) {
+        const { result, rootTodiscard } = eventSearchFilterCheck(
+          configuration,
+          queryParams,
+        );
+        if (!result && rootTodiscard.length > 1) {
+          throw new HttpException(
+            `Certain selected values like ${rootTodiscard} are restricted under your current plan.`,
+            HttpStatus.NOT_ACCEPTABLE,
+          );
+        }
+      }
+    }
     const convertedParams = await this.sharedService.convertSlugParamsToIds(
       nonEmptyParams,
       validateIds,
@@ -32,9 +80,8 @@ export class EventsService {
 
     const fetchedEvents =
       await this.eventsDataService.getEvents(convertedParams);
-
+    // console.log({ convertedParams }, { nonEmptyParams });
     let events = fetchedEvents;
-    console.log(query);
     if (
       ['list', 'tracker'].includes(query.view) &&
       !(query.eventTypes && query.eventTypes.includes('alert'))
@@ -44,6 +91,7 @@ export class EventsService {
         userInterests = await this.getGroupedEventInterests(
           user,
           events.events.map((event) => event.id),
+          query.trackerId,
         );
       }
       const transformedEvents = events.events.map((event) => {
@@ -54,11 +102,11 @@ export class EventsService {
 
           ...(query.show && query.show.includes('old')
             ? {
-                isSaved:
-                  userInterests[event.id] && userInterests[event.id]['bookmark']
-                    ? true
-                    : false,
-              }
+              isSaved:
+                userInterests[event.id] && userInterests[event.id]['bookmark']
+                  ? true
+                  : false,
+            }
             : { interests: userInterests[event.id] }),
         };
       });
@@ -87,7 +135,7 @@ export class EventsService {
     const event = data.events[0];
     let userInterests = {};
     if (user) {
-      userInterests = await this.getGroupedEventInterests(user, [event.id]);
+      userInterests = await this.getGroupedEventInterests(user, [event.id], undefined);
     }
     const eventResponse = {
       ...transformEventData(event),
@@ -96,10 +144,11 @@ export class EventsService {
     return eventResponse;
   }
 
-  async getGroupedEventInterests(user: TCachedUser, eventIds: string[]) {
+  async getGroupedEventInterests(user: TCachedUser, eventIds: string[], trackerId: string | undefined = undefined) {
     const interests = await this.intentDataService.getAllEventInterestsByUser(
       user,
       eventIds,
+      trackerId
     );
 
     const groupedInterests = interests.reduce((acc, interest) => {
@@ -123,12 +172,12 @@ export class EventsService {
     return count;
   }
 
-  async getEventPocs(eventId: string) {
-    return await this.eventsDataService.getEventPocs(eventId);
+  async getEventPocs(eventId: string, query: SortingDto) {
+    return await this.eventsDataService.getEventPocs(eventId, query.sortBy ? query.sortBy : 'desc');
   }
 
-  async getEventEditions(eventId: string) {
-    return await this.eventsDataService.getEventEditions(eventId);
+  async getEventEditions(eventId: string, query: LimitDto) {
+    return await this.eventsDataService.getEventEditions(eventId, query);
   }
 
   async getEventCoorganizers(eventId: string) {
@@ -139,22 +188,70 @@ export class EventsService {
     return await this.eventsDataService.getEventRankings(eventId);
   }
 
-  async getEventSpeakers(eventId: string) {
-    return await this.eventsDataService.getEventSpeakers(eventId);
+  async getEventSpeakers(eventId: string, query: LimitDto) {
+    return await this.eventsDataService.getEventSpeakers(eventId, query);
   }
 
-  async getEventSponsors(eventId: string) {
-    return await this.eventsDataService.getEventSponsors(eventId);
+  async getEventSponsors(eventId: string, query: LimitDto) {
+    return await this.eventsDataService.getEventSponsors(eventId, query);
   }
 
-  async getEventExhibitors(eventId: string) {
-    return await this.eventsDataService.getEventExhibitors(eventId);
+  async getEventExhibitors(eventId: string, query: LimitDto) {
+    return await this.eventsDataService.getEventExhibitors(eventId, query);
   }
 
   async getEventPolygons(eventId: string) {
     return await this.eventsDataService.getEventPolygons(eventId);
   }
-
+  async getEventPocsUnmasked(
+    eventId: string,
+    pocId: string,
+    query: PocsUnmaskDto,
+    user: TCachedUser,
+  ) {
+    const { checkForEntry, limitForPoc } =
+      await this.eventsDataService.getUserPocLimitAndPocunloackedValues(
+        eventId,
+        pocId,
+        query,
+        user,
+      );
+    const noOfUnloackedPoc: number = limitForPoc?.pendingPocUnlockRequests
+      ? limitForPoc.pendingPocUnlockRequests
+      : 0;
+    if (noOfUnloackedPoc <= 0) {
+      throw new HttpException(
+        'limit exceeded for event poc viewing',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    for (const val of query.unlockValue) {
+      let checkForCase: boolean = false;
+      let id: string = '';
+      checkForEntry.map((entry) => {
+        if (entry.unlockValue === val) {
+          checkForCase = true;
+          id = entry.id;
+        }
+      });
+      if (checkForCase) {
+        this.eventsDataService.updateEventPocunlocakedEntry(id, user.id);
+      } else {
+        this.eventsDataService.createUnlocakedPocEntryAndDeductPocLimitPoint(
+          eventId,
+          pocId,
+          val,
+          user,
+          noOfUnloackedPoc - 1,
+        );
+      }
+    }
+    return await this.eventsDataService.getEventsPocsunloacked(
+      pocId,
+      query.unlockValue,
+    );
+    // return await this.eventsDataService.getEventPolygons(eventId);
+  }
   async getEventsTrends(query: EventsTrendsDto) {
     const nonEmptyParams = getNonEmptyParams(query);
     const convertedParams = await this.sharedService.convertSlugParamsToIds(

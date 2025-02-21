@@ -1,3 +1,4 @@
+import { EventType } from '@prisma/client';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
@@ -8,7 +9,7 @@ export const eventDto = z.strictObject({
   // interest: z.string().optional(),
   // sourceId: z.string().optional(),
   note: z.string().optional(),
-  type: z.string().optional(),
+  type: z.nativeEnum(EventType).default('PARENT'),
   widgetId: z.string().optional(),
   eventId: z.string().optional(),
   capacity: z.string().optional(),
@@ -17,7 +18,7 @@ export const eventDto = z.strictObject({
   approval: z.string().optional(),
 });
 
-export class CreateEventDto extends createZodDto(eventDto) {}
+export class CreateEventDto extends createZodDto(eventDto) { }
 export const UpdateeventDto = z.strictObject({
   id: z.string(),
   name: z.string().optional(),
@@ -33,7 +34,7 @@ export const UpdateeventDto = z.strictObject({
   maxCapacity: z.string().optional(),
 });
 
-export class UpdateEventDto extends createZodDto(UpdateeventDto) {}
+export class UpdateEventDto extends createZodDto(UpdateeventDto) { }
 export const EventDetailsSchema = z.object({
   start_date: z.string(),
   end_date: z.string(),
@@ -69,4 +70,4 @@ export const eventspeakerDto = z.strictObject({
   isExhibitor: z.string().optional(),
 });
 
-export class EventSpeakerDto extends createZodDto(eventspeakerDto) {}
+export class EventSpeakerDto extends createZodDto(eventspeakerDto) { }

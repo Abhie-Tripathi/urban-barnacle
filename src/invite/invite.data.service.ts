@@ -10,7 +10,7 @@ export class InviteDataService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly communicationService: CommunicationService,
-  ) {}
+  ) { }
   async findAllowance(userId: string) {
     const allowcation = await this.prisma.credit.findFirst({
       where: {
@@ -91,6 +91,7 @@ export class InviteDataService {
     redirectUrl: string,
     userInterestId: string,
     userId: string,
+    invitaionId: string
   ) {
     const algorithm = 'aes-256-cbc';
     const iv = crypto.randomBytes(16);
@@ -112,6 +113,7 @@ export class InviteDataService {
       .slice(0, 32);
 
     const jobPayload: Object = {
+      sourceId: invitaionId,
       userEmail: email,
       eventName: eventData.name,
       eventStartDate: (eventData.data as any)['start_date'],

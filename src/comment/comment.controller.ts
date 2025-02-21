@@ -6,13 +6,18 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { CommentService } from './comment.service';
 import { TCachedUser } from 'src/utils/types';
 import { GetUser } from 'src/user/decorator';
 import { CreateCommentHttpDto, UpdateCommentHttpDto } from './dto';
 import { AuthGuard } from 'src/user/auth/guard';
+import { FileInterceptor } from '@nest-lab/fastify-multer';
+import { CreateIntentHttpDto } from 'src/intent/dto';
+import { IntentTargetModule } from '@prisma/client';
 
 @Controller('comments')
 export class CommentController {
@@ -20,12 +25,13 @@ export class CommentController {
 
   @Post()
   @UseGuards(AuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
   async createComment(
     @Body() data: CreateCommentHttpDto,
     @GetUser() user: TCachedUser,
+    @UploadedFile() file: File,
   ) {
     try {
-      console.log(data);
       const comment = await this.commentService.createComment(user, data);
       return { data: comment };
     } catch (error) {
@@ -41,6 +47,39 @@ export class CommentController {
     @GetUser() user: TCachedUser,
   ) {
     return this.commentService.updateComment(user, { ...data, id });
+  }
+
+  @UseGuards(AuthGuard)
+  @Post(':id/upvote')
+  async createUpvote(@Param('id') id: string, @GetUser() user: TCachedUser) {
+    try {
+      const upvote = await this.commentService.createCommentUpvote(user, {
+        targetId: id,
+        targetModule: IntentTargetModule.COMMENT,
+      });
+      return {
+        data: upvote,
+      };
+    } catch (error) {
+      return {
+        error: error,
+      };
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Delete(':id/upvote')
+  async deleteUpvote(@Param('id') id: string, @GetUser() user: TCachedUser) {
+    try {
+      const upvote = await this.commentService.deleteCommentUpvote(user, id);
+      return {
+        data: upvote,
+      };
+    } catch (error) {
+      return {
+        error: error,
+      };
+    }
   }
 
   @Delete(':id')
