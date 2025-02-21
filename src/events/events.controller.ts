@@ -21,8 +21,8 @@ export class EventsController {
   @Get()
   async getAllEvents(@Query() query: QueryDto, @GetUser() user: TCachedUser) {
     try {
-      this.eventsService.createLogForEncryptedQuery(query, user);
       const events = await this.eventsService.getAllEvents(query, true, user);
+      this.eventsService.createLogForEncryptedQuery(query, user);
       return { data: events };
     } catch (error) {
       return {
