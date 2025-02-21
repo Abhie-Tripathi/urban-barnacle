@@ -499,6 +499,11 @@ enum UnlockValue {
   ADVANCE
 }
 
+enum EventType {
+  PARENT
+  CHILD
+}
+
 // EVENT GENI
 model Event {
   id            String      @id @default(uuid()) @db.Uuid
@@ -506,6 +511,7 @@ model Event {
   data          Json
   deleted       Boolean     @default(false)
   attachmentId  String?     @db.Uuid
+  type          EventType   @default(PARENT)
   createdAt     DateTime    @default(now())
   updateAt      DateTime    @updatedAt
   createdBy     String      @db.Uuid
