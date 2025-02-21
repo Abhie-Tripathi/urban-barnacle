@@ -7,7 +7,7 @@ export const WidgetUpdate = z.object({
   // type: z.nativeEnum(Type).optional(),
   status: z.nativeEnum(WidgetStatus).optional(),
   customizationData: z.record(z.any(), z.any()).optional(),
-  otherdata: z.record(z.any(), z.any()).optional(),
+  otherData: z.record(z.any(), z.any()).optional(),
   domain: z.string().optional(),
   deleted: z
     .boolean()
