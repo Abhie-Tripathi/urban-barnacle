@@ -204,6 +204,7 @@ export class PromotedEventsService {
         accountId: user.accountId,
         attachmentId: attachment_id,
         createdBy: user.id,
+        type: body.type,
         ...eventBody,
       });
       if (data.data) {
