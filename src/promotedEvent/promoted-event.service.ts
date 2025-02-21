@@ -379,7 +379,6 @@ export class PromotedEventsService {
           datachildSubEventConvert.push({
             ...child,
             data: data,
-            type: 'SUB',
             isWidgetLinked:
               Number(chileLinkedToWidget[0].id) > 0 ? true : false,
           });
@@ -390,7 +389,6 @@ export class PromotedEventsService {
           ...eventAllData,
           infinity: infinity,
           widgetData: widgetData,
-          type: 'MAIN',
           children: datachildSubEventConvert,
           isWidgetLinked: Number(isLinked[0].id) > 0 ? true : false,
         });
