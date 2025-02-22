@@ -73,7 +73,7 @@ export class AuthController {
       const data = await this.authService.verifyOtp(body);
       const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
       reply.setCookie(key, data.user.token);
-      return { data: { user: data.user.userData } };
+      return reply.send({ data: { user: data.user.userData } });
     } catch (error) {
       return { error: error };
     }
@@ -88,7 +88,7 @@ export class AuthController {
       const data = await this.authService.verifyAccess(body);
       const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
       reply.setCookie(key, data.user.token);
-      return { data: { user: data.user.userData } };
+      return reply.send({ data: { user: data.user.userData } });
     } catch (error) {
       return { error: error };
     }

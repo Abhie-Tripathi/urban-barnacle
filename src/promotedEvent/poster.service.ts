@@ -9,7 +9,7 @@ import getColors from 'get-image-colors';
 
 @Injectable()
 export class PosterService {
-  constructor(private configService: ConfigService) {}
+  constructor(private configService: ConfigService) { }
   async extractDominantColors(
     imageUrl: string,
     numColors = 3,
@@ -30,7 +30,7 @@ export class PosterService {
         buffer[2] === 0x4e &&
         buffer[3] === 0x47;
       if (!isJpeg && !isPng) {
-        throw new Error('Invalid image format');
+        throw new HttpException('Invalid image format', HttpStatus.INTERNAL_SERVER_ERROR);
       }
       const imageType = isJpeg ? 'image/jpeg' : 'image/png';
       const colors = await getColors(buffer, { type: imageType });

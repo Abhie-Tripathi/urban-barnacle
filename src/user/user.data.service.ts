@@ -2,8 +2,9 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, GetUsersDto, UpdateUserDto } from './dto';
 import { TCachedUser } from 'src/utils/types';
-import { Prisma } from '@prisma/client';
-import { getNameFromEmail } from 'src/utils';
+import { Prisma, UnlockType, UnlockValue } from '@prisma/client';
+import { encrypt, getNameFromEmail } from 'src/utils';
+import { microserviceEndpoints } from 'src/utils/endpoints';
 
 @Injectable()
 export class UserDataService {
@@ -107,5 +108,54 @@ export class UserDataService {
       },
     });
     return lastRequest;
+  }
+  async getPocUnlockedDatabyAccount(accountId: string, targetId: string | undefined, source: string, pocId: string) {
+    const request = await this.prisma.unlockedTransaction.findMany({
+      where: {
+        accountId: accountId,
+        targetId: targetId, // eventId /companyId
+        source: source, // page 
+        sourceId: pocId // userid
+      },
+    });
+    return request;
+  }
+  async craetePocunlockedTransaction(user: TCachedUser, targetId: string | undefined, source: string, pocId: string, unlockValue: UnlockValue, target: UnlockType) {
+    const request = await this.prisma.unlockedTransaction.create({
+      data: {
+        accountId: user.accountId,
+        targetId: targetId,
+        source: source,
+        target: target,
+        sourceId: pocId,
+        unlockedById: user.id,
+        unlockValue: unlockValue
+      },
+    });
+    return request;
+  }
+  async updatePocUnlockedTransaction(unlockedId: string) {
+    await this.prisma.unlockedTransaction.update({
+      where: {
+        id: unlockedId
+      },
+      data: {
+        updatedAt: new Date()
+      }
+    });
+    return { data: { message: 'updated' } };
+  }
+  async getPocsunlocked(pocId: string, params: UnlockValue[]) {
+    const url =
+      process.env.MICROSERVICE_URL +
+      microserviceEndpoints.events.eventPocsUnlocked +
+      '?' +
+      `unlockValue=${params.join(',').toLowerCase()}&pocId=${pocId}`;
+    const response = await fetch(url);
+    const { data, error } = await response.json();
+    if (!data || error) {
+      throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    return { ...data, id: encrypt(data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY) };
   }
 }
