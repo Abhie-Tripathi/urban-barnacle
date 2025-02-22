@@ -160,7 +160,7 @@ export class PromotedEventsService {
         eventBody['waitlisting'] = body.waitlisting === 'true' ? true : false;
       }
 
-      if (body.type && body.type.toUpperCase() === 'SUB' && body.eventId) {
+      if (body.type && body.type.toUpperCase() === 'CHILD' && body.eventId) {
         eventBody['parentEventId'] = body.eventId;
       }
       // jsonDta['userInfo'] = user;
@@ -309,7 +309,7 @@ export class PromotedEventsService {
         data.map((val) => val.id),
         user.accountId,
       );
-      // console.log('count',count[0].id, data, subEentId);
+      console.log('count', count[0].id, data, subEentId);
       const outData: any[] = [];
       for (const ids of data) {
         const subEventIdsFromdata: string[] = [];
@@ -346,10 +346,10 @@ export class PromotedEventsService {
           datachildSubEventConvert.push({
             ...child,
             data: data,
-            type: 'SUB',
             isWidgetLinked:
               Number(chileLinkedToWidget[0].id) > 0 ? true : false,
           });
+          console.log({ datachildSubEventConvert })
         }
         const infinity: boolean =
           eventAllData.capacity === -1 && eventAllData.data.maxCapacity == -1;
@@ -357,7 +357,6 @@ export class PromotedEventsService {
           ...eventAllData,
           infinity: infinity,
           widgetData: widgetData,
-          type: 'MAIN',
           children: datachildSubEventConvert,
           isWidgetLinked: Number(isLinked[0].id) > 0 ? true : false,
         });
