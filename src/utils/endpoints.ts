@@ -23,6 +23,11 @@ export const microserviceEndpoints = {
     trends: '/trends',
     eventPocsUnlocked: '/event/pocs/unlocked',
   },
+  company: {
+    search: '/company/search',
+    events: '/company/event',
+    poc: '/company/poc'
+  }
   //   trackerMetrics: '/tracker-metrics',
   //   predictedAttendance: '/trend/predicted-attendance/eventeli',
   //   predictedNumberOfEvents: '/trend/predicted-number-of-events/eventeli',

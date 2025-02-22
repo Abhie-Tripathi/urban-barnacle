@@ -67,7 +67,7 @@ export class KitService {
     const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch image. Status: ${response.status}`);
+      throw new HttpException(`Failed to fetch image. Status: ${response.status}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     const fileName = `${randomUUID() + new Date().toISOString()}.${flag}`; // or any other logic to generate file name

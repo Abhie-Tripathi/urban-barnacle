@@ -1,7 +1,7 @@
 export * from './sortBy';
 export * from './regions';
 export * from './timezones';
-
+import * as crypto from 'crypto';
 export function getNonEmptyParams(params: any) {
   return Object.keys(params).reduce(
     (acc, key) => {
@@ -28,4 +28,30 @@ export function getNameFromEmail(
   return firstname || lastname
     ? `${firstname} ${lastname || ''}`
     : email.split('@')[0];
+}
+
+
+const ALGORITHM = 'aes-256-cbc';
+const KEY = process.env.EVENT_QUERY_ENCRYPT ?? '';
+const IV = Buffer.from(process.env.EVENT_CHIPR_IV ??
+  '', 'hex'); // IV must match
+
+function getSecretKey(key: string): Buffer {
+  return Buffer.from(crypto.createHash('sha256').update(key).digest('hex').substring(0, 32));
+}
+
+export function encrypt(text: string, key: string = KEY): string {
+  const secretKey = getSecretKey(key);
+  const cipher = crypto.createCipheriv(ALGORITHM, secretKey, IV);
+  let encrypted = cipher.update(text, 'utf-8', 'hex');
+  encrypted += cipher.final('hex');
+  return encrypted;
+}
+
+export function decrypt(encryptedText: string, key: string = KEY): string {
+  const secretKey = getSecretKey(key);
+  const decipher = crypto.createDecipheriv(ALGORITHM, secretKey, IV);
+  let decrypted = decipher.update(encryptedText, 'hex', 'utf-8');
+  decrypted += decipher.final('utf-8');
+  return decrypted;
 }

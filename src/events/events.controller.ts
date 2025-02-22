@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  HttpException,
   HttpStatus,
   Param,
   Query,
@@ -12,45 +13,58 @@ import { AuthGuard } from 'src/user/auth/guard';
 import { TCachedUser } from 'src/utils/types';
 import { GetUser } from 'src/user/decorator';
 import { LimitDto } from 'src/global_dto';
+import { SharedService } from 'src/shared/shared.service';
+import { PointColumn } from 'src/shared/types';
 
 @Controller('events')
 export class EventsController {
-  constructor(private readonly eventsService: EventsService) { }
+  constructor(private readonly eventsService: EventsService,
+    private readonly sharedService: SharedService
+  ) { }
 
   @UseGuards(AuthGuard)
   @Get()
   async getAllEvents(@Query() query: QueryDto, @GetUser() user: TCachedUser) {
+    let flag = false;
     try {
+      const point = await this.sharedService.getPointForRequest(PointColumn.pendingRequests, user.accountId);
+      if (point <= 0) {
+        throw new HttpException('You have reached the maximum limit to view data. Please get in touch with us.', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
       const events = await this.eventsService.getAllEvents(query, true, user);
+      await this.sharedService.deductPointForRequest(PointColumn.pendingRequests, user.accountId, point - 1)
+      flag = true;
       this.eventsService.createLogForEncryptedQuery(query, user);
       return { data: events };
     } catch (error) {
+      if (flag)
+        this.sharedService.creditPointForRequest(PointColumn.pendingRequests, user.accountId)
       return {
         error,
       };
     }
   }
 
-  @UseGuards(AuthGuard)
-  @Get(':id/pocs/:pocId')
-  async getEventPocsUnmasked(
-    @Param('id') id: string,
-    @Param('pocId') pocId: string,
-    @Query() query: PocsUnmaskDto,
-    @GetUser() user: TCachedUser,
-  ) {
-    try {
-      const polygons = await this.eventsService.getEventPocsUnmasked(
-        id,
-        pocId,
-        query,
-        user,
-      );
-      return { data: polygons };
-    } catch (error) {
-      return { error };
-    }
-  }
+  // @UseGuards(AuthGuard)
+  // @Get(':id/pocs/:pocId')
+  // async getEventPocsUnmasked(
+  //   @Param('id') id: string,
+  //   @Param('pocId') pocId: string,
+  //   @Query() query: PocsUnmaskDto,
+  //   @GetUser() user: TCachedUser,
+  // ) {
+  //   try {
+  //     const polygons = await this.eventsService.getEventPocsUnmasked(
+  //       id,
+  //       pocId,
+  //       query,
+  //       user,
+  //     );
+  //     return { data: polygons };
+  //   } catch (error) {
+  //     return { error };
+  //   }
+  // }
   @UseGuards(AuthGuard)
   @Get('/count')
   async getEventCount(@Query() query: CountQueryDto) {

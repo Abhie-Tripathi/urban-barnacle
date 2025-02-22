@@ -9,6 +9,7 @@ import { FastifyReply } from 'fastify';
 import { get } from 'http';
 import { TCachedUser } from 'src/utils/types';
 import { LimitDto } from 'src/global_dto';
+import { encrypt } from 'src/utils';
 
 @Injectable()
 export class EventsDataService {
@@ -98,7 +99,16 @@ export class EventsDataService {
     if (!data || error) {
       throw new HttpException(error, HttpStatus.BAD_REQUEST);
     }
-    return data;
+    const reponseData: { eventPoCs: object[] } = { eventPoCs: [] };
+    console.log(data, data.eventPoCs.length > 0)
+    if (data.eventPoCs.length > 0) {
+      for (const val of data.eventPoCs) {
+        reponseData.eventPoCs.push({ ...val, id: encrypt(val.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY) })
+        console.log("m")
+      }
+      console.log("l")
+    }
+    return reponseData;
   }
 
   async getEventEditions(eventId: string, query: LimitDto) {
@@ -231,69 +241,7 @@ export class EventsDataService {
     }
     return data;
   }
-  async getUserPocLimitAndPocunloackedValues(
-    eventId: string,
-    pocId: string,
-    query: PocsUnmaskDto,
-    user: TCachedUser,
-  ) {
-    const [checkForEntry, limitForPoc] = await Promise.all([
-      this.prisma.unlockedTransaction.findMany({
-        where: {
-          accountId: user.accountId,
-          eventId: eventId,
-          unlockValue: { in: query.unlockValue },
-          unlockByUserId: pocId,
-        },
-      }),
-      this.prisma.account.findFirst({
-        where: {
-          id: user.accountId,
-        },
-      }),
-    ]);
-    return { checkForEntry, limitForPoc };
-  }
-  async createUnlocakedPocEntryAndDeductPocLimitPoint(
-    eventId: string,
-    pocId: string,
-    unlockValue: UnlockValue,
-    user: TCachedUser,
-    limit: number,
-  ) {
-    await this.prisma.unlockedTransaction.create({
-      data: {
-        accountId: user.accountId,
-        eventId: eventId,
-        unlockValue: unlockValue,
-        unlockByUserId: pocId,
-        source: 'CONTACT_DETAIL',
-        unlockedById: user.id,
-        unlockType: 'USER',
-      },
-    });
-    // }
-    await this.prisma.account.update({
-      where: {
-        id: user.accountId,
-      },
-      data: {
-        pendingPocUnlockRequests: limit,
-      },
-    });
-    return { message: 'Poc unlocked successfully' };
-  }
-  async updateEventPocunlocakedEntry(unlocakedEntryId: string, userId: string) {
-    await this.prisma.unlockedTransaction.update({
-      where: {
-        id: unlocakedEntryId,
-      },
-      data: {
-        unlockedById: userId,
-      },
-    });
-    return { message: 'Poc unlocked entry updated successfully' };
-  }
+
   async getAccountConfiguration(configurationId: string) {
     const configuration = await this.prisma.configuration.findUnique({
       where: { id: configurationId },
@@ -302,21 +250,6 @@ export class EventsDataService {
       throw new HttpException('configuration not found', HttpStatus.NOT_FOUND);
     }
     return configuration.config;
-  }
-  async getEventsPocsunloacked(pocId: string, params: UnlockValue[]) {
-    const url =
-      this.configService.get('MICROSERVICE_URL') +
-      microserviceEndpoints.events.eventPocsUnlocked +
-      '?' +
-      `unlockValue=${params.join(',').toLowerCase()}&pocId=${pocId}`;
-    const response = await fetch(url);
-    const { data, error } = await response.json();
-    console.log(url, error, data);
-
-    if (!data || error) {
-      throw new HttpException(error, HttpStatus.BAD_REQUEST);
-    }
-    return data;
   }
   async createEventExport(exportData: Export) {
     try {

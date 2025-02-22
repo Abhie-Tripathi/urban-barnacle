@@ -4,9 +4,10 @@ import { Prisma } from '@prisma/client';
 import { TCachedUser } from 'src/utils/types';
 import { GetRecentEventSearchesDto } from './dto';
 import * as crypto from 'crypto';
+import { decrypt } from 'src/utils';
 @Injectable()
 export class MeDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async getLastRequest(user: TCachedUser, path: string) {
     const lastRequest = await this.prisma.userActivity.findFirst({
@@ -49,24 +50,9 @@ export class MeDataService {
     });
     return recentSearches.map((data) => {
       return {
-        filterValues: JSON.parse(this.decrypt((data.request as any).data)),
+        filterValues: JSON.parse(decrypt((data.request as any).data)),
         requestedAt: data.updatedAt,
       };
     });
-  }
-  decrypt(encryptedText: string): string {
-    const algorithm = 'aes-256-cbc';
-    const secretKey = crypto
-      .createHash('sha256')
-      .update(String(process.env.EVENT_QUERY_ENCRYPT))
-      .digest('base64')
-      .substr(0, 32);
-    const iv = Buffer.from(process.env.EVENT_CHIPR_IV ?? '', 'hex');
-
-    const decipher = crypto.createDecipheriv(algorithm, secretKey, iv);
-    let decrypted = decipher.update(encryptedText, 'hex', 'utf-8');
-    decrypted += decipher.final('utf-8');
-
-    return decrypted;
   }
 }

@@ -473,16 +473,16 @@ model Configuration {
 model UnlockedTransaction {
   id             String      @id @default(uuid()) @db.Uuid
   accountId      String      @db.Uuid
-  unlockByUserId String
+  unlockedById   String      @db.Uuid
   sourceId       String
   source         String
   unlockValue    UnlockValue
   target         UnlockType
   targetId       String?
   createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
   account        Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
   unlockedByUser User        @relation(fields: [unlockedById], references: [id], onDelete: Cascade)
-  unlockedById   String      @db.Uuid
 }
 
 // enum UnlockSource {

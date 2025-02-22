@@ -81,41 +81,7 @@ export class PromotedEventsService {
   //   }
   // }
 
-  encrypt(text: string): string {
-    const algorithm = 'aes-256-cbc';
-    const secretKey = crypto
-      .createHash('sha256')
-      .update(String('your-secret-key'))
-      .digest('base64')
-      .substr(0, 32);
-    const staticIv = crypto
-      .createHash('sha256')
-      .update(String('your-fixed-iv'))
-      .digest()
-      .slice(0, 16);
-    const cipher = crypto.createCipheriv(algorithm, secretKey, staticIv);
-    let encrypted = cipher.update(text, 'utf-8', 'hex');
-    encrypted += cipher.final('hex');
-    return encrypted;
-  }
 
-  decrypt(encryptedText: string): string {
-    const algorithm = 'aes-256-cbc';
-    const secretKey = crypto
-      .createHash('sha256')
-      .update(String('your-secret-key'))
-      .digest('base64')
-      .substr(0, 32);
-    const staticIv = crypto
-      .createHash('sha256')
-      .update(String('your-fixed-iv'))
-      .digest()
-      .slice(0, 16);
-    const decipher = crypto.createDecipheriv(algorithm, secretKey, staticIv);
-    let decrypted = decipher.update(encryptedText, 'hex', 'utf-8');
-    decrypted += decipher.final('utf-8');
-    return decrypted;
-  }
 
   async createEvent(
     body: CreateEventDto,
@@ -150,7 +116,7 @@ export class PromotedEventsService {
         const response = await fetch(body.logoUrl);
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch image. Status: ${response.status}`);
+          throw new HttpException(`Failed to fetch image. Status: ${response.status}`, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         const fileName = `${randomUUID() + new Date().toISOString()}.jpg`; // or any other logic to generate file name
@@ -575,7 +541,7 @@ export class PromotedEventsService {
         const response = await fetch(body.logoUrl);
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch image. Status: ${response.status}`);
+          throw new HttpException(`Failed to fetch image. Status: ${response.status}`, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         const fileName = `${randomUUID() + new Date().toISOString()}.jpg`; // or any other logic to generate file name
