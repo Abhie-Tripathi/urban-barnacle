@@ -28,7 +28,7 @@ export class MeService {
   ) { }
   async getMe(userId: string) {
     const user = await this.userDataService.getUsers({ id: [userId as unknown as any], limit: 10, offset: 0 });
-    return user;
+    return user[0];
   }
   async updateMe(userId: string, params: UpdateMeDto) {
     const user = await this.userDataService.updateUser({
