@@ -40,7 +40,7 @@ export class TrackerService {
     private readonly userDataService: UserDataService,
     private readonly configService: ConfigService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) { }
+  ) {}
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const nonEmptyParams = getNonEmptyParams(data.filterValues);
@@ -88,9 +88,9 @@ export class TrackerService {
           : undefined;
     tracker.filterValues = tracker.filterValues
       ? {
-        ...(tracker.filterValues as Record<string, any>),
-        searchByEntity,
-      }
+          ...(tracker.filterValues as Record<string, any>),
+          searchByEntity,
+        }
       : { searchByEntity };
 
     const savedEventsCount =
@@ -304,17 +304,16 @@ export class TrackerService {
     const newParams = getNonEmptyParams(params);
     const convertedParams =
       await this.sharedService.convertSlugParamsToIds(newParams);
-
     if (params.trackerEventStatus && params.trackerEventStatus === 'past') {
       convertedParams['active_lte'] = tracker.filterValues
         ? new Date(
-          Math.min(
-            new Date(
-              tracker.filterValues['active_lte'] || new Date(),
-            ).valueOf(),
-            new Date().valueOf(),
-          ),
-        ).toISOString()
+            Math.min(
+              new Date(
+                tracker.filterValues['active_lte'] || new Date(),
+              ).valueOf(),
+              new Date().valueOf(),
+            ),
+          ).toISOString()
         : new Date().toISOString();
     } else if (
       params.trackerEventStatus &&
@@ -322,13 +321,13 @@ export class TrackerService {
     ) {
       convertedParams['active_gte'] = tracker.filterValues
         ? new Date(
-          Math.max(
-            new Date(
-              tracker.filterValues['active_gte'] || new Date(),
-            ).valueOf(),
-            new Date().valueOf(),
-          ),
-        ).toISOString()
+            Math.max(
+              new Date(
+                tracker.filterValues['active_gte'] || new Date(),
+              ).valueOf(),
+              new Date().valueOf(),
+            ),
+          ).toISOString()
         : new Date().toISOString();
     }
     if (params.trackerEventStatus && params.trackerEventStatus === 'new') {
@@ -351,13 +350,18 @@ export class TrackerService {
           : tracker.type === 'T_RECRUITMENT'
             ? 'recruitment'
             : undefined;
+    if (tracker.filterValues && tracker.filterValues['viewBound']) {
+      tracker.filterValues['viewBound'] = JSON.stringify(
+        tracker.filterValues['viewBound'],
+      );
+    }
     const eventParams = {
       ...(tracker.filterValues as Object),
       limit: params.limit,
       offset: params.offset,
       view: View.tracker,
       ...convertedParams,
-      trackerId: trackerId
+      trackerId: trackerId,
     } as QueryDto;
     if (searchByEntity) {
       eventParams['searchByEntity'] = searchByEntity;
@@ -429,27 +433,24 @@ export class TrackerService {
     if (params.type && params.type === 'past') {
       convertedParams['active_lte'] = tracker.filterValues
         ? new Date(
-          Math.min(
-            new Date(
-              tracker.filterValues['active_lte'] || new Date(),
-            ).valueOf(),
-            new Date().valueOf(),
-          ),
-        ).toISOString()
+            Math.min(
+              new Date(
+                tracker.filterValues['active_lte'] || new Date(),
+              ).valueOf(),
+              new Date().valueOf(),
+            ),
+          ).toISOString()
         : new Date().toISOString();
-    } else if (
-      params.type &&
-      params.type === 'active'
-    ) {
+    } else if (params.type && params.type === 'active') {
       convertedParams['active_gte'] = tracker.filterValues
         ? new Date(
-          Math.max(
-            new Date(
-              tracker.filterValues['active_gte'] || new Date(),
-            ).valueOf(),
-            new Date().valueOf(),
-          ),
-        ).toISOString()
+            Math.max(
+              new Date(
+                tracker.filterValues['active_gte'] || new Date(),
+              ).valueOf(),
+              new Date().valueOf(),
+            ),
+          ).toISOString()
         : new Date().toISOString();
     }
     if (params.type && params.type === 'new') {
@@ -459,6 +460,9 @@ export class TrackerService {
         tracker.createdAt,
       );
       convertedParams['createdAt'] = lastActive.last_active_gte;
+    }
+    if (tracker.filterValues && tracker.filterValues['viewBound']) {
+      tracker.filterValues['viewBound'] = JSON.stringify(params.viewBound);
     }
     const eventParams = {
       ...(tracker.filterValues as Object),
@@ -545,7 +549,10 @@ export class TrackerService {
       'SUPER_ADMIN',
       'USER',
     ]);
-    const resposeForAccessUser: { superAdmin: object[], others: object[] } = { others: [], superAdmin: [] };
+    const resposeForAccessUser: { superAdmin: object[]; others: object[] } = {
+      others: [],
+      superAdmin: [],
+    };
     const users = (
       await this.accessService.getAccess({
         sourceEntity: 'TRACKER',
@@ -558,17 +565,17 @@ export class TrackerService {
     ).map((item) => {
       const user = item.accessReceiver;
       if (item.accessType === 'SUPER_ADMIN') {
-        resposeForAccessUser.superAdmin = [{
-          id: user.id,
-          name: getNameFromEmail(user.email, user.firstname, user.lastname),
-          email: user.email,
-          imageUrl: user.imageUrl,
-          accessType: item.accessType,
-          accessId: item.id,
-        }];
-      }
-      else if (['ADMIN',
-        'USER',].includes(item.accessType)) {
+        resposeForAccessUser.superAdmin = [
+          {
+            id: user.id,
+            name: getNameFromEmail(user.email, user.firstname, user.lastname),
+            email: user.email,
+            imageUrl: user.imageUrl,
+            accessType: item.accessType,
+            accessId: item.id,
+          },
+        ];
+      } else if (['ADMIN', 'USER'].includes(item.accessType)) {
         resposeForAccessUser.others.push({
           id: user.id,
           name: getNameFromEmail(user.email, user.firstname, user.lastname),
@@ -576,7 +583,7 @@ export class TrackerService {
           imageUrl: user.imageUrl,
           accessType: item.accessType,
           accessId: item.id,
-        })
+        });
       }
     });
     return resposeForAccessUser;

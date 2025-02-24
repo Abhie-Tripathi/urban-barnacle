@@ -27,6 +27,7 @@ import { AccessService } from 'src/access/access.service';
 import { GetAccessDto } from 'src/access/dto';
 import { InterestDefaultConfigurations } from '../account/account.config';
 import { InterestDefaultConfigurationsWithIndustry } from '../account/account.config';
+import { AccountService } from '../account/account.service';
 
 @Injectable()
 export class AuthService {
@@ -35,6 +36,7 @@ export class AuthService {
     // @InjectQueue('otpProcessor') private readonly otpEmailQueue: Queue,
     private readonly userDataService: UserDataService,
     private readonly accountDataService: AccountDataService,
+    private readonly accountService: AccountService,
     private readonly companyDataService: CompanyDataService,
     private readonly authDataService: AuthDataService,
     private readonly configService: ConfigService,
@@ -48,21 +50,25 @@ export class AuthService {
     if (blackListDomain.includes(domain)) {
       throw new HttpException('Domain not allowed', HttpStatus.BAD_REQUEST);
     }
-    let [user, company] = await Promise.all([
-      await this.userDataService.getUsers({
+    let [users, company] = await Promise.all([
+      this.userDataService.getUsers({
         email: [data.email],
         limit: 1,
         offset: 0,
-      })[0],
+      }),
       blackListDomain.includes(domain)
         ? null
         : await this.companyDataService.getCompany({
             domain: domain,
           }),
     ]);
-
+    let user = users && users.length > 0 ? users[0] : null;
     let account = company ? { id: company.accountId } : null;
-    if (user && company) {
+    if (
+      user &&
+      user.currentOnboardingState !== OnboardingState.VERIFICATION &&
+      company
+    ) {
       account = (
         await this.accountDataService.getAccounts({
           id: company.accountId,
@@ -117,13 +123,43 @@ export class AuthService {
       }
       if (!user) {
         user = await this.userDataService.createUser({
+          firstname: data.email.split('@')[0],
           ...data,
           role: 'CUSTOMER',
           primaryCompanyId: company?.id,
           accountId: account.id,
           primaryAccountId: account.id,
-          firstname: data.email.split('@')[0],
         });
+      } else if (
+        user &&
+        user.currentOnboardingState === OnboardingState.VERIFICATION &&
+        company
+      ) {
+        await this.userDataService.updateUser({
+          id: user.id,
+          ...data,
+        });
+        const accounts = await this.accountDataService.getAccounts({
+          id: company.accountId,
+          userId: user.id,
+          limit: 1,
+          offset: 0,
+        });
+        const account = accounts && accounts.length > 0 ? accounts[0] : null;
+        if (account) {
+          await this.accountService.updateAccountConfiguration(
+            {
+              ...user,
+              accountId: account.id,
+              accountConfigurationId: account.configurationId,
+              token: '',
+            },
+            'interest',
+            data.industry
+              ? InterestDefaultConfigurationsWithIndustry[data.industry]
+              : InterestDefaultConfigurations.interests,
+          );
+        }
       }
 
       await this.authDataService.createVerificationToken(user, 'sign-up');

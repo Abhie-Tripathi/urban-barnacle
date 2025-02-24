@@ -185,9 +185,14 @@ export const QueryFilter = z.object({
     })
     .optional(),
   viewBound: z
-    .string()
+    .union([z.string(), viewBound])
     .transform((data) => {
-      return data ? viewBound.parse(JSON.parse(data)) : undefined;
+      if (!data) return undefined;
+      if (typeof data === 'string') {
+        return viewBound.parse(JSON.parse(data));
+      } else {
+        return viewBound.parse(data);
+      }
     })
     .optional(),
   eventTypes: z
