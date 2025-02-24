@@ -72,7 +72,11 @@ export class SharedService {
     }
   }
 
-  async convertSlugParamsToIds(params: any, validateIds: boolean = true) {
+  async convertSlugParamsToIds(
+    params: any,
+    validateIds: boolean = true,
+    transformViewBound = true,
+  ) {
     if (params.categories && params.categories.length > 0 && validateIds) {
       const categoriesSlug = params.categories as string[];
       const categories = (await this.suggestionService.getSuggestions(
@@ -176,9 +180,11 @@ export class SharedService {
     // if (params.geoCoordinates) {
     //   params.geoCoordinates = JSON.stringify(params.geoCoordinates);
     // }
-    // if (params.viewBound && validateIds) {
-    //   params.viewBound = params.viewBound;
-    // }
+    if (params.viewBound) {
+      params.viewBound = transformViewBound
+        ? JSON.stringify(params.viewBound)
+        : params.viewBound;
+    }
     return params;
   }
 

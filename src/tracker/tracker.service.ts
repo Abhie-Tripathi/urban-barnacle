@@ -44,8 +44,11 @@ export class TrackerService {
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const nonEmptyParams = getNonEmptyParams(data.filterValues);
-    const convertedParams =
-      await this.sharedService.convertSlugParamsToIds(nonEmptyParams);
+    const convertedParams = await this.sharedService.convertSlugParamsToIds(
+      nonEmptyParams,
+      true,
+      false,
+    );
     const tracker = await this.trackerDataService.createTracker(user, {
       ...data,
       filterValues: convertedParams,
@@ -272,8 +275,11 @@ export class TrackerService {
     };
     if (data.filterValues) {
       const nonEmptyParams = getNonEmptyParams(data.filterValues);
-      const convertedParams =
-        await this.sharedService.convertSlugParamsToIds(nonEmptyParams);
+      const convertedParams = await this.sharedService.convertSlugParamsToIds(
+        nonEmptyParams,
+        true,
+        false,
+      );
       updateParams['filterValues'] = convertedParams;
     }
     return await this.trackerDataService.updateTracker(user, updateParams);
@@ -350,11 +356,7 @@ export class TrackerService {
           : tracker.type === 'T_RECRUITMENT'
             ? 'recruitment'
             : undefined;
-    if (tracker.filterValues && tracker.filterValues['viewBound']) {
-      tracker.filterValues['viewBound'] = JSON.stringify(
-        tracker.filterValues['viewBound'],
-      );
-    }
+
     const eventParams = {
       ...(tracker.filterValues as Object),
       limit: params.limit,

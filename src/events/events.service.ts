@@ -5,6 +5,7 @@ import {
   EventsTrendsDto,
   PocsUnmaskDto,
   QueryDto,
+  Show,
   SortingDto,
   View,
 } from './dto';
@@ -22,7 +23,7 @@ export class EventsService {
     private readonly eventsDataService: EventsDataService,
     private readonly sharedService: SharedService,
     private readonly intentDataService: IntentDataService,
-  ) { }
+  ) {}
   encrypt(text: string): string {
     const algorithm = 'aes-256-cbc';
     const secretKey = crypto
@@ -37,9 +38,11 @@ export class EventsService {
     encrypted += cipher.final('hex');
     return encrypted;
   }
-  async createLogForEncryptedQuery(query: QueryDto,
-    user: TCachedUser,) {
-    await this.eventsDataService.createLogForEncryptedQuery(this.encrypt(JSON.stringify(query)), user);
+  async createLogForEncryptedQuery(query: QueryDto, user: TCachedUser) {
+    await this.eventsDataService.createLogForEncryptedQuery(
+      this.encrypt(JSON.stringify(query)),
+      user,
+    );
   }
   async getAllEvents(
     query: QueryDto,
@@ -47,18 +50,20 @@ export class EventsService {
     user?: TCachedUser,
   ) {
     let show = query.show || [];
-    if (show.includes('old')) {
-      show = show.filter((item) => item !== 'old');
+    if (show.includes(Show.old)) {
+      show = show.filter((item) => item !== Show.old);
     }
+    console.log({ show });
     const nonEmptyParams = getNonEmptyParams({ ...query, show });
     if (user) {
       const queryParams: QueryDto = Object.assign(nonEmptyParams);
-      const configuration = await
-        this.eventsDataService.getAccountConfiguration(
+      const configuration =
+        await this.eventsDataService.getAccountConfiguration(
           user.accountConfigurationId,
         );
       if (
-        configuration && configuration['filter'] &&
+        configuration &&
+        configuration['filter'] &&
         Object.keys(configuration['filter']).length > 0
       ) {
         const { result, rootTodiscard } = eventSearchFilterCheck(
@@ -96,17 +101,17 @@ export class EventsService {
       }
       const transformedEvents = events.events.map((event) => {
         return {
-          ...(query.show && query.show.includes('old')
+          ...(query.show && query.show.includes(Show.old)
             ? event
             : transformEventData(event)),
 
-          ...(query.show && query.show.includes('old')
+          ...(query.show && query.show.includes(Show.old)
             ? {
-              isSaved:
-                userInterests[event.id] && userInterests[event.id]['bookmark']
-                  ? true
-                  : false,
-            }
+                isSaved:
+                  userInterests[event.id] && userInterests[event.id]['bookmark']
+                    ? true
+                    : false,
+              }
             : { interests: userInterests[event.id] }),
         };
       });
@@ -135,7 +140,11 @@ export class EventsService {
     const event = data.events[0];
     let userInterests = {};
     if (user) {
-      userInterests = await this.getGroupedEventInterests(user, [event.id], undefined);
+      userInterests = await this.getGroupedEventInterests(
+        user,
+        [event.id],
+        undefined,
+      );
     }
     const eventResponse = {
       ...transformEventData(event),
@@ -144,11 +153,15 @@ export class EventsService {
     return eventResponse;
   }
 
-  async getGroupedEventInterests(user: TCachedUser, eventIds: string[], trackerId: string | undefined = undefined) {
+  async getGroupedEventInterests(
+    user: TCachedUser,
+    eventIds: string[],
+    trackerId: string | undefined = undefined,
+  ) {
     const interests = await this.intentDataService.getAllEventInterestsByUser(
       user,
       eventIds,
-      trackerId
+      trackerId,
     );
 
     const groupedInterests = interests.reduce((acc, interest) => {
@@ -173,7 +186,10 @@ export class EventsService {
   }
 
   async getEventPocs(eventId: string, query: SortingDto) {
-    return await this.eventsDataService.getEventPocs(eventId, query.sortBy ? query.sortBy : 'desc');
+    return await this.eventsDataService.getEventPocs(
+      eventId,
+      query.sortBy ? query.sortBy : 'desc',
+    );
   }
 
   async getEventEditions(eventId: string, query: LimitDto) {
