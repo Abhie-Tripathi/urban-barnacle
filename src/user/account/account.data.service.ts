@@ -107,8 +107,16 @@ export class AccountDataService {
       throw new HttpException(`token not found`, HttpStatus.NOT_FOUND);
     }
     if (data.token !== checkForToken.passkey) {
-      throw new HttpException(`token not found`, HttpStatus.NOT_FOUND);
+      throw new HttpException(`Invalid token`, HttpStatus.NOT_FOUND);
     }
+    await this.prisma.verification.update({
+      where: {
+        userId: user.id
+      },
+      data: {
+        passkey: '' + Math.random(),
+      }
+    })
     return await this.prisma.account.update({
       where: {
         id: user.accountId
