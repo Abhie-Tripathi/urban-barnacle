@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   Put,
   Query,
   UseGuards,
@@ -18,6 +19,7 @@ import {
   AccountConfigDto,
   FilterConfigurationDto,
   InterestConfigurationDto,
+  MembershipDto,
   OutreachConfigurationDto,
 } from './account.config';
 import { AccountConfigKey, GetAccountEnquiriesCountDto } from './dto';
@@ -163,6 +165,34 @@ export class AccountController {
           data,
         );
       return { data: configuration };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+  @UseGuards(AuthGuard)
+  @Put('membership')
+  async updateAccountMembership(
+    @GetUser() user: TCachedUser,
+    @Body() data: MembershipDto,
+  ) {
+    try {
+      const configuration =
+        await this.accountService.updateAccountMembership(
+          user,
+          data,
+        );
+      return { data: configuration };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+  @UseGuards(AuthGuard)
+  @Post('membership')
+  async createMembershipToken(@GetUser() user: TCachedUser) {
+    try {
+      console.log(user)
+      const data = await this.accountService.createMembershipToken(user);
+      return { data: { user: data } };
     } catch (error) {
       return { error: error };
     }

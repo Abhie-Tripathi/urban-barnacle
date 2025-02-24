@@ -2,10 +2,11 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateAccountDto, GetAccountDto, UpdateAccountDto } from './dto';
 import { Prisma } from '@prisma/client';
-import { accountConfig, AccountConfigDto } from './account.config';
+import { accountConfig, AccountConfigDto, MembershipDto } from './account.config';
 import { TCachedUser } from 'src/utils/types';
 import { InputJsonObject, JsonArray } from '@prisma/client/runtime/library';
 import { getNameFromEmail } from 'src/utils';
+import { createHash, randomInt, randomUUID } from 'crypto';
 
 @Injectable()
 export class AccountDataService {
@@ -89,7 +90,37 @@ export class AccountDataService {
     });
     return account;
   }
-
+  async updateAccountMembership(
+    user: TCachedUser,
+    data: MembershipDto,
+  ) {
+    // return await this.prisma.
+    const checkForToken = await this.prisma.verification.findFirst({
+      where: {
+        userId: user.id
+      },
+      select: {
+        passkey: true,
+      }
+    });
+    if (!checkForToken) {
+      throw new HttpException(`token not found`, HttpStatus.NOT_FOUND);
+    }
+    if (data.token !== checkForToken.passkey) {
+      throw new HttpException(`token not found`, HttpStatus.NOT_FOUND);
+    }
+    return await this.prisma.account.update({
+      where: {
+        id: user.accountId
+      },
+      data: {
+        membership: data.membership
+      },
+      select: {
+        membership: true
+      }
+    })
+  }
   async addAccountUser(accountId: string, userId: string) {
     const account = await this.prisma.account.update({
       where: { id: accountId },
@@ -108,6 +139,43 @@ export class AccountDataService {
     return configuration.config;
   }
 
+  async getAccountMemberShipStatus(accountId: string) {
+    const membership = await this.prisma.account.findFirst({
+      where: {
+        id: accountId
+      },
+      select: {
+        membership: true,
+      }
+    });
+    if (!membership) {
+      throw new HttpException('membership not found', HttpStatus.NOT_FOUND);
+    }
+    return membership;
+  }
+  async createMembershipToken(user: TCachedUser) {
+    const passkey: string = createHash('sha256')
+      .update(randomUUID(), 'hex')
+      .digest()
+      .toString('hex');
+    await this.prisma.verification.upsert({
+      where: {
+        userId: user.id,
+      },
+      update: {
+        passkey: passkey,
+        deleted: false,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+      },
+      create: {
+        userId: user.id,
+        passkey: passkey,
+        deleted: false,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+      },
+    });
+    return { token: passkey }
+  }
   async getLatestComment(user: TCachedUser) {
     //getNameFromEmail
     const [comment, config] = await Promise.all([this.prisma.$queryRaw<{

@@ -1,17 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import {} from './dto';
+import { } from './dto';
 import { Prisma, User } from '@prisma/client';
-import { randomInt } from 'crypto';
+import { createHash, randomInt, randomUUID } from 'crypto';
 import { CommunicationService } from 'src/communication/communication.service';
-import { QueueActionOptions } from 'src/utils/types';
-
+import { QueueActionOptions, TCachedUser } from 'src/utils/types';
 @Injectable()
 export class AuthDataService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly communicationService: CommunicationService,
-  ) {}
+  ) { }
 
   async createVerificationToken(user: User, process: string) {
     const passkey = randomInt(100000, 1000000).toString();
@@ -90,5 +89,29 @@ export class AuthDataService {
       where: { userId },
       data: { deleted: true },
     });
+  }
+
+  async createMembershipToken(user: TCachedUser) {
+    const passkey: string = createHash('sha256')
+      .update(randomUUID(), 'hex')
+      .digest()
+      .toString('hex');
+    await this.prisma.verification.upsert({
+      where: {
+        userId: user.id,
+      },
+      update: {
+        passkey: passkey,
+        deleted: false,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+      },
+      create: {
+        userId: user.id,
+        passkey: passkey,
+        deleted: false,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+      },
+    });
+    return { token: passkey }
   }
 }

@@ -14,6 +14,7 @@ import {
   AccountConfigDto,
   FilterConfigurationDto,
   InterestConfigurationDto,
+  MembershipDto,
   OutreachConfigurationDto,
 } from './account.config';
 import { UserDataSchema } from '../me/dto';
@@ -164,8 +165,13 @@ export class AccountService {
       department: user.department,
     }));
   }
-
+  async getAccountMemberShipStatus(accountId: string) {
+    return await this.accountDataService.getAccountMemberShipStatus(accountId);
+  }
   async getAccountConfiguration(user: TCachedUser, key: AccountConfigKey) {
+    if (key === 'membership') {
+      return await this.getAccountMemberShipStatus(user.accountId);
+    }
     const configuration = await this.accountDataService.getAccountConfiguration(
       user.accountConfigurationId,
     );
@@ -205,7 +211,15 @@ export class AccountService {
 
     return { [key]: configuration ? configuration[key] : [] };
   }
-
+  async updateAccountMembership(
+    user: TCachedUser,
+    data: MembershipDto,
+  ) {
+    return await this.accountDataService.updateAccountMembership(user, data);
+  }
+  async createMembershipToken(user: TCachedUser) {
+    return this.accountDataService.createMembershipToken(user)
+  }
   async getAccountEnquiriesCount(
     user: TCachedUser,
     query: GetAccountEnquiriesCountDto,
