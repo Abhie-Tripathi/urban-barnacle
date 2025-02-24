@@ -358,7 +358,6 @@ const DataGroups = {
     'isBranded',
     'isSeries',
     'rehostDate',
-    'estimatedExhibitors',
     'rehostDate',
     'maturity',
     'frequency',

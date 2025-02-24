@@ -23,7 +23,7 @@ export const TrackerEventTypeGroup = {
 
 export const EventTabs = { ...TrackerEventTypeGroup, ...TrackerEventStatus };
 
-export const TrackerParamsSchema = QuerySchema.innerType().extend({
+export const TrackerParamsSchema = QueryFilter.extend({
   orgName: z.string().optional(),
   // orgId: z.string().optional(),
   orgWebsite: z.string().optional(),

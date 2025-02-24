@@ -304,7 +304,6 @@ export class TrackerService {
     const newParams = getNonEmptyParams(params);
     const convertedParams =
       await this.sharedService.convertSlugParamsToIds(newParams);
-
     if (params.trackerEventStatus && params.trackerEventStatus === 'past') {
       convertedParams['active_lte'] = tracker.filterValues
         ? new Date(
@@ -351,6 +350,11 @@ export class TrackerService {
           : tracker.type === 'T_RECRUITMENT'
             ? 'recruitment'
             : undefined;
+    if (tracker.filterValues && tracker.filterValues['viewBound']) {
+      tracker.filterValues['viewBound'] = JSON.stringify(
+        tracker.filterValues['viewBound'],
+      );
+    }
     const eventParams = {
       ...(tracker.filterValues as Object),
       limit: params.limit,
@@ -425,6 +429,9 @@ export class TrackerService {
     const newParams = getNonEmptyParams(params);
     const convertedParams =
       this.sharedService.convertSlugParamsToIds(newParams);
+    if (tracker.filterValues && tracker.filterValues['viewBound']) {
+      tracker.filterValues['viewBound'] = JSON.stringify(params.viewBound);
+    }
     const eventParams = {
       ...(tracker.filterValues as Object),
       ...convertedParams,

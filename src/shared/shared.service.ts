@@ -173,12 +173,12 @@ export class SharedService {
       }
       params['eventTypes'] = eventTypes.map((eventType) => eventType.id);
     }
-    if (params.geoCoordinates) {
-      params.geoCoordinates = JSON.stringify(params.geoCoordinates);
-    }
-    if (params.viewBound && validateIds) {
-      params.viewBound = JSON.stringify(params.viewBound);
-    }
+    // if (params.geoCoordinates) {
+    //   params.geoCoordinates = JSON.stringify(params.geoCoordinates);
+    // }
+    // if (params.viewBound && validateIds) {
+    //   params.viewBound = params.viewBound;
+    // }
     return params;
   }
 
