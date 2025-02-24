@@ -46,11 +46,17 @@ const FilterConfigurationSchema = z.record(z.string(), z.any());
 export class FilterConfigurationDto extends createZodDto(
   FilterConfigurationSchema,
 ) { }
-
 const membershipSchema = z.strictObject({
   token: z.string(),
-  membership: z.number()
-})
+  membership: z.union([
+    z.literal(0),
+    z.literal(10),
+    z.literal(20),
+    z.literal(30),
+    z.literal(40)
+  ])
+});
+
 export class MembershipDto extends createZodDto(
   membershipSchema,
 ) { }
