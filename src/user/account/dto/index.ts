@@ -14,7 +14,7 @@ const CreateAccountSchema = z.strictObject({
   interestConfig: InterestConfigurationSchema.optional(),
 });
 
-export class CreateAccountDto extends createZodDto(CreateAccountSchema) {}
+export class CreateAccountDto extends createZodDto(CreateAccountSchema) { }
 
 const UpdateAccountSchema = z.strictObject({
   id: z.string().uuid(),
@@ -26,7 +26,7 @@ const UpdateAccountSchema = z.strictObject({
   }).optional(),
 });
 
-export class UpdateAccountDto extends createZodDto(UpdateAccountSchema) {}
+export class UpdateAccountDto extends createZodDto(UpdateAccountSchema) { }
 
 const GetAccountsSchema = LimitSchema.extend({
   id: z.string().uuid().optional(),
@@ -34,9 +34,9 @@ const GetAccountsSchema = LimitSchema.extend({
   companyId: z.string().uuid().optional(),
 });
 
-export class GetAccountDto extends createZodDto(GetAccountsSchema) {}
+export class GetAccountDto extends createZodDto(GetAccountsSchema) { }
 
-const AccountConfigKey = z.enum(['interest', 'outreach', 'filter']);
+const AccountConfigKey = z.enum(['interest', 'outreach', 'filter', 'membership']);
 export type AccountConfigKey = z.infer<typeof AccountConfigKey>;
 
 const GetAccountEnquiriesCountSchema = z.strictObject({
@@ -45,4 +45,4 @@ const GetAccountEnquiriesCountSchema = z.strictObject({
 
 export class GetAccountEnquiriesCountDto extends createZodDto(
   GetAccountEnquiriesCountSchema,
-) {}
+) { }
