@@ -23,6 +23,7 @@ import { FileCreationService } from 'src/shared/file-creation.service';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { PromotedEventsDataService } from './promoted-even.data.service';
+import { fetchDatafromMicroService } from 'src/shared/microservice.api';
 @Injectable()
 export class PromotedEventsService {
   constructor(
@@ -661,12 +662,19 @@ export class PromotedEventsService {
         proEvent.push(...productDbEvent);
       }
       const limitReaming = query.limit - productDbEvent.length;
-      // const microServiceEvent = (await this.search(
+      const microServiceEvent = await fetchDatafromMicroService('eventSuggestionsFetch', {
+        max: limitReaming + '',
+        eventName: query.name,
+        widget: 'y',
+        eventNameExcept: productDbEvent.map((val) => val.name).join(','),
+      })
+
+      // (await this.search(
       //   {
-      //     max: limitReaming + '',
-      //     eventName: query.name,
-      //     widget: 'y',
-      //     eventNameExcept: productDbEvent.map((val) => val.name).join(','),
+      // max: limitReaming + '',
+      // eventName: query.name,
+      // widget: 'y',
+      // eventNameExcept: productDbEvent.map((val) => val.name).join(','),
       //   },
       //   '',
       // )) as { data: { events: any[]; count: number } };
@@ -680,9 +688,9 @@ export class PromotedEventsService {
       return {
         data: {
           totalEvents:
-            // (microServiceEvent?.data?.count ?? 0) +
+            (microServiceEvent?.data?.count ?? 0) +
             Number(productDbEventCount[0].id),
-          events: [...proEvent], //...microServiceEvent.data.events],
+          events: [...proEvent, ...microServiceEvent.data.events],
         },
       };
     } catch (error) {
