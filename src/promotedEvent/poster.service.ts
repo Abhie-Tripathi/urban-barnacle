@@ -143,7 +143,7 @@ export class PosterService {
       context.clip();
       context.drawImage(userPoster, imageX, imageY, imageWidth, imageHeight);
       context.restore();
-      const logoPath = 'src/event/logo.png';
+      const logoPath = 'src/promotedEvent/logo.png';
       const logo = await loadImage(logoPath);
       context.drawImage(logo, 20, 20, 130, 44);
       context.font = 'bold 20px Arial';
