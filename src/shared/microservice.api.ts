@@ -5,6 +5,7 @@ export const microServiceApis = {
   eventDataFetch: `${process.env.MICROSERVICE_URL}/`,
   designationFetch: `${process.env.MICROSERVICE_URL}/designations`,
   companySuggestionsFetch: `${process.env.MICROSERVICE_URL}/company/suggestion`,
+  eventSuggestionsFetch: `${process.env.MICROSERVICE_URL}/event`,
 };
 
 export async function fetchDatafromMicroService(
