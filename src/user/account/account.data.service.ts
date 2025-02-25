@@ -159,7 +159,7 @@ export class AccountDataService {
     if (!membership) {
       throw new HttpException('membership not found', HttpStatus.NOT_FOUND);
     }
-    return { membership, endDate: new Date('2026-01-01') };
+    return { ...membership, endDate: new Date('2026-01-01') };
   }
   async createMembershipToken(user: TCachedUser) {
     const passkey: string = createHash('sha256')
