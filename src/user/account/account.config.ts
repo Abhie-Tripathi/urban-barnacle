@@ -54,8 +54,16 @@ const membershipSchema = z.strictObject({
     z.literal(20),
     z.literal(30),
     z.literal(40)
-  ])
-});
+  ]),
+  startDate: z.string(),
+  endDate: z.string(),
+}).refine(
+  (data) => new Date(data.startDate) <= new Date(data.endDate),
+  {
+    message: "startDate must not be later than endDate",
+    path: ["startDate"],
+  }
+);
 
 export class MembershipDto extends createZodDto(
   membershipSchema,
