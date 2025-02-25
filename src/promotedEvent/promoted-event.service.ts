@@ -627,11 +627,11 @@ export class PromotedEventsService {
       const productDbEventCount =
         await this.eventDataService.findCountOfPromotedEvents(
           user.accountId,
-          data.join('and'),
+          'and ' + data.join('and'),
         );
       const productDbEvent = await this.eventDataService.findManyPromotedEvents(
         user.accountId,
-        data.join('and'),
+        'and ' + data.join('and'),
         query.sortBy ?? 'e.name',
         query.sortType ?? 'asc',
         query.limit + '',
