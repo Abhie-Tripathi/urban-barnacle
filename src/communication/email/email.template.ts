@@ -1050,7 +1050,7 @@ export const inviteEmailToEventHtml = `<!DOCTYPE html>
               "
             >
               <img
-                src="https://api.eventgeni.com/public/f2ee2309-e6c5-4e51-90a8-5aa0ce7c6aed.png"
+                src="https://api.Whr.ai/public/f2ee2309-e6c5-4e51-90a8-5aa0ce7c6aed.png"
                 alt="Location Icon"
                 style="width: 20px; height: 30px; margin-top: 10px;"
               />
