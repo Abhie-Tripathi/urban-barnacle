@@ -398,7 +398,6 @@ export class SharedService {
       where: { id: subscriptionId },
       select: { [column]: true }
     });
-
     if (!pointsData || pointsData[column] === null || typeof pointsData[column] !== 'number') {
       throw new HttpException(`Invalid point value for column ${column}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }

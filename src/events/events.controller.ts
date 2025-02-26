@@ -27,12 +27,13 @@ export class EventsController {
   async getAllEvents(@Query() query: QueryDto, @GetUser() user: TCachedUser) {
     let flag = false;
     try {
+      console.log({ user })
       const point = await this.sharedService.getPointForRequest(PointColumn.pendingRequests, user.currentSubscriptionId);
       if (point <= 0) {
         throw new HttpException('You have reached the maximum limit to view data. Please get in touch with us.', HttpStatus.INTERNAL_SERVER_ERROR);
       }
       const events = await this.eventsService.getAllEvents(query, true, user);
-      await this.sharedService.deductPointForRequest(PointColumn.pendingRequests, user.accountId, point - 1)
+      await this.sharedService.deductPointForRequest(PointColumn.pendingRequests, user.currentSubscriptionId, point - 1)
       flag = true;
       this.eventsService.createLogForEncryptedQuery(query, user);
       return { data: events };

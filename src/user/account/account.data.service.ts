@@ -64,8 +64,12 @@ export class AccountDataService {
       where: {
         ...params,
       },
-      include: {
+      select: {
         company: true,
+        currentSubscriptionId: true,
+        domain: true,
+        configurationId: true,
+        id: true
       },
     });
     return accounts;
