@@ -18,17 +18,17 @@ export class CompanyController {
   async searchCompany(@Query() query: ProspectSchemaDto, @GetUser() userData: TCachedUser) {
     let flag = false;
     try {
-      const point = await this.sharedService.getPointForRequest(PointColumn.pendingCompanySearchRequests, userData.accountId);
+      const point = await this.sharedService.getPointForRequest(PointColumn.pendingCompanySearchRequests, userData.currentSubscriptionId);
       if (point <= 0) {
         throw new HttpException('You have reached the maximum limit to view data. Please get in touch with us.', HttpStatus.INTERNAL_SERVER_ERROR);
       }
       const result = await this.companyService.getCompanyProspectData(query, 'list');
-      await this.sharedService.deductPointForRequest(PointColumn.pendingCompanySearchRequests, userData.accountId, point - 1)
+      await this.sharedService.deductPointForRequest(PointColumn.pendingCompanySearchRequests, userData.currentSubscriptionId, point - 1)
       flag = true;
       return result;
     } catch (error) {
       if (flag)
-        this.sharedService.creditPointForRequest(PointColumn.pendingCompanySearchRequests, userData.accountId)
+        this.sharedService.creditPointForRequest(PointColumn.pendingCompanySearchRequests, userData.currentSubscriptionId)
       return { error: error };
     }
   }

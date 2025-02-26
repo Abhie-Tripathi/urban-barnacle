@@ -27,7 +27,7 @@ export class EventsController {
   async getAllEvents(@Query() query: QueryDto, @GetUser() user: TCachedUser) {
     let flag = false;
     try {
-      const point = await this.sharedService.getPointForRequest(PointColumn.pendingRequests, user.accountId);
+      const point = await this.sharedService.getPointForRequest(PointColumn.pendingRequests, user.currentSubscriptionId);
       if (point <= 0) {
         throw new HttpException('You have reached the maximum limit to view data. Please get in touch with us.', HttpStatus.INTERNAL_SERVER_ERROR);
       }
@@ -38,7 +38,7 @@ export class EventsController {
       return { data: events };
     } catch (error) {
       if (flag)
-        this.sharedService.creditPointForRequest(PointColumn.pendingRequests, user.accountId)
+        this.sharedService.creditPointForRequest(PointColumn.pendingRequests, user.currentSubscriptionId)
       return {
         error,
       };
