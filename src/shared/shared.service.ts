@@ -393,9 +393,9 @@ export class SharedService {
     }
     return { data: { message: 'Wrong view selected' } };
   }
-  async getPointForRequest(column: PointColumn, accountId: string): Promise<number> {
-    const pointsData = await this.prisma.account.findFirst({
-      where: { id: accountId },
+  async getPointForRequest(column: PointColumn, subscriptionId: string): Promise<number> {
+    const pointsData = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId },
       select: { [column]: true }
     });
 
@@ -405,22 +405,22 @@ export class SharedService {
 
     return pointsData[column];
   }
-  async deductPointForRequest(column: PointColumn, accountId: string, remainingPoints: number) {
+  async deductPointForRequest(column: PointColumn, subscriptionId: string, remainingPoints: number) {
     const point = await this.getPointForRequest(column,
-      accountId);
+      subscriptionId);
     if (point <= 0) {
       throw new HttpException(`You have reached the maximum limit to view data. Please get in touch with us.`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
-    await this.prisma.account.update({
-      where: { id: accountId },
+    await this.prisma.subscription.update({
+      where: { id: subscriptionId },
       data: { [column]: remainingPoints }
     });
     return { data: { message: 'points updated' } };
   }
-  async creditPointForRequest(column: PointColumn, accountId: string) {
-    const point = await this.getPointForRequest(column, accountId);
-    await this.prisma.account.update({
-      where: { id: accountId },
+  async creditPointForRequest(column: PointColumn, subscriptionId: string) {
+    const point = await this.getPointForRequest(column, subscriptionId);
+    await this.prisma.subscription.update({
+      where: { id: subscriptionId },
       data: { [column]: point + 1 }
     });
     return { data: { message: 'points updated' } };
