@@ -83,7 +83,7 @@ export class AuthService {
         if (blackListDomain.includes(domain)) {
           accountDefault['domain'] = domain;
         }
-        const createSubscription = await this.accountDataService.createSubscription({ planEndDate: new Date('2026-01-01') });
+        const createSubscription = await this.accountDataService.createSubscription({ planEndDate: new Date('2126-01-01') });
         account = await this.accountDataService.createAccount({
           ...accountDefault,
           currentSubscriptionId: createSubscription.id,
