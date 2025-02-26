@@ -18,6 +18,7 @@ export const UserDataSchema = z.object({
   category: z.string().nullable(),
   designation: z.string().nullable(),
   department: z.string().nullable(),
+  accountId: z.string(),
 });
 export const UserResponseSchema = z.object({
   userData: UserDataSchema,
