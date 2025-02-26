@@ -57,11 +57,12 @@ export class GlobalResponseInterceptor implements NestInterceptor {
           }
           // Check if the response contains an error property
           else {
-            errorResponse = error.getResponse() as unknown as {
-              message: string;
-              issues: any[];
-              statusCode: number;
-            };
+            errorResponse =
+              (error.getResponse() as unknown as {
+                message: string;
+                issues: any[];
+                statusCode: number;
+              }) || error;
             console.log({ errorResponse });
           }
           response

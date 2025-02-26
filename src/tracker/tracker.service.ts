@@ -464,12 +464,14 @@ export class TrackerService {
       convertedParams['createdAt'] = lastActive.last_active_gte;
     }
     if (tracker.filterValues && tracker.filterValues['viewBound']) {
-      tracker.filterValues['viewBound'] = JSON.stringify(params.viewBound);
+      tracker.filterValues['viewBound'] = tracker.filterValues['viewBound'];
     }
     const eventParams = {
       ...(tracker.filterValues as Object),
       ...convertedParams,
     } as CountQueryDto;
+    console.log({ eventParams });
+
     const count = await this.eventService.getEventsCount(eventParams, false);
     return count;
   }
@@ -506,7 +508,6 @@ export class TrackerService {
       eventIds: savedEventsIds,
       ...convertedParams,
     } as CountQueryDto;
-
     const count = await this.eventService.getEventsCount(eventParams, false);
     return count;
   }

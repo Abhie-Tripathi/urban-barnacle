@@ -1,8 +1,13 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { SortByOptions, Regions, timezones } from 'src/utils';
-import { EventStatus, EventTypeGroup, VisitorRangeTag } from 'src/utils/types';
-import { LimitSchema } from 'src/global_dto';
+import {
+  defaultEventTypes,
+  EventStatus,
+  EventTypeGroup,
+  VisitorRangeTag,
+} from 'src/utils/types';
+import { LimitSchema, LimitSchemaWithoutDefault } from 'src/global_dto';
 
 const scoreRange = {
   lte: 100,
@@ -528,7 +533,7 @@ export const QueryFilter = z.object({
 
 export const FilterNames = Object.keys(QueryFilter.shape);
 
-export const QuerySchema = LimitSchema.extend(QueryFilter.shape)
+export const QuerySchema = LimitSchemaWithoutDefault.extend(QueryFilter.shape)
   .extend({
     sortBy: z
       .string()
@@ -571,8 +576,17 @@ export const QuerySchema = LimitSchema.extend(QueryFilter.shape)
     // }
     if (!data.show || data.show.length === 0) {
       data['show'] = (Object.values(Show) as Show[]).filter((item) => {
-        return item !== Show.isNew;
+        return item !== Show.isNew && item !== Show.old;
       });
+    }
+    if (data.view !== 'map' && !data.limit) {
+      data.limit = 10;
+    }
+    if (!data.eventTypes || (data.eventTypes && data.eventTypes.length === 0)) {
+      const backend = process.env.BACKEND;
+      if (backend && backend in defaultEventTypes) {
+        data.eventTypes = defaultEventTypes[backend];
+      }
     }
     return data;
   });
