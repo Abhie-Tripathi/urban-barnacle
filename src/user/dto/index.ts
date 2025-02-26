@@ -49,6 +49,8 @@ const UpdateUserSchema = UpdateMeSchema.extend({
       geoJson: GeoJsonSchema.optional(),
     })
     .optional(),
+  firstname: z.string().optional(),
+  lastname: z.string().optional()
 });
 
 export class UpdateUserDto extends createZodDto(UpdateUserSchema) { }
