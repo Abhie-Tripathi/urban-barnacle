@@ -227,10 +227,26 @@ export const QueryFilter = z.object({
       return data?.split(',').map((item) => item.trim());
     })
     .optional(),
-  active_gte: z.string().datetime().optional(),
+  active_gte: z
+    .string()
+    .refine(
+      (date) =>
+        date &&
+        new Date(date).toISOString().split('T')[0] === date.split('T')[0],
+    )
+    .transform((date) => new Date(date).toISOString().split('T')[0])
+    .optional(),
   // .default(new Date().toISOString()),
 
-  active_lte: z.string().datetime().optional(),
+  active_lte: z
+    .string()
+    .refine(
+      (date) =>
+        date &&
+        new Date(date).toISOString().split('T')[0] === date.split('T')[0],
+    )
+    .transform((date) => new Date(date).toISOString().split('T')[0])
+    .optional(),
   // .default(
   // new Date(
   //   new Date().getTime() + (90 - 1) * 24 * 60 * 60 * 1000,
