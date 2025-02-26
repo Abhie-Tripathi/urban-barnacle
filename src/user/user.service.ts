@@ -113,7 +113,7 @@ export class UserService {
         query.target === 'COMPANY' || query.target === 'EVENT'
           ? PointColumn.pendingPocUnlockRequests
           : PointColumn.pendingProspectPocUnlockRequests,
-        user.accountId,
+        user.currentSubscriptionId,
         limitForPoc - remainingUnmask.length
       );
     }
