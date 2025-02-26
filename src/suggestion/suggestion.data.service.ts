@@ -15,6 +15,7 @@ import {
   LocationResponseDto,
   LocationResponseSchema,
   LocationType,
+  TrackerDto,
 } from './dto';
 import {
   CompanyDto,
@@ -23,10 +24,13 @@ import {
 } from './dto/company.dto';
 import { TagDto, TagResponseDto, TagResponseSchema } from './dto/tags.dto';
 import { getNonEmptyParams } from 'src/utils';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class SuggestionDataService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
+  ) { }
 
   async getLocations(dto: LocationDto): Promise<LocationResponseDto> {
     try {
@@ -221,5 +225,17 @@ export class SuggestionDataService {
     } catch (error) {
       throw new HttpException('Invalid tags', HttpStatus.BAD_REQUEST);
     }
+  }
+  async getTrackerName(dto: TrackerDto) {
+    const trackerName = await this.prisma.tracker.findMany({
+      where: {
+        name: { contains: dto.query, mode: 'insensitive' }
+      },
+      select: {
+        name: true,
+        id: true,
+      }
+    });
+    return trackerName;
   }
 }

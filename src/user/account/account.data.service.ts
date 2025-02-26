@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateAccountDto, GetAccountDto, UpdateAccountDto } from './dto';
-import { Prisma } from '@prisma/client';
+import { CreateAccountDto, CreateSubscriptionDto, GetAccountDto, UpdateAccountDto, UpdateSubscriptionDto } from './dto';
+import { Prisma, SubscriptionPlan } from '@prisma/client';
 import { accountConfig, AccountConfigDto, MembershipDto } from './account.config';
 import { TCachedUser } from 'src/utils/types';
 import { InputJsonObject, JsonArray } from '@prisma/client/runtime/library';
@@ -11,7 +11,24 @@ import { createHash, randomInt, randomUUID } from 'crypto';
 @Injectable()
 export class AccountDataService {
   constructor(private readonly prisma: PrismaService) { }
-
+  async createSubscription(data: CreateSubscriptionDto) {
+    const subscription = await this.prisma.subscription.create({
+      data: {
+        ...data
+      }
+    });
+    return subscription;
+  }
+  async updateSubscription(data: UpdateSubscriptionDto, subscriptionId: string) {
+    const update = await this.prisma.subscription.update({
+      where: {
+        id: subscriptionId
+      }, data: {
+        ...data
+      }
+    });
+    return update
+  }
   async createAccount(data: CreateAccountDto) {
     const { interestConfig, ...rest } = data;
     let defaultConfig = accountConfig;
@@ -117,15 +134,17 @@ export class AccountDataService {
         passkey: '' + Math.random(),
       }
     })
-    return await this.prisma.account.update({
+    return await this.prisma.subscription.update({
       where: {
         id: user.accountId
       },
       data: {
-        membership: data.membership
+        plan: data.plan,
+        planStartDate: new Date(data.startDate),
+        planEndDate: new Date(data.endDate),
       },
       select: {
-        membership: true
+        plan: true
       }
     })
   }
@@ -147,19 +166,27 @@ export class AccountDataService {
     return configuration.config;
   }
 
-  async getAccountMemberShipStatus(accountId: string) {
-    const membership = await this.prisma.account.findFirst({
+  async getAccountMemberShipStatus(subscriptionId: string) {
+    const membership = await this.prisma.subscription.findFirst({
       where: {
-        id: accountId
+        id: subscriptionId
       },
       select: {
-        membership: true,
+        plan: true,
+        planEndDate: true
       }
     });
     if (!membership) {
       throw new HttpException('membership not found', HttpStatus.NOT_FOUND);
     }
-    return { ...membership, endDate: new Date('2026-01-01') };
+    const membershipMap: Record<SubscriptionPlan, number> = {
+      "BASIC": 0,
+      "ESSENTIAL": 10,
+      "SCALE": 20,
+      "ADVANCE": 30,
+      "ENTERPRISE": 40,
+    };
+    return { membership: membershipMap[membership.plan], endDate: membership.planEndDate };
   }
   async createMembershipToken(user: TCachedUser) {
     const passkey: string = createHash('sha256')

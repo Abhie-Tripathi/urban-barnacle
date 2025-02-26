@@ -22,7 +22,7 @@ import {
   MembershipDto,
   OutreachConfigurationDto,
 } from './account.config';
-import { AccountConfigKey, GetAccountEnquiriesCountDto } from './dto';
+import { AccountConfigKey, GetAccountEnquiriesCountDto, GetBookmarkedEventDto } from './dto';
 
 @Controller('me/account')
 export class AccountController {
@@ -42,8 +42,18 @@ export class AccountController {
   @Get('latest-comment')
   async getLatestComment(@GetUser() user: TCachedUser) {
     try {
-      const company = await this.accountService.getLatestComment(user);
-      return { data: company };
+      const comments = await this.accountService.getLatestComment(user);
+      return { data: comments };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+  @UseGuards(AuthGuard)
+  @Get('saved-events')
+  async getSavedEvent(@GetUser() user: TCachedUser, @Query() query: GetBookmarkedEventDto) {
+    try {
+      const events = await this.accountService.getSavedEvent(user, query);
+      return { data: events };
     } catch (error) {
       return { error: error };
     }
