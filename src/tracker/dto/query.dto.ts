@@ -5,6 +5,7 @@ import { TrackerType } from '@prisma/client';
 import {
   EventTabs,
   ParamsSchema,
+  TrackerEventSearchSchema,
   TrackerEventStatus,
   TrackerParamsSchema,
 } from './create.dto';
@@ -33,7 +34,9 @@ export class GetTrackersDto extends createZodDto(GetTrackersSchema) {}
 
 export class GetTrackersCountDto extends createZodDto(GetTrackersSchema) {}
 
-const GetTrackerEventsSchema = LimitSchema.extend(ParamsSchema.shape)
+const GetTrackerEventsSchema = LimitSchema.extend(
+  TrackerEventSearchSchema.shape,
+)
   .extend({
     type: z
       .string()

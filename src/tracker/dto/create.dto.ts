@@ -23,7 +23,7 @@ export const TrackerEventTypeGroup = {
 
 export const EventTabs = { ...TrackerEventTypeGroup, ...TrackerEventStatus };
 
-export const TrackerParamsSchema = QueryFilter.extend({
+export const TrackerQuerySchema = z.object({
   orgName: z.string().optional(),
   // orgId: z.string().optional(),
   orgWebsite: z.string().optional(),
@@ -51,7 +51,10 @@ export const TrackerParamsSchema = QueryFilter.extend({
     })
     .optional(),
 });
-
+export const TrackerParamsSchema = QueryFilter.extend(TrackerQuerySchema.shape);
+export const TrackerEventSearchSchema = QuerySchema.innerType().extend(
+  TrackerQuerySchema.shape,
+);
 export const ParamsSchema = TrackerParamsSchema.extend(
   EventsTrendsSchema.shape,
 ).partial({
