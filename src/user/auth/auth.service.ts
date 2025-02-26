@@ -43,7 +43,7 @@ export class AuthService {
     private readonly communicationService: CommunicationService,
     private readonly sharedService: SharedService,
     private readonly accessService: AccessService,
-  ) {}
+  ) { }
 
   async signUp(data: SignUpDto) {
     const domain = data.email.split('@')[1];
@@ -59,8 +59,8 @@ export class AuthService {
       blackListDomain.includes(domain)
         ? null
         : await this.companyDataService.getCompany({
-            domain: domain,
-          }),
+          domain: domain,
+        }),
     ]);
     let user = users && users.length > 0 ? users[0] : null;
     let account = company ? { id: company.accountId } : null;
@@ -85,19 +85,19 @@ export class AuthService {
     } else {
       if (!company) {
         const accountDefault = {
-          membership: domain === '10times' ? 1 : 0,
-          pendingRequests: domain === '10times' ? 1000 : 200,
-          pendingPocUnlockRequests: domain === '10times' ? 10000 : 4400,
         };
         if (blackListDomain.includes(domain)) {
           accountDefault['domain'] = domain;
         }
+        const createSubscription = await this.accountDataService.createSubscription({ planEndDate: new Date('2126-01-01') });
         account = await this.accountDataService.createAccount({
           ...accountDefault,
+          currentSubscriptionId: createSubscription.id,
           interestConfig: data.industry
             ? InterestDefaultConfigurationsWithIndustry[data.industry]
             : InterestDefaultConfigurations.interests,
         });
+        const updateSubscription = await this.accountDataService.updateSubscription({ accountId: account.id }, createSubscription.id);
         if (!blackListDomain.includes(domain)) {
           company = await this.companyDataService.createCompany({
             name: domain,
@@ -110,9 +110,9 @@ export class AuthService {
           await Promise.all([
             company
               ? this.userDataService.updateUser({
-                  id: user.id,
-                  companyId: company.id,
-                })
+                id: user.id,
+                companyId: company.id,
+              })
               : null,
             this.accountDataService.addAccountUser(account.id, user.id),
           ]);
@@ -227,26 +227,34 @@ export class AuthService {
         currentAccount = account;
       }
     });
+    let userDetail: User | null = null;
     if (user.currentOnboardingState === OnboardingState.VERIFICATION) {
       const updatedUser = await this.userDataService.updateUser({
         id: user.id,
         currentOnboardingState: OnboardingState.COMPLETED,
       });
-      return {
-        user: await this.sharedService.UserResponse({
-          ...updatedUser,
-          accountId: currentAccount.id,
-          accountConfigurationId: currentAccount.configurationId,
-        }),
-      };
+      userDetail =
+        updatedUser;
+      // return {
+      //   user: await this.sharedService.UserResponse({
+      //     ...updatedUser,
+      //     accountId: currentAccount.id,
+      //     accountConfigurationId: currentAccount.configurationId,
+      //     primaryAccountId: user.primaryAccountId,
+      //     primaryCompanyId: user.primaryCompanyId,
+      //   }),
+      // };
+    } else {
+      userDetail = user;
     }
     return {
       user: await this.sharedService.UserResponse({
-        ...user,
+        ...userDetail,
         accountId: currentAccount.id,
         primaryAccountId: user.primaryAccountId,
         primaryCompanyId: user.primaryCompanyId,
         accountConfigurationId: currentAccount.configurationId,
+        currentSubscriptionId: currentAccount.currentSubscriptionId
       }),
     };
   }
@@ -309,6 +317,7 @@ export class AuthService {
           ...updatedUser,
           accountId: currentAccount.id,
           accountConfigurationId: currentAccount.configurationId,
+          currentSubscriptionId: currentAccount.currentSubscriptionId
         }),
       };
     }
@@ -317,10 +326,10 @@ export class AuthService {
         ...user,
         accountId: currentAccount.id,
         accountConfigurationId: currentAccount.configurationId,
+        currentSubscriptionId: currentAccount.currentSubscriptionId
       }),
     };
   }
-
   // async userBasicInfo(email: string) {
   //   try {
   //     const [checkUserExist, companyDataExist] = await Promise.all([

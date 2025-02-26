@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Interest, Prisma } from '@prisma/client';
 import {
   CreateEnquiryDto,
   GetEnquiriesDto,
@@ -44,7 +44,7 @@ export class EnquiryDataService {
     if (type)
       params['userInterests'] = {
         some: {
-          interest: type,
+          interest: { in: type as Interest[] },
         },
       };
 
@@ -135,7 +135,7 @@ export class EnquiryDataService {
     if (type)
       params['userInterests'] = {
         some: {
-          interest: type,
+          interest: { in: type as Interest[] },
         },
       };
 

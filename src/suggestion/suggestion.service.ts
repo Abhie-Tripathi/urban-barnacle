@@ -8,6 +8,7 @@ import {
   EventTypeResponseDto,
   CategoryResponseDto,
   LocationResponseDto,
+  TrackerDto,
 } from './dto';
 import { CompanyResponseDto } from './dto/company.dto';
 import { TagResponseDto } from './dto/tags.dto';
@@ -22,7 +23,7 @@ type SuggestionType =
 
 @Injectable()
 export class SuggestionService {
-  constructor(private readonly suggestionDataService: SuggestionDataService) {}
+  constructor(private readonly suggestionDataService: SuggestionDataService) { }
 
   async getSuggestions(suggestionType: SuggestionType, dto: any): Promise<any> {
     switch (suggestionType) {
@@ -56,5 +57,8 @@ export class SuggestionService {
           HttpStatus.BAD_REQUEST,
         );
     }
+  }
+  async getTrackerName(dto: TrackerDto) {
+    return await this.suggestionDataService.getTrackerName(dto)
   }
 }

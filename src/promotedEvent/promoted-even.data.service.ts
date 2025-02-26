@@ -10,7 +10,7 @@ export class PromotedEventsDataService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly communicationService: CommunicationService,
-  ) { }
+  ) {}
   async getEventForGeni(id: string) {
     const [data, iddWid] = await Promise.all([
       this.prisma.event.findFirst({
@@ -20,9 +20,9 @@ export class PromotedEventsDataService {
         },
         select: {
           id: true,
+          type: true,
           name: true,
           data: true,
-          type: true,
           parentEventId: true,
           approval: true,
           capacity: true,
@@ -129,7 +129,7 @@ export class PromotedEventsDataService {
       name: string;
       data: Record<any, any>;
       createdAt: Date;
-      type: EventType
+      type: EventType;
     }[];
     return data;
   }
@@ -179,7 +179,7 @@ export class PromotedEventsDataService {
           id: true,
           name: true,
           data: true,
-          type: true
+          type: true,
         },
       }),
     ]);
@@ -236,22 +236,24 @@ export class PromotedEventsDataService {
            ) AS detail
           FROM
               "Event" e
-          ${widgetId === 'null'
-            ? ' where '
-            : `INNER JOIN "_EventToWidget" ew ON e.id = ew."A"
+          ${
+            widgetId === 'null'
+              ? ' where '
+              : `INNER JOIN "_EventToWidget" ew ON e.id = ew."A"
           WHERE
               ew."B" = '${widgetId}'
               AND `
           } e.deleted = false
               and e."accountId" = '${companyId}'
-              ${where.length > 5
-            ? where
-            : `
+              ${
+                where.length > 5
+                  ? where
+                  : `
               and (e."data" ->> 'start_date')::DATE >= '2013-01-01'
               AND (e."data" ->> 'start_date')::DATE <= '${date_lte}'
               AND (e."data" ->> 'end_date')::DATE >= '${date_gte}'
               AND (e."data" ->> 'end_date')::DATE <= '2104-07-17'`
-          }
+              }
           GROUP BY
               (e."data" ->> 'start_date'),
               (e."data" ->> 'end_date')
@@ -263,34 +265,38 @@ export class PromotedEventsDataService {
               )::DATE AS event_month
       )
   SELECT
-      ${calendarType === 'year'
-            ? `TO_CHAR(ms.event_month, 'FMMonth YYYY') AS event_month`
-            : ' ms.event_month '
-          }
+      ${
+        calendarType === 'year'
+          ? `TO_CHAR(ms.event_month, 'FMMonth YYYY') AS event_month`
+          : ' ms.event_month '
+      }
       ,
       COALESCE(SUM(de.totalevent), 0) AS total_events
      , STRING_AGG(de.detail, '[') AS details
   FROM
       month_series ms
       LEFT JOIN DATAEVENT de
-       ${calendarType === 'year'
-            ? `
+       ${
+         calendarType === 'year'
+           ? `
                         ON de.startdatetime >= ms.event_month 
           AND de.startdatetime < ms.event_month + INTERVAL '1 month'
               `
-            : 'ON ms.event_month = de.startdatetime '
-          }
+           : 'ON ms.event_month = de.startdatetime '
+       }
   
   GROUP BY
-       ${calendarType === 'year'
-            ? `TO_CHAR(ms.event_month, 'FMMonth YYYY')            `
-            : ' ms.event_month '
-          }
+       ${
+         calendarType === 'year'
+           ? `TO_CHAR(ms.event_month, 'FMMonth YYYY')            `
+           : ' ms.event_month '
+       }
   ORDER BY
-       ${calendarType === 'year'
-            ? `TO_CHAR(ms.event_month, 'FMMonth YYYY')            `
-            : 'ms.event_month  '
-          } 
+       ${
+         calendarType === 'year'
+           ? `TO_CHAR(ms.event_month, 'FMMonth YYYY')            `
+           : 'ms.event_month  '
+       } 
           `,
         ),
       );

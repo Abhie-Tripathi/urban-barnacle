@@ -34,7 +34,7 @@ export class CommunicationService {
         sourceId = jobRequestPayload.sourceId;
       } catch (error) {
         console.error('Invalid payload:', error);
-        throw new Error('Payload validation failed');
+        throw new HttpException('Payload validation failed', HttpStatus.BAD_REQUEST);
       }
       const processEnumObject: object = {
         SEND_SIGN_UP_IN_EMAIL: 'signUp/InEmail',

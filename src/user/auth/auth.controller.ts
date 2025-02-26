@@ -5,11 +5,15 @@ import {
   HttpStatus,
   Post,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignInDto, SignUpDto, VerifyAccessDto, VerifyOtpDto } from './dto';
 import { FastifyReply } from 'fastify';
 import { Prisma } from '@prisma/client';
+import { GetUser } from '../decorator';
+import { TCachedUser } from 'src/utils/types';
+import { AuthGuard } from './guard';
 
 @Controller('auth')
 export class AuthController {
@@ -72,7 +76,7 @@ export class AuthController {
     try {
       const data = await this.authService.verifyOtp(body);
       const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
-      reply.setCookie(key, data.user.token);
+      reply.cookie(key, data.user.token);
       return { data: { user: data.user.userData } };
     } catch (error) {
       return { error: error };
@@ -87,7 +91,7 @@ export class AuthController {
     try {
       const data = await this.authService.verifyAccess(body);
       const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
-      reply.setCookie(key, data.user.token);
+      reply.cookie(key, data.user.token);
       return { data: { user: data.user.userData } };
     } catch (error) {
       return { error: error };

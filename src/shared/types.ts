@@ -109,7 +109,7 @@ export interface LastActive {
   last_active_lte: string;
 }
 
-export interface TrackerParamsOptions extends LastActive, TrackerParams {}
+export interface TrackerParamsOptions extends LastActive, TrackerParams { }
 
 export const phoneNumberRegex =
   /^[+]{1}[0-9]{1,3}(?:[0-9\-\(\)\/\.]\s?){6,14}[0-9]{1}$/;
@@ -175,3 +175,11 @@ export const blackListDomain = [
   'web.de',
   'alice.it',
 ];
+
+
+export enum PointColumn {
+  pendingRequests = "pendingRequests",
+  pendingPocUnlockRequests = "pendingPocUnlockRequests",
+  pendingCompanySearchRequests = "pendingCompanySearchRequests",
+  pendingProspectPocUnlockRequests = "pendingProspectPocUnlockRequests"
+}

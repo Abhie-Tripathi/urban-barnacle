@@ -23,6 +23,7 @@ import { FileCreationService } from 'src/shared/file-creation.service';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { PromotedEventsDataService } from './promoted-even.data.service';
+import { fetchDatafromMicroService } from 'src/shared/microservice.api';
 @Injectable()
 export class PromotedEventsService {
   constructor(
@@ -81,41 +82,7 @@ export class PromotedEventsService {
   //   }
   // }
 
-  encrypt(text: string): string {
-    const algorithm = 'aes-256-cbc';
-    const secretKey = crypto
-      .createHash('sha256')
-      .update(String('your-secret-key'))
-      .digest('base64')
-      .substr(0, 32);
-    const staticIv = crypto
-      .createHash('sha256')
-      .update(String('your-fixed-iv'))
-      .digest()
-      .slice(0, 16);
-    const cipher = crypto.createCipheriv(algorithm, secretKey, staticIv);
-    let encrypted = cipher.update(text, 'utf-8', 'hex');
-    encrypted += cipher.final('hex');
-    return encrypted;
-  }
 
-  decrypt(encryptedText: string): string {
-    const algorithm = 'aes-256-cbc';
-    const secretKey = crypto
-      .createHash('sha256')
-      .update(String('your-secret-key'))
-      .digest('base64')
-      .substr(0, 32);
-    const staticIv = crypto
-      .createHash('sha256')
-      .update(String('your-fixed-iv'))
-      .digest()
-      .slice(0, 16);
-    const decipher = crypto.createDecipheriv(algorithm, secretKey, staticIv);
-    let decrypted = decipher.update(encryptedText, 'hex', 'utf-8');
-    decrypted += decipher.final('utf-8');
-    return decrypted;
-  }
 
   async createEvent(
     body: CreateEventDto,
@@ -150,7 +117,7 @@ export class PromotedEventsService {
         const response = await fetch(body.logoUrl);
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch image. Status: ${response.status}`);
+          throw new HttpException(`Failed to fetch image. Status: ${response.status}`, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         const fileName = `${randomUUID() + new Date().toISOString()}.jpg`; // or any other logic to generate file name
@@ -194,7 +161,7 @@ export class PromotedEventsService {
         eventBody['waitlisting'] = body.waitlisting === 'true' ? true : false;
       }
 
-      if (body.type && body.type.toUpperCase() === 'SUB' && body.eventId) {
+      if (body.type && body.type.toUpperCase() === 'CHILD' && body.eventId) {
         eventBody['parentEventId'] = body.eventId;
       }
       // jsonDta['userInfo'] = user;
@@ -343,7 +310,7 @@ export class PromotedEventsService {
         data.map((val) => val.id),
         user.accountId,
       );
-      // console.log('count',count[0].id, data, subEentId);
+      console.log('count', count[0].id, data, subEentId);
       const outData: any[] = [];
       for (const ids of data) {
         const subEventIdsFromdata: string[] = [];
@@ -383,6 +350,7 @@ export class PromotedEventsService {
             isWidgetLinked:
               Number(chileLinkedToWidget[0].id) > 0 ? true : false,
           });
+          console.log({ datachildSubEventConvert })
         }
         const infinity: boolean =
           eventAllData.capacity === -1 && eventAllData.data.maxCapacity == -1;
@@ -573,7 +541,7 @@ export class PromotedEventsService {
         const response = await fetch(body.logoUrl);
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch image. Status: ${response.status}`);
+          throw new HttpException(`Failed to fetch image. Status: ${response.status}`, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         const fileName = `${randomUUID() + new Date().toISOString()}.jpg`; // or any other logic to generate file name
@@ -660,11 +628,11 @@ export class PromotedEventsService {
       const productDbEventCount =
         await this.eventDataService.findCountOfPromotedEvents(
           user.accountId,
-          data.join('and'),
+          'and ' + data.join('and'),
         );
       const productDbEvent = await this.eventDataService.findManyPromotedEvents(
         user.accountId,
-        data.join('and'),
+        'and ' + data.join('and'),
         query.sortBy ?? 'e.name',
         query.sortType ?? 'asc',
         query.limit + '',
@@ -694,12 +662,19 @@ export class PromotedEventsService {
         proEvent.push(...productDbEvent);
       }
       const limitReaming = query.limit - productDbEvent.length;
-      // const microServiceEvent = (await this.search(
+      const microServiceEvent = await fetchDatafromMicroService('eventSuggestionsFetch', {
+        max: limitReaming + '',
+        eventName: query.name,
+        widget: 'y',
+        eventNameExcept: productDbEvent.map((val) => val.name).join(','),
+      })
+
+      // (await this.search(
       //   {
-      //     max: limitReaming + '',
-      //     eventName: query.name,
-      //     widget: 'y',
-      //     eventNameExcept: productDbEvent.map((val) => val.name).join(','),
+      // max: limitReaming + '',
+      // eventName: query.name,
+      // widget: 'y',
+      // eventNameExcept: productDbEvent.map((val) => val.name).join(','),
       //   },
       //   '',
       // )) as { data: { events: any[]; count: number } };
@@ -713,9 +688,9 @@ export class PromotedEventsService {
       return {
         data: {
           totalEvents:
-            // (microServiceEvent?.data?.count ?? 0) +
+            (microServiceEvent?.data?.count ?? 0) +
             Number(productDbEventCount[0].id),
-          events: [...proEvent], //...microServiceEvent.data.events],
+          events: [...proEvent, ...microServiceEvent.data.events],
         },
       };
     } catch (error) {

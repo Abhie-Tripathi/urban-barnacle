@@ -33,7 +33,6 @@ model User {
   createdAt                  DateTime              @default(now())
   updatedAt                  DateTime              @updatedAt
   phoneNumber                String?               @unique
-  accounts                   Account[]
   primaryCompanyId           String?               @db.Uuid
   primaryAccountId           String?               @db.Uuid
   company                    Company?              @relation(fields: [primaryCompanyId], references: [id])
@@ -51,6 +50,7 @@ model User {
   ownedEnquiries             Enquiry[]             @relation("owner")
   initiatedEnquiries         Enquiry[]             @relation("initiatedBy")
   comments                   Comment[]
+  accounts                   Account[]
   intents                    Intent[]
   enquiryActivities          EnquiryActivity[]
   exports                    Export[]
@@ -89,36 +89,60 @@ model Company {
   users          User[]
 }
 
+enum SubscriptionPlan {
+  BASIC
+  ESSENTIAL
+  SCALE
+  ADVANCE
+  ENTERPRISE
+}
+
+model Subscription {
+  id                               String           @id @default(uuid()) @db.Uuid
+  plan                             SubscriptionPlan @default(BASIC)
+  planStartDate                    DateTime         @default(now())
+  planEndDate                      DateTime // default 1 year or 3 month
+  purchaseValue                    Float            @default(0)
+  currency                         String           @default("usd")
+  pendingRequests                  Int              @default(200)
+  pendingPocUnlockRequests         Int              @default(4400)
+  pendingCompanySearchRequests     Int              @default(20)
+  pendingProspectPocUnlockRequests Int              @default(200)
+  account                          Account?         @relation(fields: [accountId], references: [id])
+  accountId                        String?          @db.Uuid
+  createdAt                        DateTime         @default(now())
+  updatedAt                        DateTime         @updatedAt
+}
+
 model Account {
-  id                       String                @id @default(uuid()) @db.Uuid
-  membership               Int                   @default(0) @db.SmallInt // discuss with gaurav / vipul
-  user                     User[]
-  pendingRequests          Int?                  @default(200)
-  pendingPocUnlockRequests Int?                  @default(4400)
-  createdAt                DateTime              @default(now())
-  updatedAt                DateTime              @updatedAt
-  deleted                  Boolean               @default(false)
-  domain                   String?
-  userInterests            UserEventInterest[]
-  enquiries                Enquiry[]
-  exports                  Export[]
-  unlockedTransactions     UnlockedTransaction[]
-  events                   Event[]
+  id                    String                @id @default(uuid()) @db.Uuid
+  currentSubscriptionId String                @db.Uuid
+  user                  User[]
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  deleted               Boolean               @default(false)
+  domain                String?
+  configurationId       String                @unique @db.Uuid
+  userInterests         UserEventInterest[]
+  enquiries             Enquiry[]
+  exports               Export[]
+  unlockedTransactions  UnlockedTransaction[]
+  events                Event[]
   // accountConfigurations    AccountConfiguration[]
-  accountConfiguration     Configuration         @relation(fields: [configurationId], references: [id])
-  configurationId          String                @unique @db.Uuid
-  invitations              Invitation[]
-  trackers                 Tracker[]
-  customBrandKit           CustomBrandKit?
-  widgets                  Widget[]
-  company                  Company?
-  intents                  Intent[]
-  comments                 Comment[]
-  enquiryActivities        EnquiryActivity[]
-  userActivities           UserActivity[]
-  apiLogs                  ApiLogs[]
-  savedLocations           SavedLocation[]
-  accessProvided           Access[]
+  accountConfiguration  Configuration         @relation(fields: [configurationId], references: [id])
+  invitations           Invitation[]
+  trackers              Tracker[]
+  customBrandKit        CustomBrandKit?
+  widgets               Widget[]
+  company               Company?
+  intents               Intent[]
+  comments              Comment[]
+  enquiryActivities     EnquiryActivity[]
+  userActivities        UserActivity[]
+  apiLogs               ApiLogs[]
+  savedLocations        SavedLocation[]
+  accessProvided        Access[]
+  subscription          Subscription[]
 }
 
 model Attachment {
@@ -469,27 +493,29 @@ model Configuration {
 // }
 
 model UnlockedTransaction {
-  id             String       @id @default(uuid()) @db.Uuid
-  accountId      String       @db.Uuid
-  unlockByUserId String
-  eventId        String
-  unlockType     UnlockType
+  id             String      @id @default(uuid()) @db.Uuid
+  accountId      String      @db.Uuid
+  unlockedById   String      @db.Uuid
+  sourceId       String
+  source         String
   unlockValue    UnlockValue
-  source         UnlockSource
-  createdAt      DateTime     @default(now())
-  account        Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  unlockedByUser User         @relation(fields: [unlockedById], references: [id], onDelete: Cascade)
-  unlockedById   String       @db.Uuid
+  target         UnlockType
+  targetId       String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  account        Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  unlockedByUser User        @relation(fields: [unlockedById], references: [id], onDelete: Cascade)
 }
 
-enum UnlockSource {
-  CONTACT_DETAIL
-  EVENT_DETAIL
-}
+// enum UnlockSource {
+//   CONTACT_DETAIL
+//   EVENT_DETAIL
+// }
 
 enum UnlockType {
   USER
   EVENT
+  COMPANY
 }
 
 enum UnlockValue {

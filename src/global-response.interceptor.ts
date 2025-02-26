@@ -46,7 +46,7 @@ export class GlobalResponseInterceptor implements NestInterceptor {
         let errorResponse: any;
         console.log({ error: data.error });
         const error: HttpException = data.error;
-
+        console.log({ error });
         if (data && data.error) {
           if (data.error instanceof PrismaClientValidationError) {
             errorResponse = {

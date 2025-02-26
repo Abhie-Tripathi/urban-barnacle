@@ -11,10 +11,9 @@ import {
 } from './dto';
 import { SharedService } from '../shared/shared.service';
 import { TCachedUser } from 'src/utils/types';
-import { getNonEmptyParams } from 'src/utils';
+import { encrypt, getNonEmptyParams } from 'src/utils';
 import { eventSearchFilterCheck, transformEventData } from './global.service';
 import { IntentDataService } from 'src/intent/intent.data.service';
-import * as crypto from 'crypto';
 import { LimitDto } from 'src/global_dto';
 import { AccountService } from 'src/user/account/account.service';
 @Injectable()
@@ -24,23 +23,10 @@ export class EventsService {
     private readonly sharedService: SharedService,
     private readonly intentDataService: IntentDataService,
   ) {}
-  encrypt(text: string): string {
-    const algorithm = 'aes-256-cbc';
-    const secretKey = crypto
-      .createHash('sha256')
-      .update(String(process.env.EVENT_QUERY_ENCRYPT))
-      .digest('base64')
-      .substring(0, 32);
-    const iv = Buffer.from(process.env.EVENT_CHIPR_IV ?? '', 'hex');
 
-    const cipher = crypto.createCipheriv(algorithm, secretKey, iv);
-    let encrypted = cipher.update(text, 'utf-8', 'hex');
-    encrypted += cipher.final('hex');
-    return encrypted;
-  }
   async createLogForEncryptedQuery(query: QueryDto, user: TCachedUser) {
     await this.eventsDataService.createLogForEncryptedQuery(
-      this.encrypt(JSON.stringify(query)),
+      encrypt(JSON.stringify(query)),
       user,
     );
   }
@@ -219,55 +205,7 @@ export class EventsService {
   async getEventPolygons(eventId: string) {
     return await this.eventsDataService.getEventPolygons(eventId);
   }
-  async getEventPocsUnmasked(
-    eventId: string,
-    pocId: string,
-    query: PocsUnmaskDto,
-    user: TCachedUser,
-  ) {
-    const { checkForEntry, limitForPoc } =
-      await this.eventsDataService.getUserPocLimitAndPocunloackedValues(
-        eventId,
-        pocId,
-        query,
-        user,
-      );
-    const noOfUnloackedPoc: number = limitForPoc?.pendingPocUnlockRequests
-      ? limitForPoc.pendingPocUnlockRequests
-      : 0;
-    if (noOfUnloackedPoc <= 0) {
-      throw new HttpException(
-        'limit exceeded for event poc viewing',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-    for (const val of query.unlockValue) {
-      let checkForCase: boolean = false;
-      let id: string = '';
-      checkForEntry.map((entry) => {
-        if (entry.unlockValue === val) {
-          checkForCase = true;
-          id = entry.id;
-        }
-      });
-      if (checkForCase) {
-        this.eventsDataService.updateEventPocunlocakedEntry(id, user.id);
-      } else {
-        this.eventsDataService.createUnlocakedPocEntryAndDeductPocLimitPoint(
-          eventId,
-          pocId,
-          val,
-          user,
-          noOfUnloackedPoc - 1,
-        );
-      }
-    }
-    return await this.eventsDataService.getEventsPocsunloacked(
-      pocId,
-      query.unlockValue,
-    );
-    // return await this.eventsDataService.getEventPolygons(eventId);
-  }
+
   async getEventsTrends(query: EventsTrendsDto) {
     const nonEmptyParams = getNonEmptyParams(query);
     const convertedParams = await this.sharedService.convertSlugParamsToIds(

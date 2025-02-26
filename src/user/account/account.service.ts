@@ -14,10 +14,11 @@ import {
   AccountConfigDto,
   FilterConfigurationDto,
   InterestConfigurationDto,
+  MembershipDto,
   OutreachConfigurationDto,
 } from './account.config';
 import { UserDataSchema } from '../me/dto';
-import { AccountConfigKey, GetAccountEnquiriesCountDto } from './dto';
+import { AccountConfigKey, GetAccountEnquiriesCountDto, GetBookmarkedEventDto } from './dto';
 import { IntentDataService } from 'src/intent/intent.data.service';
 import {
   GetUserEventInterestCountDto,
@@ -32,6 +33,8 @@ import {
 } from 'src/intent/dto/enquiryActivity.dto';
 import { EnquiryResponseSchema } from 'src/enquiry/dto/response';
 import { getNameFromEmail } from 'src/utils';
+import { QueryDto, View } from 'src/events/dto';
+import { EventsService } from 'src/events/events.service';
 
 @Injectable()
 export class AccountService {
@@ -41,6 +44,7 @@ export class AccountService {
     private readonly enquiryService: EnquiryService,
     private readonly userDataService: UserDataService,
     private readonly intentDataService: IntentDataService,
+    private readonly eventService: EventsService
   ) { }
 
   async getAccountCompany(user: TCachedUser) {
@@ -53,14 +57,39 @@ export class AccountService {
     const comment = await this.accountDataService.getLatestComment(user)
     return comment;
   }
+  async getSavedEvent(user: TCachedUser, query: GetBookmarkedEventDto) {
+    const savedEventsIds = (
+      await this.intentDataService.getUserEventInterest({
+        interest: ['BOOKMARK'],
+        sourceModule: 'TRACKER',
+        // interestedUserId: user.id,
+        accountId: user.accountId,
+        limit: query.limit,
+        offset: query.offset,
+      })
+    ).map((item) => item.eventId);
+
+    if (savedEventsIds.length === 0) {
+      return [];
+    }
+    const eventParams = {
+      eventIds: savedEventsIds,
+      limit: query.limit,
+      offset: query.offset,
+      view: View.tracker,
+    } as QueryDto;
+    const events = await this.eventService.getAllEvents(eventParams, false);
+    return events;
+  }
   async getAccountEnquiries(user: TCachedUser, query: GetEnquiriesDto) {
-    const { limit, offset, status, ...rest } = query;
+    const { limit, offset, status, type, ...rest } = query;
     const [enquiries, enquiryCount] = await Promise.all([
       this.enquiryService.getEnquiries({
         ...GetEnquiriesSchema.parse({
           accountId: user.accountId,
           userId: user.id,
           status: status?.join(','),
+          type: type && typeof type !== 'string' ? type.join(',') : type,
           ...rest,
         }),
         limit,
@@ -70,6 +99,7 @@ export class AccountService {
         accountId: user.accountId,
         userId: user.id,
         status: status?.join(','),
+        type: type && typeof type !== 'string' ? type.join(',') : type,
         ...rest,
       })),
     ]);
@@ -164,8 +194,13 @@ export class AccountService {
       department: user.department,
     }));
   }
-
+  async getAccountMemberShipStatus(accountId: string) {
+    return await this.accountDataService.getAccountMemberShipStatus(accountId);
+  }
   async getAccountConfiguration(user: TCachedUser, key: AccountConfigKey) {
+    if (key === 'membership') {
+      return await this.getAccountMemberShipStatus(user.accountId);
+    }
     const configuration = await this.accountDataService.getAccountConfiguration(
       user.accountConfigurationId,
     );
@@ -205,7 +240,15 @@ export class AccountService {
 
     return { [key]: configuration ? configuration[key] : [] };
   }
-
+  async updateAccountMembership(
+    user: TCachedUser,
+    data: MembershipDto,
+  ) {
+    return await this.accountDataService.updateAccountMembership(user, data);
+  }
+  async createMembershipToken(user: TCachedUser) {
+    return this.accountDataService.createMembershipToken(user)
+  }
   async getAccountEnquiriesCount(
     user: TCachedUser,
     query: GetAccountEnquiriesCountDto,

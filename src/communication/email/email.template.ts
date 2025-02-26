@@ -1050,7 +1050,7 @@ export const inviteEmailToEventHtml = `<!DOCTYPE html>
               "
             >
               <img
-                src="https://api.eventgeni.com/public/f2ee2309-e6c5-4e51-90a8-5aa0ce7c6aed.png"
+                src="https://api.Whr.ai/public/f2ee2309-e6c5-4e51-90a8-5aa0ce7c6aed.png"
                 alt="Location Icon"
                 style="width: 20px; height: 30px; margin-top: 10px;"
               />
@@ -1064,8 +1064,8 @@ export const inviteEmailToEventHtml = `<!DOCTYPE html>
 
       <!-- Buttons -->
       <div style="text-align: center;">
-        <a href="{redirectUrl} {encryptYes} class="res" style="color: #fff;">Accept Invite</a>
-        <a href="{redirectUrl} {encryptNo} class="res" style="color: #fff;">Cancel Invite</a>
+        <a href="{redirectUrl}?{encryptYes}" class="res" style="color: #fff;">Accept Invite</a>
+        <a href="{redirectUrl}?{encryptNo}" class="res" style="color: #fff;">Cancel Invite</a>
         <a href="{redirectUrl}" class="button" style="color: #fff;">Event Page</a>
       </div>
 

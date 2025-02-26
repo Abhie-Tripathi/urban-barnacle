@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   Put,
   Query,
   UseGuards,
@@ -18,9 +19,10 @@ import {
   AccountConfigDto,
   FilterConfigurationDto,
   InterestConfigurationDto,
+  MembershipDto,
   OutreachConfigurationDto,
 } from './account.config';
-import { AccountConfigKey, GetAccountEnquiriesCountDto } from './dto';
+import { AccountConfigKey, GetAccountEnquiriesCountDto, GetBookmarkedEventDto } from './dto';
 
 @Controller('me/account')
 export class AccountController {
@@ -40,8 +42,18 @@ export class AccountController {
   @Get('latest-comment')
   async getLatestComment(@GetUser() user: TCachedUser) {
     try {
-      const company = await this.accountService.getLatestComment(user);
-      return { data: company };
+      const comments = await this.accountService.getLatestComment(user);
+      return { data: comments };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+  @UseGuards(AuthGuard)
+  @Get('saved-events')
+  async getSavedEvent(@GetUser() user: TCachedUser, @Query() query: GetBookmarkedEventDto) {
+    try {
+      const events = await this.accountService.getSavedEvent(user, query);
+      return { data: events };
     } catch (error) {
       return { error: error };
     }
@@ -163,6 +175,34 @@ export class AccountController {
           data,
         );
       return { data: configuration };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+  @UseGuards(AuthGuard)
+  @Put('membership')
+  async updateAccountMembership(
+    @GetUser() user: TCachedUser,
+    @Body() data: MembershipDto,
+  ) {
+    try {
+      const configuration =
+        await this.accountService.updateAccountMembership(
+          user,
+          data,
+        );
+      return { data: configuration };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+  @UseGuards(AuthGuard)
+  @Post('membership')
+  async createMembershipToken(@GetUser() user: TCachedUser) {
+    try {
+      console.log(user)
+      const data = await this.accountService.createMembershipToken(user);
+      return { data: { user: data } };
     } catch (error) {
       return { error: error };
     }

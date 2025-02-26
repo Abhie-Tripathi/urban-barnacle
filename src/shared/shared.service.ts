@@ -1,7 +1,7 @@
 // generateSlug : to generate a slug
 
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
-import { HttpException, Inject, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { JobSource } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { FeatureCollection } from 'geojson';
@@ -24,6 +24,10 @@ import {
 } from 'src/utils/types';
 
 import * as turf from 'turf';
+import { ProspectSchemaDto } from './shared.dto';
+import { decrypt, encrypt } from 'src/utils';
+import { PointColumn } from './types';
+import { microserviceEndpoints } from 'src/utils/endpoints';
 
 @Injectable()
 export class SharedService {
@@ -31,7 +35,7 @@ export class SharedService {
     private readonly prisma: PrismaService,
     private readonly suggestionService: SuggestionService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) {}
+  ) { }
 
   async signToken(user: SelectedUserDetails, token: string) {
     const tokenData: TCachedUser = { ...user, token };
@@ -353,4 +357,78 @@ export class SharedService {
     });
     return Number(totalArea.toFixed(2));
   }
+  async getCompanyAndUserDataForProspect(query: ProspectSchemaDto, viewAs: string, viewBy: string) {
+    query.limit = Math.min(query.limit, 10);
+    const callMicroService = async (queryParam: any) => {
+      const url = `${process.env.MICROSERVICE_URL || ''}${microserviceEndpoints.company.search}?${new URLSearchParams(queryParam)}&viewAs=${viewAs}&viewBy=${viewBy}`;
+      console.log(url);
+
+      const response = await fetch(url, { method: 'GET' });
+      const responseData = await response.json();
+      if (viewAs === 'detail') {
+        return responseData?.data?.id
+          ? { ...responseData.data, id: encrypt(responseData.data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!) }
+          : null;
+      }
+      if (responseData.data?.error) {
+        throw new HttpException(responseData.data.error, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      return [
+        (responseData.data ?? []).map(data => ({
+          ...data,
+          [viewBy === 'company' ? "id" : "user_id"]: viewBy === 'company'
+            ? encrypt(data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!)
+            : encrypt(data.user_id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!)
+        })),
+        responseData.totalCount ?? 0
+      ];
+    };
+
+    if (viewBy === 'company') {
+      if (viewAs === 'detail' && query.companyId) {
+        query.companyId = decrypt(query.companyId).replace(process.env.TEN_TIMES_ID_ENCRYPT_KEY!, '');
+        return { data: { companyData: await callMicroService(query) } };
+      }
+      const [companyData, totalCount] = await callMicroService(query);
+      return { data: { companyData, totalCount } };
+    }
+
+    if (viewBy === 'user') {
+      const [userData, totalCount] = await callMicroService(query);
+      return { data: { userData, totalCount } };
+    }
+    return { data: { message: 'Wrong view selected' } };
+  }
+  async getPointForRequest(column: PointColumn, subscriptionId: string): Promise<number> {
+    const pointsData = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId },
+      select: { [column]: true }
+    });
+    if (!pointsData || pointsData[column] === null || typeof pointsData[column] !== 'number') {
+      throw new HttpException(`Invalid point value for column ${column}`, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    return pointsData[column];
+  }
+  async deductPointForRequest(column: PointColumn, subscriptionId: string, remainingPoints: number) {
+    const point = await this.getPointForRequest(column,
+      subscriptionId);
+    if (point <= 0) {
+      throw new HttpException(`You have reached the maximum limit to view data. Please get in touch with us.`, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    await this.prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: { [column]: remainingPoints }
+    });
+    return { data: { message: 'points updated' } };
+  }
+  async creditPointForRequest(column: PointColumn, subscriptionId: string) {
+    const point = await this.getPointForRequest(column, subscriptionId);
+    await this.prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: { [column]: point + 1 }
+    });
+    return { data: { message: 'points updated' } };
+  }
+
 }

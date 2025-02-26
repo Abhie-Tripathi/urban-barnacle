@@ -35,6 +35,7 @@ import { IntendWorkerClass } from './communication/bull-service/bull-intend.serv
 import { InvitationWorkerClass } from './communication/bull-service/bull-invitation.service';
 import { AfterResponseInterceptor } from './after-response.interceptor';
 import { PublicApiModule } from './public-api/public-api.module';
+import { CompaniesModule } from './company/company.module';
 
 @Module({
   imports: [
@@ -82,7 +83,7 @@ import { PublicApiModule } from './public-api/public-api.module';
     ExportsModule,
     SavedLocationModule,
     MeModule,
-    CompanyModule,
+    CompaniesModule,
     AccountModule,
     CommunicationModule,
     IntendModule,

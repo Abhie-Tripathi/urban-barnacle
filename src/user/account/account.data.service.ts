@@ -1,16 +1,34 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateAccountDto, GetAccountDto, UpdateAccountDto } from './dto';
-import { Prisma } from '@prisma/client';
-import { accountConfig, AccountConfigDto } from './account.config';
+import { CreateAccountDto, CreateSubscriptionDto, GetAccountDto, UpdateAccountDto, UpdateSubscriptionDto } from './dto';
+import { Prisma, SubscriptionPlan } from '@prisma/client';
+import { accountConfig, AccountConfigDto, MembershipDto } from './account.config';
 import { TCachedUser } from 'src/utils/types';
 import { InputJsonObject, JsonArray } from '@prisma/client/runtime/library';
 import { getNameFromEmail } from 'src/utils';
+import { createHash, randomInt, randomUUID } from 'crypto';
 
 @Injectable()
 export class AccountDataService {
   constructor(private readonly prisma: PrismaService) { }
-
+  async createSubscription(data: CreateSubscriptionDto) {
+    const subscription = await this.prisma.subscription.create({
+      data: {
+        ...data
+      }
+    });
+    return subscription;
+  }
+  async updateSubscription(data: UpdateSubscriptionDto, subscriptionId: string) {
+    const update = await this.prisma.subscription.update({
+      where: {
+        id: subscriptionId
+      }, data: {
+        ...data
+      }
+    });
+    return update
+  }
   async createAccount(data: CreateAccountDto) {
     const { interestConfig, ...rest } = data;
     let defaultConfig = accountConfig;
@@ -46,8 +64,12 @@ export class AccountDataService {
       where: {
         ...params,
       },
-      include: {
+      select: {
         company: true,
+        currentSubscriptionId: true,
+        domain: true,
+        configurationId: true,
+        id: true
       },
     });
     return accounts;
@@ -89,7 +111,47 @@ export class AccountDataService {
     });
     return account;
   }
-
+  async updateAccountMembership(
+    user: TCachedUser,
+    data: MembershipDto,
+  ) {
+    // return await this.prisma.
+    const checkForToken = await this.prisma.verification.findFirst({
+      where: {
+        userId: user.id
+      },
+      select: {
+        passkey: true,
+      }
+    });
+    if (!checkForToken) {
+      throw new HttpException(`token not found`, HttpStatus.NOT_FOUND);
+    }
+    if (data.token !== checkForToken.passkey) {
+      throw new HttpException(`Invalid token`, HttpStatus.NOT_FOUND);
+    }
+    await this.prisma.verification.update({
+      where: {
+        userId: user.id
+      },
+      data: {
+        passkey: '' + Math.random(),
+      }
+    })
+    return await this.prisma.subscription.update({
+      where: {
+        id: user.accountId
+      },
+      data: {
+        plan: data.plan,
+        planStartDate: new Date(data.startDate),
+        planEndDate: new Date(data.endDate),
+      },
+      select: {
+        plan: true
+      }
+    })
+  }
   async addAccountUser(accountId: string, userId: string) {
     const account = await this.prisma.account.update({
       where: { id: accountId },
@@ -108,6 +170,51 @@ export class AccountDataService {
     return configuration.config;
   }
 
+  async getAccountMemberShipStatus(subscriptionId: string) {
+    const membership = await this.prisma.subscription.findFirst({
+      where: {
+        id: subscriptionId
+      },
+      select: {
+        plan: true,
+        planEndDate: true
+      }
+    });
+    if (!membership) {
+      throw new HttpException('membership not found', HttpStatus.NOT_FOUND);
+    }
+    const membershipMap: Record<SubscriptionPlan, number> = {
+      "BASIC": 0,
+      "ESSENTIAL": 10,
+      "SCALE": 20,
+      "ADVANCE": 30,
+      "ENTERPRISE": 40,
+    };
+    return { membership: membershipMap[membership.plan], endDate: membership.planEndDate };
+  }
+  async createMembershipToken(user: TCachedUser) {
+    const passkey: string = createHash('sha256')
+      .update(randomUUID(), 'hex')
+      .digest()
+      .toString('hex');
+    await this.prisma.verification.upsert({
+      where: {
+        userId: user.id,
+      },
+      update: {
+        passkey: passkey,
+        deleted: false,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+      },
+      create: {
+        userId: user.id,
+        passkey: passkey,
+        deleted: false,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+      },
+    });
+    return { token: passkey }
+  }
   async getLatestComment(user: TCachedUser) {
     //getNameFromEmail
     const [comment, config] = await Promise.all([this.prisma.$queryRaw<{

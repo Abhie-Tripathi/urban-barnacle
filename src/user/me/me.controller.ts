@@ -39,7 +39,7 @@ export class MeController {
   @Get()
   async getProfileData(@GetUser() userData: TCachedUser) {
     try {
-      const user = UserDataSchema.parse(userData);
+      const user = UserDataSchema.parse(await this.meService.getMe(userData.id));
       return { data: user };
     } catch (error) {
       return {

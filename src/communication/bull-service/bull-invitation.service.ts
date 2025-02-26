@@ -54,14 +54,15 @@ export class InvitationWorkerClass {
         .replaceAll('{date[2]}', date[2])
         .replaceAll('{date[1]}', date[1])
         .replaceAll('{date[0]}', date[0])
-        .replace('{start_time}', jobdata.eventStartDate)
-        .replace('{end_time}', jobdata.eventEndDate)
-        .replace('{location}', jobdata.eventLocation)
-        .replace('{redirectUrl}', jobdata.eventRedirectUrl)
-        .replace('{FRONTEND_URL}', process.env.FRONTEND_URL ?? '')
+        .replaceAll('{start_time}', jobdata.eventStartDate)
+        .replaceAll('{end_time}', jobdata.eventEndDate)
+        .replaceAll('{location}', jobdata.eventLocation)
+        .replaceAll('{redirectUrl}', jobdata.eventRedirectUrl)
+        .replaceAll('{FRONTEND_URL}', process.env.FRONTEND_URL ?? '')
         .replaceAll('{eventName}', jobdata.eventName)
         .replaceAll('{encryptYes}', jobdata.encryptYes)
         .replaceAll('{encryptNo}', jobdata.encryptNo);
+      console.log(inviteEmailToEventTemplate);
       const { data, error } = await this.email.mailSender(
         jobdata.userEmail,
         emailSenderAddress,
