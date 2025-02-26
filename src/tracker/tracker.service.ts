@@ -104,10 +104,7 @@ export class TrackerService {
         interestedUserId: user.id,
         accountId: user.accountId,
       });
-    console.log(
-      { backend: this.configService.get('BACKEND') },
-      { searchByEntity },
-    );
+
     const groupBy =
       searchByEntity || this.configService.get('BACKEND') === 'gtm'
         ? CountGroup.status
@@ -133,7 +130,6 @@ export class TrackerService {
       tracker.filterValues = await this.sharedService.convertIdParamsToSlug(
         tracker.filterValues,
       );
-      console.log(tracker.filterValues);
       await this.cacheManager.set(
         tracker.id,
         { groupedEventsCount, filterValues: tracker.filterValues },
@@ -237,14 +233,12 @@ export class TrackerService {
       'SUPER_ADMIN',
       'USER',
     ]);
-    console.log(tracker);
     const trackerResponse = await this.getTrackerResponse(user, tracker, query);
     return trackerResponse;
   }
 
   async getGroupedEventsCount(params: CountQueryDto, groupBy?: CountGroup) {
     const data = await this.eventService.getEventsCount(params, false);
-    console.log({ counts: data });
     if (!groupBy) return data.count;
     if (groupBy === CountGroup.status) {
       return data.count;
@@ -301,7 +295,6 @@ export class TrackerService {
     trackerId: string,
     params: GetTrackerEventsDto,
   ) {
-    console.log({ params });
     const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
       'ADMIN',
       'SUPER_ADMIN',
@@ -368,7 +361,6 @@ export class TrackerService {
     if (searchByEntity) {
       eventParams['searchByEntity'] = searchByEntity;
     }
-    console.log({ eventParams });
     const events = await this.eventService.getAllEvents(
       eventParams,
       false,
@@ -470,7 +462,6 @@ export class TrackerService {
       ...(tracker.filterValues as Object),
       ...convertedParams,
     } as CountQueryDto;
-    console.log({ eventParams });
 
     const count = await this.eventService.getEventsCount(eventParams, false);
     return count;
