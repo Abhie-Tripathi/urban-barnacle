@@ -2,10 +2,18 @@ import { createZodDto } from "nestjs-zod";
 import { z } from "zod";
 
 const bodyToUpdateIntend = z.strictObject({
-    id: z.string(),
-    status: z.string(),
-    redirectUrl: z.string(),
-    firstname: z.string().optional(),
-    lastname: z.string().optional(),
-  });
-  export class Update_Dto extends createZodDto(bodyToUpdateIntend) {}
+  id: z.string(),
+  status: z.string(),
+  redirectUrl: z.string(),
+  firstname: z.string().optional(),
+  lastname: z.string().optional(),
+});
+export class Update_Dto extends createZodDto(bodyToUpdateIntend) { }
+
+export const userSchema = z.object({
+  id: z.string(),
+  firstname: z.string().nullable(),
+  lastname: z.string().nullable(),
+  email: z.string(),
+  imageUrl: z.string().nullable(),
+});

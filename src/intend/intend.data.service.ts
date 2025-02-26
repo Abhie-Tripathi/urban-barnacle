@@ -180,6 +180,7 @@ export class IntendDataService {
             firstname: true,
             lastname: true,
             email: true,
+            imageUrl: true
           },
         },
       },
