@@ -12,7 +12,7 @@ import { FastifyReply } from 'fastify';
 
 @Injectable()
 export class AfterResponseInterceptor implements NestInterceptor {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) { }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     return next.handle().pipe(
@@ -35,13 +35,13 @@ export class AfterResponseInterceptor implements NestInterceptor {
           } as Record<string, any>,
           user: req?.user?.id
             ? {
-                connect: { id: String(req.user.id) },
-              }
+              connect: { id: String(req.user.id) },
+            }
             : {},
           account: req?.user?.accountId
             ? {
-                connect: { id: req.user.accountId },
-              }
+              connect: { id: req.user.accountId },
+            }
             : {},
         };
         if (
@@ -54,7 +54,11 @@ export class AfterResponseInterceptor implements NestInterceptor {
             data: dataToSave,
           });
         }
-        await this.prismaService.apiLogs.create({ data: dataToSave });
+        try {
+          await this.prismaService.apiLogs.create({ data: dataToSave });
+        } catch (error) {
+
+        }
       }),
     );
   }

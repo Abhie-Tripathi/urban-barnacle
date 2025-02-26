@@ -5,7 +5,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateIntendDto } from './dto/create.dto';
 import { IntendDataService } from './intend.data.service';
 import { QueryIntend_Dto } from './dto/search.dto';
-import { Update_Dto } from './dto/update.dto';
+import { Update_Dto, userSchema } from './dto/update.dto';
 import { SelectedUserDetails } from 'src/utils/types';
 @Injectable()
 export class IntendService {
@@ -256,14 +256,15 @@ export class IntendService {
         );
       }
       if (body.firstname) {
-        const user = await this.intendDataService.updateUser({
+        const user = userSchema.parse(await this.intendDataService.updateUser({
           firstname: body.firstname,
           lastname: body.lastname ?? '',
-        });
+          id: updateInterest.interestedUser.id
+        }));
         return {
           data: {
             message: 'intend updated',
-            data: { ...updateInterest, user: user },
+            data: { ...updateInterest, interestedUser: user },
           },
         };
       }

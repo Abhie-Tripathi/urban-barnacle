@@ -27,7 +27,7 @@ export const EventCancelDataSchema = z.strictObject({
 
 export class EventCancelDataDto extends createZodDto(EventCancelDataSchema) { }
 
-export const IntendCaptureDataSchema = z.strictObject({
+export const IntendCaptureDataSchema = z.object({
   userShowedInterestName: z.string(),
   userShowedInterestEmail: z.string(),
   eventOwnerEmail: z.string(),
@@ -49,7 +49,7 @@ export class IntendCaptureDataDto extends createZodDto(
   IntendCaptureDataSchema,
 ) { }
 
-export const IntendUpdateDataSchema = z.strictObject({
+export const IntendUpdateDataSchema = z.object({
   userShowedInterestName: z.string(),
   userShowedInterestEmail: z.string(),
   eventName: z.string(),
