@@ -1,4 +1,4 @@
-import { EnquiryStatus, Interest } from '@prisma/client';
+import { EnquiryStatus, Interest, SubscriptionPlan } from '@prisma/client';
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { FilterNames } from 'src/events/dto';
@@ -48,13 +48,22 @@ export class FilterConfigurationDto extends createZodDto(
 ) { }
 const membershipSchema = z.strictObject({
   token: z.string(),
-  membership: z.union([
+  plan: z.union([
     z.literal(0),
     z.literal(10),
     z.literal(20),
     z.literal(30),
     z.literal(40)
-  ]),
+  ]).transform((value) => {
+    const membershipMap: Record<number, SubscriptionPlan> = {
+      0: "BASIC",
+      10: "ESSENTIAL",
+      20: "SCALE",
+      30: "ADVANCE",
+      40: "ENTERPRISE",
+    };
+    return membershipMap[value];
+  }),
   startDate: z.string(),
   endDate: z.string(),
 }).refine(

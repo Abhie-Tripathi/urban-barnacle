@@ -20,7 +20,7 @@ export class SavedLocationService {
     private readonly sharedService: SharedService,
     private readonly savedLocationDataService: SavedLocationDataService,
     private readonly userDataService: UserDataService,
-  ) {}
+  ) { }
 
   async saveAreaOfSavedLocation(savedLocation: SavedLocation) {
     let area: null | number = null;
@@ -85,6 +85,7 @@ export class SavedLocationService {
             ...updatedUser,
             accountId: user.accountId,
             accountConfigurationId: user.accountConfigurationId,
+            currentSubscriptionId: user.accountConfigurationId
           },
           user.token,
         ),

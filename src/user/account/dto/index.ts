@@ -6,21 +6,23 @@ import {
   InterestConfigurationSchema,
 } from '../account.config';
 import { UserInterestsGroupBy } from 'src/intent/dto';
+import { SubscriptionPlan } from '@prisma/client';
 
 const CreateAccountSchema = z.strictObject({
-  membership: z.number().optional(),
-  pendingRequests: z.number().optional(),
-  pendingPocUnlockRequests: z.number().optional(),
   interestConfig: InterestConfigurationSchema.optional(),
+  currentSubscriptionId: z.string()
 });
 
 export class CreateAccountDto extends createZodDto(CreateAccountSchema) { }
-
-const UpdateAccountSchema = z.strictObject({
-  id: z.string().uuid(),
-  membership: z.number().optional(),
+const CreateSubscriptionSchema = z.strictObject({
   pendingRequests: z.number().optional(),
   pendingPocUnlockRequests: z.number().optional(),
+  planEndDate: z.string().transform(val => new Date(val))
+});
+
+export class CreateSubscriptionDto extends createZodDto(CreateSubscriptionSchema) { }
+const UpdateAccountSchema = z.strictObject({
+  id: z.string().uuid(),
   configuration: AccountConfigSchema.extend({
     lastModifiedById: z.string().uuid(),
   }).optional(),
@@ -28,6 +30,16 @@ const UpdateAccountSchema = z.strictObject({
 
 export class UpdateAccountDto extends createZodDto(UpdateAccountSchema) { }
 
+const UpdateSubscriptionSchema = z.strictObject({
+  plan: z.nativeEnum(SubscriptionPlan).optional(),
+  pendingRequests: z.number().optional(),
+  pendingPocUnlockRequests: z.number().optional(),
+  planEndDate: z.string().optional(),
+  planStartDate: z.string().optional(),
+  accountId: z.string()
+});
+
+export class UpdateSubscriptionDto extends createZodDto(UpdateSubscriptionSchema) { }
 const GetAccountsSchema = LimitSchema.extend({
   id: z.string().uuid().optional(),
   userId: z.string().uuid().optional(),
@@ -45,4 +57,10 @@ const GetAccountEnquiriesCountSchema = z.strictObject({
 
 export class GetAccountEnquiriesCountDto extends createZodDto(
   GetAccountEnquiriesCountSchema,
+) { }
+
+const GetBookmarkedEventSchema = LimitSchema;
+
+export class GetBookmarkedEventDto extends createZodDto(
+  GetBookmarkedEventSchema,
 ) { }

@@ -386,7 +386,7 @@ export class TrackerService {
         interest: ['BOOKMARK'],
         sourceModule: 'TRACKER',
         sourceId: tracker.id,
-        interestedUserId: user.id,
+        // interestedUserId: user.id,
         accountId: user.accountId,
         limit: params.limit,
         offset: params.offset,

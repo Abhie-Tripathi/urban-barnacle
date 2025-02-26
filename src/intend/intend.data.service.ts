@@ -27,7 +27,6 @@ export class IntendDataService {
         select: {
           id: true,
           currentOnboardingState: true,
-          primaryAccountId: true,
           accounts: {
             select: {
               id: true,
@@ -72,7 +71,9 @@ export class IntendDataService {
     return update;
   }
   async createUser(data: any) {
-    const account = await this.accountDataService.createAccount({});
+    const createSubscription = await this.accountDataService.createSubscription({ planEndDate: new Date('2026-01-01') });
+    const account = await this.accountDataService.createAccount({ currentSubscriptionId: createSubscription.id });
+    const updateSubscription = await this.accountDataService.updateSubscription({ accountId: account.id }, createSubscription.id);
     return {
       ...(await this.userDataservice.createUser({
         ...data,

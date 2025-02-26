@@ -7,14 +7,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { SuggestionService } from './suggestion.service';
-import { CategoryDto, EventTypeDto, SuggestionDto, LocationDto } from './dto';
+import { CategoryDto, EventTypeDto, SuggestionDto, LocationDto, TrackerDto } from './dto';
 import { TagDto } from './dto/tags.dto';
 import { AuthGuard } from 'src/user/auth/guard';
 import { CompanyDto } from './dto/company.dto';
 
 @Controller('suggestions')
 export class SuggestionController {
-  constructor(private readonly suggestionService: SuggestionService) {}
+  constructor(private readonly suggestionService: SuggestionService) { }
 
   @UseGuards(AuthGuard)
   @Get('event-types')
@@ -92,6 +92,18 @@ export class SuggestionController {
     try {
       const tags = await this.suggestionService.getSuggestions('tags', dto);
       return { data: { tags } };
+    } catch (error) {
+      return { error: new HttpException(error, HttpStatus.BAD_REQUEST) };
+    }
+  }
+  @UseGuards(AuthGuard)
+  @Get('trackers')
+  async getTrackerName(@Query() dto: TrackerDto) {
+    try {
+      const trackerName = await this.suggestionService.getTrackerName(
+        dto,
+      );
+      return { data: { ...trackerName } };
     } catch (error) {
       return { error: new HttpException(error, HttpStatus.BAD_REQUEST) };
     }

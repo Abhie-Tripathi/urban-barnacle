@@ -6,12 +6,13 @@ import { AccountService } from './account.service';
 import { UserModule } from '../user.module';
 import { EnquiryModule } from 'src/enquiry/enquiry.module';
 import { IntentModule } from 'src/intent/intent.module';
+import { EventsModule } from 'src/events/events.module';
 
 @Global()
 @Module({
   controllers: [AccountController],
   providers: [AccountService, AccountDataService],
   exports: [AccountService, AccountDataService],
-  imports: [UserModule, CompanyModule, EnquiryModule, IntentModule],
+  imports: [EventsModule, UserModule, CompanyModule, EnquiryModule, IntentModule],
 })
-export class AccountModule {}
+export class AccountModule { }

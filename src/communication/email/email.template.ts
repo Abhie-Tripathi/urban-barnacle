@@ -1064,8 +1064,8 @@ export const inviteEmailToEventHtml = `<!DOCTYPE html>
 
       <!-- Buttons -->
       <div style="text-align: center;">
-        <a href="{redirectUrl} {encryptYes} class="res" style="color: #fff;">Accept Invite</a>
-        <a href="{redirectUrl} {encryptNo} class="res" style="color: #fff;">Cancel Invite</a>
+        <a href="{redirectUrl}?{encryptYes}" class="res" style="color: #fff;">Accept Invite</a>
+        <a href="{redirectUrl}?{encryptNo}" class="res" style="color: #fff;">Cancel Invite</a>
         <a href="{redirectUrl}" class="button" style="color: #fff;">Event Page</a>
       </div>
 
