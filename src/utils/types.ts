@@ -109,6 +109,21 @@ export const Industries = {
   },
 };
 
+export const defaultEventTypes = {
+  geo: [
+    'festival',
+    'sport',
+    'concert',
+    'performing-arts',
+    'community',
+    // 'holiday',
+    'tradeshows',
+    'conferences',
+    'workshops',
+  ],
+  gtm: ['tradeshows', 'conferences', 'workshops'],
+};
+
 export const SubIndustries = {
   Retail: 'Retail',
   Quick_Commerce: 'Quick_Commerce',

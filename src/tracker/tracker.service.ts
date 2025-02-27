@@ -40,12 +40,15 @@ export class TrackerService {
     private readonly userDataService: UserDataService,
     private readonly configService: ConfigService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) { }
+  ) {}
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const nonEmptyParams = getNonEmptyParams(data.filterValues);
-    const convertedParams =
-      await this.sharedService.convertSlugParamsToIds(nonEmptyParams);
+    const convertedParams = await this.sharedService.convertSlugParamsToIds(
+      nonEmptyParams,
+      true,
+      false,
+    );
     const tracker = await this.trackerDataService.createTracker(user, {
       ...data,
       filterValues: convertedParams,
@@ -88,9 +91,9 @@ export class TrackerService {
           : undefined;
     tracker.filterValues = tracker.filterValues
       ? {
-        ...(tracker.filterValues as Record<string, any>),
-        searchByEntity,
-      }
+          ...(tracker.filterValues as Record<string, any>),
+          searchByEntity,
+        }
       : { searchByEntity };
 
     const savedEventsCount =
@@ -101,10 +104,7 @@ export class TrackerService {
         interestedUserId: user.id,
         accountId: user.accountId,
       });
-    console.log(
-      { backend: this.configService.get('BACKEND') },
-      { searchByEntity },
-    );
+
     const groupBy =
       searchByEntity || this.configService.get('BACKEND') === 'gtm'
         ? CountGroup.status
@@ -130,7 +130,6 @@ export class TrackerService {
       tracker.filterValues = await this.sharedService.convertIdParamsToSlug(
         tracker.filterValues,
       );
-      console.log(tracker.filterValues);
       await this.cacheManager.set(
         tracker.id,
         { groupedEventsCount, filterValues: tracker.filterValues },
@@ -234,14 +233,12 @@ export class TrackerService {
       'SUPER_ADMIN',
       'USER',
     ]);
-    console.log(tracker);
     const trackerResponse = await this.getTrackerResponse(user, tracker, query);
     return trackerResponse;
   }
 
   async getGroupedEventsCount(params: CountQueryDto, groupBy?: CountGroup) {
     const data = await this.eventService.getEventsCount(params, false);
-    console.log({ counts: data });
     if (!groupBy) return data.count;
     if (groupBy === CountGroup.status) {
       return data.count;
@@ -272,8 +269,11 @@ export class TrackerService {
     };
     if (data.filterValues) {
       const nonEmptyParams = getNonEmptyParams(data.filterValues);
-      const convertedParams =
-        await this.sharedService.convertSlugParamsToIds(nonEmptyParams);
+      const convertedParams = await this.sharedService.convertSlugParamsToIds(
+        nonEmptyParams,
+        true,
+        false,
+      );
       updateParams['filterValues'] = convertedParams;
     }
     return await this.trackerDataService.updateTracker(user, updateParams);
@@ -295,7 +295,6 @@ export class TrackerService {
     trackerId: string,
     params: GetTrackerEventsDto,
   ) {
-    console.log({ params });
     const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
       'ADMIN',
       'SUPER_ADMIN',
@@ -304,17 +303,16 @@ export class TrackerService {
     const newParams = getNonEmptyParams(params);
     const convertedParams =
       await this.sharedService.convertSlugParamsToIds(newParams);
-
     if (params.trackerEventStatus && params.trackerEventStatus === 'past') {
       convertedParams['active_lte'] = tracker.filterValues
         ? new Date(
-          Math.min(
-            new Date(
-              tracker.filterValues['active_lte'] || new Date(),
-            ).valueOf(),
-            new Date().valueOf(),
-          ),
-        ).toISOString()
+            Math.min(
+              new Date(
+                tracker.filterValues['active_lte'] || new Date(),
+              ).valueOf(),
+              new Date().valueOf(),
+            ),
+          ).toISOString()
         : new Date().toISOString();
     } else if (
       params.trackerEventStatus &&
@@ -322,13 +320,13 @@ export class TrackerService {
     ) {
       convertedParams['active_gte'] = tracker.filterValues
         ? new Date(
-          Math.max(
-            new Date(
-              tracker.filterValues['active_gte'] || new Date(),
-            ).valueOf(),
-            new Date().valueOf(),
-          ),
-        ).toISOString()
+            Math.max(
+              new Date(
+                tracker.filterValues['active_gte'] || new Date(),
+              ).valueOf(),
+              new Date().valueOf(),
+            ),
+          ).toISOString()
         : new Date().toISOString();
     }
     if (params.trackerEventStatus && params.trackerEventStatus === 'new') {
@@ -351,18 +349,18 @@ export class TrackerService {
           : tracker.type === 'T_RECRUITMENT'
             ? 'recruitment'
             : undefined;
+
     const eventParams = {
       ...(tracker.filterValues as Object),
       limit: params.limit,
       offset: params.offset,
       view: View.tracker,
       ...convertedParams,
-      trackerId: trackerId
+      trackerId: trackerId,
     } as QueryDto;
     if (searchByEntity) {
       eventParams['searchByEntity'] = searchByEntity;
     }
-    console.log({ eventParams });
     const events = await this.eventService.getAllEvents(
       eventParams,
       false,
@@ -429,27 +427,24 @@ export class TrackerService {
     if (params.type && params.type === 'past') {
       convertedParams['active_lte'] = tracker.filterValues
         ? new Date(
-          Math.min(
-            new Date(
-              tracker.filterValues['active_lte'] || new Date(),
-            ).valueOf(),
-            new Date().valueOf(),
-          ),
-        ).toISOString()
+            Math.min(
+              new Date(
+                tracker.filterValues['active_lte'] || new Date(),
+              ).valueOf(),
+              new Date().valueOf(),
+            ),
+          ).toISOString()
         : new Date().toISOString();
-    } else if (
-      params.type &&
-      params.type === 'active'
-    ) {
+    } else if (params.type && params.type === 'active') {
       convertedParams['active_gte'] = tracker.filterValues
         ? new Date(
-          Math.max(
-            new Date(
-              tracker.filterValues['active_gte'] || new Date(),
-            ).valueOf(),
-            new Date().valueOf(),
-          ),
-        ).toISOString()
+            Math.max(
+              new Date(
+                tracker.filterValues['active_gte'] || new Date(),
+              ).valueOf(),
+              new Date().valueOf(),
+            ),
+          ).toISOString()
         : new Date().toISOString();
     }
     if (params.type && params.type === 'new') {
@@ -460,10 +455,14 @@ export class TrackerService {
       );
       convertedParams['createdAt'] = lastActive.last_active_gte;
     }
+    if (tracker.filterValues && tracker.filterValues['viewBound']) {
+      tracker.filterValues['viewBound'] = tracker.filterValues['viewBound'];
+    }
     const eventParams = {
       ...(tracker.filterValues as Object),
       ...convertedParams,
     } as CountQueryDto;
+
     const count = await this.eventService.getEventsCount(eventParams, false);
     return count;
   }
@@ -500,7 +499,6 @@ export class TrackerService {
       eventIds: savedEventsIds,
       ...convertedParams,
     } as CountQueryDto;
-
     const count = await this.eventService.getEventsCount(eventParams, false);
     return count;
   }
@@ -545,7 +543,10 @@ export class TrackerService {
       'SUPER_ADMIN',
       'USER',
     ]);
-    const resposeForAccessUser: { superAdmin: object[], others: object[] } = { others: [], superAdmin: [] };
+    const resposeForAccessUser: { superAdmin: object[]; others: object[] } = {
+      others: [],
+      superAdmin: [],
+    };
     const users = (
       await this.accessService.getAccess({
         sourceEntity: 'TRACKER',
@@ -558,17 +559,17 @@ export class TrackerService {
     ).map((item) => {
       const user = item.accessReceiver;
       if (item.accessType === 'SUPER_ADMIN') {
-        resposeForAccessUser.superAdmin = [{
-          id: user.id,
-          name: getNameFromEmail(user.email, user.firstname, user.lastname),
-          email: user.email,
-          imageUrl: user.imageUrl,
-          accessType: item.accessType,
-          accessId: item.id,
-        }];
-      }
-      else if (['ADMIN',
-        'USER',].includes(item.accessType)) {
+        resposeForAccessUser.superAdmin = [
+          {
+            id: user.id,
+            name: getNameFromEmail(user.email, user.firstname, user.lastname),
+            email: user.email,
+            imageUrl: user.imageUrl,
+            accessType: item.accessType,
+            accessId: item.id,
+          },
+        ];
+      } else if (['ADMIN', 'USER'].includes(item.accessType)) {
         resposeForAccessUser.others.push({
           id: user.id,
           name: getNameFromEmail(user.email, user.firstname, user.lastname),
@@ -576,7 +577,7 @@ export class TrackerService {
           imageUrl: user.imageUrl,
           accessType: item.accessType,
           accessId: item.id,
-        })
+        });
       }
     });
     return resposeForAccessUser;

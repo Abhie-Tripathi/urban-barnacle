@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { EventsTrendsSchema, QueryFilter, QuerySchema } from 'src/events/dto';
+import {
+  EventsTrendsSchema,
+  QueryFilter,
+  QuerySchema,
+  View,
+} from 'src/events/dto';
 import { TrackerType } from '@prisma/client';
 
 export const SearchByEntity = {
@@ -23,7 +28,7 @@ export const TrackerEventTypeGroup = {
 
 export const EventTabs = { ...TrackerEventTypeGroup, ...TrackerEventStatus };
 
-export const TrackerParamsSchema = QuerySchema.innerType().extend({
+export const TrackerQuerySchema = z.object({
   orgName: z.string().optional(),
   // orgId: z.string().optional(),
   orgWebsite: z.string().optional(),
@@ -51,7 +56,12 @@ export const TrackerParamsSchema = QuerySchema.innerType().extend({
     })
     .optional(),
 });
-
+export const TrackerParamsSchema = QueryFilter.extend(TrackerQuerySchema.shape);
+export const TrackerEventSearchSchema = QuerySchema.innerType()
+  .extend(TrackerQuerySchema.shape)
+  .extend({
+    view: z.nativeEnum(View).optional().default(View.tracker),
+  });
 export const ParamsSchema = TrackerParamsSchema.extend(
   EventsTrendsSchema.shape,
 ).partial({

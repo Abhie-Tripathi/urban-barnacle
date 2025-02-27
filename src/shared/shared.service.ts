@@ -35,7 +35,7 @@ export class SharedService {
     private readonly prisma: PrismaService,
     private readonly suggestionService: SuggestionService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) { }
+  ) {}
 
   async signToken(user: SelectedUserDetails, token: string) {
     const tokenData: TCachedUser = { ...user, token };
@@ -76,7 +76,11 @@ export class SharedService {
     }
   }
 
-  async convertSlugParamsToIds(params: any, validateIds: boolean = true) {
+  async convertSlugParamsToIds(
+    params: any,
+    validateIds: boolean = true,
+    transformViewBound = true,
+  ) {
     if (params.categories && params.categories.length > 0 && validateIds) {
       const categoriesSlug = params.categories as string[];
       const categories = (await this.suggestionService.getSuggestions(
@@ -177,11 +181,13 @@ export class SharedService {
       }
       params['eventTypes'] = eventTypes.map((eventType) => eventType.id);
     }
-    if (params.geoCoordinates) {
-      params.geoCoordinates = JSON.stringify(params.geoCoordinates);
-    }
-    if (params.viewBound && validateIds) {
-      params.viewBound = JSON.stringify(params.viewBound);
+    // if (params.geoCoordinates) {
+    //   params.geoCoordinates = JSON.stringify(params.geoCoordinates);
+    // }
+    if (params.viewBound) {
+      params.viewBound = transformViewBound
+        ? JSON.stringify(params.viewBound)
+        : params.viewBound;
     }
     return params;
   }
@@ -351,7 +357,11 @@ export class SharedService {
     });
     return Number(totalArea.toFixed(2));
   }
-  async getCompanyAndUserDataForProspect(query: ProspectSchemaDto, viewAs: string, viewBy: string) {
+  async getCompanyAndUserDataForProspect(
+    query: ProspectSchemaDto,
+    viewAs: string,
+    viewBy: string,
+  ) {
     query.limit = Math.min(query.limit, 10);
     const callMicroService = async (queryParam: any) => {
       const url = `${process.env.MICROSERVICE_URL || ''}${microserviceEndpoints.company.search}?${new URLSearchParams(queryParam)}&viewAs=${viewAs}&viewBy=${viewBy}`;
@@ -361,26 +371,38 @@ export class SharedService {
       const responseData = await response.json();
       if (viewAs === 'detail') {
         return responseData?.data?.id
-          ? { ...responseData.data, id: encrypt(responseData.data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!) }
+          ? {
+              ...responseData.data,
+              id: encrypt(
+                responseData.data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+              ),
+            }
           : null;
       }
       if (responseData.data?.error) {
-        throw new HttpException(responseData.data.error, HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          responseData.data.error,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
       return [
-        (responseData.data ?? []).map(data => ({
+        (responseData.data ?? []).map((data) => ({
           ...data,
-          [viewBy === 'company' ? "id" : "user_id"]: viewBy === 'company'
-            ? encrypt(data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!)
-            : encrypt(data.user_id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!)
+          [viewBy === 'company' ? 'id' : 'user_id']:
+            viewBy === 'company'
+              ? encrypt(data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!)
+              : encrypt(data.user_id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!),
         })),
-        responseData.totalCount ?? 0
+        responseData.totalCount ?? 0,
       ];
     };
 
     if (viewBy === 'company') {
       if (viewAs === 'detail' && query.companyId) {
-        query.companyId = decrypt(query.companyId).replace(process.env.TEN_TIMES_ID_ENCRYPT_KEY!, '');
+        query.companyId = decrypt(query.companyId).replace(
+          process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+          '',
+        );
         return { data: { companyData: await callMicroService(query) } };
       }
       const [companyData, totalCount] = await callMicroService(query);
@@ -393,26 +415,42 @@ export class SharedService {
     }
     return { data: { message: 'Wrong view selected' } };
   }
-  async getPointForRequest(column: PointColumn, subscriptionId: string): Promise<number> {
+  async getPointForRequest(
+    column: PointColumn,
+    subscriptionId: string,
+  ): Promise<number> {
     const pointsData = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId },
-      select: { [column]: true }
+      select: { [column]: true },
     });
-    if (!pointsData || pointsData[column] === null || typeof pointsData[column] !== 'number') {
-      throw new HttpException(`Invalid point value for column ${column}`, HttpStatus.INTERNAL_SERVER_ERROR);
+    if (
+      !pointsData ||
+      pointsData[column] === null ||
+      typeof pointsData[column] !== 'number'
+    ) {
+      throw new HttpException(
+        `Invalid point value for column ${column}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
     return pointsData[column];
   }
-  async deductPointForRequest(column: PointColumn, subscriptionId: string, remainingPoints: number) {
-    const point = await this.getPointForRequest(column,
-      subscriptionId);
+  async deductPointForRequest(
+    column: PointColumn,
+    subscriptionId: string,
+    remainingPoints: number,
+  ) {
+    const point = await this.getPointForRequest(column, subscriptionId);
     if (point <= 0) {
-      throw new HttpException(`You have reached the maximum limit to view data. Please get in touch with us.`, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        `You have reached the maximum limit to view data. Please get in touch with us.`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
     await this.prisma.subscription.update({
       where: { id: subscriptionId },
-      data: { [column]: remainingPoints }
+      data: { [column]: remainingPoints },
     });
     return { data: { message: 'points updated' } };
   }
@@ -420,9 +458,8 @@ export class SharedService {
     const point = await this.getPointForRequest(column, subscriptionId);
     await this.prisma.subscription.update({
       where: { id: subscriptionId },
-      data: { [column]: point + 1 }
+      data: { [column]: point + 1 },
     });
     return { data: { message: 'points updated' } };
   }
-
 }

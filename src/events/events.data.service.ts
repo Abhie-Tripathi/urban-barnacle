@@ -16,7 +16,7 @@ export class EventsDataService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
   async createLogForEncryptedQuery(encryption: string, user: TCachedUser) {
     const previousActivity = await this.prisma.userActivity.findFirst({
       where: {
@@ -65,9 +65,13 @@ export class EventsDataService {
       queryParams.toString();
     console.log(url);
     const response = await fetch(url);
-    const { data, error } = await response.json();
-    if (!data || error) {
-      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+    const result = await response.json();
+    if (result.statusCode) {
+      throw result;
+    }
+    const { data, error } = result;
+    if (error) {
+      throw new HttpException(result, result.statusCode);
     }
     return data;
   }

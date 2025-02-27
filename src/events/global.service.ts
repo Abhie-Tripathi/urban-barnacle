@@ -13,13 +13,7 @@ export function eventSearchFilterCheck(data: any, query: QueryDto) {
         }
       }
     }
-    console.log(
-      main,
-      sub,
-      count,
-      { main: main.length },
-      count === main.length,
-    );
+    console.log(main, sub, count, { main: main.length }, count === main.length);
     return main.length > 0 || sub.length > 0
       ? count === main.length && count >= 1
       : true;
@@ -247,8 +241,7 @@ export function eventSearchFilterCheck(data: any, query: QueryDto) {
       [];
     const [rangeStart, rangeEnd] =
       query?.active_gte?.split(',').map((date) => new Date(date)) ?? [];
-    checkToPassFilter =
-      durationStart <= rangeStart && rangeEnd <= durationEnd;
+    checkToPassFilter = durationStart <= rangeStart && rangeEnd <= durationEnd;
     //   if (!query.endDate && query.startDate) {
     //     query.startDate =
     //       rangeStart.toISOString() + ',' + durationEnd.toISOString();
@@ -266,8 +259,7 @@ export function eventSearchFilterCheck(data: any, query: QueryDto) {
       [];
     const [rangeStart, rangeEnd] =
       query?.active_lte?.split(',').map((date) => new Date(date)) ?? [];
-    checkToPassFilter =
-      durationStart <= rangeStart && rangeEnd <= durationEnd;
+    checkToPassFilter = durationStart <= rangeStart && rangeEnd <= durationEnd;
     //   if (query.endDate && !query.startDate) {
     //     query.endDate =
     //       rangeStart.toISOString() + ',' + durationEnd.toISOString();
@@ -317,7 +309,7 @@ export function eventSearchFilterCheck(data: any, query: QueryDto) {
   console.log('checkToPassFilter', checkToPassFilter);
   return {
     result: checkToPassFilter,
-    rootTodiscard: rootTodiscard
+    rootTodiscard: rootTodiscard,
   };
 }
 
@@ -349,6 +341,15 @@ const DataGroups = {
     '10timesEventPageUrl',
     'rating',
     'isNew',
+    'matchedKeywords',
+    'matchedKeywordsPercentage',
+    'type',
+    'level',
+    'startDate',
+    'endDate',
+    'lastModified',
+    'originLatitude',
+    'originLongitude',
   ],
 
   advance: [
@@ -356,7 +357,6 @@ const DataGroups = {
     'isBranded',
     'isSeries',
     'rehostDate',
-    'estimatedExhibitors',
     'rehostDate',
     'maturity',
     'frequency',
