@@ -225,7 +225,7 @@ export function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
           id: string;
           slug: string;
         }[]
-      )?.map((data) => data.id) ?? [];
+      )?.map((data) => data.slug) ?? [];
     console.log('query.eventCategory', main, sub);
 
     if (sub.length > main.length) {
