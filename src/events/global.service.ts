@@ -1,6 +1,7 @@
 import { EventDataDto, QueryDto } from './dto';
 
-export function eventSearchFilterCheck(data: any, query: QueryDto) {
+export function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
+  const data: any = dataFilter.filter ?? {};
   let checkToPassFilter: boolean = true;
   let shows: string = query.show?.join(',') ?? '';
   let rootTodiscard: string = '';
