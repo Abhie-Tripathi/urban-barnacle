@@ -604,6 +604,9 @@ export const QuerySchema = LimitSchemaWithoutDefault.extend(QueryFilter.shape)
         data.eventTypes = defaultEventTypes[backend];
       }
     }
+    if (!data.sortBy || data.sortBy.length === 0) {
+      data.sortBy = ['-score'];
+    }
     return data;
   });
 
