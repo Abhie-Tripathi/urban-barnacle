@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { SignInDto, SignUpDto, VerifyAccessDto, VerifyOtpDto } from './dto';
+import { AuthenticatDto, SignInDto, SignUpDto, VerifyAccessDto, VerifyOtpDto } from './dto';
 import {
   blackListDomain,
   CachedUserSchema,
@@ -47,8 +47,9 @@ export class AuthService {
 
   async signUp(data: SignUpDto) {
     const domain = data.email.split('@')[1];
+    let nonBusinessFlag: Boolean = false;
     if (blackListDomain.includes(domain)) {
-      throw new HttpException('Domain not allowed', HttpStatus.BAD_REQUEST);
+      nonBusinessFlag = true;
     }
     let [users, company] = await Promise.all([
       this.userDataService.getUsers({
@@ -83,8 +84,9 @@ export class AuthService {
       }
       await this.accountDataService.addAccountUser(company.accountId, user.id);
     } else {
-      if (!company) {
-        const accountDefault = {};
+      if (!company || nonBusinessFlag) {
+        const accountDefault = {
+        };
         if (blackListDomain.includes(domain)) {
           accountDefault['domain'] = domain;
         }
@@ -335,6 +337,10 @@ export class AuthService {
         currentSubscriptionId: currentAccount.currentSubscriptionId,
       }),
     };
+  }
+
+  async authenticateUserFromToken(body: AuthenticatDto) {
+    return await this.authDataService.authenticateUserFromToken(body);
   }
   // async userBasicInfo(email: string) {
   //   try {
