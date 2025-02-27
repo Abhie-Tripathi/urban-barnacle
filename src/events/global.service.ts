@@ -24,9 +24,9 @@ export function eventSearchFilterCheck(data: any, query: QueryDto) {
       ? count === main.length && count >= 1
       : true;
   };
-  if (data.eventType) {
+  if (data.eventTypes) {
     const main = query?.eventTypes ?? [];
-    const sub = (data?.eventType?.enabledValue as string[]) ?? [];
+    const sub = (data?.eventTypes?.enabledValue as string[]) ?? [];
     if (sub.length > main.length) {
       checkToPassFilter = false;
     }
@@ -37,9 +37,9 @@ export function eventSearchFilterCheck(data: any, query: QueryDto) {
       rootTodiscard = 'eventTypes';
     }
   }
-  if (data.eventFormat && checkToPassFilter) {
+  if (data.eventFormats && checkToPassFilter) {
     const main = query?.eventFormats ?? [];
-    const sub = (data?.eventFormat?.enabledValue as string[]) ?? [];
+    const sub = (data?.eventFormats?.enabledValue as string[]) ?? [];
     if (sub.length > main.length) {
       checkToPassFilter = false;
     }
@@ -48,9 +48,9 @@ export function eventSearchFilterCheck(data: any, query: QueryDto) {
       rootTodiscard = 'eventFormats';
     }
   }
-  if (data.eventRanking && checkToPassFilter) {
+  if (data.ratings && checkToPassFilter) {
     const main = query?.ratings ?? [];
-    const sub = (data?.eventRanking?.enabledValue as string[]) ?? [];
+    const sub = (data?.ratings?.enabledValue as string[]) ?? [];
     if (sub.length > main.length) {
       checkToPassFilter = false;
     }
@@ -60,9 +60,9 @@ export function eventSearchFilterCheck(data: any, query: QueryDto) {
       rootTodiscard = 'rankings';
     }
   }
-  if (data.eventStatus && checkToPassFilter) {
+  if (data.status && checkToPassFilter) {
     const main = query?.status ?? [];
-    const sub = (data?.eventStatus?.enabledValue as string[]) ?? [];
+    const sub = (data?.status?.enabledValue as string[]) ?? [];
     if (sub.length > main.length) {
       checkToPassFilter = false;
     }
@@ -119,9 +119,9 @@ export function eventSearchFilterCheck(data: any, query: QueryDto) {
   //     rootTodiscard = 'isforecasted';
   //   }
   // }
-  if (data.eventEntry && checkToPassFilter) {
+  if (data.entryType && checkToPassFilter) {
     const main = query?.entryType ?? [];
-    const sub = (data?.eventEntry?.enabledValue as string[]) ?? [];
+    const sub = (data?.entryType?.enabledValue as string[]) ?? [];
     if (sub.length > main.length) {
       checkToPassFilter = false;
     }
@@ -131,9 +131,9 @@ export function eventSearchFilterCheck(data: any, query: QueryDto) {
     }
   }
   console.log('checkToPassFilter', checkToPassFilter);
-  if (data.eventFrequency && checkToPassFilter) {
+  if (data.frequencies && checkToPassFilter) {
     const main = query?.frequencies ?? [];
-    const sub = (data?.eventFrequency?.enabledValue as string[]) ?? [];
+    const sub = (data?.frequencies?.enabledValue as string[]) ?? [];
     if (sub.length > main.length) {
       checkToPassFilter = false;
     }
@@ -167,9 +167,9 @@ export function eventSearchFilterCheck(data: any, query: QueryDto) {
     }
   }
   console.log('checkToPassFilter', checkToPassFilter);
-  if (data.estimatedExhibitScore && checkToPassFilter) {
+  if (data.estimatedExhibitors && checkToPassFilter) {
     const main = query?.estimatedExhibitors ?? [];
-    const sub = (data?.estimatedExhibitScore?.enabledValue as string[]) ?? [];
+    const sub = (data?.estimatedExhibitors?.enabledValue as string[]) ?? [];
     if (sub.length > main.length) {
       checkToPassFilter = false;
     }
@@ -222,11 +222,11 @@ export function eventSearchFilterCheck(data: any, query: QueryDto) {
     }
   }
   console.log('query.eventCategory', data.eventCategory, checkToPassFilter);
-  if (data?.eventCategory?.enabledValue && checkToPassFilter) {
+  if (data?.categories?.enabledValue && checkToPassFilter) {
     const main = query?.categories ?? [];
     const sub: string[] =
       (
-        data?.eventCategory?.enabledValue as {
+        data?.categories?.enabledValue as {
           id: string;
           slug: string;
         }[]
@@ -241,9 +241,9 @@ export function eventSearchFilterCheck(data: any, query: QueryDto) {
       rootTodiscard = 'eventCategory';
     }
   }
-  if (data?.durations?.startDate && checkToPassFilter) {
+  if (data?.durations?.active_gte && checkToPassFilter) {
     const [durationStart, durationEnd] =
-      data?.durations?.startDate?.split(',').map((date) => new Date(date)) ??
+      data?.durations?.active_gte?.split(',').map((date) => new Date(date)) ??
       [];
     const [rangeStart, rangeEnd] =
       query?.active_gte?.split(',').map((date) => new Date(date)) ?? [];
@@ -260,9 +260,9 @@ export function eventSearchFilterCheck(data: any, query: QueryDto) {
     }
   }
   console.log('checkToPassFilter', checkToPassFilter);
-  if (data?.durations?.endDate && checkToPassFilter) {
+  if (data?.durations?.active_lte && checkToPassFilter) {
     const [durationStart, durationEnd] =
-      data?.durations?.endDate?.split(',').map((date) => new Date(date)) ??
+      data?.durations?.active_lte?.split(',').map((date) => new Date(date)) ??
       [];
     const [rangeStart, rangeEnd] =
       query?.active_lte?.split(',').map((date) => new Date(date)) ?? [];
@@ -286,9 +286,9 @@ export function eventSearchFilterCheck(data: any, query: QueryDto) {
     rootTodiscard = 'startDate/endDate';
   }
   console.log('checkToPassFilter', checkToPassFilter);
-  if (data?.keywords?.negativeKeywords && checkToPassFilter) {
+  if (data?.keywords?.excludeKeywords && checkToPassFilter) {
     const main = query?.excludeKeywords ?? [];
-    const sub: string[] = data?.keywords?.negativeKeywords ?? [];
+    const sub: string[] = data?.keywords?.excludeKeywords ?? [];
     if (sub.length > main.length) {
       checkToPassFilter = false;
     }
@@ -299,9 +299,9 @@ export function eventSearchFilterCheck(data: any, query: QueryDto) {
   }
   console.log('checkToPassFilter', checkToPassFilter);
 
-  if (data?.keywords?.positiveKeywords && checkToPassFilter) {
+  if (data?.keywords?.includeKeywords && checkToPassFilter) {
     const main = query?.includeKeywords ?? [];
-    const sub: string[] = data?.keywords?.positiveKeywords ?? [];
+    const sub: string[] = data?.keywords?.includeKeywords ?? [];
     if (sub.length > main.length) {
       checkToPassFilter = false;
     }
