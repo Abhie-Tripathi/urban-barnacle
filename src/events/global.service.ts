@@ -9,7 +9,7 @@ export function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
     let count: number = 0;
     for (const val1 of main) {
       for (const val2 of sub) {
-        if (val2 === val1) {
+        if (val2.toLowerCase() === val1.toLowerCase()) {
           count++;
         }
       }
