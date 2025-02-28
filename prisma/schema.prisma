@@ -276,6 +276,7 @@ enum CommentSourceModule {
   TRACKER
   COORDINATE
   OUTREACH
+  EVENT_DETAIL_PAGE
 }
 
 // discuss comment likes : comment / intent 
