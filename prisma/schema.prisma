@@ -169,6 +169,10 @@ enum AttachmentSourceModule {
   EVENT
   BRANDKIT
   PROMOTED_EVENT
+  PROMOTED_EVENT_WIDGET_KIT
+  PROMOTED_EVENT_SPEAKER
+  PROMOTED_EVENT_EXHIBITOR
+  OTHERS
 }
 
 // discuss source : gtm geni usecase
@@ -701,6 +705,9 @@ enum InterestSourceModule {
   TRACKER
   COMMENT
   PROMOTED_EVENT
+  PROMOTED_EVENT_WIDGET
+  PROMOTED_EVENT_SPEAKER
+  PROMOTED_EVENT_EXHIBITOR
 }
 
 enum InterestStatus {

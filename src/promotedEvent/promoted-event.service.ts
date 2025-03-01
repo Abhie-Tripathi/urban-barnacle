@@ -104,7 +104,7 @@ export class PromotedEventsService {
           file,
           user.id,
           'IMAGE',
-          'EVENT',
+          'PROMOTED_EVENT',
           'EVENT',
         );
         if (error) {
@@ -137,12 +137,13 @@ export class PromotedEventsService {
             fileType: filetype,
             fileSize: 0,
             fileUrl: mediaHost + '/public/' + fileName,
-            sourceModule: 'EVENT',
+            sourceModule: 'PROMOTED_EVENT',
             sourceId: 'EVENT',
             createdByUser: { connect: { id: user.id } },
           });
           attachment_id = upload.id;
           jsonDta['logoUrl'] = upload.fileUrl;
+          attachment_id = upload.id;
           // return upload;
         }
       }
@@ -388,7 +389,8 @@ export class PromotedEventsService {
           file,
           user.id,
           'IMAGE',
-          'EVENT',
+          body.isExhibitor && body.isExhibitor.length > 2 ? 'PROMOTED_EVENT_SPEAKER' :
+            'PROMOTED_EVENT_EXHIBITOR',
           'EVENT',
         );
         if (error) {
@@ -426,21 +428,21 @@ export class PromotedEventsService {
           if (!custData['exhibitor']) {
             custData['exhibitor'] = [];
           }
-          // custData['exhibitor'].push({
-          //   data: JSON.parse(participationType.Note ?? ''),
-          //   interest: participationType.interest,
-          //   imageUrl: sttt_id,
-          // });
+          custData['exhibitor'].push({
+            data: body.data,
+            interest: 'EXHIBIT',
+            imageUrl: attachment_id,
+          });
           data['customizationData'] = JSON.stringify(custData);
         } else {
           if (!custData['speaker']) {
             custData['speaker'] = [];
           }
-          // custData['speaker'].push({
-          //   data: JSON.parse(participationType.Note ?? ''),
-          //   interest: participationType.interest,
-          //   imageUrl: sttt_id,
-          // });
+          custData['speaker'].push({
+            data: body.data,
+            interest: 'SPEAK',
+            imageUrl: attachment_id,
+          });
           data['customizationData'] = JSON.stringify(custData);
         }
         await this.eventDataService.updatePromotedEvent(
@@ -448,15 +450,15 @@ export class PromotedEventsService {
           body.eventId,
         );
       }
-      // return {
-      //   data: {
-      //     speaker: {
-      //       data: JSON.parse(participationType.Note ?? ''),
-      //       interest: participationType.interest,
-      //       imageUrl: attachment_id,
-      //     },
-      //   },
-      // };
+      return {
+        data: {
+          [body.isExhibitor && body.isExhibitor.length > 2 ? 'exhibitor' : "speaker"]: {
+            data: body.data,
+            interest: body.isExhibitor && body.isExhibitor.length > 2 ? 'EXHIBIT' : 'SPEAK',
+            imageUrl: attachment_id,
+          },
+        },
+      };
     } catch (error) {
       console.log(error);
       console.error(error);

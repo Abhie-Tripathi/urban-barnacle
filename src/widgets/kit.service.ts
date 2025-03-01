@@ -329,7 +329,7 @@ export class KitService {
       let logoURL: any = {};
       if (file.buffer) {
         const fileName = `${randomUUID() + new Date().toISOString()}.jpg`;
-        const { error, fileData } = await this.fileCreate.createFile(fileName, file, user.id, 'IMAGE', 'PROMOTED_EVENT', logodata.id);
+        const { error, fileData } = await this.fileCreate.createFile(fileName, file, user.id, 'IMAGE', 'PROMOTED_EVENT_WIDGET_KIT', logodata.id);
         if (error) {
           return error;
         }

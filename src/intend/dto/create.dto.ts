@@ -3,7 +3,7 @@ import { createZodDto } from "nestjs-zod";
 import { z } from "zod";
 
 const createInternd = z.strictObject({
-  email: z.string(),
+  email: z.string().email(),
   firstname: z.string(),
   lastname: z.string(),
   eventId: z.string(),
