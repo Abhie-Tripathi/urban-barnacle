@@ -389,8 +389,7 @@ export class PromotedEventsService {
           file,
           user.id,
           'IMAGE',
-          body.isExhibitor && body.isExhibitor.length > 2 ? 'PROMOTED_EVENT_SPEAKER' :
-            'PROMOTED_EVENT_EXHIBITOR',
+          body.isExhibitor && body.isExhibitor.length > 2 ? 'PROMOTED_EVENT_EXHIBITOR' : 'PROMOTED_EVENT_SPEAKER',
           'EVENT',
         );
         if (error) {
