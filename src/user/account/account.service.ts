@@ -5,7 +5,12 @@ import { TCachedUser } from 'src/utils/types';
 import { CompanyDataService } from '../company/company.data.service';
 import { CompanyResponseSchema } from '../company/dto';
 import { EnquiryService } from 'src/enquiry/enquiry.service';
-import { GetEnquiriesDto, GetEnquiriesSchema, GetEnquiryCountDto } from 'src/enquiry/dto';
+import {
+  GetEnquiriesDto,
+  GetEnquiriesHttpDto,
+  GetEnquiriesSchema,
+  GetEnquiryCountDto,
+} from 'src/enquiry/dto';
 import { GetUserHttpDto } from '../dto';
 import { UserService } from '../user.service';
 import { UserDataService } from '../user.data.service';
@@ -18,7 +23,11 @@ import {
   OutreachConfigurationDto,
 } from './account.config';
 import { UserDataSchema } from '../me/dto';
-import { AccountConfigKey, GetAccountEnquiriesCountDto, GetBookmarkedEventDto } from './dto';
+import {
+  AccountConfigKey,
+  GetAccountEnquiriesCountDto,
+  GetBookmarkedEventDto,
+} from './dto';
 import { IntentDataService } from 'src/intent/intent.data.service';
 import {
   GetUserEventInterestCountDto,
@@ -44,8 +53,8 @@ export class AccountService {
     private readonly enquiryService: EnquiryService,
     private readonly userDataService: UserDataService,
     private readonly intentDataService: IntentDataService,
-    private readonly eventService: EventsService
-  ) { }
+    private readonly eventService: EventsService,
+  ) {}
 
   async getAccountCompany(user: TCachedUser) {
     const company = await this.companyDataService.getCompany({
@@ -54,7 +63,7 @@ export class AccountService {
     return CompanyResponseSchema.parse(company);
   }
   async getLatestComment(user: TCachedUser) {
-    const comment = await this.accountDataService.getLatestComment(user)
+    const comment = await this.accountDataService.getLatestComment(user);
     return comment;
   }
   async getSavedEvent(user: TCachedUser, query: GetBookmarkedEventDto) {
@@ -81,7 +90,7 @@ export class AccountService {
     const events = await this.eventService.getAllEvents(eventParams, false);
     return events;
   }
-  async getAccountEnquiries(user: TCachedUser, query: GetEnquiriesDto) {
+  async getAccountEnquiries(user: TCachedUser, query: GetEnquiriesHttpDto) {
     const { limit, offset, status, type, ...rest } = query;
     const [enquiries, enquiryCount] = await Promise.all([
       this.enquiryService.getEnquiries({
@@ -95,49 +104,57 @@ export class AccountService {
         limit,
         offset,
       }),
-      this.enquiryService.getEnquiryCount(GetEnquiriesSchema.parse({
-        accountId: user.accountId,
-        userId: user.id,
-        status: status?.join(','),
-        type: type && typeof type !== 'string' ? type.join(',') : type,
-        ...rest,
-      })),
+      this.enquiryService.getEnquiryCount(
+        GetEnquiriesSchema.parse({
+          accountId: user.accountId,
+          userId: user.id,
+          status: status?.join(','),
+          type: type && typeof type !== 'string' ? type.join(',') : type,
+          ...rest,
+        }),
+      ),
     ]);
     const transformedEnquires = await Promise.all(
       enquiries.map(async (enquiry) => {
         const [interestedCount, activityCount, myActivity] = await Promise.all([
-          this.intentDataService.getUserEventInterestCount(GetUserEventInterestCountSchema.parse({
-            accountId: user.accountId,
-            ...rest,
-            enquiryId: enquiry.id,
-            groupBy: UserInterestsGroupBy.interests,
-            interest: ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'],
-          })),
-          this.intentDataService.getEnquiryActivityCount(GetEnquiryActivityCountSchema.parse({
-            accountId: user.accountId,
-            activityType: EnquiryActivityType.UPVOTE,
-            ...rest,
-            enquiryId: enquiry.id,
-            groupBy: EnquiryActivityGroupBy.activitySubType,
-          })),
-          this.intentDataService.getEnquiryActivities(GetEnquiryActivitySchema.parse({
-            enquiryId: enquiry.id,
-            accountId: user.accountId,
-            userId: user.id,
-            ...rest,
-          })),
+          this.intentDataService.getUserEventInterestCount(
+            GetUserEventInterestCountSchema.parse({
+              accountId: user.accountId,
+              ...rest,
+              enquiryId: enquiry.id,
+              groupBy: UserInterestsGroupBy.interests,
+              interest: ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'],
+            }),
+          ),
+          this.intentDataService.getEnquiryActivityCount(
+            GetEnquiryActivityCountSchema.parse({
+              accountId: user.accountId,
+              activityType: EnquiryActivityType.UPVOTE,
+              ...rest,
+              enquiryId: enquiry.id,
+              groupBy: EnquiryActivityGroupBy.activitySubType,
+            }),
+          ),
+          this.intentDataService.getEnquiryActivities(
+            GetEnquiryActivitySchema.parse({
+              enquiryId: enquiry.id,
+              accountId: user.accountId,
+              userId: user.id,
+              ...rest,
+            }),
+          ),
         ]);
         const owner = enquiry.owner
           ? {
-            id: enquiry.owner.id,
-            name: getNameFromEmail(
-              enquiry.owner.email,
-              enquiry.owner.firstname,
-              enquiry.owner.lastname,
-            ),
-            email: enquiry.owner.email,
-            imageUrl: enquiry.owner.imageUrl,
-          }
+              id: enquiry.owner.id,
+              name: getNameFromEmail(
+                enquiry.owner.email,
+                enquiry.owner.firstname,
+                enquiry.owner.lastname,
+              ),
+              email: enquiry.owner.email,
+              imageUrl: enquiry.owner.imageUrl,
+            }
           : null;
         const interestCounts = {
           total: 0,
@@ -240,14 +257,11 @@ export class AccountService {
 
     return { [key]: configuration ? configuration[key] : [] };
   }
-  async updateAccountMembership(
-    user: TCachedUser,
-    data: MembershipDto,
-  ) {
+  async updateAccountMembership(user: TCachedUser, data: MembershipDto) {
     return await this.accountDataService.updateAccountMembership(user, data);
   }
   async createMembershipToken(user: TCachedUser) {
-    return this.accountDataService.createMembershipToken(user)
+    return this.accountDataService.createMembershipToken(user);
   }
   async getAccountEnquiriesCount(
     user: TCachedUser,
@@ -283,9 +297,9 @@ export class AccountService {
       }),
       params.groupBy === UserInterestsGroupBy.status
         ? this.enquiryService.getEnquiryCount({
-          accountId: user.accountId,
-          groupBy: params.groupBy,
-        })
+            accountId: user.accountId,
+            groupBy: params.groupBy,
+          })
         : null,
     ]);
     let response = {};
@@ -321,11 +335,11 @@ export class AccountService {
         };
         const groupedInterestsByStatus = enquiryCount
           ? (
-            enquiryCount as Array<{ status: string; _count: { id: number } }>
-          ).reduce((acc, curr) => {
-            acc[curr.status.toLowerCase()] = curr._count.id;
-            return acc;
-          }, defaultStatusCount)
+              enquiryCount as Array<{ status: string; _count: { id: number } }>
+            ).reduce((acc, curr) => {
+              acc[curr.status.toLowerCase()] = curr._count.id;
+              return acc;
+            }, defaultStatusCount)
           : null;
         response = {
           ...groupedInterestsByStatus,

@@ -13,7 +13,7 @@ import { AccountService } from './account.service';
 import { AuthGuard } from '../auth/guard';
 import { GetUser } from '../decorator';
 import { TCachedUser } from 'src/utils/types';
-import { GetEnquiriesDto } from 'src/enquiry/dto';
+import { GetEnquiriesDto, GetEnquiriesHttpDto } from 'src/enquiry/dto';
 import { GetUserHttpDto } from '../dto';
 import {
   AccountConfigDto,
@@ -22,11 +22,15 @@ import {
   MembershipDto,
   OutreachConfigurationDto,
 } from './account.config';
-import { AccountConfigKey, GetAccountEnquiriesCountDto, GetBookmarkedEventDto } from './dto';
+import {
+  AccountConfigKey,
+  GetAccountEnquiriesCountDto,
+  GetBookmarkedEventDto,
+} from './dto';
 
 @Controller('me/account')
 export class AccountController {
-  constructor(private readonly accountService: AccountService) { }
+  constructor(private readonly accountService: AccountService) {}
 
   @UseGuards(AuthGuard)
   @Get('company')
@@ -50,7 +54,10 @@ export class AccountController {
   }
   @UseGuards(AuthGuard)
   @Get('saved-events')
-  async getSavedEvent(@GetUser() user: TCachedUser, @Query() query: GetBookmarkedEventDto) {
+  async getSavedEvent(
+    @GetUser() user: TCachedUser,
+    @Query() query: GetBookmarkedEventDto,
+  ) {
     try {
       const events = await this.accountService.getSavedEvent(user, query);
       return { data: events };
@@ -62,7 +69,7 @@ export class AccountController {
   @Get('enquiries')
   async getAccountEnquiries(
     @GetUser() user: TCachedUser,
-    @Query() query: GetEnquiriesDto,
+    @Query() query: GetEnquiriesHttpDto,
   ) {
     try {
       const enquiries = await this.accountService.getAccountEnquiries(
@@ -186,11 +193,10 @@ export class AccountController {
     @Body() data: MembershipDto,
   ) {
     try {
-      const configuration =
-        await this.accountService.updateAccountMembership(
-          user,
-          data,
-        );
+      const configuration = await this.accountService.updateAccountMembership(
+        user,
+        data,
+      );
       return { data: configuration };
     } catch (error) {
       return { error: error };
@@ -200,7 +206,7 @@ export class AccountController {
   @Post('membership')
   async createMembershipToken(@GetUser() user: TCachedUser) {
     try {
-      console.log(user)
+      console.log(user);
       const data = await this.accountService.createMembershipToken(user);
       return { data: { user: data } };
     } catch (error) {

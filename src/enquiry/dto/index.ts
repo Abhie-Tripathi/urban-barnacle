@@ -25,7 +25,7 @@ const CreateEnquirySchema = z.object({
   eventData: eventDataSchema,
 });
 
-export class CreateEnquiryDto extends createZodDto(CreateEnquirySchema) { }
+export class CreateEnquiryDto extends createZodDto(CreateEnquirySchema) {}
 
 const UpdateEnquiryHttpSchema = z.object({
   status: z.nativeEnum(EnquiryStatus).optional(),
@@ -34,7 +34,7 @@ const UpdateEnquiryHttpSchema = z.object({
 
 export class UpdateEnquiryHttpDto extends createZodDto(
   UpdateEnquiryHttpSchema,
-) { }
+) {}
 
 const UpdateEnquirySchema = z.object({
   id: z.string().uuid(),
@@ -42,14 +42,23 @@ const UpdateEnquirySchema = z.object({
   ownerId: z.string().uuid().optional(),
 });
 
-export class UpdateEnquiryDto extends createZodDto(UpdateEnquirySchema) { }
+export class UpdateEnquiryDto extends createZodDto(UpdateEnquirySchema) {}
 
-export const GetEnquiriesSchema = z.strictObject({
-  ids: z.array(z.string().uuid()).optional(),
+export enum UpvotedBy {
+  me = 'me',
+  others = 'others',
+}
+
+export const GetEnquiriesHttpSchema = z.strictObject({
   eventId: z.string().uuid().optional(),
   accountId: z.string().uuid().optional(),
   initiatedBy: z.string().uuid().optional(),
-  type: z.string().optional().transform(val => val ? val.toUpperCase().split(',') as EnquiryActivitySubType[] : val),
+  type: z
+    .string()
+    .optional()
+    .transform((val) =>
+      val ? (val.toUpperCase().split(',') as EnquiryActivitySubType[]) : val,
+    ),
   status: z
     .string()
     .refine(
@@ -78,17 +87,34 @@ export const GetEnquiriesSchema = z.strictObject({
     .optional(),
   event_active_lte: z.string().datetime().optional(),
   event_active_gte: z.string().datetime().optional(),
-  upvotedBy: z.enum(['me', 'others']).optional(),
-  userId: z.string().uuid().optional(),
+  upvotedBy: z
+    .string()
+    .refine((val) =>
+      val.split(',').every((v) => v.trim().toLowerCase() in UpvotedBy),
+    )
+    .transform((val) =>
+      val.split(',').map((v) => v.trim().toLowerCase() as UpvotedBy),
+    )
+    .optional(),
   name: z.string().optional(),
   groupBy: z.enum(['status']).optional(),
 });
 
+export class GetEnquiriesHttpDto extends createZodDto(
+  LimitSchema.extend(GetEnquiriesHttpSchema.shape),
+) {}
+
+export const GetEnquiriesSchema = GetEnquiriesHttpSchema.extend({
+  ids: z.array(z.string().uuid()).optional(),
+  userId: z.string().uuid().optional(),
+  upvotedBy: z.array(z.nativeEnum(UpvotedBy)).optional(),
+});
+
 export class GetEnquiriesDto extends createZodDto(
   LimitSchema.extend(GetEnquiriesSchema.shape),
-) { }
+) {}
 
-export class GetEnquiryCountDto extends createZodDto(GetEnquiriesSchema) { }
+export class GetEnquiryCountDto extends createZodDto(GetEnquiriesSchema) {}
 
 const SetEnquiryOwnerHttpSchema = z.object({
   ownerId: z.string().uuid(),
@@ -96,7 +122,7 @@ const SetEnquiryOwnerHttpSchema = z.object({
 
 export class SetEnquiryOwnerHttpDto extends createZodDto(
   SetEnquiryOwnerHttpSchema,
-) { }
+) {}
 
 export enum UserInterest {
   attend = 'attend',

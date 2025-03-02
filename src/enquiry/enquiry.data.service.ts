@@ -11,7 +11,7 @@ import { GetCommentCountDto, GetCommentsDto } from 'src/comment/dto';
 
 @Injectable()
 export class EnquiryDataService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async createEnquiry(data: CreateEnquiryDto) {
     const enquiry = await this.prisma.enquiry.create({
@@ -50,27 +50,27 @@ export class EnquiryDataService {
 
     const endDate = event_active_gte
       ? {
-        eventData: {
-          path: ['startDate'],
-          lte: event_active_lte,
-        },
-      }
+          eventData: {
+            path: ['startDate'],
+            lte: event_active_lte,
+          },
+        }
       : null;
     const startDate = event_active_lte
       ? {
-        eventData: {
-          path: ['endDate'],
-          gte: event_active_gte,
-        },
-      }
+          eventData: {
+            path: ['endDate'],
+            gte: event_active_gte,
+          },
+        }
       : null;
     const eventName = name
       ? {
-        eventData: {
-          path: ['name_lower'],
-          string_contains: name.toLowerCase(),
-        },
-      }
+          eventData: {
+            path: ['name_lower'],
+            string_contains: name.toLowerCase(),
+          },
+        }
       : null;
 
     if (endDate || startDate || name) {
@@ -82,22 +82,43 @@ export class EnquiryDataService {
     // } else if (data.event_active_lte) params['eventData'] = endDate;
     // else if (data.event_active_gte) params['eventData'] = startDate;
     // else if (data.name) params['name'] = name;
-    if ((upvotedBy === 'me' || upvotedBy === 'others') && !data.userId) {
+    if (upvotedBy && upvotedBy.length > 0 && !data.userId) {
       throw new HttpException(
         'userId is required when upvotedBy is me or others',
         HttpStatus.BAD_REQUEST,
       );
     }
-    if ((upvotedBy === 'me' || upvotedBy === 'others') && data.userId) {
-      const userId =
-        upvotedBy === 'me' ? { equals: data.userId } : { not: data.userId };
-      params['activities'] = {
-        some: {
-          activityType: 'UPVOTE',
-          userId: userId,
-        },
-      };
+    if (upvotedBy && upvotedBy.length > 0 && data.userId) {
+      if (upvotedBy.length === 1) {
+        const userId =
+          upvotedBy[0] === 'me'
+            ? { equals: data.userId }
+            : { not: data.userId };
+        params['activities'] = {
+          some: {
+            activityType: 'UPVOTE',
+            userId: userId,
+          },
+        };
+      }
     }
+
+    // if ((upvotedBy === 'me' || upvotedBy === 'others') && !data.userId) {
+    //   throw new HttpException(
+    //     'userId is required when upvotedBy is me or others',
+    //     HttpStatus.BAD_REQUEST,
+    //   );
+    // }
+    // if ((upvotedBy === 'me' || upvotedBy === 'others') && data.userId) {
+    //   const userId =
+    //     upvotedBy === 'me' ? { equals: data.userId } : { not: data.userId };
+    //   params['activities'] = {
+    //     some: {
+    //       activityType: 'UPVOTE',
+    //       userId: userId,
+    //     },
+    //   };
+    // }
     const enquiries = await this.prisma.enquiry.findMany({
       where: params,
       include: {
@@ -141,27 +162,27 @@ export class EnquiryDataService {
 
     const endDate = event_active_gte
       ? {
-        eventData: {
-          path: ['startDate'],
-          lte: event_active_lte,
-        },
-      }
+          eventData: {
+            path: ['startDate'],
+            lte: event_active_lte,
+          },
+        }
       : null;
     const startDate = event_active_lte
       ? {
-        eventData: {
-          path: ['endDate'],
-          gte: event_active_gte,
-        },
-      }
+          eventData: {
+            path: ['endDate'],
+            gte: event_active_gte,
+          },
+        }
       : null;
     const eventName = name
       ? {
-        eventData: {
-          path: ['name_lower'],
-          string_contains: name.toLowerCase(),
-        },
-      }
+          eventData: {
+            path: ['name_lower'],
+            string_contains: name.toLowerCase(),
+          },
+        }
       : null;
 
     if (endDate || startDate || name) {
@@ -173,21 +194,25 @@ export class EnquiryDataService {
     // } else if (data.event_active_lte) params['eventData'] = endDate;
     // else if (data.event_active_gte) params['eventData'] = startDate;
     // else if (data.name) params['name'] = name;
-    if ((upvotedBy === 'me' || upvotedBy === 'others') && !data.userId) {
+    if (upvotedBy && upvotedBy.length > 0 && !data.userId) {
       throw new HttpException(
         'userId is required when upvotedBy is me or others',
         HttpStatus.BAD_REQUEST,
       );
     }
-    if ((upvotedBy === 'me' || upvotedBy === 'others') && data.userId) {
-      const userId =
-        upvotedBy === 'me' ? { equals: data.userId } : { not: data.userId };
-      params['activities'] = {
-        some: {
-          activityType: 'UPVOTE',
-          userId: userId,
-        },
-      };
+    if (upvotedBy && upvotedBy.length > 0 && data.userId) {
+      if (upvotedBy.length === 1) {
+        const userId =
+          upvotedBy[0] === 'me'
+            ? { equals: data.userId }
+            : { not: data.userId };
+        params['activities'] = {
+          some: {
+            activityType: 'UPVOTE',
+            userId: userId,
+          },
+        };
+      }
     }
     if (groupBy) {
       const by: Prisma.EnquiryScalarFieldEnum[] = [];
