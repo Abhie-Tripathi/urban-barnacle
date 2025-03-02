@@ -8,7 +8,7 @@ import { microserviceEndpoints } from 'src/utils/endpoints';
 
 @Injectable()
 export class UserDataService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async createUser(data: CreateUserDto) {
     const { accountId, primaryCompanyId, ...rest } = data;
@@ -20,21 +20,21 @@ export class UserDataService {
     }
     const account: object = accountId
       ? {
-        accounts: {
-          connect: {
-            id: data.accountId,
+          accounts: {
+            connect: {
+              id: data.accountId,
+            },
           },
-        },
-      }
+        }
       : {};
     const company = primaryCompanyId
       ? {
-        company: {
-          connect: {
-            id: data.primaryCompanyId,
+          company: {
+            connect: {
+              id: data.primaryCompanyId,
+            },
           },
-        },
-      }
+        }
       : {};
     const user = await this.prisma.user.create({
       data: {
@@ -80,11 +80,20 @@ export class UserDataService {
   }
 
   async updateUser(data: UpdateUserDto) {
+    const userData: Record<string, any> = {
+      ...data,
+    };
+    if (data.firstname === '') {
+      userData.firstname = null;
+    }
+    if (data.lastname === '') {
+      userData.lastname = null;
+    }
     const user = await this.prisma.user.update({
       where: {
         id: data.id,
       },
-      data,
+      data: userData,
     });
     return user;
   }
@@ -109,18 +118,30 @@ export class UserDataService {
     });
     return lastRequest;
   }
-  async getPocUnlockedDatabyAccount(accountId: string, targetId: string | undefined, source: string, pocId: string) {
+  async getPocUnlockedDatabyAccount(
+    accountId: string,
+    targetId: string | undefined,
+    source: string,
+    pocId: string,
+  ) {
     const request = await this.prisma.unlockedTransaction.findMany({
       where: {
         accountId: accountId,
         targetId: targetId, // eventId /companyId
-        source: source, // page 
-        sourceId: pocId // userid
+        source: source, // page
+        sourceId: pocId, // userid
       },
     });
     return request;
   }
-  async craetePocunlockedTransaction(user: TCachedUser, targetId: string | undefined, source: string, pocId: string, unlockValue: UnlockValue, target: UnlockType) {
+  async craetePocunlockedTransaction(
+    user: TCachedUser,
+    targetId: string | undefined,
+    source: string,
+    pocId: string,
+    unlockValue: UnlockValue,
+    target: UnlockType,
+  ) {
     const request = await this.prisma.unlockedTransaction.create({
       data: {
         accountId: user.accountId,
@@ -129,7 +150,7 @@ export class UserDataService {
         target: target,
         sourceId: pocId,
         unlockedById: user.id,
-        unlockValue: unlockValue
+        unlockValue: unlockValue,
       },
     });
     return request;
@@ -137,11 +158,11 @@ export class UserDataService {
   async updatePocUnlockedTransaction(unlockedId: string) {
     await this.prisma.unlockedTransaction.update({
       where: {
-        id: unlockedId
+        id: unlockedId,
       },
       data: {
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     });
     return { data: { message: 'updated' } };
   }
@@ -156,6 +177,9 @@ export class UserDataService {
     if (!data || error) {
       throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
-    return { ...data, id: encrypt(data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY) };
+    return {
+      ...data,
+      id: encrypt(data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY),
+    };
   }
 }
