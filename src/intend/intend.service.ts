@@ -6,7 +6,7 @@ import { CreateIntendDto } from './dto/create.dto';
 import { IntendDataService } from './intend.data.service';
 import { QueryIntend_Dto } from './dto/search.dto';
 import { Update_Dto, userSchema } from './dto/update.dto';
-import { SelectedUserDetails } from 'src/utils/types';
+import { SelectedUserDetails, TCachedUser } from 'src/utils/types';
 @Injectable()
 export class IntendService {
   constructor(private readonly intendDataService: IntendDataService) { }
@@ -212,8 +212,8 @@ export class IntendService {
           if (user) {
             dataToreturn.push({
               userId: user.id,
-              firstname: user.firstname,
-              lastname: user.lastname,
+              firstname: user.firstname || '',
+              lastname: user.lastname || '',
               email: user.email,
               created: key.createdAt,
               interestId: key.id,
@@ -236,12 +236,13 @@ export class IntendService {
       return { error };
     }
   }
-  async updateIntend(body: Update_Dto) {
+  async updateIntend(body: Update_Dto, user: TCachedUser) {
     try {
       const updateInterest = await this.intendDataService.updateEventInterest(
-        {},
+        { approvedBy: user.id },
         body.status as InterestStatus,
         body.id,
+
       );
       if (!body.firstname && !body.lastname) {
         this.intendDataService.createjob(
