@@ -124,10 +124,10 @@ export class UserService {
     if (query.unmask && query.target && query.source) {
       return await this.getPocsUnmasked(userId, pocUnmaskSchemaMandate.parse(query), userData);
     }
-    if (query.id && isUUID(query.id)) {
+    if (isUUID(userId)) {
       return {};
-    } else if (query.id && !isUUID(query.id)) {
-      return await this.sharedService.getCompanyAndUserDataForProspect({ userId: query.id, limit: 10, offset: 0 }, 'detail', 'user');
+    } else if (!isUUID(userId)) {
+      return await this.sharedService.getCompanyAndUserDataForProspect({ userId: userId, limit: 10, offset: 0 }, 'detail', 'user');
     }
   }
 }
