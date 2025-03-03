@@ -12,12 +12,12 @@ import { CreateIntendDto } from './dto/create.dto';
 import { Update_Dto } from './dto/update.dto';
 import { QueryIntend_Dto } from './dto/search.dto';
 import { AuthGuard } from 'src/user/auth/guard';
-import { SelectedUserDetails } from 'src/utils/types';
+import { SelectedUserDetails, TCachedUser } from 'src/utils/types';
 import { GetUser } from 'src/user/decorator';
 
 @Controller('intend')
 export class IntendController {
-  constructor(private readonly service: IntendService) {}
+  constructor(private readonly service: IntendService) { }
   @Post()
   createIntend(@Body() Body: CreateIntendDto) {
     try {
@@ -28,10 +28,11 @@ export class IntendController {
       return error;
     }
   }
+  @UseGuards(AuthGuard)
   @Patch()
-  async updateIntend(@Body() body: Update_Dto) {
+  async updateIntend(@Body() body: Update_Dto, @GetUser() user: TCachedUser) {
     try {
-      const result = await this.service.updateIntend(body);
+      const result = await this.service.updateIntend(body,user);
       return result;
     } catch (error) {
       return error;
