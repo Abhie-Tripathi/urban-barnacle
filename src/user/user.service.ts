@@ -10,7 +10,7 @@ import { PocUnmaskDto, pocUnmaskSchemaMandate, UserSchemaDto } from './dto/user.
 import { PointColumn } from 'src/shared/types';
 import { UnlockType, UnlockValue } from '@prisma/client';
 import { decrypt } from 'src/utils';
-
+import { validate as isUUID } from 'uuid';
 @Injectable()
 export class UserService {
   constructor(
@@ -123,6 +123,11 @@ export class UserService {
   async getUserData(query: UserSchemaDto, userId: string, userData: TCachedUser) {
     if (query.unmask && query.target && query.source) {
       return await this.getPocsUnmasked(userId, pocUnmaskSchemaMandate.parse(query), userData);
+    }
+    if (isUUID(userId)) {
+      return {};
+    } else if (!isUUID(userId)) {
+      return await this.sharedService.getCompanyAndUserDataForProspect({ userId: userId, limit: 10, offset: 0 }, 'detail', 'user');
     }
   }
 }

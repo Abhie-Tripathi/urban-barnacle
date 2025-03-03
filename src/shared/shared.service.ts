@@ -35,7 +35,7 @@ export class SharedService {
     private readonly prisma: PrismaService,
     private readonly suggestionService: SuggestionService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) {}
+  ) { }
 
   async signToken(user: SelectedUserDetails, token: string) {
     const tokenData: TCachedUser = { ...user, token };
@@ -372,11 +372,11 @@ export class SharedService {
       if (viewAs === 'detail') {
         return responseData?.data?.id
           ? {
-              ...responseData.data,
-              id: encrypt(
-                responseData.data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
-              ),
-            }
+            ...responseData.data,
+            id: encrypt(
+              responseData.data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+            ),
+          }
           : null;
       }
       if (responseData.data?.error) {
@@ -410,6 +410,13 @@ export class SharedService {
     }
 
     if (viewBy === 'user') {
+      if (viewAs === 'detail' && query.userId) {
+        query.userId = decrypt(query.userId).replace(
+          process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+          '',
+        );
+        return { data: { userData: await callMicroService(query) } };
+      }
       const [userData, totalCount] = await callMicroService(query);
       return { data: { userData, totalCount } };
     }
