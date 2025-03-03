@@ -537,7 +537,15 @@ export const QueryFilter = z.object({
       params: { validOptions: Object.keys(EventTypeGroup).join(', ') },
     })
     .optional(),
-  createdAt: z.string().datetime().optional(),
+  createdAt: z
+    .string()
+    .refine(
+      (date) =>
+        date &&
+        new Date(date).toISOString().split('T')[0] === date.split('T')[0],
+    )
+    .transform((date) => new Date(date).toISOString().split('T')[0])
+    .optional(),
   estimatedVisitorRangeTag: z
     .string()
     .refine((val) =>

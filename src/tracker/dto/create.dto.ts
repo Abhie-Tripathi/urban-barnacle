@@ -50,10 +50,12 @@ export const TrackerQuerySchema = z.object({
     .optional(),
   createdAt: z
     .string()
-    .datetime()
-    .transform((data) => {
-      return new Date(data).toISOString().split('T')[0];
-    })
+    .refine(
+      (date) =>
+        date &&
+        new Date(date).toISOString().split('T')[0] === date.split('T')[0],
+    )
+    .transform((date) => new Date(date).toISOString().split('T')[0])
     .optional(),
 });
 export const TrackerParamsSchema = QueryFilter.extend(TrackerQuerySchema.shape);
