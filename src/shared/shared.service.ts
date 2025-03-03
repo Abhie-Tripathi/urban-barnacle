@@ -550,6 +550,7 @@ export class SharedService {
 
       const response = await fetch(url, { method: 'GET' });
       const responseData = await response.json();
+      console.log(responseData);
       if (viewAs === 'detail') {
         return responseData?.data?.id
           ? {
@@ -558,7 +559,12 @@ export class SharedService {
               responseData.data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
             ),
           }
-          : null;
+          : {
+            ...responseData.data,
+            user_id: encrypt(
+              responseData.data.user_id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+            ),
+          };
       }
       if (responseData.data?.error) {
         throw new HttpException(
