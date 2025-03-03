@@ -3,6 +3,7 @@ import { createZodDto } from "nestjs-zod";
 import { z } from "zod";
 
 const userSchema = z.strictObject({
+    id: z.string().optional(),
     unmask: z.string().optional(),
     target: z.nativeEnum(UnlockType).optional(),
     source: z.enum(['eventPage', 'companyPage', 'prospectUserPage']).optional(),
