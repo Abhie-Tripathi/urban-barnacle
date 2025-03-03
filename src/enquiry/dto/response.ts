@@ -20,6 +20,7 @@ export const EnquiryResponseSchema = z.object({
     eventId: z.string().uuid(),
     startDate: z.string(),
     logoUrl: z.string().nullable().optional(),
+    website: z.string().nullable().optional(),
     organizerName: z.string().nullable().optional(),
     location: z
       .object({

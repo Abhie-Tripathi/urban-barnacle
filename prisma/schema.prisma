@@ -201,8 +201,6 @@ model UserEventInterest {
   interestedUser   User                 @relation("interestedUser", fields: [interestedUserId], references: [id])
   interestedUserId String               @db.Uuid
   enquiry          Enquiry?             @relation(fields: [enquiryId], references: [id])
-
-  @@unique([accountId, eventId, interestedUserId, interest, sourceModule, sourceId], name: "unique_user_interest") // adds constraint to the table to avoid duplicate entries for a given user interest for a given user of specific account
 }
 
 // discuss with vipul, if we want to create enquiry without creating user interest first
@@ -211,7 +209,7 @@ model Enquiry {
   status          EnquiryStatus       @default(PENDING)
   eventId         String
   accountId       String              @db.Uuid
-  eventData       Json
+  // eventData       Json
   account         Account?            @relation(fields: [accountId], references: [id])
   initiatedBy     String              @db.Uuid
   initiatedByUser User?               @relation("initiatedBy", fields: [initiatedBy], references: [id])
@@ -445,8 +443,6 @@ model SavedLocation {
   accountId    String?      @db.Uuid
   account      Account?     @relation(fields: [accountId], references: [id])
   deleted      Boolean      @default(false)
-
-  @@unique([userId, type, locationId, latitude, longitude, radius, radiusUnit, geomType], map: "unique_saved_location_constraint")
 }
 
 enum LocationType {

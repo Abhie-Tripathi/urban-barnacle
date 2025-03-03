@@ -72,20 +72,22 @@ export class TrackerDataService {
   async getTrackers(data: GetTrackersDto, user: TCachedUser) {
     const where: Prisma.Sql[] = [];
     if (data.ids && data.ids.length > 0)
-      where.push(Prisma.sql`T.ID::TEXT IN (${Prisma.join(data.ids, ',')})`);
-    if (data.name) where.push(Prisma.sql`T.NAME ILIKE ${data.name}`);
+      where.push(Prisma.raw(`T.ID::TEXT IN (${Prisma.join(data.ids, ',')})`));
+    if (data.name) where.push(Prisma.raw(`T.NAME ILIKE '${`%${data.name}%`}'`));
     if (data.subType)
-      where.push(Prisma.sql`T.TYPE = ${data.subType}::"TrackerType"`);
+      where.push(Prisma.raw(`T.TYPE = '${data.subType}'::"TrackerType"`));
     if (data.type) {
       where.push(
-        Prisma.sql`T.TYPE::TEXT LIKE ${data.type === 'trackers' ? 'T_%' : data.type === 'trends' ? 'TR_%' : ''}`,
+        Prisma.raw(
+          `T.TYPE::TEXT LIKE '${data.type === 'trackers' ? 'T_%' : data.type === 'trends' ? 'TR_%' : ''}'`,
+        ),
       );
     }
     if (data.createdBy) {
       if (data.createdBy === 'me')
-        where.push(Prisma.sql`T."createdBy" = ${user.id}::UUID`);
+        where.push(Prisma.raw(`T."createdBy" = ${user.id}::UUID`));
       if (data.createdBy === 'others')
-        where.push(Prisma.sql`T."createdBy" != ${user.id}::UUID`);
+        where.push(Prisma.raw(`T."createdBy" != ${user.id}::UUID`));
     }
     const trackers = await this.getTrackersByUser(
       user,
@@ -100,19 +102,21 @@ export class TrackerDataService {
     const where: Prisma.Sql[] = [];
     if (data.ids && data.ids.length > 0)
       where.push(Prisma.sql`T.ID::TEXT IN (${Prisma.join(data.ids, ',')})`);
-    if (data.name) where.push(Prisma.sql`T.NAME ILIKE ${data.name}`);
+    if (data.name) where.push(Prisma.raw(`T.NAME ILIKE '${`%${data.name}%`}'`));
     if (data.subType)
-      where.push(Prisma.sql`T.TYPE = ${data.subType}::"TrackerType"`);
+      where.push(Prisma.raw(`T.TYPE = '${data.subType}'::"TrackerType"`));
     if (data.type) {
       where.push(
-        Prisma.sql`T.TYPE::TEXT LIKE ${data.type === 'trackers' ? 'T_%' : data.type === 'trends' ? 'TR_%' : ''}`,
+        Prisma.raw(
+          `T.TYPE::TEXT LIKE '${data.type === 'trackers' ? 'T_%' : data.type === 'trends' ? 'TR_%' : ''}'`,
+        ),
       );
     }
     if (data.createdBy) {
       if (data.createdBy === 'me')
-        where.push(Prisma.sql`T."createdBy" = ${user.id}::UUID`);
+        where.push(Prisma.raw(`T."createdBy" = ${user.id}::UUID`));
       if (data.createdBy === 'others')
-        where.push(Prisma.sql`T."createdBy" != ${user.id}::UUID`);
+        where.push(Prisma.raw(`T."createdBy" != ${user.id}::UUID`));
     }
     const count = await this.getTrackersCountByUser(user, where);
     return Number(count);

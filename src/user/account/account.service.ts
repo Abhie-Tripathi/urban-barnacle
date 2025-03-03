@@ -91,36 +91,95 @@ export class AccountService {
     return events;
   }
   async getAccountEnquiries(user: TCachedUser, query: GetEnquiriesHttpDto) {
-    const { limit, offset, status, type, ...rest } = query;
-    const [enquiries, enquiryCount] = await Promise.all([
-      this.enquiryService.getEnquiries({
-        ...GetEnquiriesSchema.parse({
-          accountId: user.accountId,
-          userId: user.id,
-          status: status?.join(','),
-          type: type && typeof type !== 'string' ? type.join(',') : type,
-          ...rest,
-        }),
-        limit,
-        offset,
-      }),
-      this.enquiryService.getEnquiryCount(
-        GetEnquiriesSchema.parse({
-          accountId: user.accountId,
-          userId: user.id,
-          status: status?.join(','),
-          type: type && typeof type !== 'string' ? type.join(',') : type,
-          ...rest,
-        }),
-      ),
-    ]);
+    const {
+      limit,
+      offset,
+      status,
+      type,
+      event_active_gte,
+      event_active_lte,
+      groupBy,
+      initiatedBy,
+      name,
+      upvotedBy,
+    } = query;
+    const enquiries = await this.enquiryService.getEnquiries({
+      accountId: user.accountId,
+      userId: user.id,
+      initiatedBy: initiatedBy,
+      upvotedBy: upvotedBy,
+      status: status,
+      type: type,
+    });
+    if (enquiries.length === 0) {
+      return {
+        count: 0,
+        enquiries: [],
+      };
+    }
+    const eventIds = enquiries.map((enquiry) => enquiry.eventId);
+    const events = await this.eventService.getAllEvents({
+      eventIds: eventIds,
+      view: View.list,
+      query: name,
+      active_gte: event_active_gte,
+      active_lte: event_active_lte,
+      limit: limit,
+      offset: offset,
+    });
+    const enquiryCount = events.count;
+    const selectedEnquiries = events.events.map((event) => {
+      const enquiry = enquiries.find(
+        (enquiry) => enquiry.eventId === event.basic.id,
+      );
+      return {
+        ...enquiry,
+        eventData: {
+          eventId: event.basic.id,
+          name: event.basic.name,
+          startDate: event.basic.startDateTime,
+          endDate: event.basic.endDateTime,
+          logoUrl: event.basic.logoUrl!,
+          website: event.basic.website!,
+          organizerName: event.basic.organizer?.name,
+          location: {
+            cityName: event.basic.eventLocation?.city?.name,
+            stateName: event.basic.eventLocation?.state?.name,
+            countryName: event.basic.eventLocation?.country?.name,
+          },
+        },
+      };
+    });
+    // return selectedEnquiries;
+    // const [enquiries, enquiryCount] = await Promise.all([
+    //   this.enquiryService.getEnquiries({
+    //     ...GetEnquiriesSchema.parse({
+    //       accountId: user.accountId,
+    //       userId: user.id,
+    //       status: status?.join(','),
+    //       type: type && typeof type !== 'string' ? type.join(',') : type,
+    //       ...rest,
+    //     }),
+    //     limit,
+    //     offset,
+    //   }),
+    //   this.enquiryService.getEnquiryCount(
+    //     GetEnquiriesSchema.parse({
+    //       accountId: user.accountId,
+    //       userId: user.id,
+    //       status: status?.join(','),
+    //       type: type && typeof type !== 'string' ? type.join(',') : type,
+    //       ...rest,
+    //     }),
+    //   ),
+    // ]);
+    console.log(selectedEnquiries);
     const transformedEnquires = await Promise.all(
-      enquiries.map(async (enquiry) => {
+      selectedEnquiries.map(async (enquiry) => {
         const [interestedCount, activityCount, myActivity] = await Promise.all([
           this.intentDataService.getUserEventInterestCount(
             GetUserEventInterestCountSchema.parse({
               accountId: user.accountId,
-              ...rest,
               enquiryId: enquiry.id,
               groupBy: UserInterestsGroupBy.interests,
               interest: ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'],
@@ -130,7 +189,6 @@ export class AccountService {
             GetEnquiryActivityCountSchema.parse({
               accountId: user.accountId,
               activityType: EnquiryActivityType.UPVOTE,
-              ...rest,
               enquiryId: enquiry.id,
               groupBy: EnquiryActivityGroupBy.activitySubType,
             }),
@@ -140,7 +198,6 @@ export class AccountService {
               enquiryId: enquiry.id,
               accountId: user.accountId,
               userId: user.id,
-              ...rest,
             }),
           ),
         ]);

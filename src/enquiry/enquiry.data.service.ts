@@ -48,37 +48,37 @@ export class EnquiryDataService {
         },
       };
 
-    const endDate = event_active_gte
-      ? {
-          eventData: {
-            path: ['startDate'],
-            lte: event_active_lte,
-          },
-        }
-      : null;
-    const startDate = event_active_lte
-      ? {
-          eventData: {
-            path: ['endDate'],
-            gte: event_active_gte,
-          },
-        }
-      : null;
-    const eventName = name
-      ? {
-          eventData: {
-            path: ['name_lower'],
-            string_contains: name.toLowerCase(),
-          },
-        }
-      : null;
+    // const endDate = event_active_gte
+    //   ? {
+    //       eventData: {
+    //         path: ['startDate'],
+    //         lte: event_active_lte,
+    //       },
+    //     }
+    //   : null;
+    // const startDate = event_active_lte
+    //   ? {
+    //       eventData: {
+    //         path: ['endDate'],
+    //         gte: event_active_gte,
+    //       },
+    //     }
+    //   : null;
+    // const eventName = name
+    //   ? {
+    //       eventData: {
+    //         path: ['name_lower'],
+    //         string_contains: name.toLowerCase(),
+    //       },
+    //     }
+    //   : null;
 
-    if (endDate || startDate || name) {
-      params['AND'] = [];
-      if (endDate) params['AND'].push(endDate);
-      if (startDate) params['AND'].push(startDate);
-      if (eventName) params['AND'].push(eventName);
-    }
+    // if (endDate || startDate || name) {
+    //   params['AND'] = [];
+    //   if (endDate) params['AND'].push(endDate);
+    //   if (startDate) params['AND'].push(startDate);
+    //   if (eventName) params['AND'].push(eventName);
+    // }
     // } else if (data.event_active_lte) params['eventData'] = endDate;
     // else if (data.event_active_gte) params['eventData'] = startDate;
     // else if (data.name) params['name'] = name;
@@ -98,6 +98,12 @@ export class EnquiryDataService {
           some: {
             activityType: 'UPVOTE',
             userId: userId,
+          },
+        };
+      } else if (upvotedBy.length === 2) {
+        params['activities'] = {
+          some: {
+            activityType: 'UPVOTE',
           },
         };
       }
@@ -160,40 +166,40 @@ export class EnquiryDataService {
         },
       };
 
-    const endDate = event_active_gte
-      ? {
-          eventData: {
-            path: ['startDate'],
-            lte: event_active_lte,
-          },
-        }
-      : null;
-    const startDate = event_active_lte
-      ? {
-          eventData: {
-            path: ['endDate'],
-            gte: event_active_gte,
-          },
-        }
-      : null;
-    const eventName = name
-      ? {
-          eventData: {
-            path: ['name_lower'],
-            string_contains: name.toLowerCase(),
-          },
-        }
-      : null;
+    // const endDate = event_active_gte
+    //   ? {
+    //       eventData: {
+    //         path: ['startDate'],
+    //         lte: event_active_lte,
+    //       },
+    //     }
+    //   : null;
+    // const startDate = event_active_lte
+    //   ? {
+    //       eventData: {
+    //         path: ['endDate'],
+    //         gte: event_active_gte,
+    //       },
+    //     }
+    //   : null;
+    // const eventName = name
+    //   ? {
+    //       eventData: {
+    //         path: ['name_lower'],
+    //         string_contains: name.toLowerCase(),
+    //       },
+    //     }
+    //   : null;
 
-    if (endDate || startDate || name) {
-      params['AND'] = [];
-      if (endDate) params['AND'].push(endDate);
-      if (startDate) params['AND'].push(startDate);
-      if (eventName) params['AND'].push(eventName);
-    }
-    // } else if (data.event_active_lte) params['eventData'] = endDate;
-    // else if (data.event_active_gte) params['eventData'] = startDate;
-    // else if (data.name) params['name'] = name;
+    // if (endDate || startDate || name) {
+    //   params['AND'] = [];
+    //   if (endDate) params['AND'].push(endDate);
+    //   if (startDate) params['AND'].push(startDate);
+    //   if (eventName) params['AND'].push(eventName);
+    // }
+    // // } else if (data.event_active_lte) params['eventData'] = endDate;
+    // // else if (data.event_active_gte) params['eventData'] = startDate;
+    // // else if (data.name) params['name'] = name;
     if (upvotedBy && upvotedBy.length > 0 && !data.userId) {
       throw new HttpException(
         'userId is required when upvotedBy is me or others',
@@ -210,6 +216,12 @@ export class EnquiryDataService {
           some: {
             activityType: 'UPVOTE',
             userId: userId,
+          },
+        };
+      } else if (upvotedBy.length === 2) {
+        params['activities'] = {
+          some: {
+            activityType: 'UPVOTE',
           },
         };
       }

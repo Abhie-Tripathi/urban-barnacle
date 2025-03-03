@@ -1,6 +1,6 @@
 import { EnquiryActivitySubType, EnquiryStatus } from '@prisma/client';
 import { createZodDto } from 'nestjs-zod';
-import { LimitSchema } from 'src/global_dto';
+import { LimitSchema, LimitSchemaWithoutDefault } from 'src/global_dto';
 import { z } from 'zod';
 
 const eventDataSchema = z.object({
@@ -22,7 +22,6 @@ const CreateEnquirySchema = z.object({
   eventId: z.string().uuid(),
   accountId: z.string().uuid(),
   initiatedBy: z.string().uuid(),
-  eventData: eventDataSchema,
 });
 
 export class CreateEnquiryDto extends createZodDto(CreateEnquirySchema) {}
@@ -111,7 +110,7 @@ export const GetEnquiriesSchema = GetEnquiriesHttpSchema.extend({
 });
 
 export class GetEnquiriesDto extends createZodDto(
-  LimitSchema.extend(GetEnquiriesSchema.shape),
+  LimitSchemaWithoutDefault.extend(GetEnquiriesSchema.shape),
 ) {}
 
 export class GetEnquiryCountDto extends createZodDto(GetEnquiriesSchema) {}
