@@ -113,7 +113,7 @@ export class SuggestionDataService {
   async getCategories(dto: CategoryDto): Promise<CategoryResponseDto[]> {
     try {
       const params = {
-        ids: dto.ids,
+        id: dto.ids,
         take: dto.limit,
         skip: dto.offset,
         name: dto.query,
