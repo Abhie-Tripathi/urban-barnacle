@@ -7,6 +7,7 @@ import { SharedService } from 'src/shared/shared.service';
 import { PointColumn } from 'src/shared/types';
 import { GetUser } from './decorator';
 import { TCachedUser } from 'src/utils/types';
+import { CompanyEventDto } from 'src/company/dto';
 
 @Controller('users')
 export class UserController {
@@ -41,5 +42,13 @@ export class UserController {
       return { error: error };
     }
   }
-
+  @UseGuards(AuthGuard)
+  @Get(':userId/events')
+  async getUserEvent(@Param('userId') userId, @Query() query: CompanyEventDto, @GetUser() userData: TCachedUser) {
+    try {
+      return await this.userService.getUserEvent(userId, query);
+    } catch (error) {
+      return { error: error };
+    }
+  }
 }
