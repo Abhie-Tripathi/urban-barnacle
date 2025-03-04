@@ -9,7 +9,7 @@ import {
   TrackerEventStatus,
   TrackerParamsSchema,
 } from './create.dto';
-import { CountQuerySchema, QuerySchema } from 'src/events/dto';
+import { CountQuerySchema, QuerySchema, Show } from 'src/events/dto';
 
 const GetTrackersHttpSchema = LimitSchema.extend({
   name: z.string().optional(),
@@ -51,6 +51,11 @@ const GetTrackerEventsSchema = LimitSchema.extend(
     } else if (data.type && ['past', 'active', 'new'].includes(data.type)) {
       data.trackerEventStatus = data.type as keyof typeof TrackerEventStatus;
       delete data.type;
+    }
+    if (!data.show || data.show.length === 0) {
+      data['show'] = (Object.values(Show) as Show[]).filter((item) => {
+        return item !== Show.isNew && item !== Show.old;
+      });
     }
     return data;
   });

@@ -269,7 +269,9 @@ export class AccountService {
     }));
   }
   async getAccountMemberShipStatus(currentSubscriptionId: string) {
-    return await this.accountDataService.getAccountMemberShipStatus(currentSubscriptionId);
+    return await this.accountDataService.getAccountMemberShipStatus(
+      currentSubscriptionId,
+    );
   }
   async getAccountConfiguration(user: TCachedUser, key: AccountConfigKey) {
     if (key === 'membership') {
@@ -297,9 +299,41 @@ export class AccountService {
     }
     if (key === 'interest') {
       const interestConfig = data as InterestConfigurationDto;
+      if (interestConfig.length > 4) {
+        throw new HttpException(
+          'Interest configuration cannot be more than 4',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const uniqueStatus = new Set();
+      interestConfig.forEach((item) => {
+        if (uniqueStatus.has(item.status)) {
+          throw new HttpException(
+            'Status must not be repeated',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+        uniqueStatus.add(item.status);
+      });
       config['interest'] = interestConfig;
     } else if (key === 'outreach') {
       const outreachConfig = data as OutreachConfigurationDto;
+      if (outreachConfig.length > 7) {
+        throw new HttpException(
+          'Outreach configuration cannot be more than 7',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const uniqueStatus = new Set();
+      outreachConfig.forEach((item) => {
+        if (uniqueStatus.has(item.status)) {
+          throw new HttpException(
+            'Status must not be repeated',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+        uniqueStatus.add(item.status);
+      });
       config['outreach'] = outreachConfig;
     } else if (key === 'filter') {
       const filterConfig = data as FilterConfigurationDto;
