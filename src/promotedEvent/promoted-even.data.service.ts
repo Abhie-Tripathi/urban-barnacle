@@ -114,7 +114,7 @@ export class PromotedEventsDataService {
   async findCountOfPromotedEvents(userAccountId: string, where: string) {
     const count = (await this.prisma.$queryRaw(
       Prisma.raw(` SELECT count(distinct e.id) as id
-                FROM "Event" e where e.deleted = false
+                FROM "Event" e where e.deleted = false and (e."parentEventId" is null OR e."parentEventId"::TEXT ='')
                 and e."accountId"
                  = '${userAccountId}' 
                 ${where} ;`),

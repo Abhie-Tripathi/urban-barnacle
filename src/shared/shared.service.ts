@@ -517,7 +517,7 @@ export class SharedService {
             yoyGrowth: 0,
             trackerMatchInfo: null
           }
-          return transformEventData(dataToCreate);
+          return { ...transformEventData(dataToCreate), ...(query.type === 'user' ? { association: 'SPEAKER' } : {}), };
         })
       };
       return { data: responseToReturn };
