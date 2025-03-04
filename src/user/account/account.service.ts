@@ -120,7 +120,7 @@ export class AccountService {
       };
     }
     const eventIds = enquiries.map((enquiry) => enquiry.eventId);
-    const events = await this.eventService.getAllEvents({
+    const events = (await this.eventService.getAllEvents({
       eventIds: eventIds,
       view: View.list,
       query: name,
@@ -128,7 +128,7 @@ export class AccountService {
       active_lte: event_active_lte,
       limit: limit,
       offset: offset,
-    });
+    })) as any;
     const enquiryCount = events.count;
     const selectedEnquiries = events.events.map((event) => {
       const enquiry = enquiries.find(
