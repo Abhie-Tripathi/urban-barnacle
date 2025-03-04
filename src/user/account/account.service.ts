@@ -54,7 +54,7 @@ export class AccountService {
     private readonly userDataService: UserDataService,
     private readonly intentDataService: IntentDataService,
     private readonly eventService: EventsService,
-  ) {}
+  ) { }
 
   async getAccountCompany(user: TCachedUser) {
     const company = await this.companyDataService.getCompany({
@@ -102,6 +102,7 @@ export class AccountService {
       initiatedBy,
       name,
       upvotedBy,
+      eventId
     } = query;
     const enquiries = await this.enquiryService.getEnquiries({
       accountId: user.accountId,
@@ -110,6 +111,7 @@ export class AccountService {
       upvotedBy: upvotedBy,
       status: status,
       type: type,
+      ...(eventId ? { eventId: eventId } : {})
     });
     if (enquiries.length === 0) {
       return {
@@ -203,15 +205,15 @@ export class AccountService {
         ]);
         const owner = enquiry.owner
           ? {
-              id: enquiry.owner.id,
-              name: getNameFromEmail(
-                enquiry.owner.email,
-                enquiry.owner.firstname,
-                enquiry.owner.lastname,
-              ),
-              email: enquiry.owner.email,
-              imageUrl: enquiry.owner.imageUrl,
-            }
+            id: enquiry.owner.id,
+            name: getNameFromEmail(
+              enquiry.owner.email,
+              enquiry.owner.firstname,
+              enquiry.owner.lastname,
+            ),
+            email: enquiry.owner.email,
+            imageUrl: enquiry.owner.imageUrl,
+          }
           : null;
         const interestCounts = {
           total: 0,
@@ -354,9 +356,9 @@ export class AccountService {
       }),
       params.groupBy === UserInterestsGroupBy.status
         ? this.enquiryService.getEnquiryCount({
-            accountId: user.accountId,
-            groupBy: params.groupBy,
-          })
+          accountId: user.accountId,
+          groupBy: params.groupBy,
+        })
         : null,
     ]);
     let response = {};
@@ -392,11 +394,11 @@ export class AccountService {
         };
         const groupedInterestsByStatus = enquiryCount
           ? (
-              enquiryCount as Array<{ status: string; _count: { id: number } }>
-            ).reduce((acc, curr) => {
-              acc[curr.status.toLowerCase()] = curr._count.id;
-              return acc;
-            }, defaultStatusCount)
+            enquiryCount as Array<{ status: string; _count: { id: number } }>
+          ).reduce((acc, curr) => {
+            acc[curr.status.toLowerCase()] = curr._count.id;
+            return acc;
+          }, defaultStatusCount)
           : null;
         response = {
           ...groupedInterestsByStatus,
