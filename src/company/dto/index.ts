@@ -5,6 +5,9 @@ import { LimitDto, LimitSchema } from 'src/global_dto';
 const companyEventSchema = LimitSchema.extend({
     groupBy: z.enum(['country']).optional(),
     eventOf: z.enum(['upcomming', 'past']).optional(),
+}).refine(data => data.groupBy || data.eventOf, {
+    message: "Either 'groupBy' or 'eventOf' must be provided",
+    path: [],
 });
 
 export class CompanyEventDto extends createZodDto(companyEventSchema) { }
