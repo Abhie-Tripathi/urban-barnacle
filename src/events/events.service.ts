@@ -39,7 +39,6 @@ export class EventsService {
     if (show.includes(Show.old)) {
       show = show.filter((item) => item !== Show.old);
     }
-    console.log({ show });
     const nonEmptyParams = getNonEmptyParams({ ...query, show });
     if (user) {
       const queryParams: QueryDto = Object.assign(nonEmptyParams);
@@ -86,7 +85,6 @@ export class EventsService {
         );
       }
       const transformedEvents = events.events.map((event) => {
-        console.log(event.id, userInterests);
         return {
           ...(query.show && query.show.includes(Show.old)
             ? event
