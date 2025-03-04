@@ -10,6 +10,7 @@ import {
   TrackerParamsSchema,
 } from './create.dto';
 import { CountQuerySchema, QuerySchema, Show } from 'src/events/dto';
+import { defaultEventTypes } from 'src/utils/types';
 
 const GetTrackersHttpSchema = LimitSchema.extend({
   name: z.string().optional(),
@@ -56,6 +57,18 @@ const GetTrackerEventsSchema = LimitSchema.extend(
       data['show'] = (Object.values(Show) as Show[]).filter((item) => {
         return item !== Show.isNew && item !== Show.old;
       });
+    }
+    if (data.view !== 'map' && !data.limit) {
+      data.limit = 10;
+    }
+    if (!data.eventTypes || (data.eventTypes && data.eventTypes.length === 0)) {
+      const backend = process.env.BACKEND;
+      if (backend && backend in defaultEventTypes) {
+        data.eventTypes = defaultEventTypes[backend];
+      }
+    }
+    if (!data.sortBy || data.sortBy.length === 0) {
+      data.sortBy = ['-score'];
     }
     return data;
   });
