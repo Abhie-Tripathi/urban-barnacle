@@ -406,7 +406,11 @@ export class TrackerService {
       view: View.tracker,
     } as QueryDto;
 
-    const events = await this.eventService.getAllEvents(eventParams, false);
+    const events = await this.eventService.getAllEvents(
+      eventParams,
+      false,
+      user,
+    );
 
     return events;
   }
