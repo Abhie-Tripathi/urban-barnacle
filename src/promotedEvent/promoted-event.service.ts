@@ -311,7 +311,7 @@ export class PromotedEventsService {
         data.map((val) => val.id),
         user.accountId,
       );
-      console.log('count', count[0].id, data, subEentId);
+      // console.log('count', count[0].id, data, subEentId);
       const outData: any[] = [];
       for (const ids of data) {
         const subEventIdsFromdata: string[] = [];
@@ -321,7 +321,7 @@ export class PromotedEventsService {
           }
         }
 
-        console.log('logs', subEventIdsFromdata);
+        // console.log('logs', subEventIdsFromdata);
         const { childSubEvent, iddWid, isLinked, widgetData } =
           await this.eventDataService.getLinkedEventData(
             query.widgetId,
@@ -351,7 +351,7 @@ export class PromotedEventsService {
             isWidgetLinked:
               Number(chileLinkedToWidget[0].id) > 0 ? true : false,
           });
-          console.log({ datachildSubEventConvert })
+          // console.log({ datachildSubEventConvert })
         }
         const infinity: boolean =
           eventAllData.capacity === -1 && eventAllData.data.maxCapacity == -1;
@@ -363,7 +363,7 @@ export class PromotedEventsService {
           isWidgetLinked: Number(isLinked[0].id) > 0 ? true : false,
         });
       }
-      console.log('count', count);
+      // console.log('count', count);
 
       return { data: { totalCount: Number(count[0]?.id ?? 0), data: outData } };
     } catch (error) {
