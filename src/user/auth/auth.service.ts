@@ -194,9 +194,9 @@ export class AuthService {
 
   async signIn(data: SignInDto) {
     const domain = data.email.split('@')[1];
-    if (blackListDomain.includes(domain)) {
-      throw new HttpException('Domain not allowed', HttpStatus.BAD_REQUEST);
-    }
+    // if (blackListDomain.includes(domain)) {
+    //   throw new HttpException('Domain not allowed', HttpStatus.BAD_REQUEST);
+    // }
     const users = await this.userDataService.getUsers({
       email: [data.email],
       limit: 1,
