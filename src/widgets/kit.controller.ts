@@ -18,7 +18,7 @@ import { SelectedUserDetails } from 'src/utils/types';
 
 @Controller('kit')
 export class KitController {
-  constructor(private readonly service: KitService) {}
+  constructor(private readonly service: KitService) { }
   @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor('file'))
   @Post()
@@ -48,7 +48,7 @@ export class KitController {
   @Get()
   getWidgetKit(@GetUser() user: SelectedUserDetails) {
     try {
-      return this.service.getKit(user);
+      return this.service.getKit(user.accountId);
     } catch (error) {
       return { error };
     }

@@ -1,13 +1,13 @@
 import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
-import { CreateWidgetKitDto, UpdateWidgetKitDto } from './dto';
+import { CreateWidgetKitDto, defaultKitOptions, UpdateWidgetKitDto } from './dto';
 import { File } from '@nest-lab/fastify-multer';
 import * as fs from 'fs';
 import * as getImageColors from 'get-image-colors';
 import puppeteer from 'puppeteer';
 import { WidgetDataService } from './widget.data.service';
-import { SelectedUserDetails } from 'src/utils/types';
+import { SelectedUserDetails, TCachedUser } from 'src/utils/types';
 import { FileCreationService } from 'src/shared/file-creation.service';
 
 @Injectable()
@@ -183,10 +183,25 @@ export class KitService {
       console.error('Error fetching colors from logo:', error);
     }
   }
+  async defaultKitCreate(user: {
+    accountId: string;
+    id: string;
+  }) {
+    await this.widgetDataService.createKit({
+      account: { connect: { id: user.accountId } },
+      logoUrl: defaultKitOptions.logoUrl,
+      color: defaultKitOptions.color,
+      fontFamily: defaultKitOptions.fontFamily,
+      data: {
+        domain: '',
+      },
+      user: { connect: { id: user.id } },
+    });
+  }
   async createWidgetKit(
     createWidgetKitDto: CreateWidgetKitDto,
-    user: SelectedUserDetails,
-    file: File,
+    user: { id: string; accountId: string },
+    file: File | null,
   ) {
     try {
       this.userId = user.id;
@@ -195,20 +210,27 @@ export class KitService {
       if (check0 > 0) {
         console.log('check');
 
-        return '';
+        return { error: 'cannot create brand kit' };
       }
-      const check3 = await this.widgetDataService.findKit(
+      const { check3, checkForBrandExists } = await this.widgetDataService.findKit(
         user.accountId,
         false,
+        createWidgetKitDto.url
       );
-
+      let logoData: string | null = null;
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      if (checkForBrandExists && checkForBrandExists.updateAt < sixMonthsAgo) {
+        logoData = checkForBrandExists?.logoUrl || null;
+      }
       let obj: any = {};
       obj = { ...(check3?.otherData as object) };
-      console.table(check3);
+      // console.table(check3);
 
       if (!check3) {
         await this.widgetDataService.createKit({
           account: { connect: { id: user.accountId } },
+          logoUrl: logoData,
           data: {
             domain: createWidgetKitDto.url,
           },
@@ -219,7 +241,7 @@ export class KitService {
           {
             color: null,
             fontFamily: null,
-            logoUrl: null,
+            logoUrl: logoData,
             data: { domain: createWidgetKitDto.url },
             otherData: {},
             deleted: false,
@@ -227,20 +249,32 @@ export class KitService {
           user.accountId,
         );
       }
-      const [fetchFontFamily, fetchimage] = await Promise.all([
-        this.getFontFamily(createWidgetKitDto.url),
-        this.fetchColorsFromLogo(
-          createWidgetKitDto.url
-            .replace('https://', '')
-            .replace('http://', '')
-            .replace('www.', ''),
-        ),
-      ]);
-      console.log('fetchimage', fetchimage);
-      const colors: string[] = await this.extractColors(
-        './public/temp' +
-        fetchimage?.image?.substring(fetchimage?.image?.lastIndexOf('/')),
-      );
+      let fetchFontFamily: any; let fetchimage: any; let colors: any;
+      if (logoData) {
+        [fetchFontFamily] = await Promise.all([
+          this.getFontFamily(createWidgetKitDto.url)
+        ]);
+        colors = await this.extractColors(
+          './public/temp' +
+          logoData.substring(logoData.lastIndexOf('/')),
+        );
+      } else {
+        [fetchFontFamily, fetchimage] = await Promise.all([
+          this.getFontFamily(createWidgetKitDto.url),
+          this.fetchColorsFromLogo(
+            createWidgetKitDto.url
+              .replace('https://', '')
+              .replace('http://', '')
+              .replace('www.', ''),
+          ),
+        ]);
+        console.log('fetchimage', fetchimage);
+        colors = await this.extractColors(
+          './public/temp' +
+          fetchimage?.image?.substring(fetchimage?.image?.lastIndexOf('/')),
+        );
+      }
+
       let data: any = {};
       // const check2 = await this.prisma.customBrandKit.findUnique({
       //   where: {
@@ -276,14 +310,14 @@ export class KitService {
         {
           color: colors?.join(','),
           fontFamily: fetchFontFamily?.fontFamilies?.join(','),
-          logoUrl: fetchimage?.image,
+          logoUrl: logoData || fetchimage?.image,
           data: { domain: createWidgetKitDto.url },
           otherData: {
             ['domain' + Object.keys(obj).length]: createWidgetKitDto.url,
             ...(obj || {}),
           },
         },
-        user.accountId,
+        user.accountId
       );
       // }
       console.log(
@@ -297,7 +331,7 @@ export class KitService {
         obj,
       );
       console.timeEnd('start');
-      return { data: { message: 'data inserted', data: data.id } };
+      return { data: { message: 'data inserted', data: data } };
     } catch (error) {
       console.error('' + error);
       return { error };
@@ -309,8 +343,8 @@ export class KitService {
     user: SelectedUserDetails,
   ) {
     try {
-      const logodata = await this.widgetDataService.findKit(user.accountId, true);
-
+      const { check3, checkForBrandExists } = await this.widgetDataService.findKit(user.accountId, true, '');
+      const logodata = check3
       //   prisma.customBrandKit.findFirst({
       //   where: {
       //     accountId: user.accountId,
@@ -399,9 +433,10 @@ export class KitService {
       };
     }
   }
-  async getKit(user: SelectedUserDetails) {
+  async getKit(accountId: string) {
     try {
-      const data = await this.widgetDataService.findKit(user.accountId, true);
+      const { check3 } = await this.widgetDataService.findKit(accountId, true, '');
+      const data = check3;
       return {
         data: {
           color: data?.color?.split(',').filter((val) => val.length > 0) ?? [],

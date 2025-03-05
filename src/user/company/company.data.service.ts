@@ -4,11 +4,14 @@ import { CreateCompanyDto, UpdateCompanyDto, GetCompanyDto } from './dto';
 
 @Injectable()
 export class CompanyDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async createCompany(data: CreateCompanyDto) {
     const company = await this.prisma.company.create({
       data,
+      include: {
+        accounts: true
+      }
     });
     return company;
   }
@@ -24,6 +27,9 @@ export class CompanyDataService {
   async getCompany(data: GetCompanyDto) {
     const company = await this.prisma.company.findFirst({
       where: { ...data },
+      include: {
+        accounts: true
+      }
     });
     return company;
   }
