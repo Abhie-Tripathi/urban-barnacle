@@ -126,7 +126,7 @@ export class AccessService {
           accessMetaData: {
             givenToUserEmail: receiver?.email,
             givenByUserEmail: user.email,
-            givenByUserDesignation: user.designation,
+            givenByUserDesignation: user.designation || '',
             givenToUserName: getNameFromEmail(
               receiver.email,
               receiver.firstname,
