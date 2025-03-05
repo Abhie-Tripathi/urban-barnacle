@@ -8,7 +8,7 @@ import { microserviceEndpoints } from 'src/utils/endpoints';
 
 @Injectable()
 export class UserDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async createUser(data: CreateUserDto) {
     const { accountId, primaryCompanyId, ...rest } = data;
@@ -20,21 +20,21 @@ export class UserDataService {
     }
     const account: object = accountId
       ? {
-          accounts: {
-            connect: {
-              id: data.accountId,
-            },
+        accounts: {
+          connect: {
+            id: data.accountId,
           },
-        }
+        },
+      }
       : {};
     const company = primaryCompanyId
       ? {
-          company: {
-            connect: {
-              id: data.primaryCompanyId,
-            },
+        company: {
+          connect: {
+            id: data.primaryCompanyId,
           },
-        }
+        },
+      }
       : {};
     const user = await this.prisma.user.create({
       data: {
@@ -88,6 +88,9 @@ export class UserDataService {
     }
     if (data.lastname === '') {
       userData.lastname = null;
+    }
+    if (data.phoneNumber === '') {
+      userData.phoneNumber = null;
     }
     const user = await this.prisma.user.update({
       where: {
