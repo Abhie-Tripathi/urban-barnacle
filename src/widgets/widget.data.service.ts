@@ -15,18 +15,25 @@ export class WidgetDataService {
     });
     return count;
   }
-  async findKit(userAccountId: string, published: boolean) {
+  async findKit(userAccountId: string, published: boolean, url: string) {
     let whereDeleted = {};
     if (published) {
       whereDeleted = { deleted: false };
     }
-    const check = await this.prisma.customBrandKit.findUnique({
+    const check3 = await this.prisma.customBrandKit.findUnique({
       where: {
         accountId: userAccountId,
         ...whereDeleted,
       },
     });
-    return check;
+    url = this.removeDomainExtentions(url);
+    const checkForBrandExists = await this.prisma.brand.findFirst({
+      where: {
+        domain: url,
+        name: url.split('.')[0]
+      },
+    })
+    return { check3, checkForBrandExists };
   }
   async createKit(data: any) {
     const create = await this.prisma.customBrandKit.create({
@@ -35,6 +42,11 @@ export class WidgetDataService {
       },
     });
     return create;
+  }
+  removeDomainExtentions(domain: string) {
+    return domain.replace('https://', '')
+      .replace('http://', '')
+      .replace('www.', '');
   }
   async updateKit(data: any, userAccountId: string) {
     const update = await this.prisma.customBrandKit.update({

@@ -9,7 +9,7 @@ import { WidgetDataService } from './widget.data.service';
 import { SelectedUserDetails } from 'src/utils/types';
 @Injectable()
 export class WidgetsService {
-  constructor(private readonly widgetDataService: WidgetDataService) {}
+  constructor(private readonly widgetDataService: WidgetDataService) { }
 
   async create(
     createWidgetDto: CreateDto,
@@ -68,10 +68,12 @@ export class WidgetsService {
             }),
           };
         }
-        const dataKit = await this.widgetDataService.findKit(
+        const { check3, checkForBrandExists } = await this.widgetDataService.findKit(
           user.accountId,
           true,
+          ''
         );
+        const dataKit = check3;
         dto.type = dto.type as WidgetType;
         const data = await this.widgetDataService.createWidget({
           account: { connect: { id: user.accountId } },
@@ -172,8 +174,8 @@ export class WidgetsService {
                 type: val.type,
                 customizationData: dataOfEvent?.customizationData
                   ? JSON.parse(
-                      dataOfEvent.customizationData.toString() as string,
-                    )
+                    dataOfEvent.customizationData.toString() as string,
+                  )
                   : null,
               };
             }),

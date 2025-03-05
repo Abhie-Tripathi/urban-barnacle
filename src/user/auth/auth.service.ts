@@ -34,6 +34,7 @@ import { GetAccessDto } from 'src/access/dto';
 import { InterestDefaultConfigurations } from '../account/account.config';
 import { InterestDefaultConfigurationsWithIndustry } from '../account/account.config';
 import { AccountService } from '../account/account.service';
+import { KitService } from 'src/widgets/kit.service';
 
 @Injectable()
 export class AuthService {
@@ -49,7 +50,8 @@ export class AuthService {
     private readonly communicationService: CommunicationService,
     private readonly sharedService: SharedService,
     private readonly accessService: AccessService,
-  ) {}
+    private readonly brandKitService: KitService
+  ) { }
 
   async signUp(data: SignUpDto) {
     const domain = data.email.split('@')[1];
@@ -66,11 +68,14 @@ export class AuthService {
       blackListDomain.includes(domain)
         ? null
         : await this.companyDataService.getCompany({
-            domain: domain,
-          }),
+          domain: domain,
+        }),
     ]);
     let user = users && users.length > 0 ? users[0] : null;
-    let account = company ? { id: company.accountId } : null;
+    let account = company ? {
+      id: company.accountId, currentSubscriptionId: company.accounts.currentSubscriptionId,
+      configurationId: company.accounts.configurationId
+    } : null;
     if (
       user &&
       user.currentOnboardingState !== OnboardingState.VERIFICATION &&
@@ -123,9 +128,9 @@ export class AuthService {
           await Promise.all([
             company
               ? this.userDataService.updateUser({
-                  id: user.id,
-                  companyId: company.id,
-                })
+                id: user.id,
+                companyId: company.id,
+              })
               : null,
             this.accountDataService.addAccountUser(account.id, user.id),
           ]);
@@ -175,7 +180,11 @@ export class AuthService {
           );
         }
       }
-
+       this.createDefaultBrandKit({
+        id: user.id,
+        accountId: account.id,
+        domain: domain,
+      }, blackListDomain.includes(domain));
       await this.authDataService.createVerificationToken(user, 'sign-up');
       return {
         message: 'otp sent successfully',
@@ -346,6 +355,22 @@ export class AuthService {
 
   async authenticateUserFromToken(body: AuthenticatDto) {
     return await this.authDataService.authenticateUserFromToken(body);
+  }
+
+  async createDefaultBrandKit(userData: {
+    accountId: string;
+    id: string;
+    domain: string
+  }, blackListDomain: boolean) {
+    const { data, error } = await this.brandKitService.getKit(userData.accountId);
+    if ((data && Object.keys(data.otherData).length <= 0 && data.color.length <= 0) && blackListDomain) {
+      console.log(data, error)
+      await this.brandKitService.defaultKitCreate(userData)
+    } else {
+      if ((data && Object.keys(data.otherData).length <= 0 && data.color.length <= 0)) {
+        const { data, error } = await this.brandKitService.createWidgetKit({ url: userData.domain }, userData, null)
+      }
+    }
   }
   // async userBasicInfo(email: string) {
   //   try {
