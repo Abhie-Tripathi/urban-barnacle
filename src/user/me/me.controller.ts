@@ -27,6 +27,7 @@ import {
 import { GetTrackersHttpDto } from 'src/tracker/dto';
 import { GetSavedLocationsHttpDto } from 'src/saved-location/dto';
 import { FastifyReply } from 'fastify';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Controller('me')
 export class MeController {
@@ -67,6 +68,17 @@ export class MeController {
         },
       };
     } catch (error) {
+      if (
+        error instanceof PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return {
+          error: new HttpException(
+            'Phone number already exist',
+            HttpStatus.BAD_REQUEST,
+          ),
+        };
+      }
       return {
         error: new HttpException(
           error.message,
