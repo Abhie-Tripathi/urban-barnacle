@@ -14,6 +14,7 @@ import { SavedLocationService } from 'src/saved-location/saved-location.service'
 import { GetSavedLocationsHttpDto } from 'src/saved-location/dto';
 import { ExportDataService } from 'src/exports/exports.data.service';
 import { UserService } from '../user.service';
+import { SharedService } from 'src/shared/shared.service';
 
 @Injectable()
 export class MeService {
@@ -25,17 +26,30 @@ export class MeService {
     private readonly meDataService: MeDataService,
     private readonly savedLocationService: SavedLocationService,
     private readonly exportDataService: ExportDataService,
-  ) { }
+    private readonly sharedService: SharedService,
+  ) {}
   async getMe(userId: string) {
-    const user = await this.userDataService.getUsers({ id: [userId as unknown as any], limit: 10, offset: 0 });
+    const user = await this.userDataService.getUsers({
+      id: [userId as unknown as any],
+      limit: 1,
+      offset: 0,
+    });
     return user[0];
   }
-  async updateMe(userId: string, params: UpdateMeDto) {
-    const user = await this.userDataService.updateUser({
+  async updateMe(user: TCachedUser, params: UpdateMeDto) {
+    const { token, ...userData } = user;
+    const updatedUser = await this.userDataService.updateUser({
       ...params,
-      id: userId,
+      id: user.id,
     });
-    return user;
+    const userResponse = await this.sharedService.UserResponse(
+      {
+        ...userData,
+        ...updatedUser,
+      },
+      token,
+    );
+    return userResponse.userData;
   }
 
   async getMyTrackers(user: TCachedUser, params: GetTrackersHttpDto) {

@@ -26,7 +26,7 @@ export class IntentService {
     private readonly intentDataService: IntentDataService,
     private readonly enquiryService: EnquiryService,
     private readonly eventService: EventsService,
-  ) { }
+  ) {}
 
   async createUserEventInterest(
     user: TCachedUser,
@@ -64,26 +64,9 @@ export class IntentService {
         if (!event) {
           throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
         }
-        const location = event.basic['eventLocation'];
         enquiry = await this.enquiryService.createEnquiry(user, {
           accountId: user.accountId,
           eventId: data.eventId,
-          eventData: {
-            name: event.basic['name'],
-            name_lower: event.basic['name'].toLowerCase(),
-            eventId: event.basic['id'],
-            startDate: event.basic['startDateTime'],
-            endDate: event.basic['endDateTime'],
-            logoUrl: event.basic['logoUrl'],
-            organizerName: event.basic['organizer']
-              ? event.basic['organizer']['name']
-              : null,
-            location: {
-              cityName: location.city.name,
-              countryName: location.country.name,
-              stateName: location.state ? location.state.name : null,
-            },
-          },
           initiatedBy: data.recommendedBy || data.interestedUserId,
         });
       }
@@ -104,6 +87,24 @@ export class IntentService {
     }
     if (data.sourceId) {
       userEventInterestParams['sourceId'] = data.sourceId;
+    }
+    if (
+      data.interest !== 'BOOKMARK' &&
+      data.sourceModule !== 'PROMOTED_EVENT'
+    ) {
+      const previousInterest =
+        await this.intentDataService.getUserEventInterest({
+          eventId: data.eventId,
+          accountId: user.accountId,
+          interestedUserId: data.interestedUserId,
+          interest: [data.interest],
+        });
+      if (previousInterest.length > 0) {
+        throw new HttpException(
+          'Interest already exists',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
     }
     const userEventInterest =
       await this.intentDataService.createUserEventInterest(
@@ -145,8 +146,8 @@ export class IntentService {
           id,
           modifiedBy: user.id,
           approvedBy: user.id,
-        }))
-      }
+        })),
+      },
     };
   }
 
@@ -160,8 +161,12 @@ export class IntentService {
       throw new HttpException('Interest not found', HttpStatus.NOT_FOUND);
     }
     const interest = interests[0];
-    console.log({ interest })
-    if (interest.enquiry?.ownerId && interest.enquiry.ownerId !== user.id && (interest.interest !== 'BOOKMARK')) {
+    console.log({ interest });
+    if (
+      interest.enquiry?.ownerId &&
+      interest.enquiry.ownerId !== user.id &&
+      interest.interest !== 'BOOKMARK'
+    ) {
       throw new HttpException(
         'You are not allowed to update this interest',
         HttpStatus.FORBIDDEN,
@@ -179,8 +184,8 @@ export class IntentService {
           id,
           modifiedBy: user.id,
           deleted: true,
-        }))
-      }
+        })),
+      },
     };
   }
 
@@ -245,8 +250,8 @@ export class IntentService {
           ...data,
           userId: user.id,
           accountId: user.accountId,
-        }))
-      }
+        })),
+      },
     };
   }
 

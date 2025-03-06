@@ -5,6 +5,7 @@ import {
   EventsTrendsDto,
   PocsUnmaskDto,
   QueryDto,
+  Show,
   SortingDto,
   View,
 } from './dto';
@@ -21,11 +22,13 @@ export class EventsService {
     private readonly eventsDataService: EventsDataService,
     private readonly sharedService: SharedService,
     private readonly intentDataService: IntentDataService,
-  ) { }
+  ) {}
 
-  async createLogForEncryptedQuery(query: QueryDto,
-    user: TCachedUser,) {
-    await this.eventsDataService.createLogForEncryptedQuery(encrypt(JSON.stringify(query)), user);
+  async createLogForEncryptedQuery(query: QueryDto, user: TCachedUser) {
+    await this.eventsDataService.createLogForEncryptedQuery(
+      encrypt(JSON.stringify(query)),
+      user,
+    );
   }
   async getAllEvents(
     query: QueryDto,
@@ -33,18 +36,19 @@ export class EventsService {
     user?: TCachedUser,
   ) {
     let show = query.show || [];
-    if (show.includes('old')) {
-      show = show.filter((item) => item !== 'old');
+    if (show.includes(Show.old)) {
+      show = show.filter((item) => item !== Show.old);
     }
     const nonEmptyParams = getNonEmptyParams({ ...query, show });
     if (user) {
       const queryParams: QueryDto = Object.assign(nonEmptyParams);
-      const configuration = await
-        this.eventsDataService.getAccountConfiguration(
+      const configuration =
+        await this.eventsDataService.getAccountConfiguration(
           user.accountConfigurationId,
         );
       if (
-        configuration && configuration['filter'] &&
+        configuration &&
+        configuration['filter'] &&
         Object.keys(configuration['filter']).length > 0
       ) {
         const { result, rootTodiscard } = eventSearchFilterCheck(
@@ -82,20 +86,20 @@ export class EventsService {
       }
       const transformedEvents = events.events.map((event) => {
         return {
-          ...(query.show && query.show.includes('old')
+          ...(query.show && query.show.includes(Show.old)
             ? event
             : transformEventData(event)),
 
-          ...(query.show && query.show.includes('old')
+          ...(query.show && query.show.includes(Show.old)
             ? {
-              isSaved:
-                userInterests[event.id] && userInterests[event.id]['bookmark']
-                  ? true
-                  : false,
-            }
+                isSaved:
+                  userInterests[event.id] && userInterests[event.id]['bookmark']
+                    ? true
+                    : false,
+              }
             : { interests: userInterests[event.id] }),
         };
-      });
+      }) as any;
       events = {
         count: events.count,
         events: transformedEvents,
@@ -121,7 +125,11 @@ export class EventsService {
     const event = data.events[0];
     let userInterests = {};
     if (user) {
-      userInterests = await this.getGroupedEventInterests(user, [event.id], undefined);
+      userInterests = await this.getGroupedEventInterests(
+        user,
+        [event.id],
+        undefined,
+      );
     }
     const eventResponse = {
       ...transformEventData(event),
@@ -130,22 +138,58 @@ export class EventsService {
     return eventResponse;
   }
 
-  async getGroupedEventInterests(user: TCachedUser, eventIds: string[], trackerId: string | undefined = undefined) {
+  async getGroupedEventInterests(
+    user: TCachedUser,
+    eventIds: string[],
+    trackerId: string | undefined = undefined,
+  ) {
+    const userBookmarks =
+      await this.intentDataService.getAllEventInterestsByUser(
+        user,
+        eventIds,
+        trackerId,
+        ['BOOKMARK'],
+      );
     const interests = await this.intentDataService.getAllEventInterestsByUser(
       user,
       eventIds,
-      trackerId
+      undefined,
+      undefined,
+      ['BOOKMARK'],
     );
+    const userEventInterests = {};
 
-    const groupedInterests = interests.reduce((acc, interest) => {
-      acc[interest.eventId] = acc[interest.eventId] || {};
-      acc[interest.eventId][interest.interest.toLowerCase()] = {
+    interests.forEach((interest) => {
+      userEventInterests[interest.eventId] =
+        userEventInterests[interest.eventId] || {};
+      userEventInterests[interest.eventId][interest.interest.toLowerCase()] = {
         interestId: interest.id,
       };
-      return acc;
-    }, {});
+    });
 
-    return groupedInterests;
+    userBookmarks.forEach((bookmark) => {
+      userEventInterests[bookmark.eventId] =
+        userEventInterests[bookmark.eventId] || {};
+      userEventInterests[bookmark.eventId]['bookmark'] = {
+        interestId: bookmark.id,
+      };
+    });
+
+    // const groupedInterests = interests.reduce((acc, interest) => {
+    //   acc[interest.eventId] = acc[interest.eventId] || {};
+    //   acc[interest.eventId][interest.interest.toLowerCase()] = {
+    //     interestId: interest.id,
+    //   };
+    //   return acc;
+    // }, {});
+    // const groupedBookmarks = userBookmarks.reduce((acc, bookmark) => {
+    //   acc[bookmark.eventId] = acc[bookmark.eventId] || {};
+    //   acc[bookmark.eventId]['bookmark'] = {
+    //     interestId: bookmark.id,
+    //   };
+    //   return acc;
+    // }, {});
+    return userEventInterests;
   }
 
   async getEventsCount(query: CountQueryDto, validateIds: boolean = true) {
@@ -159,7 +203,10 @@ export class EventsService {
   }
 
   async getEventPocs(eventId: string, query: SortingDto) {
-    return await this.eventsDataService.getEventPocs(eventId, query.sortBy ? query.sortBy : 'desc');
+    return await this.eventsDataService.getEventPocs(
+      eventId,
+      query.sortBy ? query.sortBy : 'desc',
+    );
   }
 
   async getEventEditions(eventId: string, query: LimitDto) {

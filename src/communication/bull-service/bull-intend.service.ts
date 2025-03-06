@@ -63,11 +63,11 @@ export class IntendWorkerClass {
       });
       const intendInterestOwnerEmailTemplate = intendInterestOwnerHtml
         .replaceAll('{userShowedInterestName}', jobdata.userShowedInterestName)
-        .replace('{pending}', jobdata.pending)
-        .replace('{going}', jobdata.going)
-        .replace('{waitlist}', jobdata.waitlist)
-        .replace('{inviteCount}', jobdata.inviteCount)
-        .replace('{FRONTEND_URL}', process.env.FRONTEND_URL ?? '')
+        .replaceAll('{pending}', jobdata.pending)
+        .replaceAll('{going}', jobdata.going)
+        .replaceAll('{waitlist}', jobdata.waitlist)
+        .replaceAll('{inviteCount}', jobdata.inviteCount)
+        .replaceAll('{FRONTEND_URL}', process.env.FRONTEND_URL ?? '')
         .replaceAll('{eventName}', jobdata.eventName);
 
       const date: string[] = (new Date(jobdata.eventStartDate) + '').split(' ');
@@ -90,16 +90,16 @@ export class IntendWorkerClass {
       //   location
       //   redirectUrl
       const intendShowedInterestEmailTemplate = intendShowedInterestHtml
-        .replace('{userShowedName}', jobdata.userShowedInterestName)
-        .replace('{secondLine}', secondLine)
+        .replaceAll('{userShowedName}', jobdata.userShowedInterestName)
+        .replaceAll('{secondLine}', secondLine)
         .replaceAll('{date[2]}', date[2])
         .replaceAll('{date[1]}', date[1])
         .replaceAll('{date[0]}', date[0])
-        .replace('{start_time}', jobdata.eventStartDate)
-        .replace('{end_time}', jobdata.eventEndDate)
-        .replace('{location}', jobdata.eventLocation)
-        .replace('{redirectUrl}', jobdata.eventRedirectUrl)
-        .replace('{FRONTEND_URL}', process.env.FRONTEND_URL ?? '')
+        .replaceAll('{start_time}', jobdata.eventStartDate)
+        .replaceAll('{end_time}', jobdata.eventEndDate)
+        .replaceAll('{location}', jobdata.eventLocation)
+        .replaceAll('{redirectUrl}', jobdata.eventRedirectUrl)
+        .replaceAll('{FRONTEND_URL}', process.env.FRONTEND_URL ?? '')
         .replaceAll('{eventName}', jobdata.eventName);
       const [{ data, error }, userExternal] = await Promise.all([
         this.email.mailSender(
@@ -160,16 +160,16 @@ export class IntendWorkerClass {
         WAITLISTING: 'on Waitlist',
       };
       const intendShowedInterestEmailTemplate = intendShowedInterestHtml
-        .replace('{userShowedName}', jobdata.userShowedInterestName)
-        .replace('{secondLine}', secondLine[jobdata.userShowedInterestType])
-        .replace('{date[2]}', date[2])
-        .replace('{date[1]}', date[1])
-        .replace('{date[0]}', date[0])
-        .replace('{start_time}', jobdata.eventStartDate)
-        .replace('{end_time}', jobdata.eventEndDate)
-        .replace('{location}', jobdata.eventLocation)
-        .replace('{redirectUrl}', jobdata.eventRedirectUrl)
-        .replace('{FRONTEND_URL}', process.env.FRONTEND_URL ?? '')
+        .replaceAll('{userShowedName}', jobdata.userShowedInterestName)
+        .replaceAll('{secondLine}', secondLine[jobdata.userShowedInterestType])
+        .replaceAll('{date[2]}', date[2])
+        .replaceAll('{date[1]}', date[1])
+        .replaceAll('{date[0]}', date[0])
+        .replaceAll('{start_time}', jobdata.eventStartDate)
+        .replaceAll('{end_time}', jobdata.eventEndDate)
+        .replaceAll('{location}', jobdata.eventLocation)
+        .replaceAll('{redirectUrl}', jobdata.eventRedirectUrl)
+        .replaceAll('{FRONTEND_URL}', process.env.FRONTEND_URL ?? '')
         .replaceAll('{eventName}', jobdata.eventName);
       const [{ data, error }] = await Promise.all([
         this.email.mailSender(

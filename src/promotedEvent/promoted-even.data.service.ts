@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { EventType, Prisma } from '@prisma/client';
 import { CommunicationService } from 'src/communication/communication.service';
 import { EventCancelDataSchema } from '../../src/communication/bull.dto';
 import { QueueActionOptions } from 'src/utils/types';
@@ -74,7 +74,20 @@ export class PromotedEventsDataService {
         data: true,
       },
     });
+    if (data.attachmentId) {
+      await this.updateAttachment(data.attachmentId, create.id);
+    }
     return create;
+  }
+  async updateAttachment(id: string, sourceId: string) {
+    const attachment = await this.prisma.attachment.update({
+      where: {
+        id: id,
+      }, data: {
+        sourceId: sourceId
+      }
+    });
+    return true;
   }
   async updatePromotedEvent(data: any, eventId: string) {
     const update = await this.prisma.event.update({
@@ -85,6 +98,9 @@ export class PromotedEventsDataService {
         ...data,
       },
     });
+    if (data.attachmentId) {
+      await this.updateAttachment(data.attachmentId, update.id);
+    }
     return update;
   }
   async findUniquePromotedEvent(where: any) {
@@ -98,7 +114,7 @@ export class PromotedEventsDataService {
   async findCountOfPromotedEvents(userAccountId: string, where: string) {
     const count = (await this.prisma.$queryRaw(
       Prisma.raw(` SELECT count(distinct e.id) as id
-                FROM "Event" e where e.deleted = false
+                FROM "Event" e where e.deleted = false and (e."parentEventId" is null OR e."parentEventId"::TEXT ='')
                 and e."accountId"
                  = '${userAccountId}' 
                 ${where} ;`),
@@ -127,9 +143,9 @@ export class PromotedEventsDataService {
     )) as {
       id: string;
       name: string;
-      type: string;
       data: Record<any, any>;
       createdAt: Date;
+      type: EventType;
     }[];
     return data;
   }
@@ -143,7 +159,7 @@ export class PromotedEventsDataService {
       select: {
         id: true,
         parentEventId: true,
-        type: true
+        type: true,
       },
     });
     return subEentId;
@@ -179,7 +195,7 @@ export class PromotedEventsDataService {
           id: true,
           name: true,
           data: true,
-          type: true
+          type: true,
         },
       }),
     ]);

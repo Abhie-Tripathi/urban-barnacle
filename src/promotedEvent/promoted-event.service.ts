@@ -104,7 +104,7 @@ export class PromotedEventsService {
           file,
           user.id,
           'IMAGE',
-          'EVENT',
+          'PROMOTED_EVENT',
           'EVENT',
         );
         if (error) {
@@ -137,12 +137,13 @@ export class PromotedEventsService {
             fileType: filetype,
             fileSize: 0,
             fileUrl: mediaHost + '/public/' + fileName,
-            sourceModule: 'EVENT',
+            sourceModule: 'PROMOTED_EVENT',
             sourceId: 'EVENT',
             createdByUser: { connect: { id: user.id } },
           });
           attachment_id = upload.id;
           jsonDta['logoUrl'] = upload.fileUrl;
+          attachment_id = upload.id;
           // return upload;
         }
       }
@@ -310,7 +311,7 @@ export class PromotedEventsService {
         data.map((val) => val.id),
         user.accountId,
       );
-      console.log('count', count[0].id, data, subEentId);
+      // console.log('count', count[0].id, data, subEentId);
       const outData: any[] = [];
       for (const ids of data) {
         const subEventIdsFromdata: string[] = [];
@@ -320,7 +321,7 @@ export class PromotedEventsService {
           }
         }
 
-        console.log('logs', subEventIdsFromdata);
+        // console.log('logs', subEventIdsFromdata);
         const { childSubEvent, iddWid, isLinked, widgetData } =
           await this.eventDataService.getLinkedEventData(
             query.widgetId,
@@ -350,7 +351,7 @@ export class PromotedEventsService {
             isWidgetLinked:
               Number(chileLinkedToWidget[0].id) > 0 ? true : false,
           });
-          console.log({ datachildSubEventConvert })
+          // console.log({ datachildSubEventConvert })
         }
         const infinity: boolean =
           eventAllData.capacity === -1 && eventAllData.data.maxCapacity == -1;
@@ -362,7 +363,7 @@ export class PromotedEventsService {
           isWidgetLinked: Number(isLinked[0].id) > 0 ? true : false,
         });
       }
-      console.log('count', count);
+      // console.log('count', count);
 
       return { data: { totalCount: Number(count[0]?.id ?? 0), data: outData } };
     } catch (error) {
@@ -388,7 +389,7 @@ export class PromotedEventsService {
           file,
           user.id,
           'IMAGE',
-          'EVENT',
+          body.isExhibitor && body.isExhibitor.length > 2 ? 'PROMOTED_EVENT_EXHIBITOR' : 'PROMOTED_EVENT_SPEAKER',
           'EVENT',
         );
         if (error) {
@@ -426,21 +427,21 @@ export class PromotedEventsService {
           if (!custData['exhibitor']) {
             custData['exhibitor'] = [];
           }
-          // custData['exhibitor'].push({
-          //   data: JSON.parse(participationType.Note ?? ''),
-          //   interest: participationType.interest,
-          //   imageUrl: sttt_id,
-          // });
+          custData['exhibitor'].push({
+            data: body.data,
+            interest: 'EXHIBIT',
+            imageUrl: attachment_id,
+          });
           data['customizationData'] = JSON.stringify(custData);
         } else {
           if (!custData['speaker']) {
             custData['speaker'] = [];
           }
-          // custData['speaker'].push({
-          //   data: JSON.parse(participationType.Note ?? ''),
-          //   interest: participationType.interest,
-          //   imageUrl: sttt_id,
-          // });
+          custData['speaker'].push({
+            data: body.data,
+            interest: 'SPEAK',
+            imageUrl: attachment_id,
+          });
           data['customizationData'] = JSON.stringify(custData);
         }
         await this.eventDataService.updatePromotedEvent(
@@ -448,15 +449,15 @@ export class PromotedEventsService {
           body.eventId,
         );
       }
-      // return {
-      //   data: {
-      //     speaker: {
-      //       data: JSON.parse(participationType.Note ?? ''),
-      //       interest: participationType.interest,
-      //       imageUrl: attachment_id,
-      //     },
-      //   },
-      // };
+      return {
+        data: {
+          [body.isExhibitor && body.isExhibitor.length > 2 ? 'exhibitor' : "speaker"]: {
+            data: body.data,
+            interest: body.isExhibitor && body.isExhibitor.length > 2 ? 'EXHIBIT' : 'SPEAK',
+            imageUrl: attachment_id,
+          },
+        },
+      };
     } catch (error) {
       console.log(error);
       console.error(error);

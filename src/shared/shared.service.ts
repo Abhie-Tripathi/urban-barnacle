@@ -28,6 +28,8 @@ import { ProspectSchemaDto } from './shared.dto';
 import { decrypt, encrypt } from 'src/utils';
 import { PointColumn } from './types';
 import { microserviceEndpoints } from 'src/utils/endpoints';
+import { EventDataDto } from 'src/events/dto';
+import { transformEventData } from 'src/events/global.service';
 
 @Injectable()
 export class SharedService {
@@ -76,7 +78,11 @@ export class SharedService {
     }
   }
 
-  async convertSlugParamsToIds(params: any, validateIds: boolean = true) {
+  async convertSlugParamsToIds(
+    params: any,
+    validateIds: boolean = true,
+    transformViewBound = true,
+  ) {
     if (params.categories && params.categories.length > 0 && validateIds) {
       const categoriesSlug = params.categories as string[];
       const categories = (await this.suggestionService.getSuggestions(
@@ -177,11 +183,13 @@ export class SharedService {
       }
       params['eventTypes'] = eventTypes.map((eventType) => eventType.id);
     }
-    if (params.geoCoordinates) {
-      params.geoCoordinates = JSON.stringify(params.geoCoordinates);
-    }
-    if (params.viewBound && validateIds) {
-      params.viewBound = JSON.stringify(params.viewBound);
+    // if (params.geoCoordinates) {
+    //   params.geoCoordinates = JSON.stringify(params.geoCoordinates);
+    // }
+    if (params.viewBound) {
+      params.viewBound = transformViewBound
+        ? JSON.stringify(params.viewBound)
+        : params.viewBound;
     }
     return params;
   }
@@ -351,7 +359,190 @@ export class SharedService {
     });
     return Number(totalArea.toFixed(2));
   }
-  async getCompanyAndUserDataForProspect(query: ProspectSchemaDto, viewAs: string, viewBy: string) {
+  async getProspectEventAndMap(id: string, query: any) {
+    if ((query.limit) > 20) {
+      query.limit = 20;
+    }
+    id = decrypt(id).replace(process.env.TEN_TIMES_ID_ENCRYPT_KEY as string, '');
+    const baseURL = process.env.MICROSERVICE_URL || '';
+    const endpoint = microserviceEndpoints.company.events;
+    const queryString = new URLSearchParams(query).toString();
+    const url = `${baseURL}${endpoint}/${id}?${queryString}`;
+    const response = await fetch(url, {
+      method: 'GET',
+    });
+    const data = await response.json() as any;
+    // console.log(data);
+    if (!query.groupBy) {
+      const responseToReturn: { count: Number; events: any[] } = {
+        count: data.data.stats.totalEvents,
+        events: data.data.events.map((val: Event) => {
+          const dataToCreate: EventDataDto = {
+            "10timesEventPageUrl": val.eventWebsite,
+            alerts: [],
+            categories: val.categories,
+            primaryEventType: val.type[0],
+            audienceSpread: val.audienceSpread as any,
+            audienceZone: null,
+            bannerUrl: null,
+            createdAt: val.createdAt,
+            designations: [],
+            description: val.description,
+            designationSpread: [],
+            economicImpact: '0',
+            economicImpactBreakdown: {},
+            editions: val.editionCount,
+            endDateTime: val.endDate,
+            startDateTime: val.startDate,
+            entryType: val.entryType,
+            estimatedAttendance: 0,
+            estimatedAttendanceMean: 0,
+            estimatedExhibitors: '0',
+            estimatedVisitorRangeTag: '0',
+            eventLocation: {
+              city: {
+                countryId: val.location.countryId,
+                id: val.location.cityId,
+                name: val.location.cityName,
+                latitude: val.location.cityCordinates.latitude,
+                longitude: val.location.cityCordinates.longitude,
+                locationType: '',
+                stateId: '',
+              },
+              country: {
+                id: val.location.countryId,
+                name: val.location.countryName,
+                latitude: val.location.cityCordinates.latitude,
+                longitude: val.location.cityCordinates.longitude,
+                regions: [],
+                locationType: '',
+              },
+              state: {
+                countryId: val.location.countryId,
+                id: '',
+                name: '',
+                latitude: val.location.cityCordinates.latitude,
+                longitude: val.location.cityCordinates.longitude,
+                locationType: '',
+              },
+              venue: {
+                address: val.location.venueAddress,
+                countryId: val.location.countryId,
+                id: '',
+                name: val.location.venueName,
+                latitude: val.location.geoCordinates.latitude,
+                longitude: val.location.geoCordinates.longitude,
+                locationType: '',
+                stateId: '',
+                cityId: '',
+                displayName: ''
+              }
+            },
+            eventPageUrl: val.url,
+            eventTypes: val.type.map(type => {
+              return {
+                id: '',
+                name: type,
+                slug: type,
+                eventGroupType: ''
+              }
+            }),
+            exhibitorsCount: 0,
+            format: val.format,
+            frequency: '',
+            id: val.id,
+            isBranded: false,
+            isSeries: false,
+            lastVerifiedOn: null,
+            logoUrl: val.logoUrl,
+            maturity: null,
+            name: val.name,
+            organizer: {
+              id: val.organizer.id,
+              location: {
+                city: {
+                  countryId: '',
+                  id: '',
+                  name: val.organizer.cityName,
+                  latitude: '',
+                  longitude: '',
+                  locationType: '',
+                  stateId: '',
+                },
+                country: {
+                  id: '',
+                  name: val.organizer.countryName,
+                  latitude: '',
+                  longitude: '',
+                  regions: [],
+                  locationType: '',
+                },
+                address: '',
+                state: {
+                  countryId: '',
+                  id: '',
+                  name: '',
+                  latitude: '',
+                  longitude: '',
+                  locationType: '',
+                }
+              }, logoUrl: val.organizer.logo,
+              name: val.organizer.name,
+              totalExhibit: val.organizer.totalExhibit,
+              totalOrganize: val.organizer.totalOrganize,
+              totalSponsor: val.organizer.totalSponsor,
+              totalVisitor: val.organizer.totalVisitor,
+              website: val.organizer.website,
+            },
+            rankings: {
+              categories: [],
+              category_country: [],
+              country: { countryId: '', rank: 0 },
+              global: 0
+            }, rating: 0,
+            rehostDate: '',
+            rehostScore: 0,
+            repeatSentiment: 0,
+            reputationScore: 0,
+            scores: { impactScore: 0, inboundScore: 0, internationalScore: 0, internationalScoreTag: '0' },
+            speakersCount: 0,
+            sponsorsCount: 0,
+            status: val.status,
+            tags: [],
+            tickets: null,
+            timings: null,
+            trustScore: 0,
+            updatedAt: '',
+            website: '',
+            yoyGrowth: 0,
+            trackerMatchInfo: null
+          }
+          return { ...transformEventData(dataToCreate), ...(query.type === 'user' ? { association: 'SPEAKER' } : {}), };
+        })
+      };
+      return { data: responseToReturn };
+    } else {
+      const countryData: { data: Country[] } = { data: data.data };
+      return {
+        data: countryData.data.map(val => {
+          return {
+            count: val.eventCount,
+            id: val.countryId,
+            name: val.name,
+            latitude: val.geoCordinates.latitude,
+            longitude: val.geoCordinates.longitude,
+            participation: val.participation,
+            code: val.countryCode
+          }
+        })
+      }
+    }
+  }
+  async getCompanyAndUserDataForProspect(
+    query: ProspectSchemaDto,
+    viewAs: string,
+    viewBy: string,
+  ) {
     query.limit = Math.min(query.limit, 10);
     const callMicroService = async (queryParam: any) => {
       const url = `${process.env.MICROSERVICE_URL || ''}${microserviceEndpoints.company.search}?${new URLSearchParams(queryParam)}&viewAs=${viewAs}&viewBy=${viewBy}`;
@@ -359,28 +550,46 @@ export class SharedService {
 
       const response = await fetch(url, { method: 'GET' });
       const responseData = await response.json();
+      console.log(responseData);
       if (viewAs === 'detail') {
         return responseData?.data?.id
-          ? { ...responseData.data, id: encrypt(responseData.data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!) }
-          : null;
+          ? {
+            ...responseData.data,
+            id: encrypt(
+              responseData.data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+            ),
+          }
+          : {
+            ...responseData.data,
+            user_id: encrypt(
+              responseData.data.user_id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+            ),
+          };
       }
       if (responseData.data?.error) {
-        throw new HttpException(responseData.data.error, HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          responseData.data.error,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
       return [
-        (responseData.data ?? []).map(data => ({
+        (responseData.data ?? []).map((data) => ({
           ...data,
-          [viewBy === 'company' ? "id" : "user_id"]: viewBy === 'company'
-            ? encrypt(data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!)
-            : encrypt(data.user_id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!)
+          [viewBy === 'company' ? 'id' : 'user_id']:
+            viewBy === 'company'
+              ? encrypt(data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!)
+              : encrypt(data.user_id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!),
         })),
-        responseData.totalCount ?? 0
+        responseData.totalCount ?? 0,
       ];
     };
 
     if (viewBy === 'company') {
       if (viewAs === 'detail' && query.companyId) {
-        query.companyId = decrypt(query.companyId).replace(process.env.TEN_TIMES_ID_ENCRYPT_KEY!, '');
+        query.companyId = decrypt(query.companyId).replace(
+          process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+          '',
+        );
         return { data: { companyData: await callMicroService(query) } };
       }
       const [companyData, totalCount] = await callMicroService(query);
@@ -388,31 +597,54 @@ export class SharedService {
     }
 
     if (viewBy === 'user') {
+      if (viewAs === 'detail' && query.userId) {
+        query.userId = decrypt(query.userId).replace(
+          process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+          '',
+        );
+        return { data: { userData: await callMicroService(query) } };
+      }
       const [userData, totalCount] = await callMicroService(query);
       return { data: { userData, totalCount } };
     }
     return { data: { message: 'Wrong view selected' } };
   }
-  async getPointForRequest(column: PointColumn, subscriptionId: string): Promise<number> {
+  async getPointForRequest(
+    column: PointColumn,
+    subscriptionId: string,
+  ): Promise<number> {
     const pointsData = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId },
-      select: { [column]: true }
+      select: { [column]: true },
     });
-    if (!pointsData || pointsData[column] === null || typeof pointsData[column] !== 'number') {
-      throw new HttpException(`Invalid point value for column ${column}`, HttpStatus.INTERNAL_SERVER_ERROR);
+    if (
+      !pointsData ||
+      pointsData[column] === null ||
+      typeof pointsData[column] !== 'number'
+    ) {
+      throw new HttpException(
+        `Invalid point value for column ${column}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
     return pointsData[column];
   }
-  async deductPointForRequest(column: PointColumn, subscriptionId: string, remainingPoints: number) {
-    const point = await this.getPointForRequest(column,
-      subscriptionId);
+  async deductPointForRequest(
+    column: PointColumn,
+    subscriptionId: string,
+    remainingPoints: number,
+  ) {
+    const point = await this.getPointForRequest(column, subscriptionId);
     if (point <= 0) {
-      throw new HttpException(`You have reached the maximum limit to view data. Please get in touch with us.`, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        `You have reached the maximum limit to view data. Please get in touch with us.`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
     await this.prisma.subscription.update({
       where: { id: subscriptionId },
-      data: { [column]: remainingPoints }
+      data: { [column]: remainingPoints },
     });
     return { data: { message: 'points updated' } };
   }
@@ -420,9 +652,97 @@ export class SharedService {
     const point = await this.getPointForRequest(column, subscriptionId);
     await this.prisma.subscription.update({
       where: { id: subscriptionId },
-      data: { [column]: point + 1 }
+      data: { [column]: point + 1 },
     });
     return { data: { message: 'points updated' } };
   }
+}
 
+
+
+export interface Event {
+  id: string;
+  name: string;
+  status: string;
+  url: string;
+  entryType: string | null;
+  eventWebsite: string;
+  eventZone: string[];
+  audienceSpread: Record<string, unknown>;
+  audienceZone: string;
+  description: string;
+  createdAt: string;
+  location: {
+    cityId: string;
+    cityName: string;
+    countryId: string;
+    cityCordinates: {
+      longitude: string;
+      latitude: string;
+    };
+    countryCode: string;
+    countryName: string;
+    venueName: string;
+    venueAddress: string;
+    geoCordinates: {
+      longitude: string;
+      latitude: string;
+    };
+  };
+  stats: {
+    score: number;
+    eventFollower: number;
+    estimatedVisitor: string;
+  };
+  startDate: string;
+  endDate: string;
+  duration: string;
+  editionCount: number;
+  format: string;
+  type: string[];
+  categories: {
+    id: string;
+    name: string;
+    slug: string;
+    isGroup: boolean;
+  }[];
+  eventKeywords: string[];
+  organizer: {
+    id: string;
+    name: string;
+    website: string;
+    logo: string | null;
+    cityName: string;
+    countryName: string;
+    totalExhibit: number;
+    totalSponsor: number;
+    totalVisitor: number;
+    totalOrganize: number;
+  };
+  trackerIntelScore: number | null;
+  eventRank: number;
+  localRank: number;
+  "trustScore%": number;
+  logoUrl: string;
+  reputationSentiment: number;
+  interestsGrowth: number;
+  eventSize: string;
+  estimatedVisitorRangeTag: string;
+  "internationalAudience%": string;
+  ticketPriceLink: string | null;
+  matchedKeywords: string[];
+  keywordsMatchedScore: number;
+}
+
+export interface Country {
+  countryId: string;
+  countryCode: string;
+  name: string;
+  participation: any;
+  eventCount: number;
+  countryZone: string;
+  geoCordinates: {
+    longitude: string;
+    latitude: string;
+  };
 }

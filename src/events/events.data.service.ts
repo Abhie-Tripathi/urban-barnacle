@@ -1,6 +1,12 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { QueryDto, CountQueryDto, EventsTrendsDto, PocsUnmaskDto } from './dto';
+import {
+  QueryDto,
+  CountQueryDto,
+  EventsTrendsDto,
+  PocsUnmaskDto,
+  EventDataDto,
+} from './dto';
 import { Export, Prisma, UnlockValue } from '@prisma/client';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { ConfigService } from '@nestjs/config';
@@ -16,7 +22,7 @@ export class EventsDataService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
   async createLogForEncryptedQuery(encryption: string, user: TCachedUser) {
     const previousActivity = await this.prisma.userActivity.findFirst({
       where: {
@@ -65,11 +71,18 @@ export class EventsDataService {
       queryParams.toString();
     console.log(url);
     const response = await fetch(url);
-    const { data, error } = await response.json();
-    if (!data || error) {
-      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+    const result = await response.json();
+    if (result.statusCode) {
+      throw result;
     }
-    return data;
+    const { data, error } = result;
+    if (error) {
+      throw new HttpException(result, result.statusCode);
+    }
+    return data as {
+      count?: number;
+      events: EventDataDto[];
+    };
   }
 
   async getEventsCount(params: CountQueryDto) {
@@ -100,13 +113,16 @@ export class EventsDataService {
       throw new HttpException(error, HttpStatus.BAD_REQUEST);
     }
     const reponseData: { eventPoCs: object[] } = { eventPoCs: [] };
-    console.log(data, data.eventPoCs.length > 0)
+    console.log(data, data.eventPoCs.length > 0);
     if (data.eventPoCs.length > 0) {
       for (const val of data.eventPoCs) {
-        reponseData.eventPoCs.push({ ...val, id: encrypt(val.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY) })
-        console.log("m")
+        reponseData.eventPoCs.push({
+          ...val,
+          id: encrypt(val.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY),
+        });
+        console.log('m');
       }
-      console.log("l")
+      console.log('l');
     }
     return reponseData;
   }

@@ -5,7 +5,12 @@ import { TCachedUser } from 'src/utils/types';
 import { CompanyDataService } from '../company/company.data.service';
 import { CompanyResponseSchema } from '../company/dto';
 import { EnquiryService } from 'src/enquiry/enquiry.service';
-import { GetEnquiriesDto, GetEnquiriesSchema, GetEnquiryCountDto } from 'src/enquiry/dto';
+import {
+  GetEnquiriesDto,
+  GetEnquiriesHttpDto,
+  GetEnquiriesSchema,
+  GetEnquiryCountDto,
+} from 'src/enquiry/dto';
 import { GetUserHttpDto } from '../dto';
 import { UserService } from '../user.service';
 import { UserDataService } from '../user.data.service';
@@ -18,7 +23,11 @@ import {
   OutreachConfigurationDto,
 } from './account.config';
 import { UserDataSchema } from '../me/dto';
-import { AccountConfigKey, GetAccountEnquiriesCountDto, GetBookmarkedEventDto } from './dto';
+import {
+  AccountConfigKey,
+  GetAccountEnquiriesCountDto,
+  GetBookmarkedEventDto,
+} from './dto';
 import { IntentDataService } from 'src/intent/intent.data.service';
 import {
   GetUserEventInterestCountDto,
@@ -44,8 +53,8 @@ export class AccountService {
     private readonly enquiryService: EnquiryService,
     private readonly userDataService: UserDataService,
     private readonly intentDataService: IntentDataService,
-    private readonly eventService: EventsService
-  ) { }
+    private readonly eventService: EventsService,
+  ) {}
 
   async getAccountCompany(user: TCachedUser) {
     const company = await this.companyDataService.getCompany({
@@ -54,7 +63,7 @@ export class AccountService {
     return CompanyResponseSchema.parse(company);
   }
   async getLatestComment(user: TCachedUser) {
-    const comment = await this.accountDataService.getLatestComment(user)
+    const comment = await this.accountDataService.getLatestComment(user);
     return comment;
   }
   async getSavedEvent(user: TCachedUser, query: GetBookmarkedEventDto) {
@@ -81,63 +90,130 @@ export class AccountService {
     const events = await this.eventService.getAllEvents(eventParams, false);
     return events;
   }
-  async getAccountEnquiries(user: TCachedUser, query: GetEnquiriesDto) {
-    const { limit, offset, status, type, ...rest } = query;
-    const [enquiries, enquiryCount] = await Promise.all([
-      this.enquiryService.getEnquiries({
-        ...GetEnquiriesSchema.parse({
-          accountId: user.accountId,
-          userId: user.id,
-          status: status?.join(','),
-          type: type && typeof type !== 'string' ? type.join(',') : type,
-          ...rest,
-        }),
-        limit,
-        offset,
-      }),
-      this.enquiryService.getEnquiryCount(GetEnquiriesSchema.parse({
-        accountId: user.accountId,
-        userId: user.id,
-        status: status?.join(','),
-        type: type && typeof type !== 'string' ? type.join(',') : type,
-        ...rest,
-      })),
-    ]);
+  async getAccountEnquiries(user: TCachedUser, query: GetEnquiriesHttpDto) {
+    const {
+      limit,
+      offset,
+      status,
+      type,
+      event_active_gte,
+      event_active_lte,
+      groupBy,
+      initiatedBy,
+      name,
+      upvotedBy,
+      eventId,
+    } = query;
+    const enquiries = await this.enquiryService.getEnquiries({
+      accountId: user.accountId,
+      userId: user.id,
+      initiatedBy: initiatedBy,
+      upvotedBy: upvotedBy,
+      status: status,
+      type: type,
+      ...(eventId ? { eventId: eventId } : {}),
+    });
+    if (enquiries.length === 0) {
+      return {
+        count: 0,
+        enquiries: [],
+      };
+    }
+    const eventIds = enquiries.map((enquiry) => enquiry.eventId);
+    const events = (await this.eventService.getAllEvents({
+      eventIds: eventIds,
+      view: View.list,
+      query: name,
+      active_gte: event_active_gte,
+      active_lte: event_active_lte,
+      limit: limit,
+      offset: offset,
+    })) as any;
+    const enquiryCount = events.count;
+    const selectedEnquiries = events.events.map((event) => {
+      const enquiry = enquiries.find(
+        (enquiry) => enquiry.eventId === event.basic.id,
+      );
+      return {
+        ...enquiry,
+        eventData: {
+          eventId: event.basic.id,
+          name: event.basic.name,
+          startDate: event.basic.startDateTime,
+          endDate: event.basic.endDateTime,
+          logoUrl: event.basic.logoUrl!,
+          website: event.basic.website!,
+          organizerName: event.basic.organizer?.name,
+          location: {
+            cityName: event.basic.eventLocation?.city?.name,
+            stateName: event.basic.eventLocation?.state?.name,
+            countryName: event.basic.eventLocation?.country?.name,
+          },
+        },
+      };
+    });
+    // return selectedEnquiries;
+    // const [enquiries, enquiryCount] = await Promise.all([
+    //   this.enquiryService.getEnquiries({
+    //     ...GetEnquiriesSchema.parse({
+    //       accountId: user.accountId,
+    //       userId: user.id,
+    //       status: status?.join(','),
+    //       type: type && typeof type !== 'string' ? type.join(',') : type,
+    //       ...rest,
+    //     }),
+    //     limit,
+    //     offset,
+    //   }),
+    //   this.enquiryService.getEnquiryCount(
+    //     GetEnquiriesSchema.parse({
+    //       accountId: user.accountId,
+    //       userId: user.id,
+    //       status: status?.join(','),
+    //       type: type && typeof type !== 'string' ? type.join(',') : type,
+    //       ...rest,
+    //     }),
+    //   ),
+    // ]);
+    console.log(selectedEnquiries);
     const transformedEnquires = await Promise.all(
-      enquiries.map(async (enquiry) => {
+      selectedEnquiries.map(async (enquiry) => {
         const [interestedCount, activityCount, myActivity] = await Promise.all([
-          this.intentDataService.getUserEventInterestCount(GetUserEventInterestCountSchema.parse({
-            accountId: user.accountId,
-            ...rest,
-            enquiryId: enquiry.id,
-            groupBy: UserInterestsGroupBy.interests,
-            interest: ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'],
-          })),
-          this.intentDataService.getEnquiryActivityCount(GetEnquiryActivityCountSchema.parse({
-            accountId: user.accountId,
-            activityType: EnquiryActivityType.UPVOTE,
-            ...rest,
-            enquiryId: enquiry.id,
-            groupBy: EnquiryActivityGroupBy.activitySubType,
-          })),
-          this.intentDataService.getEnquiryActivities(GetEnquiryActivitySchema.parse({
-            enquiryId: enquiry.id,
-            accountId: user.accountId,
-            userId: user.id,
-            ...rest,
-          })),
+          this.intentDataService.getUserEventInterestCount(
+            GetUserEventInterestCountSchema.parse({
+              accountId: user.accountId,
+              enquiryId: enquiry.id,
+              groupBy: UserInterestsGroupBy.interests,
+              interest: ['ATTEND', 'SPEAK', 'EXHIBIT', 'SPONSOR'],
+            }),
+          ),
+          this.intentDataService.getEnquiryActivityCount(
+            GetEnquiryActivityCountSchema.parse({
+              accountId: user.accountId,
+              activityType: EnquiryActivityType.UPVOTE,
+              enquiryId: enquiry.id,
+              groupBy: EnquiryActivityGroupBy.activitySubType,
+            }),
+          ),
+          this.intentDataService.getEnquiryActivities(
+            GetEnquiryActivitySchema.parse({
+              enquiryId: enquiry.id,
+              accountId: user.accountId,
+              userId: user.id,
+            }),
+          ),
         ]);
         const owner = enquiry.owner
           ? {
-            id: enquiry.owner.id,
-            name: getNameFromEmail(
-              enquiry.owner.email,
-              enquiry.owner.firstname,
-              enquiry.owner.lastname,
-            ),
-            email: enquiry.owner.email,
-            imageUrl: enquiry.owner.imageUrl,
-          }
+              id: enquiry.owner.id,
+              name: getNameFromEmail(
+                enquiry.owner.email,
+                enquiry.owner.firstname,
+                enquiry.owner.lastname,
+              ),
+              email: enquiry.owner.email,
+              imageUrl: enquiry.owner.imageUrl,
+            }
           : null;
         const interestCounts = {
           total: 0,
@@ -194,12 +270,14 @@ export class AccountService {
       department: user.department,
     }));
   }
-  async getAccountMemberShipStatus(accountId: string) {
-    return await this.accountDataService.getAccountMemberShipStatus(accountId);
+  async getAccountMemberShipStatus(currentSubscriptionId: string) {
+    return await this.accountDataService.getAccountMemberShipStatus(
+      currentSubscriptionId,
+    );
   }
   async getAccountConfiguration(user: TCachedUser, key: AccountConfigKey) {
     if (key === 'membership') {
-      return await this.getAccountMemberShipStatus(user.accountId);
+      return await this.getAccountMemberShipStatus(user.currentSubscriptionId);
     }
     const configuration = await this.accountDataService.getAccountConfiguration(
       user.accountConfigurationId,
@@ -223,9 +301,41 @@ export class AccountService {
     }
     if (key === 'interest') {
       const interestConfig = data as InterestConfigurationDto;
+      if (interestConfig.length > 4) {
+        throw new HttpException(
+          'Interest configuration cannot be more than 4',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const uniqueStatus = new Set();
+      interestConfig.forEach((item) => {
+        if (uniqueStatus.has(item.status)) {
+          throw new HttpException(
+            'Status must not be repeated',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+        uniqueStatus.add(item.status);
+      });
       config['interest'] = interestConfig;
     } else if (key === 'outreach') {
       const outreachConfig = data as OutreachConfigurationDto;
+      if (outreachConfig.length > 7) {
+        throw new HttpException(
+          'Outreach configuration cannot be more than 7',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const uniqueStatus = new Set();
+      outreachConfig.forEach((item) => {
+        if (uniqueStatus.has(item.status)) {
+          throw new HttpException(
+            'Status must not be repeated',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+        uniqueStatus.add(item.status);
+      });
       config['outreach'] = outreachConfig;
     } else if (key === 'filter') {
       const filterConfig = data as FilterConfigurationDto;
@@ -240,14 +350,11 @@ export class AccountService {
 
     return { [key]: configuration ? configuration[key] : [] };
   }
-  async updateAccountMembership(
-    user: TCachedUser,
-    data: MembershipDto,
-  ) {
+  async updateAccountMembership(user: TCachedUser, data: MembershipDto) {
     return await this.accountDataService.updateAccountMembership(user, data);
   }
   async createMembershipToken(user: TCachedUser) {
-    return this.accountDataService.createMembershipToken(user)
+    return this.accountDataService.createMembershipToken(user);
   }
   async getAccountEnquiriesCount(
     user: TCachedUser,
@@ -283,9 +390,9 @@ export class AccountService {
       }),
       params.groupBy === UserInterestsGroupBy.status
         ? this.enquiryService.getEnquiryCount({
-          accountId: user.accountId,
-          groupBy: params.groupBy,
-        })
+            accountId: user.accountId,
+            groupBy: params.groupBy,
+          })
         : null,
     ]);
     let response = {};
@@ -321,11 +428,11 @@ export class AccountService {
         };
         const groupedInterestsByStatus = enquiryCount
           ? (
-            enquiryCount as Array<{ status: string; _count: { id: number } }>
-          ).reduce((acc, curr) => {
-            acc[curr.status.toLowerCase()] = curr._count.id;
-            return acc;
-          }, defaultStatusCount)
+              enquiryCount as Array<{ status: string; _count: { id: number } }>
+            ).reduce((acc, curr) => {
+              acc[curr.status.toLowerCase()] = curr._count.id;
+              return acc;
+            }, defaultStatusCount)
           : null;
         response = {
           ...groupedInterestsByStatus,

@@ -7,7 +7,7 @@ const SignInSchema = z.object({
   email: z.string().email(),
 });
 
-export class SignInDto extends createZodDto(SignInSchema) {}
+export class SignInDto extends createZodDto(SignInSchema) { }
 
 export const SignUpSchema = z.strictObject({
   industry: z
@@ -32,14 +32,14 @@ export const SignUpSchema = z.strictObject({
   email: z.string().email(),
 });
 
-export class SignUpDto extends createZodDto(SignUpSchema) {}
+export class SignUpDto extends createZodDto(SignUpSchema) { }
 
 const VerifyOtpSchema = z.object({
   email: z.string().email(),
   otp: z.string(),
 });
 
-export class VerifyOtpDto extends createZodDto(VerifyOtpSchema) {}
+export class VerifyOtpDto extends createZodDto(VerifyOtpSchema) { }
 
 const VerifyAccessSchema = VerifyOtpSchema.extend({
   target: z
@@ -51,4 +51,10 @@ const VerifyAccessSchema = VerifyOtpSchema.extend({
   targetId: z.string().uuid().optional(),
 });
 
-export class VerifyAccessDto extends createZodDto(VerifyAccessSchema) {}
+export class VerifyAccessDto extends createZodDto(VerifyAccessSchema) { }
+
+
+const authenticatSchema = z.strictObject({
+  token: z.string()
+});
+export class AuthenticatDto extends createZodDto(authenticatSchema) { }

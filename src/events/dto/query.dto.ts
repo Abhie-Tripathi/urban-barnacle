@@ -1,8 +1,13 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { SortByOptions, Regions, timezones } from 'src/utils';
-import { EventStatus, EventTypeGroup, VisitorRangeTag } from 'src/utils/types';
-import { LimitSchema } from 'src/global_dto';
+import {
+  defaultEventTypes,
+  EventStatus,
+  EventTypeGroup,
+  VisitorRangeTag,
+} from 'src/utils/types';
+import { LimitSchema, LimitSchemaWithoutDefault } from 'src/global_dto';
 
 const scoreRange = {
   lte: 100,
@@ -67,23 +72,22 @@ export enum Rating {
 }
 
 export enum Show {
-  branded,
-  series,
-  forecasted,
-  rating,
-  estimatedExhibitors,
-  trustScore,
-  entryType,
-  audienceSpread,
-  audienceZone,
-  economicImpact,
-  rankings,
-  scores,
-  maturity,
-  frequency,
-  alerts,
-  isNew,
-  old,
+  branded = 'branded',
+  series = 'series',
+  forecasted = 'forecasted',
+  rating = 'rating',
+  estimatedExhibitors = 'estimatedExhibitors',
+  trustScore = 'trustScore',
+  audienceSpread = 'audienceSpread',
+  audienceZone = 'audienceZone',
+  economicImpact = 'economicImpact',
+  rankings = 'rankings',
+  scores = 'scores',
+  maturity = 'maturity',
+  frequency = 'frequency',
+  alerts = 'alerts',
+  isNew = 'isNew',
+  old = 'old',
 }
 
 export enum Frequency {
@@ -185,9 +189,14 @@ export const QueryFilter = z.object({
     })
     .optional(),
   viewBound: z
-    .string()
+    .union([z.string(), viewBound])
     .transform((data) => {
-      return data ? viewBound.parse(JSON.parse(data)) : undefined;
+      if (!data) return undefined;
+      if (typeof data === 'string') {
+        return viewBound.parse(JSON.parse(data));
+      } else {
+        return viewBound.parse(data);
+      }
     })
     .optional(),
   eventTypes: z
@@ -218,10 +227,26 @@ export const QueryFilter = z.object({
       return data?.split(',').map((item) => item.trim());
     })
     .optional(),
-  active_gte: z.string().datetime().optional(),
+  active_gte: z
+    .string()
+    .refine(
+      (date) =>
+        date &&
+        new Date(date).toISOString().split('T')[0] === date.split('T')[0],
+    )
+    .transform((date) => new Date(date).toISOString().split('T')[0])
+    .optional(),
   // .default(new Date().toISOString()),
 
-  active_lte: z.string().datetime().optional(),
+  active_lte: z
+    .string()
+    .refine(
+      (date) =>
+        date &&
+        new Date(date).toISOString().split('T')[0] === date.split('T')[0],
+    )
+    .transform((date) => new Date(date).toISOString().split('T')[0])
+    .optional(),
   // .default(
   // new Date(
   //   new Date().getTime() + (90 - 1) * 24 * 60 * 60 * 1000,
@@ -338,7 +363,9 @@ export const QueryFilter = z.object({
   show: z
     .string()
     .refine((val) => val.split(',').every((item) => item in Show))
-    .transform((val) => val.split(','))
+    .transform((val) =>
+      val.split(',').map((item) => item.trim() as unknown as Show),
+    )
     .optional(),
   ratings: z
     .string()
@@ -510,7 +537,15 @@ export const QueryFilter = z.object({
       params: { validOptions: Object.keys(EventTypeGroup).join(', ') },
     })
     .optional(),
-  createdAt: z.string().datetime().optional(),
+  createdAt: z
+    .string()
+    .refine(
+      (date) =>
+        date &&
+        new Date(date).toISOString().split('T')[0] === date.split('T')[0],
+    )
+    .transform((date) => new Date(date).toISOString().split('T')[0])
+    .optional(),
   estimatedVisitorRangeTag: z
     .string()
     .refine((val) =>
@@ -522,7 +557,7 @@ export const QueryFilter = z.object({
 
 export const FilterNames = Object.keys(QueryFilter.shape);
 
-export const QuerySchema = LimitSchema.extend(QueryFilter.shape)
+export const QuerySchema = LimitSchemaWithoutDefault.extend(QueryFilter.shape)
   .extend({
     sortBy: z
       .string()
@@ -538,7 +573,7 @@ export const QuerySchema = LimitSchema.extend(QueryFilter.shape)
       .optional(),
     view: z.nativeEnum(View).optional().default(View.list),
     calendar_type: z.nativeEnum(CalendarViewType).optional(),
-    trackerId: z.string().optional()
+    trackerId: z.string().optional(),
   })
   .transform((data) => {
     // const intersectedKeys = Object.keys(data).filter((key) =>
@@ -563,10 +598,27 @@ export const QuerySchema = LimitSchema.extend(QueryFilter.shape)
     //     data['active_lte'] = data['active_lte'];
     //   }
     // }
+    if (!data.show || data.show.length === 0) {
+      data['show'] = (Object.values(Show) as Show[]).filter((item) => {
+        return item !== Show.isNew && item !== Show.old;
+      });
+    }
+    if (data.view !== 'map' && !data.limit) {
+      data.limit = 10;
+    }
+    if (!data.eventTypes || (data.eventTypes && data.eventTypes.length === 0)) {
+      const backend = process.env.BACKEND;
+      if (backend && backend in defaultEventTypes) {
+        data.eventTypes = defaultEventTypes[backend];
+      }
+    }
+    if (!data.sortBy || data.sortBy.length === 0) {
+      data.sortBy = ['-score'];
+    }
     return data;
   });
 
-export class QueryDto extends createZodDto(QuerySchema) { }
+export class QueryDto extends createZodDto(QuerySchema) {}
 
 export enum CountGroup {
   'year' = 'year',
@@ -611,10 +663,16 @@ export const CountQuerySchema = QueryFilter.extend({
   //     data['active_lte'] = data['active_lte'];
   //   }
   // }
+  if (!data.eventTypes || (data.eventTypes && data.eventTypes.length === 0)) {
+    const backend = process.env.BACKEND;
+    if (backend && backend in defaultEventTypes) {
+      data.eventTypes = defaultEventTypes[backend];
+    }
+  }
   return data;
 });
 
-export class CountQueryDto extends createZodDto(CountQuerySchema) { }
+export class CountQueryDto extends createZodDto(CountQuerySchema) {}
 
 const groupByOptions = {
   date: 'date',
@@ -654,10 +712,10 @@ export const EventsTrendsSchema = QueryFilter.extend({
   }),
 });
 
-export class EventsTrendsDto extends createZodDto(EventsTrendsSchema) { }
+export class EventsTrendsDto extends createZodDto(EventsTrendsSchema) {}
 
 const sortSchema = z.strictObject({
-  sortBy: z.string().optional()
-})
+  sortBy: z.string().optional(),
+});
 
-export class SortingDto extends createZodDto(sortSchema) { }
+export class SortingDto extends createZodDto(sortSchema) {}

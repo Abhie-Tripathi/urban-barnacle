@@ -27,6 +27,7 @@ import {
 import { GetTrackersHttpDto } from 'src/tracker/dto';
 import { GetSavedLocationsHttpDto } from 'src/saved-location/dto';
 import { FastifyReply } from 'fastify';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Controller('me')
 export class MeController {
@@ -39,7 +40,7 @@ export class MeController {
   @Get()
   async getProfileData(@GetUser() userData: TCachedUser) {
     try {
-      const user = UserDataSchema.parse(await this.meService.getMe(userData.id));
+      const user = UserDataSchema.parse(userData);
       return { data: user };
     } catch (error) {
       return {
@@ -60,13 +61,24 @@ export class MeController {
     @Body() body: UpdateMeDto,
   ) {
     try {
-      const user = await this.meService.updateMe(userData.id, body);
+      const user = await this.meService.updateMe(userData, body);
       return {
         data: {
           user: UserDataSchema.parse(user),
         },
       };
     } catch (error) {
+      if (
+        error instanceof PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return {
+          error: new HttpException(
+            'Phone number already exist',
+            HttpStatus.BAD_REQUEST,
+          ),
+        };
+      }
       return {
         error: new HttpException(
           error.message,

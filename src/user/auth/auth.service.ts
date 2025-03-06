@@ -1,6 +1,12 @@
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { SignInDto, SignUpDto, VerifyAccessDto, VerifyOtpDto } from './dto';
+import {
+  AuthenticatDto,
+  SignInDto,
+  SignUpDto,
+  VerifyAccessDto,
+  VerifyOtpDto,
+} from './dto';
 import {
   blackListDomain,
   CachedUserSchema,
@@ -27,6 +33,8 @@ import { AccessService } from 'src/access/access.service';
 import { GetAccessDto } from 'src/access/dto';
 import { InterestDefaultConfigurations } from '../account/account.config';
 import { InterestDefaultConfigurationsWithIndustry } from '../account/account.config';
+import { AccountService } from '../account/account.service';
+import { KitService } from 'src/widgets/kit.service';
 
 @Injectable()
 export class AuthService {
@@ -35,34 +43,44 @@ export class AuthService {
     // @InjectQueue('otpProcessor') private readonly otpEmailQueue: Queue,
     private readonly userDataService: UserDataService,
     private readonly accountDataService: AccountDataService,
+    private readonly accountService: AccountService,
     private readonly companyDataService: CompanyDataService,
     private readonly authDataService: AuthDataService,
     private readonly configService: ConfigService,
     private readonly communicationService: CommunicationService,
     private readonly sharedService: SharedService,
     private readonly accessService: AccessService,
+    private readonly brandKitService: KitService
   ) { }
 
   async signUp(data: SignUpDto) {
     const domain = data.email.split('@')[1];
-    if (blackListDomain.includes(domain)) {
-      throw new HttpException('Domain not allowed', HttpStatus.BAD_REQUEST);
-    }
-    let [user, company] = await Promise.all([
-      await this.userDataService.getUsers({
+    // let nonBusinessFlag: Boolean = false;
+    // if (blackListDomain.includes(domain)) {
+    //   nonBusinessFlag = true;
+    // }
+    let [users, company] = await Promise.all([
+      this.userDataService.getUsers({
         email: [data.email],
         limit: 1,
         offset: 0,
-      })[0],
+      }),
       blackListDomain.includes(domain)
         ? null
         : await this.companyDataService.getCompany({
           domain: domain,
         }),
     ]);
-
-    let account = company ? { id: company.accountId } : null;
-    if (user && company) {
+    let user = users && users.length > 0 ? users[0] : null;
+    let account = company ? {
+      id: company.accountId, currentSubscriptionId: company.accounts.currentSubscriptionId,
+      configurationId: company.accounts.configurationId
+    } : null;
+    if (
+      user &&
+      user.currentOnboardingState !== OnboardingState.VERIFICATION &&
+      company
+    ) {
       account = (
         await this.accountDataService.getAccounts({
           id: company.accountId,
@@ -78,12 +96,14 @@ export class AuthService {
       await this.accountDataService.addAccountUser(company.accountId, user.id);
     } else {
       if (!company) {
-        const accountDefault = {
-        };
+        const accountDefault = {};
         if (blackListDomain.includes(domain)) {
           accountDefault['domain'] = domain;
         }
-        const createSubscription = await this.accountDataService.createSubscription({ planEndDate: new Date('2126-01-01') });
+        const createSubscription =
+          await this.accountDataService.createSubscription({
+            planEndDate: new Date('2126-01-01'),
+          });
         account = await this.accountDataService.createAccount({
           ...accountDefault,
           currentSubscriptionId: createSubscription.id,
@@ -91,7 +111,11 @@ export class AuthService {
             ? InterestDefaultConfigurationsWithIndustry[data.industry]
             : InterestDefaultConfigurations.interests,
         });
-        const updateSubscription = await this.accountDataService.updateSubscription({ accountId: account.id }, createSubscription.id);
+        const updateSubscription =
+          await this.accountDataService.updateSubscription(
+            { accountId: account.id },
+            createSubscription.id,
+          );
         if (!blackListDomain.includes(domain)) {
           company = await this.companyDataService.createCompany({
             name: domain,
@@ -117,15 +141,50 @@ export class AuthService {
       }
       if (!user) {
         user = await this.userDataService.createUser({
+          firstname: data.email.split('@')[0],
           ...data,
           role: 'CUSTOMER',
           primaryCompanyId: company?.id,
           accountId: account.id,
           primaryAccountId: account.id,
-          firstname: data.email.split('@')[0],
         });
+      } else if (
+        user &&
+        user.currentOnboardingState === OnboardingState.VERIFICATION &&
+        company
+      ) {
+        await this.userDataService.updateUser({
+          id: user.id,
+          ...data,
+        });
+        const accounts = await this.accountDataService.getAccounts({
+          id: company.accountId,
+          userId: user.id,
+          limit: 1,
+          offset: 0,
+        });
+        const account = accounts && accounts.length > 0 ? accounts[0] : null;
+        if (account) {
+          await this.accountService.updateAccountConfiguration(
+            {
+              ...user,
+              accountId: account.id,
+              accountConfigurationId: account.configurationId,
+              currentSubscriptionId: account.currentSubscriptionId,
+              token: '',
+            },
+            'interest',
+            data.industry
+              ? InterestDefaultConfigurationsWithIndustry[data.industry]
+              : InterestDefaultConfigurations.interests,
+          );
+        }
       }
-
+       this.createDefaultBrandKit({
+        id: user.id,
+        accountId: account.id,
+        domain: domain,
+      }, blackListDomain.includes(domain));
       await this.authDataService.createVerificationToken(user, 'sign-up');
       return {
         message: 'otp sent successfully',
@@ -135,9 +194,9 @@ export class AuthService {
 
   async signIn(data: SignInDto) {
     const domain = data.email.split('@')[1];
-    if (blackListDomain.includes(domain)) {
-      throw new HttpException('Domain not allowed', HttpStatus.BAD_REQUEST);
-    }
+    // if (blackListDomain.includes(domain)) {
+    //   throw new HttpException('Domain not allowed', HttpStatus.BAD_REQUEST);
+    // }
     const users = await this.userDataService.getUsers({
       email: [data.email],
       limit: 1,
@@ -197,8 +256,7 @@ export class AuthService {
         id: user.id,
         currentOnboardingState: OnboardingState.COMPLETED,
       });
-      userDetail =
-        updatedUser;
+      userDetail = updatedUser;
       // return {
       //   user: await this.sharedService.UserResponse({
       //     ...updatedUser,
@@ -218,7 +276,7 @@ export class AuthService {
         primaryAccountId: user.primaryAccountId,
         primaryCompanyId: user.primaryCompanyId,
         accountConfigurationId: currentAccount.configurationId,
-        currentSubscriptionId: currentAccount.currentSubscriptionId
+        currentSubscriptionId: currentAccount.currentSubscriptionId,
       }),
     };
   }
@@ -281,7 +339,7 @@ export class AuthService {
           ...updatedUser,
           accountId: currentAccount.id,
           accountConfigurationId: currentAccount.configurationId,
-          currentSubscriptionId: currentAccount.currentSubscriptionId
+          currentSubscriptionId: currentAccount.currentSubscriptionId,
         }),
       };
     }
@@ -290,9 +348,29 @@ export class AuthService {
         ...user,
         accountId: currentAccount.id,
         accountConfigurationId: currentAccount.configurationId,
-        currentSubscriptionId: currentAccount.currentSubscriptionId
+        currentSubscriptionId: currentAccount.currentSubscriptionId,
       }),
     };
+  }
+
+  async authenticateUserFromToken(body: AuthenticatDto) {
+    return await this.authDataService.authenticateUserFromToken(body);
+  }
+
+  async createDefaultBrandKit(userData: {
+    accountId: string;
+    id: string;
+    domain: string
+  }, blackListDomain: boolean) {
+    const { data, error } = await this.brandKitService.getKit(userData.accountId);
+    if ((data && Object.keys(data.otherData).length <= 0 && data.color.length <= 0) && blackListDomain) {
+      console.log(data, error)
+      await this.brandKitService.defaultKitCreate(userData)
+    } else {
+      if ((data && Object.keys(data.otherData).length <= 0 && data.color.length <= 0)) {
+        const { data, error } = await this.brandKitService.createWidgetKit({ url: userData.domain }, userData, null)
+      }
+    }
   }
   // async userBasicInfo(email: string) {
   //   try {

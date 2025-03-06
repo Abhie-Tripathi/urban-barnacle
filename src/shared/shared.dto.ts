@@ -25,6 +25,17 @@ const prospectSchema = LimitSchema.extend({
     userNames: z.string().optional(),
     userJobTitle: z.string().optional(),
     userSocialLink: z.string().optional(),
-});
+    userId: z.string().optional(),
+}).refine((data) => {
+    const { userId, companyId, ...rest } = data;
+    if (userId || companyId) {
+        const allowedKeys = ['limit', 'offset', 'userId', 'companyId'];
+        return Object.keys(rest).every((key) => allowedKeys.includes(key));
+    }
+
+    return true;
+}, {
+    message: 'When id is provided, only limit and offset are allowed.',
+});;
 
 export class ProspectSchemaDto extends createZodDto(prospectSchema) { }

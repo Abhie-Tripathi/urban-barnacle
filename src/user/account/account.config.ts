@@ -27,7 +27,7 @@ export const InterestConfigurationSchema = z.array(
 
 export class InterestConfigurationDto extends createZodDto(
   InterestConfigurationSchema,
-) { }
+) {}
 
 export const OutreachConfigurationSchema = z.array(
   z.object({
@@ -38,52 +38,51 @@ export const OutreachConfigurationSchema = z.array(
 
 export class OutreachConfigurationDto extends createZodDto(
   OutreachConfigurationSchema,
-) { }
+) {}
 
 // const FilterConfigurationSchema = z.record(z.string(), filterValueSchema);
 const FilterConfigurationSchema = z.record(z.string(), z.any());
 
 export class FilterConfigurationDto extends createZodDto(
   FilterConfigurationSchema,
-) { }
-const membershipSchema = z.strictObject({
-  token: z.string(),
-  plan: z.union([
-    z.literal(0),
-    z.literal(10),
-    z.literal(20),
-    z.literal(30),
-    z.literal(40)
-  ]).transform((value) => {
-    const membershipMap: Record<number, SubscriptionPlan> = {
-      0: "BASIC",
-      10: "ESSENTIAL",
-      20: "SCALE",
-      30: "ADVANCE",
-      40: "ENTERPRISE",
-    };
-    return membershipMap[value];
-  }),
-  startDate: z.string(),
-  endDate: z.string(),
-}).refine(
-  (data) => new Date(data.startDate) <= new Date(data.endDate),
-  {
-    message: "startDate must not be later than endDate",
-    path: ["startDate"],
-  }
-);
+) {}
+const membershipSchema = z
+  .strictObject({
+    token: z.string(),
+    plan: z
+      .union([
+        z.literal(0),
+        z.literal(10),
+        z.literal(20),
+        z.literal(30),
+        z.literal(40),
+      ])
+      .transform((value) => {
+        const membershipMap: Record<number, SubscriptionPlan> = {
+          0: 'BASIC',
+          10: 'ESSENTIAL',
+          20: 'SCALE',
+          30: 'ADVANCE',
+          40: 'ENTERPRISE',
+        };
+        return membershipMap[value];
+      }),
+    startDate: z.string(),
+    endDate: z.string(),
+  })
+  .refine((data) => new Date(data.startDate) <= new Date(data.endDate), {
+    message: 'startDate must not be later than endDate',
+    path: ['startDate'],
+  });
 
-export class MembershipDto extends createZodDto(
-  membershipSchema,
-) { }
+export class MembershipDto extends createZodDto(membershipSchema) {}
 export const AccountConfigSchema = z.strictObject({
   interest: InterestConfigurationSchema,
   outreach: OutreachConfigurationSchema,
   filter: FilterConfigurationSchema,
 });
 
-export class AccountConfigDto extends createZodDto(AccountConfigSchema) { }
+export class AccountConfigDto extends createZodDto(AccountConfigSchema) {}
 
 export const InterestDefaultConfigurations: Record<
   string,
@@ -124,12 +123,12 @@ export const accountConfig: AccountConfigDto = {
       status: 'PENDING',
     },
     {
-      label: 'In Discussion',
-      status: 'IN_DISCUSSION',
-    },
-    {
       label: 'Shortlisted',
       status: 'SHORTLISTED',
+    },
+    {
+      label: 'In Discussion',
+      status: 'IN_DISCUSSION',
     },
     {
       label: 'In Negotiation',
