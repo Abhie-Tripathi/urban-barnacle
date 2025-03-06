@@ -101,7 +101,7 @@ export class TrackerService {
         interest: ['BOOKMARK'],
         sourceModule: 'TRACKER',
         sourceId: tracker.id,
-        interestedUserId: user.id,
+        // interestedUserId: user.id,
         accountId: user.accountId,
       });
 
@@ -402,7 +402,7 @@ export class TrackerService {
       eventIds: savedEventsIds,
       ...convertedParams,
       limit: params.limit,
-      offset: params.offset,
+      offset: 0,
       view: View.tracker,
     } as QueryDto;
 
@@ -487,7 +487,7 @@ export class TrackerService {
         interest: ['BOOKMARK'],
         sourceModule: 'TRACKER',
         sourceId: tracker.id,
-        interestedUserId: user.id,
+        // interestedUserId: user.id,
         accountId: user.accountId,
       })
     ).map((item) => item.eventId);

@@ -5,6 +5,7 @@ import {
   Interest,
   InterestStatus,
   Prisma,
+  UserEventInterest,
 } from '@prisma/client';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { ConfigService } from '@nestjs/config';
@@ -40,17 +41,38 @@ export class IntentDataService {
     if (data.sourceModule !== 'RESEARCH' && !data.sourceId) {
       throw new HttpException('Source id is required ', HttpStatus.BAD_REQUEST);
     }
-    if (data.sourceModule === 'RESEARCH' && data.sourceId) {
+        if (data.sourceModule === 'RESEARCH' && data.sourceId) {
       data.sourceId = undefined;
     }
-    const userEventInterest = await this.prisma.userEventInterest.create({
-      data: {
+    let userEventInterest: UserEventInterest;
+    const checkIfInterestExist = await this.prisma.userEventInterest.findFirst({
+      where: {
+        deleted: true,
         ...data,
         eventId: data.eventId,
         modifiedBy: data.recommendedBy || data.interestedUserId,
         status: InterestStatus.PENDING,
-      },
+      }
     });
+    if (checkIfInterestExist) {
+      userEventInterest = await this.prisma.userEventInterest.update({
+        where: {
+          id: checkIfInterestExist.id
+        }, data: {
+          deleted: false
+        }
+      });
+    } else {
+      userEventInterest = await this.prisma.userEventInterest.create({
+        data: {
+          ...data,
+          eventId: data.eventId,
+          modifiedBy: data.recommendedBy || data.interestedUserId,
+          status: InterestStatus.PENDING,
+        },
+      });
+    }
+
     return userEventInterest;
   }
 
