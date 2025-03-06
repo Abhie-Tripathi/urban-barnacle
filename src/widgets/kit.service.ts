@@ -210,7 +210,7 @@ export class KitService {
       if (check0 > 0) {
         console.log('check');
 
-        return { error: 'cannot create brand kit' };
+        return { data: { message: 'cannot create brand kit' } };
       }
       const { check3, checkForBrandExists } = await this.widgetDataService.findKit(
         user.accountId,
