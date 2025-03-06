@@ -260,6 +260,7 @@ export class PromotedEventsDataService {
               AND `
           } e.deleted = false
               and e."accountId" = '${companyId}'
+              and (e."parentEventId" is null OR e."parentEventId"::TEXT ='')
               ${where.length > 5
             ? where
             : `
