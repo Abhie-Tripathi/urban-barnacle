@@ -180,7 +180,7 @@ export class AuthService {
           );
         }
       }
-       this.createDefaultBrandKit({
+      this.createDefaultBrandKit({
         id: user.id,
         accountId: account.id,
         domain: domain,
@@ -364,11 +364,13 @@ export class AuthService {
   }, blackListDomain: boolean) {
     const { data, error } = await this.brandKitService.getKit(userData.accountId);
     if ((data && Object.keys(data.otherData).length <= 0 && data.color.length <= 0) && blackListDomain) {
-      console.log(data, error)
-      await this.brandKitService.defaultKitCreate(userData)
+      await this.brandKitService.defaultKitCreate(userData);
     } else {
       if ((data && Object.keys(data.otherData).length <= 0 && data.color.length <= 0)) {
-        const { data, error } = await this.brandKitService.createWidgetKit({ url: userData.domain }, userData, null)
+        const { data, error } = await this.brandKitService.createWidgetKit({ url: userData.domain }, userData, null);
+        if (error) {
+          await this.brandKitService.defaultKitCreate(userData);
+        }
       }
     }
   }
