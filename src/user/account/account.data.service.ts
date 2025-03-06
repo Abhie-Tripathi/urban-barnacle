@@ -265,7 +265,7 @@ export class AccountDataService {
     ]);
     const { basic } = await this.eventService.getEvent(comment[0].eventId);
     // console.log(config, { comment }, comment[0].enquirystatus)
-    return comment[0].commentid
+    return comment.length === 1
       ? {
         comment: {
           id: comment[0].commentid,
