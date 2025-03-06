@@ -39,7 +39,6 @@ export class EventsService {
     if (show.includes(Show.old)) {
       show = show.filter((item) => item !== Show.old);
     }
-    console.log({ show });
     const nonEmptyParams = getNonEmptyParams({ ...query, show });
     if (user) {
       const queryParams: QueryDto = Object.assign(nonEmptyParams);
@@ -100,7 +99,7 @@ export class EventsService {
               }
             : { interests: userInterests[event.id] }),
         };
-      });
+      }) as any;
       events = {
         count: events.count,
         events: transformedEvents,
@@ -144,21 +143,53 @@ export class EventsService {
     eventIds: string[],
     trackerId: string | undefined = undefined,
   ) {
+    const userBookmarks =
+      await this.intentDataService.getAllEventInterestsByUser(
+        user,
+        eventIds,
+        trackerId,
+        ['BOOKMARK'],
+      );
     const interests = await this.intentDataService.getAllEventInterestsByUser(
       user,
       eventIds,
-      trackerId,
+      undefined,
+      undefined,
+      ['BOOKMARK'],
     );
+    const userEventInterests = {};
 
-    const groupedInterests = interests.reduce((acc, interest) => {
-      acc[interest.eventId] = acc[interest.eventId] || {};
-      acc[interest.eventId][interest.interest.toLowerCase()] = {
+    interests.forEach((interest) => {
+      userEventInterests[interest.eventId] =
+        userEventInterests[interest.eventId] || {};
+      userEventInterests[interest.eventId][interest.interest.toLowerCase()] = {
         interestId: interest.id,
       };
-      return acc;
-    }, {});
+    });
 
-    return groupedInterests;
+    userBookmarks.forEach((bookmark) => {
+      userEventInterests[bookmark.eventId] =
+        userEventInterests[bookmark.eventId] || {};
+      userEventInterests[bookmark.eventId]['bookmark'] = {
+        interestId: bookmark.id,
+      };
+    });
+
+    // const groupedInterests = interests.reduce((acc, interest) => {
+    //   acc[interest.eventId] = acc[interest.eventId] || {};
+    //   acc[interest.eventId][interest.interest.toLowerCase()] = {
+    //     interestId: interest.id,
+    //   };
+    //   return acc;
+    // }, {});
+    // const groupedBookmarks = userBookmarks.reduce((acc, bookmark) => {
+    //   acc[bookmark.eventId] = acc[bookmark.eventId] || {};
+    //   acc[bookmark.eventId]['bookmark'] = {
+    //     interestId: bookmark.id,
+    //   };
+    //   return acc;
+    // }, {});
+    return userEventInterests;
   }
 
   async getEventsCount(query: CountQueryDto, validateIds: boolean = true) {
