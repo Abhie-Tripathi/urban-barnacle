@@ -402,7 +402,7 @@ export class TrackerService {
       eventIds: savedEventsIds,
       ...convertedParams,
       limit: params.limit,
-      offset: params.offset,
+      offset: 0,
       view: View.tracker,
     } as QueryDto;
 
