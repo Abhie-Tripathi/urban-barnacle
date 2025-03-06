@@ -360,6 +360,7 @@ export class TrackerService {
     } as QueryDto;
     if (searchByEntity) {
       eventParams['searchByEntity'] = searchByEntity;
+      eventParams.offset = 0;
     }
     const events = await this.eventService.getAllEvents(
       eventParams,
@@ -483,7 +484,7 @@ export class TrackerService {
         interest: ['BOOKMARK'],
         sourceModule: 'TRACKER',
         sourceId: tracker.id,
-        interestedUserId: user.id,
+        // interestedUserId: user.id,
         accountId: user.accountId,
       })
     ).map((item) => item.eventId);
