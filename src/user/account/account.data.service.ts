@@ -17,10 +17,13 @@ import { TCachedUser } from 'src/utils/types';
 import { InputJsonObject, JsonArray } from '@prisma/client/runtime/library';
 import { getNameFromEmail } from 'src/utils';
 import { createHash, randomInt, randomUUID } from 'crypto';
+import { EventsService } from 'src/events/events.service';
 
 @Injectable()
 export class AccountDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService,
+    private readonly eventService: EventsService
+  ) { }
   async createSubscription(data: CreateSubscriptionDto) {
     const subscription = await this.prisma.subscription.create({
       data: {
@@ -93,12 +96,12 @@ export class AccountDataService {
     const { configuration, ...rest } = data;
     const config = configuration
       ? {
-          accountConfiguration: {
-            update: {
-              config: configuration,
-            },
+        accountConfiguration: {
+          update: {
+            config: configuration,
           },
-        }
+        },
+      }
       : {};
     const account = await this.prisma.account.update({
       where: { id: data.id },
@@ -242,14 +245,13 @@ export class AccountDataService {
           enquirystatus: string;
           username: string | null;
           email: string;
-          eventname: string;
           eventId: string;
         }[]
       >(
         Prisma.raw(`
             SELECT c.id commentid, c.content, c."createdAt", 
             c."sourceModule", e.id enquiryId, e.status enquirystatus, u.firstname|| ' '|| u.lastname username,u.email
-            , e."eventData" ->> 'name' eventname, e."eventId"
+           , e."eventId"
             FROM
                 "Comment" c
                 INNER JOIN "Enquiry" e on c."sourceId" = e.id::text
@@ -261,36 +263,37 @@ export class AccountDataService {
       ),
       this.getAccountConfiguration(user.accountConfigurationId),
     ]);
+    const { basic } = await this.eventService.getEvent(comment[0].eventId);
     // console.log(config, { comment }, comment[0].enquirystatus)
     return comment[0].commentid
       ? {
-          comment: {
-            id: comment[0].commentid,
-            content: comment[0].content,
-            createdAt: comment[0].createdAt,
-            stage: comment[0].sourceModule,
-          },
-          enquiry: {
-            enquiryId: comment[0].enquiryid,
-            enquiryStatusLabel: config
-              ? config['outreach'].find(
-                  (val) =>
-                    val.status.toLowerCase() ===
-                    comment[0].enquirystatus.toLowerCase(),
-                ).label
-              : null,
-            enquiryStatus: comment[0].enquirystatus,
-          },
-          event: {
-            id: comment[0].eventId,
-            name: comment[0].eventname,
-          },
-          user: {
-            name:
-              comment[0].username ||
-              getNameFromEmail(comment[0].email, null, null),
-          },
-        }
+        comment: {
+          id: comment[0].commentid,
+          content: comment[0].content,
+          createdAt: comment[0].createdAt,
+          stage: comment[0].sourceModule,
+        },
+        enquiry: {
+          enquiryId: comment[0].enquiryid,
+          enquiryStatusLabel: config
+            ? config['outreach'].find(
+              (val) =>
+                val.status.toLowerCase() ===
+                comment[0].enquirystatus.toLowerCase(),
+            ).label
+            : null,
+          enquiryStatus: comment[0].enquirystatus,
+        },
+        event: {
+          id: comment[0].eventId,
+          name: basic['name'],
+        },
+        user: {
+          name:
+            comment[0].username ||
+            getNameFromEmail(comment[0].email, null, null),
+        },
+      }
       : {};
   }
 }
