@@ -360,7 +360,6 @@ export class TrackerService {
     } as QueryDto;
     if (searchByEntity) {
       eventParams['searchByEntity'] = searchByEntity;
-      eventParams.offset = 0;
     }
     const events = await this.eventService.getAllEvents(
       eventParams,
