@@ -256,13 +256,13 @@ export class PromotedEventsService {
         query.end_date
       ) {
         where += ` AND (
-          (e.data->>'start_date' <= '${new Date(query.end_date).toISOString()}' 
-          AND e.data->>'end_date' >= '${new Date(query.start_date).toISOString()}')
-          OR (e.data->>'start_date' = e.data->>'end_date' 
-          AND e.data->>'start_date' = '${new Date(query.start_date).toISOString()}')
+          ((e.data->>'start_date')::DATE <= '${new Date(query.end_date).toISOString()}' 
+          AND (e.data->>'end_date')::DATE >= '${new Date(query.start_date).toISOString()}')
+          OR ((e.data->>'start_date')::DATE = (e.data->>'end_date' )::DATE
+          AND ( e.data->>'start_date')::DATE = '${new Date(query.start_date).toISOString()}')
         ) `;
       }
-      
+
       if (query.upcoming) {
         where += ` AND (
     (e.data->>'start_date')::DATE >= CURRENT_DATE
