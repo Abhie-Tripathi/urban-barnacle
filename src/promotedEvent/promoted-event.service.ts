@@ -255,8 +255,8 @@ export class PromotedEventsService {
         query.start_date &&
         query.end_date
       ) {
-        where += ` and e.data->>'start_date' >= '${new Date(query.start_date).toISOString()}' 
-        or e.data->>'end_date' <= '${new Date(query.end_date).toISOString()}'  `;
+        where += ` and (e.data->>'start_date' >= '${new Date(query.start_date).toISOString()}' 
+        or e.data->>'end_date' <= '${new Date(query.end_date).toISOString()})'  `;
       }
       if (query.upcoming) {
         where += ` AND (
