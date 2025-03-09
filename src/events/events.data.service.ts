@@ -6,6 +6,7 @@ import {
   EventsTrendsDto,
   PocsUnmaskDto,
   EventDataDto,
+  Show,
 } from './dto';
 import { Export, Prisma, UnlockValue } from '@prisma/client';
 import { microserviceEndpoints } from 'src/utils/endpoints';
@@ -54,7 +55,10 @@ export class EventsDataService {
     }
   }
   async getEvents(params: QueryDto) {
-    // params = { ...params, show: [...(params.show || []), 'newLocation'] };
+    params = {
+      ...params,
+      show: [...(params.show || []), 'newLocation' as Show],
+    };
     const queryParams = new URLSearchParams(
       params as unknown as Record<string, any>,
     );
