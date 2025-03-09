@@ -301,8 +301,11 @@ export class TrackerService {
       'USER',
     ]);
     const newParams = getNonEmptyParams(params);
-    const convertedParams =
-      await this.sharedService.convertSlugParamsToIds(newParams);
+    const convertedParams = await this.sharedService.convertSlugParamsToIds(
+      newParams,
+      true,
+      false,
+    );
     if (params.trackerEventStatus && params.trackerEventStatus === 'past') {
       convertedParams['active_lte'] = tracker.filterValues
         ? new Date(

@@ -342,7 +342,7 @@ export const QueryFilter = z.object({
     .transform((data) => {
       return data
         .split(',')
-        .map((item) => item.trim().toUpperCase()) as unknown as EventStatus[];
+        .map((item) => item.trim().toLowerCase()) as unknown as EventStatus[];
     })
     .optional(),
   maturity: z
