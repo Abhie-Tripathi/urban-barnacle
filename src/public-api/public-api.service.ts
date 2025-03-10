@@ -2,7 +2,7 @@ import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { WidgetsService } from 'src/widgets/widgets.service';
 import { FastifyRequest } from 'fastify';
-import { Prisma } from '@prisma/client';
+import { EventType, Prisma } from '@prisma/client';
 import { Query_Dto } from 'src/promotedEvent/dto';
 import { PublicApiDataService } from './public-api.data.service';
 @Injectable()
@@ -11,7 +11,7 @@ export class PublicApiService {
     private readonly prisma: PrismaService,
     private readonly widget: WidgetsService,
     private readonly publicApiDataService: PublicApiDataService,
-  ) {}
+  ) { }
 
   async getWidgetById(id: string, req: FastifyRequest, query: Query_Dto) {
     try {
@@ -91,7 +91,7 @@ export class PublicApiService {
           event: {
             id: dataOfevent?.id,
             name: dataOfevent?.name,
-            type: 'MAIN',
+            type: dataOfevent?.type,
             data: {
               ...dataevent,
               children: subevent.map((event) => {
@@ -99,7 +99,7 @@ export class PublicApiService {
                 data['customizationData'] = JSON.parse(
                   data['customizationData'],
                 );
-                return { ...event, data: data, type: 'SUB' };
+                return { ...event, data: data };
               }),
             },
             parentInfo: { ...paraentData },
@@ -110,6 +110,72 @@ export class PublicApiService {
           },
         },
       };
+    } catch (error) {
+      console.error(error);
+      console.log(error);
+      return {
+        error: new HttpException(
+          'Something went wrong',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        ),
+      };
+    }
+  }
+
+  async getCompanyEvents(id: string, query: Query_Dto) {
+    try {
+      const accountIdData = await this.publicApiDataService.getAccountId(id);
+      if (!accountIdData) {
+        throw new HttpException('invalid company', HttpStatus.NOT_FOUND);
+      }
+      let where: string = `  where e."accountId"='${accountIdData.id}' 
+      and e.deleted = false and (e."parentEventId" is null OR e."parentEventId"::TEXT ='') `;
+      if (query.expired === 'true') {
+        where += ` and (e.data->>'end_date')::DATE < '${new Date(query.expired).toISOString()}' `;
+      }
+      if (query.upcoming === 'true') {
+        where += ` AND (
+                   (e.data->>'start_date')::DATE >= CURRENT_DATE
+                   OR (
+                       CURRENT_DATE BETWEEN (e.data->>'start_date')::DATE 
+                                       AND (e.data->>'end_date')::DATE
+                   )
+               )`;
+      }
+      const { count, eventData } = await this.publicApiDataService.findCountOfPromotedEvents(where, query.sortBy || 'e."createdAt"', query.sortType || 'desc', query.limit, query.offset);
+      const { subEventData } = await this.publicApiDataService.findManyChildPromotedEvent(eventData.map(val => val.id), accountIdData.id);
+      const eventToSubEventMap = new Map<string, {
+        id: string;
+        name: string;
+        data: Record<any, any>;
+        createdAt: Date;
+        type: EventType;
+        approval: boolean;
+        capacity: boolean;
+        registration: boolean;
+        waitlisting: boolean;
+        parentEventId: string;
+      }[]>();
+
+      for (const data of subEventData) {
+        if (!eventToSubEventMap.has(data.parentEventId)) {
+          eventToSubEventMap.set(data.parentEventId, []);
+        }
+        const childdata: any = data.data;
+        childdata['customizationData'] = childdata['customizationData']
+          ? JSON.parse(childdata['customizationData'])
+          : {};
+        eventToSubEventMap.get(data.parentEventId)?.push({ ...data, data: childdata });
+      }
+      const dataToreturn: { totalCount: number, events: object[] } = { totalCount: Number(count[0].id), events: [] };
+      for (const event of eventData) {
+        const customizationData: any = event.data;
+        customizationData['customizationData'] = customizationData['customizationData']
+          ? JSON.parse(customizationData['customizationData'])
+          : {};
+        dataToreturn.events.push({ ...event, data: customizationData, child: eventToSubEventMap.get(event.id) });
+      }
+      return { data: dataToreturn };
     } catch (error) {
       console.error(error);
       console.log(error);

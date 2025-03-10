@@ -5,7 +5,7 @@ import { Query_Dto } from 'src/promotedEvent/dto';
 
 @Controller('public')
 export class PublicApiController {
-  constructor(private readonly service: PublicApiService) {}
+  constructor(private readonly service: PublicApiService) { }
   @Get('widget/:id')
   async getWidget(
     @Param('id') id,
@@ -14,6 +14,18 @@ export class PublicApiController {
   ) {
     try {
       const result = this.service.getWidgetById(id, req, query);
+      return result;
+    } catch (error) {
+      return {
+        error,
+      };
+    }
+  }
+
+  @Get('account/:accountId/events')
+  async getCompanyEvents(@Param('accountId') id, @Query() query: Query_Dto) {
+    try {
+      const result = this.service.getCompanyEvents(id, query);
       return result;
     } catch (error) {
       return {

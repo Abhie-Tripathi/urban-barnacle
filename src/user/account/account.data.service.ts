@@ -263,9 +263,13 @@ export class AccountDataService {
       ),
       this.getAccountConfiguration(user.accountConfigurationId),
     ]);
-    const { basic } = await this.eventService.getEvent(comment[0].eventId);
+    let eventBasic: any;
+    if (comment.length === 1 && comment[0].eventId) {
+      const { basic } = await this.eventService.getEvent(comment[0].eventId);
+      eventBasic = basic;
+    }
     // console.log(config, { comment }, comment[0].enquirystatus)
-    return comment[0].commentid
+    return comment.length === 1
       ? {
         comment: {
           id: comment[0].commentid,
@@ -286,7 +290,7 @@ export class AccountDataService {
         },
         event: {
           id: comment[0].eventId,
-          name: basic['name'],
+          name: eventBasic['name'],
         },
         user: {
           name:

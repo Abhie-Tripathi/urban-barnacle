@@ -79,7 +79,7 @@ export class TrackerDataService {
     if (data.type) {
       where.push(
         Prisma.raw(
-          `T.TYPE::TEXT LIKE '${data.type === 'trackers' ? 'T_%' : data.type === 'trends' ? 'TR_%' : ''}'`,
+          `T.TYPE::TEXT LIKE '${data.type === 'trackers' ? 'T\\_%' : data.type === 'trends' ? 'TR\\_%' : ''}'`,
         ),
       );
     }
@@ -108,7 +108,7 @@ export class TrackerDataService {
     if (data.type) {
       where.push(
         Prisma.raw(
-          `T.TYPE::TEXT LIKE '${data.type === 'trackers' ? 'T_%' : data.type === 'trends' ? 'TR_%' : ''}'`,
+          `T.TYPE::TEXT LIKE '${data.type === 'trackers' ? 'T\\_%' : data.type === 'trends' ? 'TR\\_%' : ''}'`,
         ),
       );
     }
