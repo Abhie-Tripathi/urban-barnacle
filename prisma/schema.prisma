@@ -18,6 +18,7 @@ enum UserSource {
   PROMOTE_EVENT
   PROMOTE_EVENT_INVITE
   ACCESS_INVITE
+  SCRIPT
 }
 
 model User {
