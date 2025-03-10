@@ -41,6 +41,9 @@ export class IntentDataService {
     if (data.sourceModule !== 'RESEARCH' && !data.sourceId) {
       throw new HttpException('Source id is required ', HttpStatus.BAD_REQUEST);
     }
+        if (data.sourceModule === 'RESEARCH' && data.sourceId) {
+      data.sourceId = undefined;
+    }
     let userEventInterest: UserEventInterest;
     const checkIfInterestExist = await this.prisma.userEventInterest.findFirst({
       where: {

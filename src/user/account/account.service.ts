@@ -102,7 +102,7 @@ export class AccountService {
       initiatedBy,
       name,
       upvotedBy,
-      eventId
+      eventId,
     } = query;
     const enquiries = await this.enquiryService.getEnquiries({
       accountId: user.accountId,
@@ -111,7 +111,7 @@ export class AccountService {
       upvotedBy: upvotedBy,
       status: status,
       type: type,
-      ...(eventId ? { eventId: eventId } : {})
+      ...(eventId ? { eventId: eventId } : {}),
     });
     if (enquiries.length === 0) {
       return {
