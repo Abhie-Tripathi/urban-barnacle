@@ -1,10 +1,10 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { EventType, Prisma } from '@prisma/client';
 
 @Injectable()
 export class PublicApiDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
   async calendarView(
     date_lte: string,
     date_gte: string,
@@ -48,38 +48,34 @@ export class PublicApiDataService {
             )::DATE AS event_month
     )
 SELECT
-    ${
-      calendarType === 'year'
-        ? `TO_CHAR(ms.event_month, 'FMMonth YYYY') AS event_month`
-        : ' ms.event_month '
-    }
+    ${calendarType === 'year'
+          ? `TO_CHAR(ms.event_month, 'FMMonth YYYY') AS event_month`
+          : ' ms.event_month '
+        }
     ,
     COALESCE(SUM(de.totalevent), 0) AS total_events
    , STRING_AGG(de.detail, '[') AS details
 FROM
     month_series ms
     LEFT JOIN DATAEVENT de
-     ${
-       calendarType === 'year'
-         ? `
+     ${calendarType === 'year'
+          ? `
                        ON de.startdatetime >= ms.event_month 
         AND de.startdatetime < ms.event_month + INTERVAL '1 month'
             `
-         : 'ON ms.event_month = de.startdatetime '
-     }
+          : 'ON ms.event_month = de.startdatetime '
+        }
 
 GROUP BY
-     ${
-       calendarType === 'year'
-         ? `TO_CHAR(ms.event_month, 'FMMonth YYYY')            `
-         : ' ms.event_month '
-     }
+     ${calendarType === 'year'
+          ? `TO_CHAR(ms.event_month, 'FMMonth YYYY')            `
+          : ' ms.event_month '
+        }
 ORDER BY
-     ${
-       calendarType === 'year'
-         ? `TO_CHAR(ms.event_month, 'FMMonth YYYY')            `
-         : 'ms.event_month  '
-     } 
+     ${calendarType === 'year'
+          ? `TO_CHAR(ms.event_month, 'FMMonth YYYY')            `
+          : 'ms.event_month  '
+        } 
         `,
       ),
     );
@@ -121,6 +117,7 @@ ORDER BY
           id: true,
           name: true,
           data: true,
+          type: true,
           parentEventId: true,
           approval: true,
           capacity: true,
@@ -137,6 +134,7 @@ ORDER BY
           id: true,
           name: true,
           data: true,
+          type: true,
           // approval: true,
           // capacity: true,
           // registration: true,
@@ -145,5 +143,68 @@ ORDER BY
       }),
     ]);
     return { dataOfevent, subevent };
+  }
+
+  async getAccountId(id: string) {
+    return (await this.prisma.account.findFirst({
+      where: {
+        id: id
+      }
+    }))
+  }
+
+  async findCountOfPromotedEvents(where: string, sortBy: string,
+    sortType: string,
+    limit: number,
+    offset: number,) {
+    const [count, eventData] = await Promise.all([this.prisma.$queryRaw<{ id: number }[]>(
+      Prisma.raw(` SELECT count(distinct e.id) as id
+                  FROM "Event" e 
+                  ${where} ;`),
+    ), this.prisma.$queryRaw<{
+      id: string;
+      name: string;
+      data: Record<any, any>;
+      createdAt: Date;
+      type: EventType;
+      approval: boolean;
+      capacity: boolean;
+      registration: boolean;
+      waitlisting: boolean;
+    }[]>(
+      Prisma.raw(
+        `
+                SELECT e.id, e.name,e.type, e.data,e.approval,  e.capacity >0 OR e.capacity=-1 capacity, e.registration, e.waitlisting,e."createdAt" 
+                 FROM "Event" e
+            ${where}
+             order by ${sortBy}  ${sortType}
+          limit ${limit}  offset ${offset};`,
+      ),
+    )]);
+    return { count, eventData };
+  }
+  async findManyChildPromotedEvent(ids: string[], userAccountId: string) {
+    const subEventData = await this.prisma.$queryRaw<{
+      id: string;
+      name: string;
+      data: Record<any, any>;
+      createdAt: Date;
+      parentEventId: string;
+      type: EventType;
+      approval: boolean;
+      capacity: boolean;
+      registration: boolean;
+      waitlisting: boolean;
+    }[]>(
+      Prisma.raw(
+        `
+                SELECT e.id, e.name,e.type, e.data,e.approval,  e.capacity >0 OR e.capacity=-1 capacity, e.registration, e.waitlisting,e."createdAt",e."parentEventId" 
+                 FROM "Event" e
+            where e."parentEventId" in ('${ids.join("','")}') and e.deleted = false
+            order by e."createdAt" desc
+          limit 10  offset 0;`,
+      ),
+    );
+    return { subEventData };
   }
 }
