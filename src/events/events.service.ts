@@ -10,7 +10,7 @@ import {
   View,
 } from './dto';
 import { SharedService } from '../shared/shared.service';
-import { TCachedUser } from 'src/utils/types';
+import { defaultEventTypes, TCachedUser } from 'src/utils/types';
 import { encrypt, getNonEmptyParams } from 'src/utils';
 import { eventSearchFilterCheck, transformEventData } from './global.service';
 import { IntentDataService } from 'src/intent/intent.data.service';
@@ -40,6 +40,15 @@ export class EventsService {
       show = show.filter((item) => item !== Show.old);
     }
     const nonEmptyParams = getNonEmptyParams({ ...query, show });
+    if (
+      !query.eventTypes ||
+      (query.eventTypes && query.eventTypes.length === 0)
+    ) {
+      const backend = process.env.BACKEND;
+      if (backend && backend in defaultEventTypes) {
+        query.eventTypes = defaultEventTypes[backend];
+      }
+    }
     if (user) {
       const queryParams: QueryDto = Object.assign(nonEmptyParams);
       const configuration =
@@ -194,6 +203,15 @@ export class EventsService {
 
   async getEventsCount(query: CountQueryDto, validateIds: boolean = true) {
     const nonEmptyParams = getNonEmptyParams(query);
+    if (
+      !query.eventTypes ||
+      (query.eventTypes && query.eventTypes.length === 0)
+    ) {
+      const backend = process.env.BACKEND;
+      if (backend && backend in defaultEventTypes) {
+        query.eventTypes = defaultEventTypes[backend];
+      }
+    }
     const convertedParams = await this.sharedService.convertSlugParamsToIds(
       nonEmptyParams,
       validateIds,

@@ -606,12 +606,12 @@ export const QuerySchema = LimitSchemaWithoutDefault.extend(QueryFilter.shape)
     if (data.view !== 'map' && !data.limit) {
       data.limit = 10;
     }
-    if (!data.eventTypes || (data.eventTypes && data.eventTypes.length === 0)) {
-      const backend = process.env.BACKEND;
-      if (backend && backend in defaultEventTypes) {
-        data.eventTypes = defaultEventTypes[backend];
-      }
-    }
+    // if (!data.eventTypes || (data.eventTypes && data.eventTypes.length === 0)) {
+    //   const backend = process.env.BACKEND;
+    //   if (backend && backend in defaultEventTypes) {
+    //     data.eventTypes = defaultEventTypes[backend];
+    //   }
+    // }
     if (!data.sortBy || data.sortBy.length === 0) {
       data.sortBy = ['-score'];
     }
