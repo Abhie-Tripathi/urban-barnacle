@@ -59,8 +59,12 @@ const GetTrackerEventsSchema = LimitSchema.extend(
     //   });
     // }
     data['show'] = (Object.values(Show) as Show[]).filter((item) => {
-      return item !== Show.old;
+      if (data.trackerEventStatus === 'new' && item === Show.isNew) {
+        return true;
+      }
+      return item !== Show.old && item !== Show.isNew;
     });
+    console.log(data.show);
     if (data.view !== 'map' && !data.limit) {
       data.limit = 10;
     }
