@@ -67,28 +67,35 @@ export class AccountService {
     return comment;
   }
   async getSavedEvent(user: TCachedUser, query: GetBookmarkedEventDto) {
-    const savedEventsIds = (
-      await this.intentDataService.getUserEventInterest({
+    const [savedEvents, count] =
+      await Promise.all([this.intentDataService.getUserEventInterest({
         interest: ['BOOKMARK'],
         sourceModule: 'TRACKER',
         // interestedUserId: user.id,
         accountId: user.accountId,
         limit: query.limit,
         offset: query.offset,
-      })
-    ).map((item) => item.eventId);
-
+      }), this.intentDataService.getUserEventInterestCountForBookmark({
+        interest: ['BOOKMARK'],
+        sourceModule: 'TRACKER',
+        // interestedUserId: user.id,
+        accountId: user.accountId,
+        limit: query.limit,
+        offset: query.offset,
+      })])
+      ;
+    const savedEventsIds = savedEvents.map((item) => item.eventId);
     if (savedEventsIds.length === 0) {
       return [];
     }
     const eventParams = {
       eventIds: savedEventsIds,
-      limit: query.limit,
-      offset: query.offset,
+      // limit: query.limit,
+      // offset: 0,
       view: View.tracker,
     } as QueryDto;
     const events = await this.eventService.getAllEvents(eventParams, false);
-    return events;
+    return { ...events, count: count };
   }
   async getAccountEnquiries(user: TCachedUser, query: GetEnquiriesHttpDto) {
     const {

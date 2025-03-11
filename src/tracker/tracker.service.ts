@@ -382,8 +382,8 @@ export class TrackerService {
       'SUPER_ADMIN',
       'USER',
     ]);
-    const savedEventsIds = (
-      await this.intentDataService.getUserEventInterest({
+    const [savedEvents, count] =
+      await Promise.all([this.intentDataService.getUserEventInterest({
         interest: ['BOOKMARK'],
         sourceModule: 'TRACKER',
         sourceId: tracker.id,
@@ -391,8 +391,18 @@ export class TrackerService {
         accountId: user.accountId,
         limit: params.limit,
         offset: params.offset,
-      })
-    ).map((item) => item.eventId);
+      }), this.intentDataService.getUserEventInterestCountForBookmark({
+        interest: ['BOOKMARK'],
+        sourceModule: 'TRACKER',
+        sourceId: tracker.id,
+        // interestedUserId: user.id,
+        accountId: user.accountId,
+        limit: params.limit,
+        offset: params.offset,
+      })])
+
+
+    const savedEventsIds = savedEvents.map((item) => item.eventId);
 
     if (savedEventsIds.length === 0) {
       return [];
@@ -415,7 +425,7 @@ export class TrackerService {
       user,
     );
 
-    return events;
+    return { ...events, count: count };
   }
 
   async getTrackerEventsCount(

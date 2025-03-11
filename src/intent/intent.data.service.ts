@@ -32,7 +32,7 @@ import { TCachedUser } from 'src/utils/types';
 
 @Injectable()
 export class IntentDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async createUserEventInterest(data: CreateUserEventInterestDto) {
     if (!data.eventId) {
@@ -41,7 +41,7 @@ export class IntentDataService {
     if (data.sourceModule !== 'RESEARCH' && !data.sourceId) {
       throw new HttpException('Source id is required ', HttpStatus.BAD_REQUEST);
     }
-        if (data.sourceModule === 'RESEARCH' && data.sourceId) {
+    if (data.sourceModule === 'RESEARCH' && data.sourceId) {
       data.sourceId = undefined;
     }
     let userEventInterest: UserEventInterest;
@@ -89,7 +89,16 @@ export class IntentDataService {
     });
     return userEventInterest;
   }
-
+  async getUserEventInterestCountForBookmark(data: GetUserEventInterestDto) {
+    const { limit, offset, interest, show, ...rest } = data;
+    if (interest && interest.length > 0) {
+      rest['interest'] = { in: interest };
+    }
+    const userEventInterestsCount = await this.prisma.userEventInterest.count({
+      where: { ...rest, deleted: false },      
+    });
+    return userEventInterestsCount;
+  }
   async getUserEventInterest(data: GetUserEventInterestDto) {
     const { limit, offset, interest, show, ...rest } = data;
     if (interest && interest.length > 0) {
@@ -133,7 +142,7 @@ export class IntentDataService {
     }
     const userEventInterests = await this.prisma.userEventInterest.findMany({
       where: {
-        interestedUserId: user.id,
+        // interestedUserId: user.id,
         accountId: user.accountId,
         deleted: false,
         eventId: {
