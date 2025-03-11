@@ -55,10 +55,10 @@ export class EventsDataService {
     }
   }
   async getEvents(params: QueryDto) {
-    params = {
-      ...params,
-      show: [...(params.show || []), 'newLocation' as Show],
-    };
+    // params = {
+    //   ...params,
+    //   show: [...(params.show || []), 'newLocation' as Show],
+    // };
     const queryParams = new URLSearchParams(
       params as unknown as Record<string, any>,
     );
