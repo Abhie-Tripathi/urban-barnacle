@@ -37,7 +37,7 @@ export class SharedService {
     private readonly prisma: PrismaService,
     private readonly suggestionService: SuggestionService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) { }
+  ) {}
 
   async signToken(user: SelectedUserDetails, token: string) {
     const tokenData: TCachedUser = { ...user, token };
@@ -360,10 +360,13 @@ export class SharedService {
     return Number(totalArea.toFixed(2));
   }
   async getProspectEventAndMap(id: string, query: any) {
-    if ((query.limit) > 20) {
+    if (query.limit > 20) {
       query.limit = 20;
     }
-    id = decrypt(id).replace(process.env.TEN_TIMES_ID_ENCRYPT_KEY as string, '');
+    id = decrypt(id).replace(
+      process.env.TEN_TIMES_ID_ENCRYPT_KEY as string,
+      '',
+    );
     const baseURL = process.env.MICROSERVICE_URL || '';
     const endpoint = microserviceEndpoints.company.events;
     const queryString = new URLSearchParams(query).toString();
@@ -371,14 +374,14 @@ export class SharedService {
     const response = await fetch(url, {
       method: 'GET',
     });
-    const data = await response.json() as any;
+    const data = (await response.json()) as any;
     // console.log(data);
     if (!query.groupBy) {
       const responseToReturn: { count: Number; events: any[] } = {
         count: data.data.stats.totalEvents,
         events: data.data.events.map((val: Event) => {
           const dataToCreate: EventDataDto = {
-            "10timesEventPageUrl": val.eventWebsite,
+            '10timesEventPageUrl': val.eventWebsite,
             alerts: [],
             categories: val.categories,
             primaryEventType: val.type[0],
@@ -435,17 +438,17 @@ export class SharedService {
                 locationType: '',
                 stateId: '',
                 cityId: '',
-                displayName: ''
-              }
+                displayName: '',
+              },
             },
             eventPageUrl: val.url,
-            eventTypes: val.type.map(type => {
+            eventTypes: val.type.map((type) => {
               return {
                 id: '',
                 name: type,
                 slug: type,
-                eventGroupType: ''
-              }
+                eventGroupType: '',
+              };
             }),
             exhibitorsCount: 0,
             format: val.format,
@@ -485,8 +488,9 @@ export class SharedService {
                   latitude: '',
                   longitude: '',
                   locationType: '',
-                }
-              }, logoUrl: val.organizer.logo,
+                },
+              },
+              logoUrl: val.organizer.logo,
               name: val.organizer.name,
               totalExhibit: val.organizer.totalExhibit,
               totalOrganize: val.organizer.totalOrganize,
@@ -498,13 +502,19 @@ export class SharedService {
               categories: [],
               category_country: [],
               country: { countryId: '', rank: 0 },
-              global: 0
-            }, rating: 0,
+              global: 0,
+            },
+            rating: 0,
             rehostDate: '',
             rehostScore: 0,
             repeatSentiment: 0,
             reputationScore: 0,
-            scores: { impactScore: 0, inboundScore: 0, internationalScore: 0, internationalScoreTag: '0' },
+            scores: {
+              impactScore: 0,
+              inboundScore: 0,
+              internationalScore: 0,
+              internationalScoreTag: '0',
+            },
             speakersCount: 0,
             sponsorsCount: 0,
             status: val.status,
@@ -515,16 +525,23 @@ export class SharedService {
             updatedAt: '',
             website: '',
             yoyGrowth: 0,
-            trackerMatchInfo: null
-          }
-          return { ...transformEventData(dataToCreate), ...(query.type === 'user' ? { association: 'SPEAKER' } : {}), };
-        })
+            trackerMatchInfo: null,
+            reputationChangePercentage: 0,
+            trustChangePercentage: 0,
+            trustChangeTag: null,
+            reputationChangeTag: null,
+          };
+          return {
+            ...transformEventData(dataToCreate),
+            ...(query.type === 'user' ? { association: 'SPEAKER' } : {}),
+          };
+        }),
       };
       return { data: responseToReturn };
     } else {
       const countryData: { data: Country[] } = { data: data.data };
       return {
-        data: countryData.data.map(val => {
+        data: countryData.data.map((val) => {
           return {
             count: val.eventCount,
             id: val.countryId,
@@ -532,10 +549,10 @@ export class SharedService {
             latitude: val.geoCordinates.latitude,
             longitude: val.geoCordinates.longitude,
             participation: val.participation,
-            code: val.countryCode
-          }
-        })
-      }
+            code: val.countryCode,
+          };
+        }),
+      };
     }
   }
   async getCompanyAndUserDataForProspect(
@@ -554,17 +571,18 @@ export class SharedService {
       if (viewAs === 'detail') {
         return responseData?.data?.id
           ? {
-            ...responseData.data,
-            id: encrypt(
-              responseData.data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
-            ),
-          }
+              ...responseData.data,
+              id: encrypt(
+                responseData.data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+              ),
+            }
           : {
-            ...responseData.data,
-            user_id: encrypt(
-              responseData.data.user_id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
-            ),
-          };
+              ...responseData.data,
+              user_id: encrypt(
+                responseData.data.user_id +
+                  process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+              ),
+            };
       }
       if (responseData.data?.error) {
         throw new HttpException(
@@ -658,8 +676,6 @@ export class SharedService {
   }
 }
 
-
-
 export interface Event {
   id: string;
   name: string;
@@ -722,13 +738,13 @@ export interface Event {
   trackerIntelScore: number | null;
   eventRank: number;
   localRank: number;
-  "trustScore%": number;
+  'trustScore%': number;
   logoUrl: string;
   reputationSentiment: number;
   interestsGrowth: number;
   eventSize: string;
   estimatedVisitorRangeTag: string;
-  "internationalAudience%": string;
+  'internationalAudience%': string;
   ticketPriceLink: string | null;
   matchedKeywords: string[];
   keywordsMatchedScore: number;
