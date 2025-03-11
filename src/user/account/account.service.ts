@@ -90,8 +90,8 @@ export class AccountService {
     }
     const eventParams = {
       eventIds: savedEventsIds,
-      limit: query.limit,
-      offset: query.offset,
+      // limit: query.limit,
+      // offset: 0,
       view: View.tracker,
     } as QueryDto;
     const events = await this.eventService.getAllEvents(eventParams, false);
