@@ -69,6 +69,10 @@ const EventDataSchema = z.object({
   estimatedExhibitors: z.string(),
   trustScore: z.number(),
   entryType: z.string().nullable(),
+  reputationChangePercentage: z.number().nullable(),
+  trustChangePercentage: z.number().nullable(),
+  trustChangeTag: z.string().nullable(),
+  reputationChangeTag: z.string().nullable(),
   audienceSpread: z.record(
     z.string(),
     z.object({
