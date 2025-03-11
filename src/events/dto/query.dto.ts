@@ -598,11 +598,14 @@ export const QuerySchema = LimitSchemaWithoutDefault.extend(QueryFilter.shape)
     //     data['active_lte'] = data['active_lte'];
     //   }
     // }
-    if (!data.show || data.show.length === 0) {
-      data['show'] = (Object.values(Show) as Show[]).filter((item) => {
-        return item !== Show.isNew && item !== Show.old;
-      });
-    }
+    // if (!data.show || data.show.length === 0) {
+    //   data['show'] = (Object.values(Show) as Show[]).filter((item) => {
+    //     return item !== Show.isNew && item !== Show.old;
+    //   });
+    // }
+    data['show'] = (Object.values(Show) as Show[]).filter((item) => {
+      return item !== Show.isNew && item !== Show.old;
+    });
     if (data.view !== 'map' && !data.limit) {
       data.limit = 10;
     }

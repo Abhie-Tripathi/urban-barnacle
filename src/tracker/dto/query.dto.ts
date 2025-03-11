@@ -53,11 +53,14 @@ const GetTrackerEventsSchema = LimitSchema.extend(
       data.trackerEventStatus = data.type as keyof typeof TrackerEventStatus;
       delete data.type;
     }
-    if (!data.show || data.show.length === 0) {
-      data['show'] = (Object.values(Show) as Show[]).filter((item) => {
-        return item !== Show.isNew && item !== Show.old;
-      });
-    }
+    // if (!data.show || data.show.length === 0) {
+    //   data['show'] = (Object.values(Show) as Show[]).filter((item) => {
+    //     return item !== Show.isNew && item !== Show.old;
+    //   });
+    // }
+    data['show'] = (Object.values(Show) as Show[]).filter((item) => {
+      return item !== Show.old;
+    });
     if (data.view !== 'map' && !data.limit) {
       data.limit = 10;
     }
