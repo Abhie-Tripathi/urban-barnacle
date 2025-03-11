@@ -40,7 +40,7 @@ export class TrackerService {
     private readonly userDataService: UserDataService,
     private readonly configService: ConfigService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) { }
+  ) {}
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const nonEmptyParams = getNonEmptyParams(data.filterValues);
@@ -91,9 +91,9 @@ export class TrackerService {
           : undefined;
     tracker.filterValues = tracker.filterValues
       ? {
-        ...(tracker.filterValues as Record<string, any>),
-        searchByEntity,
-      }
+          ...(tracker.filterValues as Record<string, any>),
+          searchByEntity,
+        }
       : { searchByEntity };
 
     const savedEventsCount =
@@ -306,31 +306,54 @@ export class TrackerService {
       true,
       false,
     );
+    // console.log(params.active_lte && params.active_gte);
     if (params.trackerEventStatus && params.trackerEventStatus === 'past') {
-      convertedParams['active_lte'] = tracker.filterValues
-        ? new Date(
-          Math.min(
-            new Date(
-              tracker.filterValues['active_lte'] || new Date(),
-            ).valueOf(),
-            new Date().valueOf(),
-          ),
-        ).toISOString()
-        : new Date().toISOString();
+      if (
+        tracker.filterValues &&
+        tracker.filterValues['active_lte'] &&
+        tracker.filterValues['active_gte']
+      ) {
+        convertedParams['pastBetween'] =
+          `${tracker.filterValues['active_gte']},${new Date(Date.now() - 86400000).toISOString().split('T')[0]}`;
+        convertedParams['active_lte'] = undefined;
+        convertedParams['active_gte'] = undefined;
+      } else {
+        convertedParams['active_lte'] = tracker.filterValues
+          ? new Date(
+              Math.min(
+                new Date(
+                  tracker.filterValues['active_lte'] || new Date(),
+                ).valueOf(),
+                new Date().valueOf(),
+              ),
+            ).toISOString()
+          : new Date().toISOString();
+      }
     } else if (
       params.trackerEventStatus &&
       params.trackerEventStatus === 'active'
     ) {
-      convertedParams['active_gte'] = tracker.filterValues
-        ? new Date(
-          Math.max(
-            new Date(
-              tracker.filterValues['active_gte'] || new Date(),
-            ).valueOf(),
-            new Date().valueOf(),
-          ),
-        ).toISOString()
-        : new Date().toISOString();
+      if (
+        tracker.filterValues &&
+        tracker.filterValues['active_lte'] &&
+        tracker.filterValues['active_gte']
+      ) {
+        convertedParams['activeBetween'] =
+          `${new Date().toISOString().split('T')[0]},${tracker.filterValues['active_lte']}`;
+        convertedParams['active_lte'] = undefined;
+        convertedParams['active_gte'] = undefined;
+      } else {
+        convertedParams['active_gte'] = tracker.filterValues
+          ? new Date(
+              Math.max(
+                new Date(
+                  tracker.filterValues['active_gte'] || new Date(),
+                ).valueOf(),
+                new Date().valueOf(),
+              ),
+            ).toISOString()
+          : new Date().toISOString();
+      }
     }
     if (params.trackerEventStatus && params.trackerEventStatus === 'new') {
       const lastActive = await this.lastActive(
@@ -382,8 +405,8 @@ export class TrackerService {
       'SUPER_ADMIN',
       'USER',
     ]);
-    const [savedEvents, count] =
-      await Promise.all([this.intentDataService.getUserEventInterest({
+    const [savedEvents, count] = await Promise.all([
+      this.intentDataService.getUserEventInterest({
         interest: ['BOOKMARK'],
         sourceModule: 'TRACKER',
         sourceId: tracker.id,
@@ -391,7 +414,8 @@ export class TrackerService {
         accountId: user.accountId,
         limit: params.limit,
         offset: params.offset,
-      }), this.intentDataService.getUserEventInterestCountForBookmark({
+      }),
+      this.intentDataService.getUserEventInterestCountForBookmark({
         interest: ['BOOKMARK'],
         sourceModule: 'TRACKER',
         sourceId: tracker.id,
@@ -399,8 +423,8 @@ export class TrackerService {
         accountId: user.accountId,
         limit: params.limit,
         offset: params.offset,
-      })])
-
+      }),
+    ]);
 
     const savedEventsIds = savedEvents.map((item) => item.eventId);
 
@@ -411,6 +435,64 @@ export class TrackerService {
     const newParams = getNonEmptyParams(params);
     const convertedParams =
       await this.sharedService.convertSlugParamsToIds(newParams);
+
+    if (params.trackerEventStatus && params.trackerEventStatus === 'past') {
+      if (
+        tracker.filterValues &&
+        tracker.filterValues['active_lte'] &&
+        tracker.filterValues['active_gte']
+      ) {
+        convertedParams['pastBetween'] =
+          `${tracker.filterValues['active_gte']},${new Date(Date.now() - 86400000).toISOString().split('T')[0]}`;
+        convertedParams['active_lte'] = undefined;
+        convertedParams['active_gte'] = undefined;
+      } else {
+        convertedParams['active_lte'] = tracker.filterValues
+          ? new Date(
+              Math.min(
+                new Date(
+                  tracker.filterValues['active_lte'] || new Date(),
+                ).valueOf(),
+                new Date().valueOf(),
+              ),
+            ).toISOString()
+          : new Date().toISOString();
+      }
+    } else if (
+      params.trackerEventStatus &&
+      params.trackerEventStatus === 'active'
+    ) {
+      if (
+        tracker.filterValues &&
+        tracker.filterValues['active_lte'] &&
+        tracker.filterValues['active_gte']
+      ) {
+        convertedParams['activeBetween'] =
+          `${new Date().toISOString().split('T')[0]},${tracker.filterValues['active_lte']}`;
+        convertedParams['active_lte'] = undefined;
+        convertedParams['active_gte'] = undefined;
+      } else {
+        convertedParams['active_gte'] = tracker.filterValues
+          ? new Date(
+              Math.max(
+                new Date(
+                  tracker.filterValues['active_gte'] || new Date(),
+                ).valueOf(),
+                new Date().valueOf(),
+              ),
+            ).toISOString()
+          : new Date().toISOString();
+      }
+    }
+    if (params.trackerEventStatus && params.trackerEventStatus === 'new') {
+      const lastActive = await this.lastActive(
+        user,
+        tracker.id,
+        tracker.createdAt,
+      );
+      convertedParams['createdAt'] = lastActive.last_active_gte;
+    }
+
     const eventParams = {
       eventIds: savedEventsIds,
       ...convertedParams,
@@ -441,30 +523,55 @@ export class TrackerService {
     const newParams = getNonEmptyParams(params);
     const convertedParams =
       await this.sharedService.convertSlugParamsToIds(newParams);
-    if (params.type && params.type === 'past') {
-      convertedParams['active_lte'] = tracker.filterValues
-        ? new Date(
-          Math.min(
-            new Date(
-              tracker.filterValues['active_lte'] || new Date(),
-            ).valueOf(),
-            new Date().valueOf(),
-          ),
-        ).toISOString()
-        : new Date().toISOString();
-    } else if (params.type && params.type === 'active') {
-      convertedParams['active_gte'] = tracker.filterValues
-        ? new Date(
-          Math.max(
-            new Date(
-              tracker.filterValues['active_gte'] || new Date(),
-            ).valueOf(),
-            new Date().valueOf(),
-          ),
-        ).toISOString()
-        : new Date().toISOString();
+    if (params.trackerEventStatus && params.trackerEventStatus === 'past') {
+      if (
+        tracker.filterValues &&
+        tracker.filterValues['active_lte'] &&
+        tracker.filterValues['active_gte']
+      ) {
+        convertedParams['pastBetween'] =
+          `${tracker.filterValues['active_gte']},${new Date(Date.now() - 86400000).toISOString().split('T')[0]}`;
+        convertedParams['active_lte'] = undefined;
+        convertedParams['active_gte'] = undefined;
+      } else {
+        convertedParams['active_lte'] = tracker.filterValues
+          ? new Date(
+              Math.min(
+                new Date(
+                  tracker.filterValues['active_lte'] || new Date(),
+                ).valueOf(),
+                new Date().valueOf(),
+              ),
+            ).toISOString()
+          : new Date().toISOString();
+      }
+    } else if (
+      params.trackerEventStatus &&
+      params.trackerEventStatus === 'active'
+    ) {
+      if (
+        tracker.filterValues &&
+        tracker.filterValues['active_lte'] &&
+        tracker.filterValues['active_gte']
+      ) {
+        convertedParams['activeBetween'] =
+          `${new Date().toISOString().split('T')[0]},${tracker.filterValues['active_lte']}`;
+        convertedParams['active_lte'] = undefined;
+        convertedParams['active_gte'] = undefined;
+      } else {
+        convertedParams['active_gte'] = tracker.filterValues
+          ? new Date(
+              Math.max(
+                new Date(
+                  tracker.filterValues['active_gte'] || new Date(),
+                ).valueOf(),
+                new Date().valueOf(),
+              ),
+            ).toISOString()
+          : new Date().toISOString();
+      }
     }
-    if (params.type && params.type === 'new') {
+    if (params.trackerEventStatus && params.trackerEventStatus === 'new') {
       const lastActive = await this.lastActive(
         user,
         tracker.id,
@@ -472,6 +579,17 @@ export class TrackerService {
       );
       convertedParams['createdAt'] = lastActive.last_active_gte;
     }
+    const searchByEntity = ['T_COMPETITOR', 'T_CUSTOMER_ICP'].includes(
+      tracker.type,
+    )
+      ? 'company'
+      : tracker.type === 'T_PEOPLE_FINDER'
+        ? 'user'
+        : tracker.type === 'T_SPEAKING_OPPORTUNITY'
+          ? 'speaker'
+          : tracker.type === 'T_RECRUITMENT'
+            ? 'recruitment'
+            : undefined;
     if (tracker.filterValues && tracker.filterValues['viewBound']) {
       tracker.filterValues['viewBound'] = tracker.filterValues['viewBound'];
     }
@@ -479,6 +597,10 @@ export class TrackerService {
       ...(tracker.filterValues as Object),
       ...convertedParams,
     } as CountQueryDto;
+
+    if (searchByEntity) {
+      eventParams['searchByEntity'] = searchByEntity;
+    }
 
     const count = await this.eventService.getEventsCount(eventParams, false);
     return count;
@@ -512,6 +634,64 @@ export class TrackerService {
     const newParams = getNonEmptyParams(params);
     const convertedParams =
       await this.sharedService.convertSlugParamsToIds(newParams);
+
+    if (params.trackerEventStatus && params.trackerEventStatus === 'past') {
+      if (
+        tracker.filterValues &&
+        tracker.filterValues['active_lte'] &&
+        tracker.filterValues['active_gte']
+      ) {
+        convertedParams['pastBetween'] =
+          `${tracker.filterValues['active_gte']},${new Date(Date.now() - 86400000).toISOString().split('T')[0]}`;
+        convertedParams['active_lte'] = undefined;
+        convertedParams['active_gte'] = undefined;
+      } else {
+        convertedParams['active_lte'] = tracker.filterValues
+          ? new Date(
+              Math.min(
+                new Date(
+                  tracker.filterValues['active_lte'] || new Date(),
+                ).valueOf(),
+                new Date().valueOf(),
+              ),
+            ).toISOString()
+          : new Date().toISOString();
+      }
+    } else if (
+      params.trackerEventStatus &&
+      params.trackerEventStatus === 'active'
+    ) {
+      if (
+        tracker.filterValues &&
+        tracker.filterValues['active_lte'] &&
+        tracker.filterValues['active_gte']
+      ) {
+        convertedParams['activeBetween'] =
+          `${new Date().toISOString().split('T')[0]},${tracker.filterValues['active_lte']}`;
+        convertedParams['active_lte'] = undefined;
+        convertedParams['active_gte'] = undefined;
+      } else {
+        convertedParams['active_gte'] = tracker.filterValues
+          ? new Date(
+              Math.max(
+                new Date(
+                  tracker.filterValues['active_gte'] || new Date(),
+                ).valueOf(),
+                new Date().valueOf(),
+              ),
+            ).toISOString()
+          : new Date().toISOString();
+      }
+    }
+    if (params.trackerEventStatus && params.trackerEventStatus === 'new') {
+      const lastActive = await this.lastActive(
+        user,
+        tracker.id,
+        tracker.createdAt,
+      );
+      convertedParams['createdAt'] = lastActive.last_active_gte;
+    }
+
     const eventParams = {
       eventIds: savedEventsIds,
       ...convertedParams,
