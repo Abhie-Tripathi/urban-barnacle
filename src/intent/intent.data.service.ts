@@ -95,7 +95,7 @@ export class IntentDataService {
       rest['interest'] = { in: interest };
     }
     const userEventInterestsCount = await this.prisma.userEventInterest.count({
-      where: { ...rest, deleted: false },
+      where: { ...rest, deleted: false },      
     });
     return userEventInterestsCount;
   }
