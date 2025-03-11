@@ -89,12 +89,12 @@ const GetTrackerEventsCountSchema = CountQuerySchema.innerType()
       delete data.type;
     }
 
-    if (!data.eventTypes || (data.eventTypes && data.eventTypes.length === 0)) {
-      const backend = process.env.BACKEND;
-      if (backend && backend in defaultEventTypes) {
-        data.eventTypes = defaultEventTypes[backend];
-      }
-    }
+    // if (!data.eventTypes || (data.eventTypes && data.eventTypes.length === 0)) {
+    //   const backend = process.env.BACKEND;
+    //   if (backend && backend in defaultEventTypes) {
+    //     data.eventTypes = defaultEventTypes[backend];
+    //   }
+    // }
 
     return data;
   });
