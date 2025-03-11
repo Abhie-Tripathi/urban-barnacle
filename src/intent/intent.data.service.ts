@@ -142,7 +142,7 @@ export class IntentDataService {
     }
     const userEventInterests = await this.prisma.userEventInterest.findMany({
       where: {
-        interestedUserId: user.id,
+        // interestedUserId: user.id,
         accountId: user.accountId,
         deleted: false,
         eventId: {
