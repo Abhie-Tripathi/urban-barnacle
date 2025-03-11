@@ -23,7 +23,7 @@ export class EventsDataService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
   async createLogForEncryptedQuery(encryption: string, user: TCachedUser) {
     const previousActivity = await this.prisma.userActivity.findFirst({
       where: {

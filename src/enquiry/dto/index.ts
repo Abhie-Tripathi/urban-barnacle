@@ -7,8 +7,8 @@ const eventDataSchema = z.object({
   eventId: z.string().uuid(),
   name: z.string(),
   name_lower: z.string(),
-  startDate: z.string().datetime(),
-  endDate: z.string().datetime(),
+  startDate: z.string(),
+  endDate: z.string(),
   logoUrl: z.string().nullable(),
   organizerName: z.string().nullable(),
   location: z.object({
@@ -84,8 +84,24 @@ export const GetEnquiriesHttpSchema = z.strictObject({
         .map((status) => status.trim().toUpperCase() as EnquiryStatus),
     )
     .optional(),
-  event_active_lte: z.string().datetime().optional(),
-  event_active_gte: z.string().datetime().optional(),
+  event_active_lte: z
+    .string()
+    .refine(
+      (date) =>
+        date &&
+        new Date(date).toISOString().split('T')[0] === date.split('T')[0],
+    )
+    .transform((date) => new Date(date).toISOString().split('T')[0])
+    .optional(),
+  event_active_gte: z
+    .string()
+    .refine(
+      (date) =>
+        date &&
+        new Date(date).toISOString().split('T')[0] === date.split('T')[0],
+    )
+    .transform((date) => new Date(date).toISOString().split('T')[0])
+    .optional(),
   upvotedBy: z
     .string()
     .refine((val) =>
