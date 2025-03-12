@@ -6,7 +6,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { AttachmentSourceModule, FileType } from '@prisma/client';
 @Injectable()
 export class FileCreationService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
   async createFile(
     fileName: string,
     file: File,
@@ -59,12 +59,10 @@ export class FileCreationService {
       return { fileData };
     } catch (error) {
       console.error(error);
-      return {
-        error: new HttpException(
-          'something went wrong file not saved.',
-          HttpStatus.BAD_REQUEST,
-        ),
-      };
+      throw new HttpException(
+        'something went wrong file not saved.',
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 }

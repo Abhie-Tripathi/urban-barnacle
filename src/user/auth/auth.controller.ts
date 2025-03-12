@@ -8,7 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { SignInDto, SignUpDto, VerifyAccessDto, VerifyOtpDto } from './dto';
+import { AuthenticatDto, SignInDto, SignUpDto, VerifyAccessDto, VerifyOtpDto } from './dto';
 import { FastifyReply } from 'fastify';
 import { Prisma } from '@prisma/client';
 import { GetUser } from '../decorator';
@@ -96,6 +96,10 @@ export class AuthController {
     } catch (error) {
       return { error: error };
     }
+  }
+  @Post()
+  async authenticateUserFromToken(@Body() body: AuthenticatDto) {
+    return await this.authService.authenticateUserFromToken(body);
   }
   // @UseGuards(AuthGuard)
   // @Post('signout')

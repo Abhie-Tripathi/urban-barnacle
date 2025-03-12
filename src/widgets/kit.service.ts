@@ -356,18 +356,14 @@ export class KitService {
       //   },
       // });
       if (!logodata?.id) {
-        return {
-          error: new HttpException('kit not found', HttpStatus.NOT_FOUND),
-        };
+        throw new HttpException('kit not found', HttpStatus.NOT_FOUND);
       }
       let logoURL: any = {};
       if (file.buffer) {
         const fileName = `${randomUUID() + new Date().toISOString()}.jpg`;
-        const { error, fileData } = await this.fileCreate.createFile(fileName, file, user.id, 'IMAGE', 'PROMOTED_EVENT_WIDGET_KIT', logodata.id);
-        if (error) {
-          return error;
-        }
-        console.log(fileData, error);
+        const { fileData } = await this.fileCreate.createFile(fileName, file, user.id, 'IMAGE', 'PROMOTED_EVENT_WIDGET_KIT', logodata.id);
+
+        console.log(fileData);
         let logo = '';
         // if (
         //   uopdateWidgetKitDto.logoUrl &&
@@ -425,12 +421,10 @@ export class KitService {
     } catch (error) {
       console.error(error);
 
-      return {
-        error: new HttpException(
-          'Internal Server down',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        ),
-      };
+      throw new HttpException(
+        'Internal Server down',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
   async getKit(accountId: string) {

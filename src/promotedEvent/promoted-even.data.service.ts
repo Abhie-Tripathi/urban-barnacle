@@ -340,12 +340,10 @@ export class PromotedEventsDataService {
     } catch (error) {
       console.log(error);
       console.error(error);
-      return {
-        error: new HttpException(
-          'Internal Server down',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        ),
-      };
+      throw new HttpException(
+        'Internal Server down',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
   async deletePromotedEvent(eventId: string) {

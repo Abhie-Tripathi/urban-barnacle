@@ -55,6 +55,7 @@ export class VerifyAccessDto extends createZodDto(VerifyAccessSchema) { }
 
 
 const authenticatSchema = z.strictObject({
-  token: z.string()
+  token: z.string(),
+  userId: z.number()
 });
 export class AuthenticatDto extends createZodDto(authenticatSchema) { }

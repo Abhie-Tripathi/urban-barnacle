@@ -5,6 +5,7 @@ import { Prisma, User } from '@prisma/client';
 import { createHash, randomInt, randomUUID } from 'crypto';
 import { CommunicationService } from 'src/communication/communication.service';
 import { QueueActionOptions, TCachedUser } from 'src/utils/types';
+import { fetchDatafromMicroService } from 'src/shared/microservice.api';
 @Injectable()
 export class AuthDataService {
   constructor(
@@ -116,12 +117,6 @@ export class AuthDataService {
   }
 
   async authenticateUserFromToken(body: AuthenticatDto) {
-    const queryString = new URLSearchParams(body as unknown as Record<string, string>).toString();
-    const url = `?${queryString}`;
-    const response = await fetch(url, {
-      method: 'GET',
-    });
-    const data = await response.json();
-    return data;
+    return await fetchDatafromMicroService('authUserFetch', body);
   }
 }
