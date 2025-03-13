@@ -117,6 +117,12 @@ export class AuthDataService {
   }
 
   async authenticateUserFromToken(body: AuthenticatDto) {
-    return await fetchDatafromMicroService('authUserFetch', body);
+    return (await fetchDatafromMicroService('authUserFetch', body)) as {
+      "status": {
+        "code": number
+      },
+      "message": string,
+      "data": any
+    };
   }
 }

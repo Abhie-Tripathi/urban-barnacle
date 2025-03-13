@@ -97,9 +97,16 @@ export class AuthController {
       return { error: error };
     }
   }
-  @Post()
-  async authenticateUserFromToken(@Body() body: AuthenticatDto) {
-    return await this.authService.authenticateUserFromToken(body);
+  @Post('10times/sso')
+  async authenticateUserFromToken(@Body() body: AuthenticatDto, @Res({ passthrough: true }) reply: FastifyReply) {
+    try {
+      const data = await this.authService.authenticateUserFromToken(body);
+      const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
+      reply.cookie(key, data.user.token);
+      return { data: { user: data.user.userData } };
+    } catch (error) {
+      return { error: error };
+    }
   }
   // @UseGuards(AuthGuard)
   // @Post('signout')
