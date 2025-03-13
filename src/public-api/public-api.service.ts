@@ -113,12 +113,10 @@ export class PublicApiService {
     } catch (error) {
       console.error(error);
       console.log(error);
-      return {
-        error: new HttpException(
-          'Something went wrong',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        ),
-      };
+      throw new HttpException(
+        'Something went wrong',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -179,12 +177,10 @@ export class PublicApiService {
     } catch (error) {
       console.error(error);
       console.log(error);
-      return {
-        error: new HttpException(
-          'Something went wrong',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        ),
-      };
+      throw new HttpException(
+        'Something went wrong',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

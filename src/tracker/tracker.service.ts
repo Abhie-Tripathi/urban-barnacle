@@ -374,7 +374,9 @@ export class TrackerService {
           ? 'speaker'
           : tracker.type === 'T_RECRUITMENT'
             ? 'recruitment'
-            : undefined;
+            : tracker.type === 'T_PRODUCT_KEYWORDS'
+              ? 'keywords'
+              : undefined;
 
     const eventParams = {
       ...(tracker.filterValues as Object),
