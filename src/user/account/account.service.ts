@@ -70,14 +70,14 @@ export class AccountService {
     const [savedEvents, count] =
       await Promise.all([this.intentDataService.getUserEventInterest({
         interest: ['BOOKMARK'],
-        sourceModule: 'TRACKER',
+        sourceModule: { in: ['TRACKER', 'RESEARCH'] },
         // interestedUserId: user.id,
         accountId: user.accountId,
         limit: query.limit,
         offset: query.offset,
       }), this.intentDataService.getUserEventInterestCountForBookmark({
         interest: ['BOOKMARK'],
-        sourceModule: 'TRACKER',
+        sourceModule: { in: ['TRACKER', 'RESEARCH'] },
         // interestedUserId: user.id,
         accountId: user.accountId,
         limit: query.limit,
@@ -95,7 +95,7 @@ export class AccountService {
       view: View.tracker,
     } as QueryDto;
     const events = await this.eventService.getAllEvents(eventParams, false);
-    return { ...events, count: count };
+    return { ...events, count: count.length };
   }
   async getAccountEnquiries(user: TCachedUser, query: GetEnquiriesHttpDto) {
     const {
