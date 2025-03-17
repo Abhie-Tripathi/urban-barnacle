@@ -61,7 +61,7 @@ export class MeController {
     @Body() body: UpdateMeDto,
   ) {
     try {
-      const user = await this.meService.updateMe(userData, body);
+      const user = await this.meService.updateMe(userData, body,file);
       return {
         data: {
           user: UserDataSchema.parse(user),

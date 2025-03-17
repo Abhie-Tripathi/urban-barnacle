@@ -132,7 +132,7 @@ export class PromotedEventsService {
           const upload = await this.eventDataService.createAttachement({
             fileName: body.logoUrl,
             fileType: filetype,
-            fileSize: 0,
+            fileSize: buffer.length / 1024,
             fileUrl: mediaHost + '/public/' + fileName,
             sourceModule: 'PROMOTED_EVENT',
             sourceId: 'EVENT',

@@ -130,7 +130,7 @@ export class AuthService {
               ? this.userDataService.updateUser({
                 id: user.id,
                 companyId: company.id,
-              })
+              }, null)
               : null,
             this.accountDataService.addAccountUser(account.id, user.id),
           ]);
@@ -156,7 +156,7 @@ export class AuthService {
         await this.userDataService.updateUser({
           id: user.id,
           ...data,
-        });
+        }, null);
         const accounts = await this.accountDataService.getAccounts({
           id: company.accountId,
           userId: user.id,
@@ -256,7 +256,7 @@ export class AuthService {
       const updatedUser = await this.userDataService.updateUser({
         id: user.id,
         currentOnboardingState: OnboardingState.COMPLETED,
-      });
+      }, null);
       userDetail = updatedUser;
       // return {
       //   user: await this.sharedService.UserResponse({
@@ -334,7 +334,7 @@ export class AuthService {
       const updatedUser = await this.userDataService.updateUser({
         id: user.id,
         currentOnboardingState: OnboardingState.COMPLETED,
-      });
+      }, null);
       return {
         user: await this.sharedService.UserResponse({
           ...updatedUser,
@@ -402,7 +402,7 @@ export class AuthService {
         const updatedUser = await this.userDataService.updateUser({
           id: user.id,
           currentOnboardingState: OnboardingState.COMPLETED,
-        });
+        }, null);
         userDetail = updatedUser;
       } else {
         userDetail = user;
@@ -475,7 +475,7 @@ export class AuthService {
               ? this.userDataService.updateUser({
                 id: user.id,
                 companyId: company.id,
-              })
+              }, null)
               : null,
             this.accountDataService.addAccountUser(account.id, user.id),
           ]);
@@ -503,7 +503,7 @@ export class AuthService {
         await this.userDataService.updateUser({
           id: user.id,
           ...data,
-        });
+        }, null);
         const accounts = await this.accountDataService.getAccounts({
           id: company.accountId,
           userId: user.id,

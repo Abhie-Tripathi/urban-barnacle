@@ -25,14 +25,14 @@ const CreateCommentHttpSchema = z.object({
 
 export class CreateCommentHttpDto extends createZodDto(
   CreateCommentHttpSchema,
-) {}
+) { }
 
 const CreateCommentSchema = CreateCommentHttpSchema.extend({
   userId: z.string().uuid(),
   accountId: z.string().uuid(),
 });
 
-export class CreateCommentDto extends createZodDto(CreateCommentSchema) {}
+export class CreateCommentDto extends createZodDto(CreateCommentSchema) { }
 
 const UpdateCommentHttpSchema = z.object({
   content: z.string().min(3).max(255).optional(),
@@ -46,16 +46,17 @@ const UpdateCommentHttpSchema = z.object({
 
 export class UpdateCommentHttpDto extends createZodDto(
   UpdateCommentHttpSchema,
-) {}
+) { }
 
 const UpdateCommentSchema = UpdateCommentHttpSchema.extend({
   id: z.string().uuid(),
   content: z.string().min(3).max(255).optional(),
   commentType: z.nativeEnum(CommentType).optional(),
   deleted: z.boolean().optional(),
+  attachments: z.array(z.string()).optional()
 });
 
-export class UpdateCommentDto extends createZodDto(UpdateCommentSchema) {}
+export class UpdateCommentDto extends createZodDto(UpdateCommentSchema) { }
 
 const GetCommentsSchema = LimitSchema.extend({
   id: z.string().uuid().optional(),
@@ -66,11 +67,11 @@ const GetCommentsSchema = LimitSchema.extend({
   userId: z.string().uuid().optional(),
 });
 
-export class GetCommentsDto extends createZodDto(GetCommentsSchema) {}
+export class GetCommentsDto extends createZodDto(GetCommentsSchema) { }
 
 const GetCommentCountSchema = GetCommentsSchema.omit({
   limit: true,
   offset: true,
 });
 
-export class GetCommentCountDto extends createZodDto(GetCommentCountSchema) {}
+export class GetCommentCountDto extends createZodDto(GetCommentCountSchema) { }

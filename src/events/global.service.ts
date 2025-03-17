@@ -385,6 +385,7 @@ const DataGroups = {
     'economicImpactBreakdown',
     'trustScore',
     'yoyGrowth',
+    "trackerInterScore",
     'scores',
   ],
   audience: ['audienceSpread', 'designationSpread', 'audienceZone'],
