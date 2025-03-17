@@ -242,7 +242,7 @@ export class TrackerService {
     if (!groupBy) return data.count;
     if (groupBy === CountGroup.status) {
       return data.count;
-    } else if (groupBy === CountGroup.eventTypeGroup) {
+    } else if (groupBy === CountGroup.eventTypeGroup && data) {
       return data.reduce((acc, curr) => {
         acc[curr.group_name] = {
           total: curr.count,
