@@ -99,7 +99,7 @@ export class TrackerService {
     const savedEventsCount =
       await this.intentDataService.getUserEventInterestCount({
         interest: ['BOOKMARK'],
-        sourceModule: 'TRACKER',
+        sourceModule: { in: ['TRACKER'] },
         sourceId: tracker.id,
         // interestedUserId: user.id,
         accountId: user.accountId,
@@ -387,7 +387,7 @@ export class TrackerService {
     const [savedEvents, count] =
       await Promise.all([this.intentDataService.getUserEventInterest({
         interest: ['BOOKMARK'],
-        sourceModule: 'TRACKER',
+        sourceModule: { in: ['TRACKER'] },
         sourceId: tracker.id,
         // interestedUserId: user.id,
         accountId: user.accountId,
@@ -395,7 +395,7 @@ export class TrackerService {
         offset: params.offset,
       }), this.intentDataService.getUserEventInterestCountForBookmark({
         interest: ['BOOKMARK'],
-        sourceModule: 'TRACKER',
+        sourceModule: { in: ['TRACKER'] },
         sourceId: tracker.id,
         // interestedUserId: user.id,
         accountId: user.accountId,
@@ -427,7 +427,7 @@ export class TrackerService {
       user,
     );
 
-    return { ...events, count: count };
+    return { ...events, count: count.length };
   }
 
   async getTrackerEventsCount(
@@ -500,7 +500,7 @@ export class TrackerService {
     const savedEventsIds = (
       await this.intentDataService.getUserEventInterest({
         interest: ['BOOKMARK'],
-        sourceModule: 'TRACKER',
+        sourceModule: { in: ['TRACKER'] },
         sourceId: tracker.id,
         // interestedUserId: user.id,
         accountId: user.accountId,
