@@ -774,20 +774,19 @@ export class TrackerService {
     trackerId: string,
     accessTypes: AccessType[],
   ): Promise<[Tracker, Record<string, any>]> {
-    const tracker = (
-      await this.trackerDataService.getTrackers(
-        {
-          ids: [trackerId],
-          accountId: user.accountId,
-          limit: 1,
-          offset: 0,
-          type: 'trackers',
-        },
-        user,
-      )
-    )[0];
-    if (!tracker)
+    const trackers = await this.trackerDataService.getTrackers(
+      {
+        ids: [trackerId],
+        accountId: user.accountId,
+        limit: 1,
+        offset: 0,
+        // type: 'trackers',
+      },
+      user,
+    );
+    if (!trackers || (trackers && !trackers.length))
       throw new HttpException('Tracker not found', HttpStatus.NOT_FOUND);
+    const tracker = trackers[0];
     const [hasAccess, result] = await this.accessService.hasAccess({
       accessReceiverId: user.id,
       accessTypes: accessTypes,
