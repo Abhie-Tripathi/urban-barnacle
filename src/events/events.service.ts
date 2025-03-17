@@ -46,7 +46,11 @@ export class EventsService {
     ) {
       const backend = process.env.BACKEND;
       if (backend && backend in defaultEventTypes) {
-        nonEmptyParams.eventTypes = defaultEventTypes[backend];
+        if (validateIds) {
+          nonEmptyParams.eventTypes = Object.keys(defaultEventTypes[backend]);
+        } else {
+          nonEmptyParams.eventTypes = Object.values(defaultEventTypes[backend]);
+        }
       }
     }
     if (user) {
