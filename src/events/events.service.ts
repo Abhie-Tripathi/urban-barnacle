@@ -41,12 +41,12 @@ export class EventsService {
     }
     const nonEmptyParams = getNonEmptyParams({ ...query, show });
     if (
-      !query.eventTypes ||
-      (query.eventTypes && query.eventTypes.length === 0)
+      !nonEmptyParams.eventTypes ||
+      (nonEmptyParams.eventTypes && nonEmptyParams.eventTypes.length === 0)
     ) {
       const backend = process.env.BACKEND;
       if (backend && backend in defaultEventTypes) {
-        query.eventTypes = defaultEventTypes[backend];
+        nonEmptyParams.eventTypes = defaultEventTypes[backend];
       }
     }
     if (user) {
