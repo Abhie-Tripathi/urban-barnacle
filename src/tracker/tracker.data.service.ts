@@ -40,7 +40,7 @@ export class TrackerDataService {
         AND A."accountId" = ${Prisma.sql`${user.accountId}::UUID`}
       WHERE
         T.DELETED = false
-          ${where.length > 0 ? Prisma.sql`AND ${Prisma.join(where, ' AND ')}` : ''}
+          ${where.length > 0 ? Prisma.sql`AND ${Prisma.join(where, ' AND ')}` : Prisma.sql``}
       ORDER BY
         T."createdAt" DESC
       LIMIT
@@ -63,7 +63,7 @@ export class TrackerDataService {
         AND A."accountId" = ${Prisma.sql`${user.accountId}::UUID`}
       WHERE
         T.DELETED = false
-          ${where.length > 0 ? Prisma.sql`AND ${Prisma.join(where, ' AND ')}` : ''}
+          ${where.length > 0 ? Prisma.sql`AND ${Prisma.join(where, ' AND ')}` : Prisma.sql``}
           `;
     console.log({ trackerCount });
     return trackerCount[0].count;
@@ -79,7 +79,7 @@ export class TrackerDataService {
     if (data.type) {
       where.push(
         Prisma.raw(
-          `T.TYPE::TEXT LIKE '${data.type === 'trackers' ? 'T\\_%' : data.type === 'trends' ? 'TR\\_%' : ''}'`,
+          `T.TYPE::TEXT LIKE '${data.type === 'trackers' ? 'T\\_%' : data.type === 'trends' ? 'TR\\_%' : null}'`,
         ),
       );
     }
@@ -108,7 +108,7 @@ export class TrackerDataService {
     if (data.type) {
       where.push(
         Prisma.raw(
-          `T.TYPE::TEXT LIKE '${data.type === 'trackers' ? 'T\\_%' : data.type === 'trends' ? 'TR\\_%' : ''}'`,
+          `T.TYPE::TEXT LIKE '${data.type === 'trackers' ? 'T\\_%' : data.type === 'trends' ? 'TR\\_%' : null}'`,
         ),
       );
     }
