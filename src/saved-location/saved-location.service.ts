@@ -76,7 +76,7 @@ export class SavedLocationService {
     const updatedUser = await this.userDataService.updateUser({
       id: user.id,
       primaryLocation: data.primaryLocation,
-    });
+    },null);
 
     return {
       data: {

@@ -36,15 +36,21 @@ export class FileCreationService {
       if (file.buffer !== undefined) {
         await fs.promises.writeFile(dir + fileName, file.buffer);
         //   const filetype = file.mimetype.includes('pdf') ? 'PDF' : 'IMAGE';
-        const upload = await this.prisma.attachment.create({
-          data: {
+        const upload = await this.prisma.attachment.upsert({
+          where: {
+            fileUrl: mediaHost + '/public/' + fileName
+          },
+          create: {
             fileName: file.originalname,
             fileType: fileType,
-            fileSize: 0,
+            fileSize: file.size ? file.size / 1024 : 0,
             fileUrl: mediaHost + '/public/' + fileName,
             createdByUser: { connect: { id: userId } },
             sourceModule: sourceModule,
             sourceId: sourceId,
+          },
+          update: {
+
           },
           select: {
             id: true,

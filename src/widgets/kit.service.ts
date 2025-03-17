@@ -89,7 +89,7 @@ export class KitService {
         fileType: 'IMAGE',
         fileUrl: mediaHost + '/public/' + fileName,
         sourceId: 'kit',
-        fileSize: 0,
+        fileSize: buffer.length / 1024.,
         sourceModule: 'BRANDKIT',
         createdByUser: { connect: { id: this.userId } },
       });

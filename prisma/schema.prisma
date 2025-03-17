@@ -159,7 +159,7 @@ model Attachment {
   deleted         Boolean                @default(false)
   sourceModule    AttachmentSourceModule
   sourceId        String
-  Event           Event[]
+  event           Event[]
 }
 
 enum AttachmentSourceModule {
@@ -238,6 +238,7 @@ model Comment {
   parentCommentId String?             @db.Uuid
   parentComment   Comment?            @relation("parentComment", fields: [parentCommentId], references: [id])
   totalLikes      Int                 @default(0)
+  attachments     String[]
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   deleted         Boolean             @default(false)

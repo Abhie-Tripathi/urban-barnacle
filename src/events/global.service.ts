@@ -389,6 +389,7 @@ const DataGroups = {
     'trustChangeTag',
     'reputationChangeTag',
     'yoyGrowth',
+    "trackerInterScore",
     'scores',
   ],
   audience: ['audienceSpread', 'designationSpread', 'audienceZone'],

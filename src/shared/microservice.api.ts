@@ -24,6 +24,7 @@ export async function fetchDatafromMicroService(
 
     return data;
   } catch (error: any) {
+    // console.error(error);
     throw new HttpException('something went wrong', HttpStatus.BAD_REQUEST)
   }
 }

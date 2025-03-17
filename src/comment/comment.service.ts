@@ -12,6 +12,7 @@ import { IntentService } from 'src/intent/intent.service';
 import { IntentTargetModule, InterestSourceModule } from '@prisma/client';
 import { CommentWithParentSchema } from './dto/response';
 import { CreateIntentHttpDto } from 'src/intent/dto';
+import { File } from '@nest-lab/fastify-multer';
 
 @Injectable()
 export class CommentService {
@@ -19,9 +20,9 @@ export class CommentService {
     private readonly commentDataService: CommentDataService,
     private readonly accessService: AccessService,
     private readonly intentService: IntentService,
-  ) {}
+  ) { }
 
-  async createComment(user: TCachedUser, data: CreateCommentHttpDto) {
+  async createComment(user: TCachedUser, data: CreateCommentHttpDto, files?: File[]) {
     if (data.parentCommentId) {
       const parentComment = await this.commentDataService.getComments({
         id: data.parentCommentId,
@@ -55,7 +56,7 @@ export class CommentService {
         ...data,
         accountId: user.accountId,
         userId: user.id,
-      });
+      }, files);
       return CommentWithParentSchema.parse(comment);
     } else if (
       data.sourceModule === 'COORDINATE' ||
@@ -65,7 +66,7 @@ export class CommentService {
         ...data,
         accountId: user.accountId,
         userId: user.id,
-      });
+      }, files);
       if (
         data.sourceModule === 'COORDINATE' &&
         ['INTEREST', 'RECOMMEND'].includes(data.commentType) &&
