@@ -85,10 +85,7 @@ export class EventsService {
       await this.eventsDataService.getEvents(convertedParams);
     // console.log({ convertedParams }, { nonEmptyParams });
     let events = fetchedEvents;
-    if (
-      ['list', 'tracker'].includes(query.view) &&
-      !(query.eventTypes && query.eventTypes.includes('alert'))
-    ) {
+    if (['list', 'tracker'].includes(query.view)) {
       let userInterests = {};
       if (user) {
         userInterests = await this.getGroupedEventInterests(
