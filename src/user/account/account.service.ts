@@ -90,7 +90,7 @@ export class AccountService {
     }
     const eventParams = {
       eventIds: savedEventsIds,
-      // limit: query.limit,
+      limit: query.limit,
       // offset: 0,
       view: View.tracker,
     } as QueryDto;
