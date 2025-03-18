@@ -5,10 +5,14 @@ import { TCachedUser } from 'src/utils/types';
 import { Prisma, UnlockType, UnlockValue } from '@prisma/client';
 import { encrypt, getNameFromEmail } from 'src/utils';
 import { microserviceEndpoints } from 'src/utils/endpoints';
+import { File } from '@nest-lab/fastify-multer';
+import { FileCreationService } from 'src/shared/file-creation.service';
 
 @Injectable()
 export class UserDataService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService,
+    private readonly fileService: FileCreationService
+  ) { }
 
   async createUser(data: CreateUserDto) {
     const { accountId, primaryCompanyId, ...rest } = data;
@@ -79,10 +83,16 @@ export class UserDataService {
     return users;
   }
 
-  async updateUser(data: UpdateUserDto) {
+  async updateUser(data: UpdateUserDto, file: File | null) {
     const userData: Record<string, any> = {
       ...data,
     };
+    if (file) {
+      const { fileData } = await this.fileService.createFile(data.id,
+        file, data.id, 'IMAGE', 'USER', data.id);
+      userData['imageUrl'] = fileData?.fileUrl;
+      userData['profileImageId'] = fileData?.id;
+    }
     if (data.firstname === '') {
       userData.firstname = null;
     }

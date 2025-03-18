@@ -8,7 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { SignInDto, SignUpDto, VerifyAccessDto, VerifyOtpDto } from './dto';
+import { AuthenticatDto, SignInDto, SignUpDto, VerifyAccessDto, VerifyOtpDto } from './dto';
 import { FastifyReply } from 'fastify';
 import { Prisma } from '@prisma/client';
 import { GetUser } from '../decorator';
@@ -90,6 +90,17 @@ export class AuthController {
   ) {
     try {
       const data = await this.authService.verifyAccess(body);
+      const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
+      reply.cookie(key, data.user.token);
+      return { data: { user: data.user.userData } };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+  @Post('10times/sso')
+  async authenticateUserFromToken(@Body() body: AuthenticatDto, @Res({ passthrough: true }) reply: FastifyReply) {
+    try {
+      const data = await this.authService.authenticateUserFromToken(body);
       const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
       reply.cookie(key, data.user.token);
       return { data: { user: data.user.userData } };

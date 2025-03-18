@@ -6,6 +6,7 @@ export const microServiceApis = {
   designationFetch: `${process.env.MICROSERVICE_URL}/designations`,
   companySuggestionsFetch: `${process.env.MICROSERVICE_URL}/company/suggestion`,
   eventSuggestionsFetch: `${process.env.MICROSERVICE_URL}/event`,
+  authUserFetch: `${process.env.MICROSERVICE_URL}/auth/user`
 };
 
 export async function fetchDatafromMicroService(
@@ -23,8 +24,7 @@ export async function fetchDatafromMicroService(
 
     return data;
   } catch (error: any) {
-    return {
-      error: new HttpException('something went wrong', HttpStatus.BAD_REQUEST),
-    };
+    // console.error(error);
+    throw new HttpException('something went wrong', HttpStatus.BAD_REQUEST)
   }
 }

@@ -7,12 +7,16 @@ import {
   GetCommentsDto,
   UpdateCommentDto,
 } from './dto';
+import { File } from '@nest-lab/fastify-multer';
+import { FileCreationService } from 'src/shared/file-creation.service';
 
 @Injectable()
 export class CommentDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService,
+    private readonly fileService: FileCreationService,
+  ) { }
 
-  async createComment(data: CreateCommentDto) {
+  async createComment(data: CreateCommentDto, files?: File[]) {
     // data.
     const comment = await this.prisma.comment.create({
       data,
@@ -25,6 +29,13 @@ export class CommentDataService {
         user: true,
       },
     });
+    if (files && files.length > 0) {
+      const attachments = await Promise.all(
+        files.map((val) => this.fileService.createFile('', val, data.userId, 'IMAGE', 'COMMENT', comment.id))
+      );
+      comment.attachments = attachments.map(attachment => attachment.fileData?.fileUrl || '');
+      await this.updateComment({ id: comment.id, attachments: attachments.map(attachment => attachment.fileData?.fileUrl || '') })
+    }
     return comment;
   }
 

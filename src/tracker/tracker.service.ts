@@ -99,7 +99,7 @@ export class TrackerService {
     const savedEventsCount =
       await this.intentDataService.getUserEventInterestCount({
         interest: ['BOOKMARK'],
-        sourceModule: 'TRACKER',
+        sourceModule: { in: ['TRACKER'] },
         sourceId: tracker.id,
         // interestedUserId: user.id,
         accountId: user.accountId,
@@ -242,7 +242,7 @@ export class TrackerService {
     if (!groupBy) return data.count;
     if (groupBy === CountGroup.status) {
       return data.count;
-    } else if (groupBy === CountGroup.eventTypeGroup) {
+    } else if (groupBy === CountGroup.eventTypeGroup && data) {
       return data.reduce((acc, curr) => {
         acc[curr.group_name] = {
           total: curr.count,
@@ -374,7 +374,9 @@ export class TrackerService {
           ? 'speaker'
           : tracker.type === 'T_RECRUITMENT'
             ? 'recruitment'
-            : undefined;
+            : tracker.type === 'T_PRODUCT_KEYWORDS'
+              ? 'keywords'
+              : undefined;
 
     const eventParams = {
       ...(tracker.filterValues as Object),
@@ -408,7 +410,7 @@ export class TrackerService {
     const [savedEvents, count] = await Promise.all([
       this.intentDataService.getUserEventInterest({
         interest: ['BOOKMARK'],
-        sourceModule: 'TRACKER',
+        sourceModule: { in: ['TRACKER'] },
         sourceId: tracker.id,
         // interestedUserId: user.id,
         accountId: user.accountId,
@@ -417,7 +419,7 @@ export class TrackerService {
       }),
       this.intentDataService.getUserEventInterestCountForBookmark({
         interest: ['BOOKMARK'],
-        sourceModule: 'TRACKER',
+        sourceModule: { in: ['TRACKER'] },
         sourceId: tracker.id,
         // interestedUserId: user.id,
         accountId: user.accountId,
@@ -507,7 +509,7 @@ export class TrackerService {
       user,
     );
 
-    return { ...events, count: count };
+    return { ...events, count: count.length };
   }
 
   async getTrackerEventsCount(
@@ -620,7 +622,7 @@ export class TrackerService {
     const savedEventsIds = (
       await this.intentDataService.getUserEventInterest({
         interest: ['BOOKMARK'],
-        sourceModule: 'TRACKER',
+        sourceModule: { in: ['TRACKER'] },
         sourceId: tracker.id,
         // interestedUserId: user.id,
         accountId: user.accountId,
@@ -785,20 +787,19 @@ export class TrackerService {
     trackerId: string,
     accessTypes: AccessType[],
   ): Promise<[Tracker, Record<string, any>]> {
-    const tracker = (
-      await this.trackerDataService.getTrackers(
-        {
-          ids: [trackerId],
-          accountId: user.accountId,
-          limit: 1,
-          offset: 0,
-          type: 'trackers',
-        },
-        user,
-      )
-    )[0];
-    if (!tracker)
+    const trackers = await this.trackerDataService.getTrackers(
+      {
+        ids: [trackerId],
+        accountId: user.accountId,
+        limit: 1,
+        offset: 0,
+        // type: 'trackers',
+      },
+      user,
+    );
+    if (!trackers || (trackers && !trackers.length))
       throw new HttpException('Tracker not found', HttpStatus.NOT_FOUND);
+    const tracker = trackers[0];
     const [hasAccess, result] = await this.accessService.hasAccess({
       accessReceiverId: user.id,
       accessTypes: accessTypes,

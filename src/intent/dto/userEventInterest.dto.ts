@@ -58,7 +58,11 @@ const GetUserEventInterestSchema = z.object({
   interestedUserId: z.string().uuid().optional(),
   interest: z.array(z.nativeEnum(Interest)).optional(),
   status: z.nativeEnum(InterestStatus).optional(),
-  sourceModule: z.nativeEnum(InterestSourceModule).optional(),
+  sourceModule: z
+  .nativeEnum(InterestSourceModule)
+  .array()
+  .optional()
+  .transform(val => (val ? { in: val } : undefined)),
   sourceId: z.string().uuid().optional(),
   accountId: z.string().uuid().optional(),
   ownerId: z.string().uuid().optional(),

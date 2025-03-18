@@ -41,12 +41,16 @@ export class EventsService {
     }
     const nonEmptyParams = getNonEmptyParams({ ...query, show });
     if (
-      !query.eventTypes ||
-      (query.eventTypes && query.eventTypes.length === 0)
+      !nonEmptyParams.eventTypes ||
+      (nonEmptyParams.eventTypes && nonEmptyParams.eventTypes.length === 0)
     ) {
       const backend = process.env.BACKEND;
       if (backend && backend in defaultEventTypes) {
-        query.eventTypes = defaultEventTypes[backend];
+        if (validateIds) {
+          nonEmptyParams.eventTypes = Object.keys(defaultEventTypes[backend]);
+        } else {
+          nonEmptyParams.eventTypes = Object.values(defaultEventTypes[backend]);
+        }
       }
     }
     if (user) {
@@ -204,12 +208,16 @@ export class EventsService {
   async getEventsCount(query: CountQueryDto, validateIds: boolean = true) {
     const nonEmptyParams = getNonEmptyParams(query);
     if (
-      !query.eventTypes ||
-      (query.eventTypes && query.eventTypes.length === 0)
+      !nonEmptyParams.eventTypes ||
+      (nonEmptyParams.eventTypes && nonEmptyParams.eventTypes.length === 0)
     ) {
       const backend = process.env.BACKEND;
       if (backend && backend in defaultEventTypes) {
-        query.eventTypes = defaultEventTypes[backend];
+        if (validateIds) {
+          nonEmptyParams.eventTypes = Object.keys(defaultEventTypes[backend]);
+        } else {
+          nonEmptyParams.eventTypes = Object.values(defaultEventTypes[backend]);
+        }
       }
     }
     const convertedParams = await this.sharedService.convertSlugParamsToIds(

@@ -14,7 +14,7 @@ import { defaultEventTypes } from 'src/utils/types';
 
 const GetTrackersHttpSchema = LimitSchema.extend({
   name: z.string().optional(),
-  type: z.enum(['trackers', 'trends']).optional().default('trackers'),
+  type: z.enum(['trackers', 'trends']).optional(),
   subType: z.nativeEnum(TrackerType).optional(),
   createdBy: z.enum(['me', 'others']).optional(),
   refresh: z

@@ -99,7 +99,7 @@ export class PromotedEventsService {
         const fileName =
           randomUUID() +
           file.originalname.substring(file.originalname.lastIndexOf('.'));
-        const { fileData, error } = await this.fileCreate.createFile(
+        const { fileData } = await this.fileCreate.createFile(
           fileName,
           file,
           user.id,
@@ -107,9 +107,6 @@ export class PromotedEventsService {
           'PROMOTED_EVENT',
           'EVENT',
         );
-        if (error) {
-          return error;
-        }
         jsonDta['logoUrl'] = fileData!.fileUrl;
         attachment_id = fileData!.id;
       }
@@ -135,7 +132,7 @@ export class PromotedEventsService {
           const upload = await this.eventDataService.createAttachement({
             fileName: body.logoUrl,
             fileType: filetype,
-            fileSize: 0,
+            fileSize: buffer.length / 1024,
             fileUrl: mediaHost + '/public/' + fileName,
             sourceModule: 'PROMOTED_EVENT',
             sourceId: 'EVENT',
@@ -389,7 +386,7 @@ export class PromotedEventsService {
         const fileName =
           randomUUID() +
           file.originalname.substring(file.originalname.lastIndexOf('.'));
-        const { fileData, error } = await this.fileCreate.createFile(
+        const { fileData } = await this.fileCreate.createFile(
           fileName,
           file,
           user.id,
@@ -397,9 +394,6 @@ export class PromotedEventsService {
           body.isExhibitor && body.isExhibitor.length > 2 ? 'PROMOTED_EVENT_EXHIBITOR' : 'PROMOTED_EVENT_SPEAKER',
           'EVENT',
         );
-        if (error) {
-          return error;
-        }
         attachment_id = fileData!.fileUrl;
       }
       const interest: object = { interest: 'SPEAKER' };
@@ -528,7 +522,7 @@ export class PromotedEventsService {
         const fileName =
           randomUUID() +
           file.originalname.substring(file.originalname.lastIndexOf('.'));
-        const { fileData, error } = await this.fileCreate.createFile(
+        const { fileData } = await this.fileCreate.createFile(
           fileName,
           file,
           user.id,
@@ -536,9 +530,6 @@ export class PromotedEventsService {
           'EVENT',
           'EVENT',
         );
-        if (error) {
-          return error;
-        }
         jsonDta['data']['logoUrl'] = fileData!.fileUrl;
         jsonDta['atachmentId'] = fileData!.id;
         postCallFlag = true;
