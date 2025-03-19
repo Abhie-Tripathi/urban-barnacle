@@ -10,5 +10,6 @@ export const UpdateMeSchema = z.strictObject({
   category: z.string().optional(),
   subIndustry: z.string().optional(),
   phoneNumber: z.string().optional(),
+  removePicture: z.string().optional(),
 });
-export class UpdateMeDto extends createZodDto(UpdateMeSchema) {}
+export class UpdateMeDto extends createZodDto(UpdateMeSchema) { }
