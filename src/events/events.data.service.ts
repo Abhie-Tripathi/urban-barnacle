@@ -23,7 +23,7 @@ export class EventsDataService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
   async createLogForEncryptedQuery(encryption: string, user: TCachedUser) {
     const previousActivity = await this.prisma.userActivity.findFirst({
       where: {
@@ -72,7 +72,8 @@ export class EventsDataService {
       this.configService.get('MICROSERVICE_URL') +
       microserviceEndpoints.events.events +
       '?' +
-      queryParams.toString();
+      queryParams.toString() +
+      '&showValues=basic,advance,insights,audience';
     console.log(url);
     const response = await fetch(url);
     const result = await response.json();
@@ -85,7 +86,8 @@ export class EventsDataService {
     }
     return data as {
       count?: number;
-      events: EventDataDto[];
+      // events: EventDataDto[];
+      events: { basic: Record<string, any>; advance: Record<string, any> }[];
     };
   }
 
