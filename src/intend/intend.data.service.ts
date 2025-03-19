@@ -88,7 +88,7 @@ export class IntendDataService {
   async updateUser(data: any) {
     return await this.userDataservice.updateUser({
       ...data,
-    }, null);
+    });
   }
 
   async findManyUser(userIds: string[], sortByOptions: any) {

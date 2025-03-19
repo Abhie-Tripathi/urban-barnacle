@@ -26,11 +26,11 @@ const CreateUserSchema = SignUpSchema.extend({
   source: z.nativeEnum(UserSource).optional(),
 });
 
-export class CreateUserDto extends createZodDto(CreateUserSchema) {}
+export class CreateUserDto extends createZodDto(CreateUserSchema) { }
 
 const GetUserHttpSchema = LimitSchema.extend({});
 
-export class GetUserHttpDto extends createZodDto(GetUserHttpSchema) {}
+export class GetUserHttpDto extends createZodDto(GetUserHttpSchema) { }
 
 const GetUsersSchema = GetUserHttpSchema.extend({
   email: z.array(z.string().email()).optional(),
@@ -39,7 +39,7 @@ const GetUsersSchema = GetUserHttpSchema.extend({
   companyId: z.string().uuid().optional(),
 });
 
-export class GetUsersDto extends createZodDto(GetUsersSchema) {}
+export class GetUsersDto extends createZodDto(GetUsersSchema) { }
 
 const UpdateUserSchema = UpdateMeSchema.extend({
   id: z.string().uuid(),
@@ -56,6 +56,6 @@ const UpdateUserSchema = UpdateMeSchema.extend({
     .optional(),
   firstname: z.string().optional(),
   lastname: z.string().optional(),
-});
+}).strict();
 
-export class UpdateUserDto extends createZodDto(UpdateUserSchema) {}
+export class UpdateUserDto extends createZodDto(UpdateUserSchema) { }
