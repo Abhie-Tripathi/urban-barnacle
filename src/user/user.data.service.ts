@@ -88,7 +88,7 @@ export class UserDataService {
       ...data,
     };
     if (file && file.buffer) {
-      const { fileData } = await this.fileService.createFile(data.id,
+      const { fileData } = await this.fileService.createFile('',
         file, data.id, 'IMAGE', 'USER', data.id);
       userData['imageUrl'] = fileData?.fileUrl;
       userData['profileImageId'] = fileData?.id;
