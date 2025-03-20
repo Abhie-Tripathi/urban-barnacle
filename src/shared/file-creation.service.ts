@@ -21,6 +21,9 @@ export class FileCreationService {
           randomUUID() +
           file.originalname.substring(file.originalname.lastIndexOf('.'));
       }
+      if (!fileName.includes('.')) {
+        fileName += file.originalname.substring(file.originalname.lastIndexOf('.'));
+      }
       const mediaHost = process.env.MEDIA_STORAGE_DOMAIN;
       const dir = './public/temp/';
       if (!fs.existsSync(dir)) {

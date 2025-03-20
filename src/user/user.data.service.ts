@@ -83,15 +83,18 @@ export class UserDataService {
     return users;
   }
 
-  async updateUser(data: UpdateUserDto, file: File | null) {
+  async updateUser(data: UpdateUserDto, file?: File, removePicture: boolean = false) {
     const userData: Record<string, any> = {
       ...data,
     };
-    if (file) {
-      const { fileData } = await this.fileService.createFile(data.id,
+    if (file && file.buffer) {
+      const { fileData } = await this.fileService.createFile('',
         file, data.id, 'IMAGE', 'USER', data.id);
       userData['imageUrl'] = fileData?.fileUrl;
       userData['profileImageId'] = fileData?.id;
+    } else if (removePicture) {
+      userData['imageUrl'] = null;
+      userData['profileImageId'] = null;
     }
     if (data.firstname === '') {
       userData.firstname = null;

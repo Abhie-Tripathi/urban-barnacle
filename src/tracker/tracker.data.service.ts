@@ -8,7 +8,7 @@ import { TCachedUser, TrackerTypes } from 'src/utils/types';
 
 @Injectable()
 export class TrackerDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const tracker = await this.prisma.tracker.create({
@@ -29,9 +29,11 @@ export class TrackerDataService {
     limit: number,
     offset: number,
   ) {
-    const trackers: Tracker[] = await this.prisma.$queryRaw`
+    type TrackerWithAccessDate = Tracker & { accesscreatedAt: Date };
+
+    const trackers: TrackerWithAccessDate[] = await this.prisma.$queryRaw`
       SELECT
-        T.*
+        T.*,a."createdAt" "accesscreatedAt"
       FROM
         "Tracker" T
         JOIN "Access" A ON T.ID = A."sourceEntityId"::UUID
@@ -47,8 +49,10 @@ export class TrackerDataService {
         ${limit}
       OFFSET
         ${offset}`;
-
-    return trackers;
+    return trackers.map((tracker) => {
+      const { accesscreatedAt, ...rest } = tracker;
+      return { ...rest, createdAt: accesscreatedAt };
+    });
   }
 
   async getTrackersCountByUser(user: TCachedUser, where: Prisma.Sql[]) {

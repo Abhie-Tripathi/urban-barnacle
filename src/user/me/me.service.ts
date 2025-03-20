@@ -36,12 +36,13 @@ export class MeService {
     });
     return user[0];
   }
-  async updateMe(user: TCachedUser, params: UpdateMeDto, file: File) {
+  async updateMe(user: TCachedUser, params: UpdateMeDto, file?: File) {
     const { token, ...userData } = user;
+    const { removePicture, ...rest } = params;
     const updatedUser = await this.userDataService.updateUser({
-      ...params,
+      ...rest,
       id: user.id,
-    }, file);
+    }, file, removePicture === 'true' ? true : false);
     const userResponse = await this.sharedService.UserResponse(
       {
         ...userData,
