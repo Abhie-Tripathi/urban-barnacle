@@ -26,16 +26,16 @@ export const LocationResponseSchema = z.object({
       id: z.string().uuid(),
       name: z.string(),
       displayName: z.string(),
-      latitude: z.coerce.number(),
-      longitude: z.coerce.number(),
+      latitude: z.coerce.number().optional(),
+      longitude: z.coerce.number().optional(),
       iso: z.string().optional(),
       locationType: z.string(),
       city: z
         .object({
           id: z.string().uuid(),
           name: z.string(),
-          latitude: z.coerce.number(),
-          longitude: z.coerce.number(),
+          latitude: z.coerce.number().optional(),
+          longitude: z.coerce.number().optional(),
         })
         .nullable()
         .optional(),
@@ -43,8 +43,8 @@ export const LocationResponseSchema = z.object({
         .object({
           id: z.string().uuid(),
           name: z.string(),
-          latitude: z.coerce.number(),
-          longitude: z.coerce.number(),
+          latitude: z.coerce.number().optional(),
+          longitude: z.coerce.number().optional(),
         })
         .nullable()
         .optional(),
@@ -52,8 +52,8 @@ export const LocationResponseSchema = z.object({
         .object({
           id: z.string().uuid(),
           name: z.string(),
-          latitude: z.coerce.number(),
-          longitude: z.coerce.number(),
+          latitude: z.coerce.number().optional(),
+          longitude: z.coerce.number().optional(),
           iso: z.string().optional(),
         })
         .nullable()

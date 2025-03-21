@@ -7,8 +7,8 @@ const LocationSchema = z.object({
   id: z.string(),
   name: z.string(),
   locationType: z.string(),
-  latitude: z.string(),
-  longitude: z.string(),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
 });
 
 const StateSchema = LocationSchema.extend({
