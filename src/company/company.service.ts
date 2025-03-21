@@ -26,9 +26,9 @@ export class CompanyService {
       '',
     );
     const baseURL = process.env.MICROSERVICE_URL || '';
-    const endpoint = microserviceEndpoints.company.events;
+    const endpoint = microserviceEndpoints.company.events.replace(":companyId",companyId);
     const queryString = new URLSearchParams(query).toString();
-    const url = `${baseURL}${endpoint}/${companyId}?${queryString}`;
+    const url = `${baseURL}${endpoint}?${queryString}`;
     const response = await fetch(url, {
       method: 'GET',
     });
@@ -216,9 +216,9 @@ export class CompanyService {
       '',
     );
     const baseURL = process.env.MICROSERVICE_URL || '';
-    const endpoint = microserviceEndpoints.company.poc;
+    const endpoint = microserviceEndpoints.company.poc.replace(":companyId",companyId);
     // const queryString = new URLSearchParams(query).toString();
-    const url = `${baseURL}${endpoint}/${companyId}`;
+    const url = `${baseURL}${endpoint}`;
     const response = await fetch(url, {
       method: 'GET',
     });

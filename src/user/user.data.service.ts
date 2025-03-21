@@ -185,9 +185,7 @@ export class UserDataService {
   async getPocsunlocked(pocId: string, params: UnlockValue[]) {
     const url =
       process.env.MICROSERVICE_URL +
-      microserviceEndpoints.events.eventPocsUnlocked +
-      '?' +
-      `unlockValue=${params.join(',').toLowerCase()}&pocId=${pocId}`;
+      microserviceEndpoints.events.eventPocsUnlocked.replace(':userId', pocId).replace('{unlock}', params.join(','));
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (!data || error) {

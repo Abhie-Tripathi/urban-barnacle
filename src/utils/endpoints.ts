@@ -21,13 +21,20 @@ export const microserviceEndpoints = {
     eventPolygons: '/events/:eventId/polygons',
     createExport: '/events/export',
     trends: '/trends',
-    eventPocsUnlocked: '/events/pocs/unlocked',
+    eventPocsUnlocked: '/users/:userId?unlock={unlock}',
   },
   company: {
-    search: '/company/search',
-    events: '/company/event',
-    poc: '/company/poc',
+    search: '/companies',
+    events: '/companies/:companyId/events',
+    poc: '/companies/:companyId/pocs',
+    byId: '/companies/:companyId'
   },
+  user: {
+    search: '/users',
+    events: '/users/:userId/events',
+    poc: '/users/:userId/pocs',
+    byId: '/users/:userId'
+  }
   //   trackerMetrics: '/tracker-metrics',
   //   predictedAttendance: '/trend/predicted-attendance/eventeli',
   //   predictedNumberOfEvents: '/trend/predicted-number-of-events/eventeli',

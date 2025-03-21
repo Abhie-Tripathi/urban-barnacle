@@ -112,14 +112,11 @@ export class KitService {
         .replace('http://', '')
         .replace('https://', '')
         .replace('www.', '');
+      const website: string = extractDomain.split('/')[0]
       const baseURL = this.configService.get('MICROSERVICE_URL') || '';
-      const endpoint = '/company/logo';
-      const queryString = new URLSearchParams({
-        website: extractDomain.split('/')[0],
-        infoType: 'basic',
-      } as unknown as Record<string, string>).toString();
+      const endpoint = `/companies/${website}/logo`;
 
-      const url = `${baseURL}${endpoint}?${queryString}`;
+      const url = `${baseURL}${endpoint}`;
       console.log(url);
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);

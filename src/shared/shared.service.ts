@@ -30,6 +30,7 @@ import { PointColumn } from './types';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { EventDataDto } from 'src/events/dto';
 import { transformEventData } from 'src/events/global.service';
+import { fetchDatafromMicroService, microServiceApis } from './microservice.api';
 
 @Injectable()
 export class SharedService {
@@ -37,7 +38,7 @@ export class SharedService {
     private readonly prisma: PrismaService,
     private readonly suggestionService: SuggestionService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) {}
+  ) { }
 
   async signToken(user: SelectedUserDetails, token: string) {
     const tokenData: TCachedUser = { ...user, token };
@@ -562,27 +563,24 @@ export class SharedService {
   ) {
     query.limit = Math.min(query.limit, 10);
     const callMicroService = async (queryParam: any) => {
-      const url = `${process.env.MICROSERVICE_URL || ''}${microserviceEndpoints.company.search}?${new URLSearchParams(queryParam)}&viewAs=${viewAs}&viewBy=${viewBy}`;
-      console.log(url);
-
-      const response = await fetch(url, { method: 'GET' });
+      const response = await fetchDatafromMicroService(viewBy === 'company' ? viewAs === 'detail' ? microServiceApis.company.byId.replace(':companyId', queryParam['companyId']) : microServiceApis.company.search : viewAs === 'detail' ? microServiceApis.user.byId.replace(':userId', queryParam['userId']) : microServiceApis.user.search, queryParam);
       const responseData = await response.json();
       console.log(responseData);
       if (viewAs === 'detail') {
         return responseData?.data?.id
           ? {
-              ...responseData.data,
-              id: encrypt(
-                responseData.data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
-              ),
-            }
+            ...responseData.data,
+            id: encrypt(
+              responseData.data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+            ),
+          }
           : {
-              ...responseData.data,
-              user_id: encrypt(
-                responseData.data.user_id +
-                  process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
-              ),
-            };
+            ...responseData.data,
+            user_id: encrypt(
+              responseData.data.user_id +
+              process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+            ),
+          };
       }
       if (responseData.data?.error) {
         throw new HttpException(
