@@ -6,7 +6,7 @@ export const microServiceApis = {
   designationFetch: `${process.env.MICROSERVICE_URL}/designations`,
   companySuggestionsFetch: `${process.env.MICROSERVICE_URL}/company/suggestion`,
   eventSuggestionsFetch: `${process.env.MICROSERVICE_URL}/event`,
-  authUserFetch: `${process.env.MICROSERVICE_URL}/auth/user`,
+  authUserFetch: `${process.env.MICROSERVICE_URL}/auth/validate`,
   companysearch: process.env.MICROSERVICE_URL + '/companies',
   companyevents: process.env.MICROSERVICE_URL + '/companies/:companyId/events',
   companypoc: process.env.MICROSERVICE_URL + '/companies/:companyId/pocs',
