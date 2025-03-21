@@ -26,7 +26,7 @@ export async function fetchDatafromMicroService(
   try {
     const { compnayId, userId, ...rest } = query;
     const queryString = new URLSearchParams(...rest).toString();
-    const url = `${microServiceApis[`${apiToFetch}`]}?${queryString}`.replace(':companyId', compnayId).replace(':userId', userId);
+    const url = `${microServiceApis[`${apiToFetch}`]}?${queryString}`.replace(':companyId', compnayId || '').replace(':userId', userId || '');
     console.log(url)
     const response = await fetch(url, {
       method: 'GET',
@@ -36,7 +36,7 @@ export async function fetchDatafromMicroService(
 
     return data;
   } catch (error: any) {
-    // console.error(error);
+    console.error(error);
     throw new HttpException('something went wrong', HttpStatus.BAD_REQUEST)
   }
 }
