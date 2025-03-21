@@ -7,18 +7,16 @@ export const microServiceApis = {
   companySuggestionsFetch: `${process.env.MICROSERVICE_URL}/company/suggestion`,
   eventSuggestionsFetch: `${process.env.MICROSERVICE_URL}/event`,
   authUserFetch: `${process.env.MICROSERVICE_URL}/auth/user`,
-  company: {
-    search: process.env.MICROSERVICE_URL + '/companies',
-    events: process.env.MICROSERVICE_URL + '/companies/:companyId/events',
-    poc: process.env.MICROSERVICE_URL + '/companies/:companyId/pocs',
-    byId: process.env.MICROSERVICE_URL + '/companies/:companyId'
-  },
-  user: {
-    search: process.env.MICROSERVICE_URL + '/users',
-    events: process.env.MICROSERVICE_URL + '/users/:userId/events',
-    poc: process.env.MICROSERVICE_URL + '/users/:userId/pocs',
-    byId: process.env.MICROSERVICE_URL + '/users/:userId'
-  }
+  companysearch: process.env.MICROSERVICE_URL + '/companies',
+  companyevents: process.env.MICROSERVICE_URL + '/companies/:companyId/events',
+  companypoc: process.env.MICROSERVICE_URL + '/companies/:companyId/pocs',
+  companybyId: process.env.MICROSERVICE_URL + '/companies/:companyId'
+  ,
+  usersearch: process.env.MICROSERVICE_URL + '/users',
+  userevents: process.env.MICROSERVICE_URL + '/users/:userId/events',
+  userpoc: process.env.MICROSERVICE_URL + '/users/:userId/pocs',
+  userbyId: process.env.MICROSERVICE_URL + '/users/:userId'
+
 };
 
 export async function fetchDatafromMicroService(

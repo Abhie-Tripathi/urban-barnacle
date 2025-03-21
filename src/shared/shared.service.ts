@@ -563,7 +563,7 @@ export class SharedService {
   ) {
     query.limit = Math.min(query.limit, 10);
     const callMicroService = async (queryParam: any) => {
-      const response = await fetchDatafromMicroService(viewBy === 'company' ? viewAs === 'detail' ? microServiceApis.company.byId : microServiceApis.company.search : viewAs === 'detail' ? microServiceApis.user.byId: microServiceApis.user.search, queryParam);
+      const response = await fetchDatafromMicroService(viewBy === 'company' ? viewAs === 'detail' ? 'companybyId' : 'companysearch' : viewAs === 'detail' ? 'userbyId' : 'usersearch', queryParam);
       const responseData = response;
       console.log(responseData);
       if (viewAs === 'detail') {
