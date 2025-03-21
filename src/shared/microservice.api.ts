@@ -28,6 +28,7 @@ export async function fetchDatafromMicroService(
   try {
     const queryString = new URLSearchParams(query).toString();
     const url = `${microServiceApis[`${apiToFetch}`]}?${queryString}`;
+    console.log(url)
     const response = await fetch(url, {
       method: 'GET',
     });
