@@ -233,7 +233,7 @@ export class CompanyService {
 
     return {
       data: {
-        companyPoc: data.data.companyPoc.map((val) => {
+        companyPoc: data.data.companyPoCs.map((val) => {
           return {
             ...val,
             id: encrypt(
