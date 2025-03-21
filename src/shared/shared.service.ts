@@ -30,7 +30,10 @@ import { PointColumn } from './types';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { EventDataDto } from 'src/events/dto';
 import { transformEventData } from 'src/events/global.service';
-import { fetchDatafromMicroService, microServiceApis } from './microservice.api';
+import {
+  fetchDatafromMicroService,
+  microServiceApis,
+} from './microservice.api';
 
 @Injectable()
 export class SharedService {
@@ -38,7 +41,7 @@ export class SharedService {
     private readonly prisma: PrismaService,
     private readonly suggestionService: SuggestionService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) { }
+  ) {}
 
   async signToken(user: SelectedUserDetails, token: string) {
     const tokenData: TCachedUser = { ...user, token };
@@ -403,24 +406,33 @@ export class SharedService {
   ) {
     query.limit = Math.min(query.limit, 10);
     const callMicroService = async (queryParam: any) => {
-      const response = await fetchDatafromMicroService(viewBy === 'company' ? viewAs === 'detail' ? 'companybyId' : 'companysearch' : viewAs === 'detail' ? 'userbyId' : 'usersearch', queryParam);
+      const response = await fetchDatafromMicroService(
+        viewBy === 'company'
+          ? viewAs === 'detail'
+            ? 'companybyId'
+            : 'companysearch'
+          : viewAs === 'detail'
+            ? 'userbyId'
+            : 'usersearch',
+        queryParam,
+      );
       const responseData = response;
       console.log(responseData);
       if (viewAs === 'detail') {
         return responseData?.data?.id
           ? {
-            ...responseData.data,
-            id: encrypt(
-              responseData.data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
-            ),
-          }
+              ...responseData.data,
+              id: encrypt(
+                responseData.data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+              ),
+            }
           : {
-            ...responseData.data,
-            user_id: encrypt(
-              responseData.data.user_id +
-              process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
-            ),
-          };
+              ...responseData.data,
+              user_id: encrypt(
+                responseData.data.user_id +
+                  process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+              ),
+            };
       }
       if (responseData.data?.error) {
         throw new HttpException(
@@ -436,7 +448,7 @@ export class SharedService {
               ? encrypt(data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!)
               : encrypt(data.user_id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!),
         })),
-        responseData.totalCount ?? 0,
+        responseData.count ?? 0,
       ];
     };
 
@@ -447,7 +459,11 @@ export class SharedService {
           '',
         );
         // const { } = query;
-        return { data: { companyData: await callMicroService({ companyId: query.companyId }) } };
+        return {
+          data: {
+            companyData: await callMicroService({ companyId: query.companyId }),
+          },
+        };
       }
       const [companyData, totalCount] = await callMicroService(query);
       return { data: { companyData, totalCount } };
@@ -459,7 +475,9 @@ export class SharedService {
           process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
           '',
         );
-        return { data: { userData: await callMicroService({ userId: query.userId }) } };
+        return {
+          data: { userData: await callMicroService({ userId: query.userId }) },
+        };
       }
       const [userData, totalCount] = await callMicroService(query);
       return { data: { userData, totalCount } };
