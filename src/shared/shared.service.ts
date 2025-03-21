@@ -606,7 +606,8 @@ export class SharedService {
           process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
           '',
         );
-        return { data: { companyData: await callMicroService(query) } };
+        // const { } = query;
+        return { data: { companyData: await callMicroService({ companyId: query.companyId }) } };
       }
       const [companyData, totalCount] = await callMicroService(query);
       return { data: { companyData, totalCount } };
@@ -618,7 +619,7 @@ export class SharedService {
           process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
           '',
         );
-        return { data: { userData: await callMicroService(query) } };
+        return { data: { userData: await callMicroService({ userId: query.userId }) } };
       }
       const [userData, totalCount] = await callMicroService(query);
       return { data: { userData, totalCount } };

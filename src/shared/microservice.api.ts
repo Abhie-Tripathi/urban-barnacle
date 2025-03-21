@@ -24,8 +24,9 @@ export async function fetchDatafromMicroService(
   query: any,
 ) {
   try {
-    const queryString = new URLSearchParams(query).toString();
-    const url = `${microServiceApis[`${apiToFetch}`]}?${queryString}`.replace(':companyId', query['companyId']).replace(':userId', query['userId']);
+    const { compnayId, userId, ...rest } = query;
+    const queryString = new URLSearchParams(...rest).toString();
+    const url = `${microServiceApis[`${apiToFetch}`]}?${queryString}`.replace(':companyId', compnayId).replace(':userId', userId);
     console.log(url)
     const response = await fetch(url, {
       method: 'GET',
