@@ -369,14 +369,14 @@ export class SharedService {
       '',
     );
     const baseURL = process.env.MICROSERVICE_URL || '';
-    const endpoint = microserviceEndpoints.company.events;
+    const endpoint = microserviceEndpoints.user.events.replace(':userId', id);
     const queryString = new URLSearchParams(query).toString();
-    const url = `${baseURL}${endpoint}/${id}?${queryString}`;
+    const url = `${baseURL}${endpoint}?${queryString}`;
     const response = await fetch(url, {
       method: 'GET',
     });
     const data = (await response.json()) as any;
-    // console.log(data);
+    console.log(data, url);
     if (!query.groupBy) {
       const responseToReturn: { count: Number; events: any[] } = {
         count: data.data.stats.totalEvents,
