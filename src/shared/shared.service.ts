@@ -364,13 +364,14 @@ export class SharedService {
     if (query.limit > 20) {
       query.limit = 20;
     }
+    const { type, ...rest } = query;
     id = decrypt(id).replace(
       process.env.TEN_TIMES_ID_ENCRYPT_KEY as string,
       '',
     );
     const baseURL = process.env.MICROSERVICE_URL || '';
     const endpoint = query.type === 'user' ? microserviceEndpoints.user.events.replace(':userId', id) : microserviceEndpoints.company.events.replace(':companyId', id);
-    const queryString = new URLSearchParams(query).toString();
+    const queryString = new URLSearchParams(rest).toString();
     const url = `${baseURL}${endpoint}?${queryString}`;
     const response = await fetch(url, {
       method: 'GET',
