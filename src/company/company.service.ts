@@ -44,17 +44,7 @@ export class CompanyService {
     } else {
       const countryData: { data: Country[] } = { data: data.data };
       return {
-        data: countryData.data.map((val) => {
-          return {
-            count: val.eventCount,
-            id: val.countryId,
-            name: val.name,
-            latitude: val.geoCordinates.latitude,
-            longitude: val.geoCordinates.longitude,
-            participation: val.participation,
-            code: val.countryCode,
-          };
-        }),
+        data: countryData.data
       };
     }
   }
@@ -168,14 +158,12 @@ export interface Event {
 }
 
 export interface Country {
-  countryId: string;
-  countryCode: string;
+  id: string;
+  countryCode?: string;
   name: string;
-  participation: any;
-  eventCount: number;
-  countryZone: string;
-  geoCordinates: {
-    longitude: string;
-    latitude: string;
-  };
+  participation?: any;
+  count: number;
+  countryZone?: string;
+  longitude: string;
+  latitude: string;
 }
