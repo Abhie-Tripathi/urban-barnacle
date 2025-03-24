@@ -314,7 +314,17 @@ export class TrackerService {
         tracker.filterValues['active_gte']
       ) {
         convertedParams['pastBetween'] =
-          `${tracker.filterValues['active_gte']},${new Date(Date.now() - 86400000).toISOString().split('T')[0]}`;
+          `${tracker.filterValues['active_gte']},${
+            new Date(
+              Math.min(
+                new Date(tracker.filterValues['active_lte']).valueOf(),
+                new Date().valueOf(),
+              ),
+            )
+              .toISOString()
+              .split('T')[0]
+          }`;
+        // `${tracker.filterValues['active_gte']},${new Date(Date.now() - 86400000).toISOString().split('T')[0]}`;
         convertedParams['active_lte'] = undefined;
         convertedParams['active_gte'] = undefined;
       } else {
@@ -445,7 +455,16 @@ export class TrackerService {
         tracker.filterValues['active_gte']
       ) {
         convertedParams['pastBetween'] =
-          `${tracker.filterValues['active_gte']},${new Date(Date.now() - 86400000).toISOString().split('T')[0]}`;
+          `${tracker.filterValues['active_gte']},${
+            new Date(
+              Math.min(
+                new Date(tracker.filterValues['active_lte']).valueOf(),
+                new Date().valueOf(),
+              ),
+            )
+              .toISOString()
+              .split('T')[0]
+          }`;
         convertedParams['active_lte'] = undefined;
         convertedParams['active_gte'] = undefined;
       } else {
@@ -532,7 +551,16 @@ export class TrackerService {
         tracker.filterValues['active_gte']
       ) {
         convertedParams['pastBetween'] =
-          `${tracker.filterValues['active_gte']},${new Date(Date.now() - 86400000).toISOString().split('T')[0]}`;
+          `${tracker.filterValues['active_gte']},${
+            new Date(
+              Math.min(
+                new Date(tracker.filterValues['active_lte']).valueOf(),
+                new Date().valueOf(),
+              ),
+            )
+              .toISOString()
+              .split('T')[0]
+          }`;
         convertedParams['active_lte'] = undefined;
         convertedParams['active_gte'] = undefined;
       } else {
@@ -644,7 +672,16 @@ export class TrackerService {
         tracker.filterValues['active_gte']
       ) {
         convertedParams['pastBetween'] =
-          `${tracker.filterValues['active_gte']},${new Date(Date.now() - 86400000).toISOString().split('T')[0]}`;
+          `${tracker.filterValues['active_gte']},${
+            new Date(
+              Math.min(
+                new Date(tracker.filterValues['active_lte']).valueOf(),
+                new Date().valueOf(),
+              ),
+            )
+              .toISOString()
+              .split('T')[0]
+          }`;
         convertedParams['active_lte'] = undefined;
         convertedParams['active_gte'] = undefined;
       } else {
