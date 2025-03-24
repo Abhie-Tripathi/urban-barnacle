@@ -717,7 +717,7 @@ export const EventsTrendsSchema = QueryFilter.extend({
 
 export class EventsTrendsDto extends createZodDto(EventsTrendsSchema) {}
 
-const sortSchema = z.strictObject({
+const sortSchema = LimitSchemaWithoutDefault.extend({
   sortBy: z.string().optional(),
 });
 

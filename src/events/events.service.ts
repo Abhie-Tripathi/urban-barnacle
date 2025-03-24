@@ -84,30 +84,33 @@ export class EventsService {
     const fetchedEvents =
       await this.eventsDataService.getEvents(convertedParams);
     // console.log({ convertedParams }, { nonEmptyParams });
+    console.log(fetchedEvents);
     let events = fetchedEvents;
     if (['list', 'tracker'].includes(query.view)) {
       let userInterests = {};
       if (user) {
         userInterests = await this.getGroupedEventInterests(
           user,
-          events.events.map((event) => event.id),
+          events.events.map((event) => event.basic.id),
           query.trackerId,
         );
       }
       const transformedEvents = events.events.map((event) => {
         return {
-          ...(query.show && query.show.includes(Show.old)
-            ? event
-            : transformEventData(event)),
+          // ...(query.show && query.show.includes(Show.old)
+          //   ? event
+          //   : transformEventData(event)),
 
-          ...(query.show && query.show.includes(Show.old)
-            ? {
-                isSaved:
-                  userInterests[event.id] && userInterests[event.id]['bookmark']
-                    ? true
-                    : false,
-              }
-            : { interests: userInterests[event.id] }),
+          // ...(query.show && query.show.includes(Show.old)
+          //   ? {
+          //       isSaved:
+          //         userInterests[event.id] && userInterests[event.id]['bookmark']
+          //           ? true
+          //           : false,
+          //     }
+          //   : { interests: userInterests[event.id] }),
+          ...event,
+          interests: userInterests[event.basic.id],
         };
       }) as any;
       events = {
@@ -137,13 +140,13 @@ export class EventsService {
     if (user) {
       userInterests = await this.getGroupedEventInterests(
         user,
-        [event.id],
+        [event.basic.id],
         undefined,
       );
     }
     const eventResponse = {
-      ...transformEventData(event),
-      interests: userInterests[event.id],
+      ...event,
+      interests: userInterests[event.basic.id],
     };
     return eventResponse;
   }

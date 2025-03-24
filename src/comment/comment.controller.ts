@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   UploadedFile,
+  UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -15,24 +16,23 @@ import { TCachedUser } from 'src/utils/types';
 import { GetUser } from 'src/user/decorator';
 import { CreateCommentHttpDto, UpdateCommentHttpDto } from './dto';
 import { AuthGuard } from 'src/user/auth/guard';
-import { FileInterceptor } from '@nest-lab/fastify-multer';
+import { File, FileInterceptor, FilesInterceptor } from '@nest-lab/fastify-multer';
 import { CreateIntentHttpDto } from 'src/intent/dto';
 import { IntentTargetModule } from '@prisma/client';
 
 @Controller('comments')
 export class CommentController {
-  constructor(private readonly commentService: CommentService) {}
-
+  constructor(private readonly commentService: CommentService) { }
+  @UseInterceptors(FilesInterceptor('files'))
   @Post()
   @UseGuards(AuthGuard)
-  @UseInterceptors(FileInterceptor('file'))
   async createComment(
     @Body() data: CreateCommentHttpDto,
     @GetUser() user: TCachedUser,
-    @UploadedFile() file: File,
+    @UploadedFiles() files: File[],
   ) {
     try {
-      const comment = await this.commentService.createComment(user, data);
+      const comment = await this.commentService.createComment(user, data,files);
       return { data: comment };
     } catch (error) {
       return { error: error };

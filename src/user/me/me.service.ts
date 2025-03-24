@@ -27,7 +27,7 @@ export class MeService {
     private readonly savedLocationService: SavedLocationService,
     private readonly exportDataService: ExportDataService,
     private readonly sharedService: SharedService,
-  ) {}
+  ) { }
   async getMe(userId: string) {
     const user = await this.userDataService.getUsers({
       id: [userId as unknown as any],
@@ -36,12 +36,13 @@ export class MeService {
     });
     return user[0];
   }
-  async updateMe(user: TCachedUser, params: UpdateMeDto) {
+  async updateMe(user: TCachedUser, params: UpdateMeDto, file?: File) {
     const { token, ...userData } = user;
+    const { removePicture, ...rest } = params;
     const updatedUser = await this.userDataService.updateUser({
-      ...params,
+      ...rest,
       id: user.id,
-    });
+    }, file, removePicture === 'true' ? true : false);
     const userResponse = await this.sharedService.UserResponse(
       {
         ...userData,

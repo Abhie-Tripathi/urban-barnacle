@@ -30,6 +30,10 @@ import { PointColumn } from './types';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { EventDataDto } from 'src/events/dto';
 import { transformEventData } from 'src/events/global.service';
+import {
+  fetchDatafromMicroService,
+  microServiceApis,
+} from './microservice.api';
 
 @Injectable()
 export class SharedService {
@@ -363,176 +367,26 @@ export class SharedService {
     if (query.limit > 20) {
       query.limit = 20;
     }
+    const { type, ...rest } = query;
     id = decrypt(id).replace(
       process.env.TEN_TIMES_ID_ENCRYPT_KEY as string,
       '',
     );
     const baseURL = process.env.MICROSERVICE_URL || '';
-    const endpoint = microserviceEndpoints.company.events;
-    const queryString = new URLSearchParams(query).toString();
-    const url = `${baseURL}${endpoint}/${id}?${queryString}`;
+    const endpoint = query.type === 'user' ? microserviceEndpoints.user.events.replace(':userId', id) : microserviceEndpoints.company.events.replace(':companyId', id);
+    const queryString = new URLSearchParams(rest).toString();
+    const url = `${baseURL}${endpoint}?${queryString}`;
     const response = await fetch(url, {
       method: 'GET',
     });
     const data = (await response.json()) as any;
-    // console.log(data);
+    console.log(data, url);
     if (!query.groupBy) {
       const responseToReturn: { count: Number; events: any[] } = {
-        count: data.data.stats.totalEvents,
-        events: data.data.events.map((val: Event) => {
-          const dataToCreate: EventDataDto = {
-            '10timesEventPageUrl': val.eventWebsite,
-            alerts: [],
-            categories: val.categories,
-            primaryEventType: val.type[0],
-            audienceSpread: val.audienceSpread as any,
-            audienceZone: null,
-            bannerUrl: null,
-            createdAt: val.createdAt,
-            designations: [],
-            description: val.description,
-            designationSpread: [],
-            economicImpact: '0',
-            economicImpactBreakdown: {},
-            editions: val.editionCount,
-            endDateTime: val.endDate,
-            startDateTime: val.startDate,
-            entryType: val.entryType,
-            estimatedAttendance: 0,
-            estimatedAttendanceMean: 0,
-            estimatedExhibitors: '0',
-            estimatedVisitorRangeTag: '0',
-            eventLocation: {
-              city: {
-                countryId: val.location.countryId,
-                id: val.location.cityId,
-                name: val.location.cityName,
-                latitude: val.location.cityCordinates.latitude,
-                longitude: val.location.cityCordinates.longitude,
-                locationType: '',
-                stateId: '',
-              },
-              country: {
-                id: val.location.countryId,
-                name: val.location.countryName,
-                latitude: val.location.cityCordinates.latitude,
-                longitude: val.location.cityCordinates.longitude,
-                regions: [],
-                locationType: '',
-              },
-              state: {
-                countryId: val.location.countryId,
-                id: '',
-                name: '',
-                latitude: val.location.cityCordinates.latitude,
-                longitude: val.location.cityCordinates.longitude,
-                locationType: '',
-              },
-              venue: {
-                address: val.location.venueAddress,
-                countryId: val.location.countryId,
-                id: '',
-                name: val.location.venueName,
-                latitude: val.location.geoCordinates.latitude,
-                longitude: val.location.geoCordinates.longitude,
-                locationType: '',
-                stateId: '',
-                cityId: '',
-                displayName: '',
-              },
-            },
-            eventPageUrl: val.url,
-            eventTypes: val.type.map((type) => {
-              return {
-                id: '',
-                name: type,
-                slug: type,
-                eventGroupType: '',
-              };
-            }),
-            exhibitorsCount: 0,
-            format: val.format,
-            frequency: '',
-            id: val.id,
-            isBranded: false,
-            isSeries: false,
-            lastVerifiedOn: null,
-            logoUrl: val.logoUrl,
-            maturity: null,
-            name: val.name,
-            organizer: {
-              id: val.organizer.id,
-              location: {
-                city: {
-                  countryId: '',
-                  id: '',
-                  name: val.organizer.cityName,
-                  latitude: '',
-                  longitude: '',
-                  locationType: '',
-                  stateId: '',
-                },
-                country: {
-                  id: '',
-                  name: val.organizer.countryName,
-                  latitude: '',
-                  longitude: '',
-                  regions: [],
-                  locationType: '',
-                },
-                address: '',
-                state: {
-                  countryId: '',
-                  id: '',
-                  name: '',
-                  latitude: '',
-                  longitude: '',
-                  locationType: '',
-                },
-              },
-              logoUrl: val.organizer.logo,
-              name: val.organizer.name,
-              totalExhibit: val.organizer.totalExhibit,
-              totalOrganize: val.organizer.totalOrganize,
-              totalSponsor: val.organizer.totalSponsor,
-              totalVisitor: val.organizer.totalVisitor,
-              website: val.organizer.website,
-            },
-            rankings: {
-              categories: [],
-              category_country: [],
-              country: { countryId: '', rank: 0 },
-              global: 0,
-            },
-            rating: 0,
-            rehostDate: '',
-            rehostScore: 0,
-            repeatSentiment: 0,
-            reputationScore: 0,
-            scores: {
-              impactScore: 0,
-              inboundScore: 0,
-              internationalScore: 0,
-              internationalScoreTag: '0',
-            },
-            speakersCount: 0,
-            sponsorsCount: 0,
-            status: val.status,
-            tags: [],
-            tickets: null,
-            timings: null,
-            trustScore: 0,
-            updatedAt: '',
-            website: '',
-            yoyGrowth: 0,
-            trackerMatchInfo: null,
-            reputationChangePercentage: 0,
-            trustChangePercentage: 0,
-            trustChangeTag: null,
-            reputationChangeTag: null,
-          };
+        count: data.data.count,
+        events: data.data.events.map((val: any) => {
           return {
-            ...transformEventData(dataToCreate),
+            ...val,
             ...(query.type === 'user' ? { association: 'SPEAKER' } : {}),
           };
         }),
@@ -541,18 +395,8 @@ export class SharedService {
     } else {
       const countryData: { data: Country[] } = { data: data.data };
       return {
-        data: countryData.data.map((val) => {
-          return {
-            count: val.eventCount,
-            id: val.countryId,
-            name: val.name,
-            latitude: val.geoCordinates.latitude,
-            longitude: val.geoCordinates.longitude,
-            participation: val.participation,
-            code: val.countryCode,
-          };
-        }),
-      };
+        data: countryData.data
+      }
     }
   }
   async getCompanyAndUserDataForProspect(
@@ -562,11 +406,17 @@ export class SharedService {
   ) {
     query.limit = Math.min(query.limit, 10);
     const callMicroService = async (queryParam: any) => {
-      const url = `${process.env.MICROSERVICE_URL || ''}${microserviceEndpoints.company.search}?${new URLSearchParams(queryParam)}&viewAs=${viewAs}&viewBy=${viewBy}`;
-      console.log(url);
-
-      const response = await fetch(url, { method: 'GET' });
-      const responseData = await response.json();
+      const response = await fetchDatafromMicroService(
+        viewBy === 'company'
+          ? viewAs === 'detail'
+            ? 'companybyId'
+            : 'companysearch'
+          : viewAs === 'detail'
+            ? 'userbyId'
+            : 'usersearch',
+        queryParam,
+      );
+      const responseData = response;
       console.log(responseData);
       if (viewAs === 'detail') {
         return responseData?.data?.id
@@ -598,7 +448,7 @@ export class SharedService {
               ? encrypt(data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!)
               : encrypt(data.user_id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!),
         })),
-        responseData.totalCount ?? 0,
+        responseData.count ?? 0,
       ];
     };
 
@@ -608,7 +458,12 @@ export class SharedService {
           process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
           '',
         );
-        return { data: { companyData: await callMicroService(query) } };
+        // const { } = query;
+        return {
+          data: {
+            companyData: await callMicroService({ companyId: query.companyId }),
+          },
+        };
       }
       const [companyData, totalCount] = await callMicroService(query);
       return { data: { companyData, totalCount } };
@@ -620,7 +475,9 @@ export class SharedService {
           process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
           '',
         );
-        return { data: { userData: await callMicroService(query) } };
+        return {
+          data: { userData: await callMicroService({ userId: query.userId }) },
+        };
       }
       const [userData, totalCount] = await callMicroService(query);
       return { data: { userData, totalCount } };
@@ -751,14 +608,12 @@ export interface Event {
 }
 
 export interface Country {
-  countryId: string;
-  countryCode: string;
+  id: string;
+  countryCode?: string;
   name: string;
-  participation: any;
-  eventCount: number;
-  countryZone: string;
-  geoCordinates: {
-    longitude: string;
-    latitude: string;
-  };
+  participation?: any;
+  count: number;
+  countryZone?: string;
+  longitude: string;
+  latitude: string;
 }
