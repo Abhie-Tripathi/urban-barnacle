@@ -6,7 +6,7 @@ export const microserviceEndpoints = {
     eventTypes: '/event-types',
     tags: '/tags',
     designations: '/designations',
-    companies: '/company/suggestion',
+    companies: '/companies/suggestions',
   },
   events: {
     events: '/events',
@@ -27,14 +27,14 @@ export const microserviceEndpoints = {
     search: '/companies',
     events: '/companies/:companyId/events',
     poc: '/companies/:companyId/pocs',
-    byId: '/companies/:companyId'
+    byId: '/companies/:companyId',
   },
   user: {
     search: '/users',
     events: '/users/:userId/events',
     poc: '/users/:userId/pocs',
-    byId: '/users/:userId'
-  }
+    byId: '/users/:userId',
+  },
   //   trackerMetrics: '/tracker-metrics',
   //   predictedAttendance: '/trend/predicted-attendance/eventeli',
   //   predictedNumberOfEvents: '/trend/predicted-number-of-events/eventeli',
