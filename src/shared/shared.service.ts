@@ -382,9 +382,13 @@ export class SharedService {
       const responseToReturn: { count: Number; events: any[] } = {
         count: data.data.count,
         events: data.data.events.map((val: any) => {
+          let association: string | undefined = undefined;
+          if (val['trackerMatchInfo'] && val['trackerMatchInfo']['peopleFinderPersonAssociation'][0]) {
+            association = (val['trackerMatchInfo']['peopleFinderPersonAssociation'][0] as string).includes('speaker') ? 'SPEAKER' : 'VISITOR'
+          }
           return {
             ...val,
-            ...(query.type === 'user' ? { association: 'SPEAKER' } : {}),
+            ...(query.type === 'user' ? { association: association } : {}),
           };
         }),
       };
