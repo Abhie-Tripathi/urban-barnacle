@@ -4,6 +4,7 @@ import {
   AuthenticatDto,
   SignInDto,
   SignUpDto,
+  SourceDto,
   VerifyAccessDto,
   VerifyOtpDto,
 } from './dto';
@@ -354,16 +355,11 @@ export class AuthService {
     };
   }
 
-  async authenticateUserFromToken(body: AuthenticatDto) {
-    const response = await this.authDataService.authenticateUserFromToken(body);
+  async authenticateUserFromToken(source: SourceDto, body: AuthenticatDto) {
+    const response = await this.authDataService.authenticateUserFromToken(source, body);
     if (0 === response.status.code && response.message.toLowerCase().includes('invalid')) {
       throw new HttpException(`Invalid token`, HttpStatus.BAD_REQUEST);
     }
-    const users = await this.userDataService.getUsers({
-      email: [response.data['email'] as string],
-      limit: 1,
-      offset: 0,
-    });
     const data: {
       name: string;
       email: string;
@@ -379,6 +375,12 @@ export class AuthService {
         countryName?: string;
       };
     } = response.data;
+
+    const users = await this.userDataService.getUsers({
+      email: [data['email'] as string],
+      limit: 1,
+      offset: 0,
+    });
     if (users.length > 0) {
       const user = users[0];
       const userData = await this.signIn({ email: user.email }, false);
@@ -416,6 +418,7 @@ export class AuthService {
           accountConfigurationId: currentAccount.configurationId,
           currentSubscriptionId: currentAccount.currentSubscriptionId,
         }),
+        isNewUser: false
       };
     } else {
       const domain = data.email.split('@')[1];
@@ -488,13 +491,22 @@ export class AuthService {
         user = await this.userDataService.createUser({
           firstname: data.name.split(' ')[0],
           ...(data.name.split(' ').length > 1 ? { lastname: data.name.substring(data.name.indexOf('') + 1) } : {}),
-          imageUrl: data.profilepicture,
           email: data.email,
           role: 'CUSTOMER',
           primaryCompanyId: company?.id,
           accountId: account.id,
           primaryAccountId: account.id,
         });
+        if (data.profilepicture && data.profilepicture.length > 5) {
+          const profilepicture = await this.authDataService.fetchImageFromOtherDomian(data.profilepicture, user.id);
+          if (profilepicture) {
+            await this.userDataService.updateUser({
+              id: user.id,
+              imageUrl: profilepicture.fileUrl,
+              profileImageId: profilepicture.id
+            });
+          }
+        }
       } else if (
         user &&
         user.currentOnboardingState === OnboardingState.VERIFICATION &&
@@ -541,6 +553,7 @@ export class AuthService {
           accountConfigurationId: account.configurationId,
           currentSubscriptionId: account.currentSubscriptionId,
         }),
+        isNewUser: true
       };
     }
   }

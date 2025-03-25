@@ -11,6 +11,7 @@ import { EventsService } from 'src/events/events.service';
 import { EnquiryDataService } from 'src/enquiry/enquiry.data.service';
 import { UserDataService } from 'src/user/user.data.service';
 import { EventsDataService } from 'src/events/events.data.service';
+import { TrackerDataService } from 'src/tracker/tracker.data.service';
 
 @Module({
   providers: [
@@ -23,9 +24,10 @@ import { EventsDataService } from 'src/events/events.data.service';
     EnquiryDataService,
     UserDataService,
     EventsDataService,
+    TrackerDataService
   ],
   controllers: [CommentController],
   imports: [AccessModule],
   exports: [CommentService, CommentDataService],
 })
-export class CommentModule {}
+export class CommentModule { }

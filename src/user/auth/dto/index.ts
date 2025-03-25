@@ -54,8 +54,27 @@ const VerifyAccessSchema = VerifyOtpSchema.extend({
 export class VerifyAccessDto extends createZodDto(VerifyAccessSchema) { }
 
 
-const authenticatSchema = z.strictObject({
-  token: z.string(),
-  userId: z.number()
-});
+const authenticatSchema = z.object({
+  token: z.string().optional(),
+  userId: z.number().optional(),
+  accessToken: z.string().optional(),
+}).refine(
+  (data) =>
+    (data.accessToken && !data.token && !data.userId) ||
+    (!data.accessToken && (data.token || data.userId)),
+  {
+    message: "Either accessToken or (token and userId) must be present, not both.",
+  }
+);
 export class AuthenticatDto extends createZodDto(authenticatSchema) { }
+
+enum SsoSource {
+  '10times' = '10times',
+  'google' = 'google',
+  'linkedin' = 'linkedin'
+}
+
+const sourceSchema = z.strictObject({
+  source: z.nativeEnum(SsoSource)
+})
+export class SourceDto extends createZodDto(sourceSchema) { }

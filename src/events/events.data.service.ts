@@ -17,13 +17,15 @@ import { get } from 'http';
 import { TCachedUser } from 'src/utils/types';
 import { LimitDto } from 'src/global_dto';
 import { encrypt } from 'src/utils';
+import { TrackerDataService } from 'src/tracker/tracker.data.service';
 
 @Injectable()
 export class EventsDataService {
   constructor(
+    private readonly trackerDataService: TrackerDataService,
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
   async createLogForEncryptedQuery(encryption: string, user: TCachedUser) {
     const previousActivity = await this.prisma.userActivity.findFirst({
       where: {
@@ -246,7 +248,93 @@ export class EventsDataService {
     }
     return data;
   }
+  async createTrackerPayloadForIntelScore(user: TCachedUser) {
+    const [speakerCount, peopleCount, keywordCount, competitorCount] = await Promise.all([
+      this.trackerDataService.getTrackersCount(user, { limit: 10, offset: 0, type: 'trackers', subType: 'T_SPEAKING_OPPORTUNITY' }),
+      this.trackerDataService.getTrackersCount(user, { limit: 10, offset: 0, type: 'trackers', subType: 'T_PEOPLE_FINDER' }),
+      this.trackerDataService.getTrackersCount(user, { limit: 10, offset: 0, type: 'trackers', subType: 'T_PRODUCT_KEYWORDS' }),
+      this.trackerDataService.getTrackersCount(user, { limit: 10, offset: 0, type: 'trackers', subType: 'T_COMPETITOR' })
+    ]);
+    const [speakerAllTrackData, peopleAllTrackData, keywordAllTrackData, competitorAllTrackData] = await Promise.all([
+      this.trackerDataService.getTrackers({ limit: speakerCount, offset: 0, type: 'trackers', subType: 'T_SPEAKING_OPPORTUNITY' }, user),
+      this.trackerDataService.getTrackers({ limit: peopleCount, offset: 0, type: 'trackers', subType: 'T_PEOPLE_FINDER' }, user),
+      this.trackerDataService.getTrackers({ limit: keywordCount, offset: 0, type: 'trackers', subType: 'T_PRODUCT_KEYWORDS' }, user),
+      this.trackerDataService.getTrackers({ limit: competitorCount, offset: 0, type: 'trackers', subType: 'T_COMPETITOR' }, user)
+    ]);
+    const requestBody: {
+      speakerBody?: { speakerNames: string, speakerCompanyName: string },
+      peopleBody?: { peopleNames: string, peopleCompanyName: string },
+      keywordBody?: { includeKeywords?: string, excludeKeywords?: string },
+      competitorBody?: { competitorWebsiteNames?: string, competitorCompanyName?: string },
+    } = {};
+    if (speakerAllTrackData.length > 0) {
+      requestBody.speakerBody = { speakerCompanyName: '', speakerNames: '' };
+      speakerAllTrackData.forEach(tracker => {
+        const filterValues: any = tracker.filterValues;
+        requestBody.speakerBody!.speakerCompanyName += filterValues.userOrgWebsite;
+        requestBody.speakerBody!.speakerNames += filterValues.userName;
+      })
+    }
+    if (peopleAllTrackData.length > 0) {
+      requestBody.peopleBody = { peopleCompanyName: '', peopleNames: '' };
+      peopleAllTrackData.forEach(tracker => {
+        const filterValues: any = tracker.filterValues;
+        requestBody.peopleBody!.peopleCompanyName += filterValues.userOrgWebsite;
+        requestBody.peopleBody!.peopleNames += filterValues.userName;
+      })
+    }
+    if (competitorAllTrackData.length > 0) {
+      requestBody.competitorBody = { competitorCompanyName: '', competitorWebsiteNames: '' };
+      competitorAllTrackData.forEach(tracker => {
+        const filterValues: any = tracker.filterValues;
+        if (filterValues.orgName)
+          requestBody.competitorBody!.competitorCompanyName += filterValues.orgName;
+        if (filterValues.orgWebsite)
+          requestBody.competitorBody!.competitorWebsiteNames += filterValues.orgWebsite;
+      });
+      if (requestBody.competitorBody.competitorCompanyName?.length === 0) {
+        requestBody.competitorBody.competitorCompanyName = undefined;
+      }
+      if (requestBody.competitorBody.competitorWebsiteNames?.length === 0) {
+        requestBody.competitorBody.competitorWebsiteNames = undefined;
+      }
+    }
+    if (keywordAllTrackData.length > 0) {
+      requestBody.keywordBody = { includeKeywords: '', excludeKeywords: '' };
+      keywordAllTrackData.forEach(tracker => {
+        const filterValues: any = tracker.filterValues;
+        if (filterValues.includeKeywords)
+          requestBody.keywordBody!.includeKeywords += filterValues.includeKeywords;
+        if (filterValues.excludeKeywords)
+          requestBody.keywordBody!.excludeKeywords += filterValues.excludeKeywords;
+      });
+      if (requestBody.keywordBody.includeKeywords?.length === 0) {
+        requestBody.keywordBody.includeKeywords = undefined;
+      }
+      if (requestBody.keywordBody.excludeKeywords?.length === 0) {
+        requestBody.keywordBody.excludeKeywords = undefined;
+      }
+    }
+    return requestBody;
+  }
+  async getEventIntelScore(eventId: string, user: TCachedUser) {
+    const url =
+      this.configService.get('MICROSERVICE_URL') +
+      microserviceEndpoints.events.eventIntelScore.replace(':eventId', eventId);
+    const response = await fetch(url, {
+      method: 'POST',
+      body: JSON.stringify((await this.createTrackerPayloadForIntelScore(user))),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
+    const { data, error } = await response.json();
+    if (!data || error) {
+      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+    }
+    return data;
+  }
   async getEventsTrends(params: EventsTrendsDto) {
     const queryParams = new URLSearchParams(
       params as unknown as Record<string, any>,

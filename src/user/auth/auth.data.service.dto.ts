@@ -1,11 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { AuthenticatDto } from './dto';
+import { AuthenticatDto, SourceDto } from './dto';
 import { Prisma, User } from '@prisma/client';
 import { createHash, randomInt, randomUUID } from 'crypto';
 import { CommunicationService } from 'src/communication/communication.service';
 import { QueueActionOptions, TCachedUser } from 'src/utils/types';
 import { fetchDatafromMicroService } from 'src/shared/microservice.api';
+import * as fs from 'fs';
 @Injectable()
 export class AuthDataService {
   constructor(
@@ -116,13 +117,89 @@ export class AuthDataService {
     return { token: passkey }
   }
 
-  async authenticateUserFromToken(body: AuthenticatDto) {
-    return (await fetchDatafromMicroService('authUserFetch', body)) as {
-      "status": {
-        "code": number
-      },
-      "message": string,
-      "data": any
-    };
+  async authenticateUserFromToken(sourceDto: SourceDto, body: AuthenticatDto) {
+    if (sourceDto.source === '10times') {
+      return (await fetchDatafromMicroService('authUserFetch', body)) as {
+        "status": {
+          "code": number
+        },
+        "message": string,
+        "data": any
+      };
+    }
+    else if (sourceDto.source === 'google' && body.accessToken) { return await this.fetchUserFromGoogle(body.accessToken) }
+    // else if (sourceDto.source === 'linkedin' && body.accessToken) { }
+    const responseToreturn: { status: { code: number }, message: string, data: any } = { status: { code: 0 }, message: "invalid user", data: {} };
+    return responseToreturn;
+  }
+  async fetchUserFromGoogle(accessToken: string) {
+    const request = await fetch(`https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=${accessToken}`);
+    const response: {
+      error_description: string
+    } | {
+      iss: string,
+      azp: string,
+      aud: string,
+      sub: string,
+      hd: string,
+      email: string,
+      email_verified: string,
+      at_hash: string,
+      name: string,
+      picture: string,
+      given_name: string,
+      family_name: string,
+      iat: string,
+      exp: string,
+      alg: string,
+      kid: string,
+      typ: string
+    } = await request.json();
+    const responseToreturn: { status: { code: number }, message: string, data: any } = { status: { code: 1 }, message: "valid user", data: {} };
+    if (response['error_description'] || response['email_verified'] !== 'true') {
+      responseToreturn.status.code = 0;
+      responseToreturn.message = response['error_description'];
+      return responseToreturn;
+    }
+    responseToreturn.data = {
+      name: response['name'],
+      email: response['email'],
+      profilepicture: response['picture'],
+    }
+    return responseToreturn;
+  }
+
+  async fetchImageFromOtherDomian(imageUrlstring: string, userId) {
+    const response = await fetch(imageUrlstring);
+
+    if (!response.ok) {
+      throw new HttpException(`Failed to fetch image. Status: ${response.status}`, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    const fileName = `${randomUUID() + new Date().toISOString()}.jpg`; // or any other logic to generate file name
+    // const filePath = join(__dirname, '..', 'uploads', fileName);
+    const mediaHost = process.env.MEDIA_STORAGE_DOMAIN ?? '';
+    const dir = './public/temp/';
+    const writer = fs.createWriteStream(dir + fileName);
+    // response.body?.
+    console.log();
+    const picData = await response.arrayBuffer();
+    if (picData !== undefined) {
+      const buffer = Buffer.from(picData);
+      await fs.promises.writeFile(dir + fileName, buffer);
+      const filetype = 'IMAGE';
+      const upload = await this.prisma.attachment.create({
+        data: {
+          fileName: imageUrlstring,
+          fileType: filetype,
+          fileSize: buffer.length / 1024,
+          fileUrl: mediaHost + '/public/' + fileName,
+          sourceModule: 'USER',
+          sourceId: userId,
+          createdByUser: { connect: { id: userId } },
+        }
+      });
+      return upload;
+    }
   }
 }

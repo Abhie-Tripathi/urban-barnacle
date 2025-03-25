@@ -27,7 +27,7 @@ export class EventsController {
   constructor(
     private readonly eventsService: EventsService,
     private readonly sharedService: SharedService,
-  ) {}
+  ) { }
 
   @UseGuards(AuthGuard)
   @Get()
@@ -203,6 +203,16 @@ export class EventsController {
   async getEventPolygons(@Param('id') id: string) {
     try {
       const polygons = await this.eventsService.getEventPolygons(id);
+      return { data: polygons };
+    } catch (error) {
+      return { error };
+    }
+  }
+  @UseGuards(AuthGuard)
+  @Get(':id/intelScore')
+  async getEventIntelScore(@Param('id') id: string, @GetUser() user: TCachedUser) {
+    try {
+      const polygons = await this.eventsService.getEventIntelScore(id, user);
       return { data: polygons };
     } catch (error) {
       return { error };
