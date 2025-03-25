@@ -124,14 +124,15 @@ export class AuthDataService {
           "code": number
         },
         "message": string,
-        "data": any
+        "data": any,
+        socialId?: object
       };
     }
     else if (sourceDto.source === 'google' && body.accessToken) { return await this.getGoogleUser(body.accessToken) }
     else if (sourceDto.source === 'linkedin' && body.accessToken) {
       return await this.getLinkedInUser(body.accessToken);
     }
-    const responseToreturn: { status: { code: number }, message: string, data: any } = { status: { code: 0 }, message: "invalid user", data: {} };
+    const responseToreturn: { status: { code: number }, message: string, data: any, socialId?: object } = { status: { code: 0 }, message: "invalid user", data: {} };
     return responseToreturn;
   }
   async getGoogleUser(accessToken: string) {
@@ -156,7 +157,7 @@ export class AuthDataService {
       family_name: string,
     } = await request.json();
     console.log({ response });
-    const responseToreturn: { status: { code: number }, message: string, data: any } = { status: { code: 1 }, message: "valid user", data: {} };
+    const responseToreturn: { status: { code: number }, message: string, data: any, socialId?: object } = { status: { code: 1 }, message: "valid user", data: {} };
     if (response['error_description'] && response['email_verified'] !== 'true') {
       responseToreturn.status.code = 0;
       responseToreturn.message = response['error_description'];
@@ -167,7 +168,7 @@ export class AuthDataService {
       name: response['name'],
       email: response['email'],
       profilepicture: response['picture'],
-      socialId: { googleUserId: response['sub'] }
+      socialId: { userId: response['sub'] }
     }
     return responseToreturn;
   }
@@ -201,7 +202,7 @@ export class AuthDataService {
       picture: string
     } = await request.json();
     console.log({ response });
-    const responseToreturn: { status: { code: number }, message: string, data: any } = { status: { code: 1 }, message: "valid user", data: {} };
+    const responseToreturn: { status: { code: number }, message: string, data: any, socialId?: object } = { status: { code: 1 }, message: "valid user", data: {} };
     if (response['serviceErrorCode'] && response['email_verified'] !== 'true') {
       responseToreturn.status.code = 0;
       responseToreturn.message = response['message'];
@@ -212,7 +213,7 @@ export class AuthDataService {
       name: response['name'],
       email: response['email'],
       profilepicture: response['picture'],
-      socialId: { linkedInUserId: response['sub'] }
+      socialId: { userId: response['sub'] }
     }
     return responseToreturn;
   }
