@@ -185,14 +185,16 @@ export class UserDataService {
   async getPocsunlocked(pocId: string, params: UnlockValue[]) {
     const url =
       process.env.MICROSERVICE_URL +
-      microserviceEndpoints.events.eventPocsUnlocked.replace(':userId', pocId).replace('{unlock}', params.join(','));
+      microserviceEndpoints.events.eventPocsUnlocked.replace(':userId', pocId).replace('{unlock}', params.join(',').toLowerCase());
+    console.log(url)
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (!data || error) {
+      console.log(data, error)
       throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
     return {
-      ...data,
+      ...data.data,
       id: encrypt(data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY),
     };
   }
