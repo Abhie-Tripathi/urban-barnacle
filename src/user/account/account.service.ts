@@ -54,7 +54,7 @@ export class AccountService {
     private readonly userDataService: UserDataService,
     private readonly intentDataService: IntentDataService,
     private readonly eventService: EventsService,
-  ) { }
+  ) {}
 
   async getAccountCompany(user: TCachedUser) {
     const company = await this.companyDataService.getCompany({
@@ -67,23 +67,24 @@ export class AccountService {
     return comment;
   }
   async getSavedEvent(user: TCachedUser, query: GetBookmarkedEventDto) {
-    const [savedEvents, count] =
-      await Promise.all([this.intentDataService.getUserEventInterest({
+    const [savedEvents, count] = await Promise.all([
+      this.intentDataService.getUserEventInterest({
         interest: ['BOOKMARK'],
         sourceModule: { in: ['TRACKER', 'RESEARCH'] },
         // interestedUserId: user.id,
         accountId: user.accountId,
         limit: query.limit,
         offset: query.offset,
-      }), this.intentDataService.getUserEventInterestCountForBookmark({
+      }),
+      this.intentDataService.getUserEventInterestCountForBookmark({
         interest: ['BOOKMARK'],
         sourceModule: { in: ['TRACKER', 'RESEARCH'] },
         // interestedUserId: user.id,
         accountId: user.accountId,
         limit: query.limit,
         offset: query.offset,
-      })])
-      ;
+      }),
+    ]);
     const savedEventsIds = savedEvents.map((item) => item.eventId);
     if (savedEventsIds.length === 0) {
       return [];
@@ -137,10 +138,10 @@ export class AccountService {
       offset: offset,
     })) as any;
     const enquiryCount = events.count;
-    const selectedEnquiries = events.events.map((event) => {
-      const enquiry = enquiries.find(
-        (enquiry) => enquiry.eventId === event.basic.id,
-      );
+    const selectedEnquiries = eventIds.map((eventId, index) => {
+      // const selectedEnquiries = events.events.map((event) => {
+      const event = events.events.find((event) => event.basic.id === eventId);
+      const enquiry = enquiries[index];
       return {
         ...enquiry,
         eventData: {
@@ -212,15 +213,15 @@ export class AccountService {
         ]);
         const owner = enquiry.owner
           ? {
-            id: enquiry.owner.id,
-            name: getNameFromEmail(
-              enquiry.owner.email,
-              enquiry.owner.firstname,
-              enquiry.owner.lastname,
-            ),
-            email: enquiry.owner.email,
-            imageUrl: enquiry.owner.imageUrl,
-          }
+              id: enquiry.owner.id,
+              name: getNameFromEmail(
+                enquiry.owner.email,
+                enquiry.owner.firstname,
+                enquiry.owner.lastname,
+              ),
+              email: enquiry.owner.email,
+              imageUrl: enquiry.owner.imageUrl,
+            }
           : null;
         const interestCounts = {
           total: 0,
@@ -397,9 +398,9 @@ export class AccountService {
       }),
       params.groupBy === UserInterestsGroupBy.status
         ? this.enquiryService.getEnquiryCount({
-          accountId: user.accountId,
-          groupBy: params.groupBy,
-        })
+            accountId: user.accountId,
+            groupBy: params.groupBy,
+          })
         : null,
     ]);
     let response = {};
@@ -435,11 +436,11 @@ export class AccountService {
         };
         const groupedInterestsByStatus = enquiryCount
           ? (
-            enquiryCount as Array<{ status: string; _count: { id: number } }>
-          ).reduce((acc, curr) => {
-            acc[curr.status.toLowerCase()] = curr._count.id;
-            return acc;
-          }, defaultStatusCount)
+              enquiryCount as Array<{ status: string; _count: { id: number } }>
+            ).reduce((acc, curr) => {
+              acc[curr.status.toLowerCase()] = curr._count.id;
+              return acc;
+            }, defaultStatusCount)
           : null;
         response = {
           ...groupedInterestsByStatus,
