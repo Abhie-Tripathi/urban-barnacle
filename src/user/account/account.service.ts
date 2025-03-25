@@ -138,28 +138,33 @@ export class AccountService {
       offset: offset,
     })) as any;
     const enquiryCount = events.count;
-    const selectedEnquiries = eventIds.map((eventId, index) => {
-      // const selectedEnquiries = events.events.map((event) => {
-      const event = events.events.find((event) => event.basic.id === eventId);
-      const enquiry = enquiries[index];
-      return {
-        ...enquiry,
-        eventData: {
-          eventId: event.basic.id,
-          name: event.basic.name,
-          startDate: event.basic.startDateTime,
-          endDate: event.basic.endDateTime,
-          logoUrl: event.basic.logoUrl!,
-          website: event.basic.website!,
-          organizerName: event.basic.organizer?.name,
-          location: {
-            cityName: event.basic.eventLocation?.city?.name,
-            stateName: event.basic.eventLocation?.state?.name,
-            countryName: event.basic.eventLocation?.country?.name,
+    const selectedEnquiries = eventIds
+      .map((eventId, index) => {
+        // const selectedEnquiries = events.events.map((event) => {
+        const event = events.events.find((event) => event.basic.id === eventId);
+        const enquiry = enquiries[index];
+        if (!event || !enquiry) {
+          return null;
+        }
+        return {
+          ...enquiry,
+          eventData: {
+            eventId: event.basic.id,
+            name: event.basic.name,
+            startDate: event.basic.startDateTime,
+            endDate: event.basic.endDateTime,
+            logoUrl: event.basic.logoUrl!,
+            website: event.basic.website!,
+            organizerName: event.basic.organizer?.name,
+            location: {
+              cityName: event.basic.eventLocation?.city?.name,
+              stateName: event.basic.eventLocation?.state?.name,
+              countryName: event.basic.eventLocation?.country?.name,
+            },
           },
-        },
-      };
-    });
+        };
+      })
+      .filter((item) => item !== null);
     // return selectedEnquiries;
     // const [enquiries, enquiryCount] = await Promise.all([
     //   this.enquiryService.getEnquiries({
