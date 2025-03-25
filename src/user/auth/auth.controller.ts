@@ -104,7 +104,7 @@ export class AuthController {
       const data = await this.authService.authenticateUserFromToken(source, body);
       const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
       reply.cookie(key, data.user.token);
-      return { data: { user: { ...data.user.userData, isNewUser: data.isNewUser } } };
+      return { data: { user: { ...data.user.userData, isNewUser: data.isNewUser, industryExist: data.industryExist } } };
     } catch (error) {
       return { error: error };
     }

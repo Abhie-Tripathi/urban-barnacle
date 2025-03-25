@@ -357,6 +357,7 @@ export class AuthService {
 
   async authenticateUserFromToken(source: SourceDto, body: AuthenticatDto) {
     const response = await this.authDataService.authenticateUserFromToken(source, body);
+    console.log({ response });
     if (0 === response.status.code && response.message.toLowerCase().includes('invalid')) {
       throw new HttpException(`Invalid token`, HttpStatus.BAD_REQUEST);
     }
@@ -553,7 +554,8 @@ export class AuthService {
           accountConfigurationId: account.configurationId,
           currentSubscriptionId: account.currentSubscriptionId,
         }),
-        isNewUser: true
+        isNewUser: true,
+        industryExist: user.industry && user.industry.length > 3 ? true : false
       };
     }
   }
