@@ -127,48 +127,95 @@ export class AuthDataService {
         "data": any
       };
     }
-    else if (sourceDto.source === 'google' && body.accessToken) { return await this.fetchUserFromGoogle(body.accessToken) }
-    // else if (sourceDto.source === 'linkedin' && body.accessToken) { }
+    else if (sourceDto.source === 'google' && body.accessToken) { return await this.getGoogleUser(body.accessToken) }
+    else if (sourceDto.source === 'linkedin' && body.accessToken) {
+      return await this.getLinkedInUser(body.accessToken);
+    }
     const responseToreturn: { status: { code: number }, message: string, data: any } = { status: { code: 0 }, message: "invalid user", data: {} };
     return responseToreturn;
   }
-  async fetchUserFromGoogle(accessToken: string) {
-    const request = await fetch(`https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=${accessToken}`);
+  async getGoogleUser(accessToken: string) {
+    const request = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
     const response: {
-      error_description: string
+      error_description: string,
+      error: string
     } | {
-      iss: string,
-      azp: string,
-      aud: string,
       sub: string,
       hd: string,
       email: string,
       email_verified: string,
-      at_hash: string,
       name: string,
       picture: string,
       given_name: string,
       family_name: string,
-      iat: string,
-      exp: string,
-      alg: string,
-      kid: string,
-      typ: string
     } = await request.json();
+    console.log({ response });
     const responseToreturn: { status: { code: number }, message: string, data: any } = { status: { code: 1 }, message: "valid user", data: {} };
-    if (response['error_description'] || response['email_verified'] !== 'true') {
+    if (response['error_description'] && response['email_verified'] !== 'true') {
       responseToreturn.status.code = 0;
       responseToreturn.message = response['error_description'];
       return responseToreturn;
     }
+
     responseToreturn.data = {
       name: response['name'],
       email: response['email'],
       profilepicture: response['picture'],
+      socialId: { googleUserId: response['sub'] }
     }
     return responseToreturn;
   }
+  async getLinkedInUser(accessToken: string) {
+    const request = await fetch('https://api.linkedin.com/v2/userinfo', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
+    if (!request.ok) {
+      console.log('Failed to fetch LinkedIn user');
+      // throw new Error('Failed to fetch LinkedIn user');
+    }
+
+    const response: {
+      status: number, serviceErrorCode: number, code: string, message: string
+    } | {
+      sub: string,
+      email_verified: string,
+      name: string,
+      locale: {
+        country: string,
+        language: string
+      },
+      given_name: string,
+      family_name: string,
+      email: string,
+      picture: string
+    } = await request.json();
+    console.log({ response });
+    const responseToreturn: { status: { code: number }, message: string, data: any } = { status: { code: 1 }, message: "valid user", data: {} };
+    if (response['serviceErrorCode'] && response['email_verified'] !== 'true') {
+      responseToreturn.status.code = 0;
+      responseToreturn.message = response['message'];
+      return responseToreturn;
+    }
+
+    responseToreturn.data = {
+      name: response['name'],
+      email: response['email'],
+      profilepicture: response['picture'],
+      socialId: { linkedInUserId: response['sub'] }
+    }
+    return responseToreturn;
+  }
   async fetchImageFromOtherDomian(imageUrlstring: string, userId) {
     const response = await fetch(imageUrlstring);
 
