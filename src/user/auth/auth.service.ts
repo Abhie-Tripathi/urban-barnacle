@@ -405,6 +405,10 @@ export class AuthService {
         const updatedUser = await this.userDataService.updateUser({
           id: user.id,
           currentOnboardingState: OnboardingState.COMPLETED,
+          socialIds: {
+            google: source.source === 'google' && response.socialId ? response.socialId['userId'] : (user.socialIds as any)['google']
+            , linkedin: source.source === 'linkedin' && response.socialId ? response.socialId['userId'] : (user.socialIds as any)['linkedin']
+          }
         });
         userDetail = updatedUser;
       } else {
@@ -497,6 +501,10 @@ export class AuthService {
           primaryCompanyId: company?.id,
           accountId: account.id,
           primaryAccountId: account.id,
+          socialIds: {
+            google: source.source === 'google' && response.socialId ? response.socialId['userId'] : undefined
+            , linkedin: source.source === 'linkedin' && response.socialId ? response.socialId['userId'] : undefined
+          }
         });
         if (data.profilepicture && data.profilepicture.length > 5) {
           const profilepicture = await this.authDataService.fetchImageFromOtherDomian(data.profilepicture, user.id);

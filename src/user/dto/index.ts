@@ -11,6 +11,12 @@ import { LimitSchema } from 'src/global_dto';
 import { UpdateMeSchema } from '../me/dto/update.dto';
 import { GeoJsonSchema } from 'src/utils/types';
 
+
+export const SocialIdsSchema = z.object({
+  google: z.string().optional(),
+  linkedin: z.string().optional(),
+});
+export type SocialIdsStructure = z.infer<typeof SocialIdsSchema>;
 const CreateUserSchema = SignUpSchema.extend({
   firstname: z.string().optional(),
   lastname: z.string().optional(),
@@ -24,6 +30,7 @@ const CreateUserSchema = SignUpSchema.extend({
     .default('VERIFICATION')
     .optional(),
   source: z.nativeEnum(UserSource).optional(),
+  socialIds: SocialIdsSchema.optional(),
 });
 
 export class CreateUserDto extends createZodDto(CreateUserSchema) { }
@@ -40,7 +47,6 @@ const GetUsersSchema = GetUserHttpSchema.extend({
 });
 
 export class GetUsersDto extends createZodDto(GetUsersSchema) { }
-
 const UpdateUserSchema = UpdateMeSchema.extend({
   id: z.string().uuid(),
   companyId: z.string().uuid().optional(),
@@ -57,6 +63,7 @@ const UpdateUserSchema = UpdateMeSchema.extend({
   firstname: z.string().optional(),
   lastname: z.string().optional(),
   profileImageId: z.string().optional(),
+  socialIds: SocialIdsSchema.optional(),
 }).strict();
 
 export class UpdateUserDto extends createZodDto(UpdateUserSchema) { }
