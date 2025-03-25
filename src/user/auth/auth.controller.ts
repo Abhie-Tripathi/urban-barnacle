@@ -3,12 +3,13 @@ import {
   Controller,
   HttpException,
   HttpStatus,
+  Param,
   Post,
   Res,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { AuthenticatDto, SignInDto, SignUpDto, VerifyAccessDto, VerifyOtpDto } from './dto';
+import { AuthenticatDto, SignInDto, SignUpDto, SourceDto, VerifyAccessDto, VerifyOtpDto } from './dto';
 import { FastifyReply } from 'fastify';
 import { Prisma } from '@prisma/client';
 import { GetUser } from '../decorator';
@@ -97,13 +98,13 @@ export class AuthController {
       return { error: error };
     }
   }
-  @Post('10times/sso')
-  async authenticateUserFromToken(@Body() body: AuthenticatDto, @Res({ passthrough: true }) reply: FastifyReply) {
+  @Post(':source/sso')
+  async authenticateUserFromToken(@Param() source: SourceDto, @Body() body: AuthenticatDto, @Res({ passthrough: true }) reply: FastifyReply) {
     try {
-      const data = await this.authService.authenticateUserFromToken(body);
+      const data = await this.authService.authenticateUserFromToken(source, body);
       const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
       reply.cookie(key, data.user.token);
-      return { data: { user: data.user.userData } };
+      return { data: { user: { ...data.user.userData, isNewUser: data.isNewUser } } };
     } catch (error) {
       return { error: error };
     }

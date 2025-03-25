@@ -22,7 +22,7 @@ export class EventsService {
     private readonly eventsDataService: EventsDataService,
     private readonly sharedService: SharedService,
     private readonly intentDataService: IntentDataService,
-  ) {}
+  ) { }
 
   async createLogForEncryptedQuery(query: QueryDto, user: TCachedUser) {
     await this.eventsDataService.createLogForEncryptedQuery(
@@ -262,7 +262,9 @@ export class EventsService {
   async getEventPolygons(eventId: string) {
     return await this.eventsDataService.getEventPolygons(eventId);
   }
-
+  async getEventIntelScore(eventId: string, user: TCachedUser) {
+    return await this.eventsDataService.getEventIntelScore(eventId,user);
+  }
   async getEventsTrends(query: EventsTrendsDto) {
     const nonEmptyParams = getNonEmptyParams(query);
     const convertedParams = await this.sharedService.convertSlugParamsToIds(

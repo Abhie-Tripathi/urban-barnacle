@@ -3,10 +3,11 @@ import { EventsController } from './events.controller';
 import { EventsService } from './events.service';
 import { EventsDataService } from './events.data.service';
 import { IntentDataService } from 'src/intent/intent.data.service';
+import { TrackerDataService } from 'src/tracker/tracker.data.service';
 
 @Module({
   controllers: [EventsController],
-  providers: [EventsService, EventsDataService, IntentDataService],
+  providers: [EventsService, EventsDataService, IntentDataService, TrackerDataService],
   exports: [EventsService, EventsDataService],
 })
 export class EventsModule { }

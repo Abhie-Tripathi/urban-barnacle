@@ -56,6 +56,7 @@ const UpdateUserSchema = UpdateMeSchema.extend({
     .optional(),
   firstname: z.string().optional(),
   lastname: z.string().optional(),
+  profileImageId: z.string().optional(),
 }).strict();
 
 export class UpdateUserDto extends createZodDto(UpdateUserSchema) { }
