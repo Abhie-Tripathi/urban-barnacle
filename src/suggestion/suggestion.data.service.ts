@@ -162,11 +162,15 @@ export class SuggestionDataService {
         microserviceEndpoints.suggestions.designations +
         '?' +
         searchQuery.toString();
+      console.log(url);
       const response = await fetch(url);
       const { data, error } = await response.json();
       if (error) {
         throw new HttpException(error, HttpStatus.BAD_REQUEST);
       }
+      if (dto.isDepartment ||
+        dto.isRole ||
+        dto.isDesignation) { return data }
       return data.map((designation: any) =>
         CategoryResponseSchema.parse(designation),
       );
