@@ -7,9 +7,17 @@ export const CategorySchema = SuggestionSchema.extend({
     .string()
     .transform((slugs) => slugs.split(','))
     .optional(),
+  isDepartment: z
+    .string()
+    .optional(),
+  isRole: z
+    .string()
+    .optional(),
+  isDesignation: z
+    .string().optional(),
 });
 
-export class CategoryDto extends createZodDto(CategorySchema) {}
+export class CategoryDto extends createZodDto(CategorySchema) { }
 
 export const CategoryResponseSchema = z.object({
   id: z.string().uuid(),
@@ -18,4 +26,4 @@ export const CategoryResponseSchema = z.object({
   id_10x: z.number().nullable(),
 });
 
-export class CategoryResponseDto extends createZodDto(CategoryResponseSchema) {}
+export class CategoryResponseDto extends createZodDto(CategoryResponseSchema) { }

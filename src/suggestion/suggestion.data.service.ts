@@ -31,7 +31,7 @@ export class SuggestionDataService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   async getLocations(dto: LocationDto): Promise<LocationResponseDto> {
     try {
@@ -149,6 +149,9 @@ export class SuggestionDataService {
         skip: dto.offset,
         name: dto.query,
         slugs: dto.slugs,
+        isDepartment: dto.isDepartment,
+        isRole: dto.isRole,
+        isDesignation: dto.isDesignation,
       };
       const nonEmptyParams = getNonEmptyParams(params);
       const searchQuery = new URLSearchParams(
