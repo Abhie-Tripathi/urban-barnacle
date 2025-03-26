@@ -52,7 +52,7 @@ export class SuggestionController {
         'designations',
         dto,
       );
-      return { data: { designations } };
+      return { data: designations['role'] ? designations : { designations } };
     } catch (error) {
       return { error: new HttpException(error, HttpStatus.BAD_REQUEST) };
     }
