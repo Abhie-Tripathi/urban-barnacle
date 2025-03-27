@@ -26,6 +26,9 @@ const prospectSchema = LimitSchema.extend({
     userJobTitle: z.string().optional(),
     userSocialLink: z.string().optional(),
     userId: z.string().optional(),
+    userRoleIds: z.string().optional(),
+    userDepartmentIds: z.string().optional(),
+    userDesignationIds: z.string().optional(),
 }).refine((data) => {
     const { userId, companyId, ...rest } = data;
     if (userId || companyId) {
