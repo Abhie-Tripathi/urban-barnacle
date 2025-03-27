@@ -553,6 +553,13 @@ export const QueryFilter = z.object({
     )
     .transform((val) => val.split(',').map((item) => item.toUpperCase()))
     .optional(),
+  countries: z
+    .string()
+    .transform((data) => {
+      if (!data) return [];
+      return data?.split(',').map((item) => item.trim());
+    })
+    .optional(),
 });
 
 export const FilterNames = Object.keys(QueryFilter.shape);
