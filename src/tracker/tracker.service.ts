@@ -61,6 +61,9 @@ export class TrackerService {
       sourceEntity: 'TRACKER',
       sourceEntityId: tracker.id,
     });
+    this.getTrackerResponse(user, tracker, {
+      refresh: true,
+    });
     return tracker;
   }
 
@@ -126,7 +129,7 @@ export class TrackerService {
         // groupBy,
       );
 
-      tracker.filterValues = await this.sharedService.convertIdParamsToSlug(
+      filterValues = await this.sharedService.convertIdParamsToSlug(
         tracker.filterValues,
       );
       await this.cacheManager.set(
@@ -139,7 +142,7 @@ export class TrackerService {
       id: tracker.id,
       name: tracker.name,
       type: tracker.type,
-      filterValues: tracker.filterValues,
+      filterValues: filterValues,
     };
     return {
       ...trackerValues,
