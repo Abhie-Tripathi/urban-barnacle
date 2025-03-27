@@ -22,7 +22,7 @@ export class EventsService {
     private readonly eventsDataService: EventsDataService,
     private readonly sharedService: SharedService,
     private readonly intentDataService: IntentDataService,
-  ) { }
+  ) {}
 
   async createLogForEncryptedQuery(query: QueryDto, user: TCachedUser) {
     await this.eventsDataService.createLogForEncryptedQuery(
@@ -88,7 +88,11 @@ export class EventsService {
     let events = fetchedEvents;
     if (['list', 'tracker'].includes(query.view)) {
       let userInterests = {};
-      if (user) {
+      if (
+        user &&
+        (!query.eventTypes ||
+          (query.eventTypes.length > 0 && !query.eventTypes.includes('alert')))
+      ) {
         userInterests = await this.getGroupedEventInterests(
           user,
           events.events.map((event) => event.basic.id),
@@ -110,7 +114,14 @@ export class EventsService {
           //     }
           //   : { interests: userInterests[event.id] }),
           ...event,
-          interests: userInterests[event.basic.id],
+          interests:
+            Object.keys(userInterests).length > 0
+              ? userInterests[event.basic.id]
+              : !query.eventTypes ||
+                  (query.eventTypes.length > 0 &&
+                    !query.eventTypes.includes('alert'))
+                ? []
+                : undefined,
         };
       }) as any;
       events = {
@@ -263,7 +274,7 @@ export class EventsService {
     return await this.eventsDataService.getEventPolygons(eventId);
   }
   async getEventIntelScore(eventId: string, user: TCachedUser) {
-    return await this.eventsDataService.getEventIntelScore(eventId,user);
+    return await this.eventsDataService.getEventIntelScore(eventId, user);
   }
   async getEventsTrends(query: EventsTrendsDto) {
     const nonEmptyParams = getNonEmptyParams(query);
