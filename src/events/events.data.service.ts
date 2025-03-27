@@ -249,14 +249,14 @@ export class EventsDataService {
     return data;
   }
   async createTrackerPayloadForIntelScore(user: TCachedUser) {
-    const [speakerCount, peopleCount, keywordCount, competitorCount] = await Promise.all([
-      this.trackerDataService.getTrackersCount(user, { limit: 10, offset: 0, type: 'trackers', subType: 'T_SPEAKING_OPPORTUNITY' }),
+    const [peopleCount, keywordCount, competitorCount] = await Promise.all([
+      // this.trackerDataService.getTrackersCount(user, { limit: 10, offset: 0, type: 'trackers', subType: 'T_SPEAKING_OPPORTUNITY' }),
       this.trackerDataService.getTrackersCount(user, { limit: 10, offset: 0, type: 'trackers', subType: 'T_PEOPLE_FINDER' }),
       this.trackerDataService.getTrackersCount(user, { limit: 10, offset: 0, type: 'trackers', subType: 'T_PRODUCT_KEYWORDS' }),
       this.trackerDataService.getTrackersCount(user, { limit: 10, offset: 0, type: 'trackers', subType: 'T_COMPETITOR' })
     ]);
-    const [speakerAllTrackData, peopleAllTrackData, keywordAllTrackData, competitorAllTrackData] = await Promise.all([
-      this.trackerDataService.getTrackers({ limit: speakerCount, offset: 0, type: 'trackers', subType: 'T_SPEAKING_OPPORTUNITY' }, user),
+    const [peopleAllTrackData, keywordAllTrackData, competitorAllTrackData] = await Promise.all([
+      // this.trackerDataService.getTrackers({ limit: speakerCount, offset: 0, type: 'trackers', subType: 'T_SPEAKING_OPPORTUNITY' }, user),
       this.trackerDataService.getTrackers({ limit: peopleCount, offset: 0, type: 'trackers', subType: 'T_PEOPLE_FINDER' }, user),
       this.trackerDataService.getTrackers({ limit: keywordCount, offset: 0, type: 'trackers', subType: 'T_PRODUCT_KEYWORDS' }, user),
       this.trackerDataService.getTrackers({ limit: competitorCount, offset: 0, type: 'trackers', subType: 'T_COMPETITOR' }, user)
@@ -267,14 +267,14 @@ export class EventsDataService {
       keywordBody?: { includeKeywords?: string, excludeKeywords?: string },
       competitorBody?: { competitorWebsiteNames?: string, competitorCompanyName?: string },
     } = {};
-    if (speakerAllTrackData.length > 0) {
-      requestBody.speakerBody = { speakerCompanyName: '', speakerNames: '' };
-      speakerAllTrackData.forEach(tracker => {
-        const filterValues: any = tracker.filterValues;
-        requestBody.speakerBody!.speakerCompanyName += filterValues.userOrgWebsite;
-        requestBody.speakerBody!.speakerNames += filterValues.userName;
-      })
-    }
+    // if (speakerAllTrackData.length > 0) {
+    //   requestBody.speakerBody = { speakerCompanyName: '', speakerNames: '' };
+    //   speakerAllTrackData.forEach(tracker => {
+    //     const filterValues: any = tracker.filterValues;
+    //     requestBody.speakerBody!.speakerCompanyName += filterValues.userOrgWebsite;
+    //     requestBody.speakerBody!.speakerNames += filterValues.userName;
+    //   })
+    // }
     if (peopleAllTrackData.length > 0) {
       requestBody.peopleBody = { peopleCompanyName: '', peopleNames: '' };
       peopleAllTrackData.forEach(tracker => {
@@ -331,6 +331,7 @@ export class EventsDataService {
 
     const { data, error } = await response.json();
     if (!data || error) {
+      console.log( { data, error })
       throw new HttpException(error, HttpStatus.BAD_REQUEST);
     }
     return data;
