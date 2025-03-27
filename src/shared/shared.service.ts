@@ -19,6 +19,7 @@ import { SuggestionService } from 'src/suggestion/suggestion.service';
 import { UserResponseSchema } from 'src/user/me/dto';
 import {
   CachedUserSchema,
+  defaultEventTypes,
   SelectedUserDetails,
   TCachedUser,
 } from 'src/utils/types';
@@ -124,6 +125,17 @@ export class SharedService {
         throw new HttpException('Invalid location', 400);
       }
       params['locationIds'] = params.locationIds;
+      const uniqueCountries = new Set<string>();
+      locations.formattedLocations.forEach((location) => {
+        if (location.locationType === 'COUNTRY') {
+          uniqueCountries.add(location.id);
+        } else {
+          if (location.country?.id) {
+            uniqueCountries.add(location.country.id);
+          }
+        }
+      });
+      params['countries'] = Array.from(uniqueCountries);
     }
     if (params.designations && params.designations.length > 0 && validateIds) {
       const designationsSlugs = params.designations as string[];
@@ -373,7 +385,14 @@ export class SharedService {
       '',
     );
     const baseURL = process.env.MICROSERVICE_URL || '';
-    const endpoint = query.type === 'user' ? microserviceEndpoints.user.events.replace(':userId', id) : microserviceEndpoints.company.events.replace(':companyId', id);
+    const backend = process.env.BACKEND;
+    if (backend && backend in defaultEventTypes) {
+      rest['eventTypes'] = Object.values(defaultEventTypes[backend]);
+    }
+    const endpoint =
+      query.type === 'user'
+        ? microserviceEndpoints.user.events.replace(':userId', id)
+        : microserviceEndpoints.company.events.replace(':companyId', id);
     const queryString = new URLSearchParams(rest).toString();
     const url = `${baseURL}${endpoint}?${queryString}`;
     const response = await fetch(url, {
@@ -386,8 +405,17 @@ export class SharedService {
         count: data.data.count,
         events: data.data.events.map((val: any) => {
           let association: string | undefined = undefined;
-          if (val['trackerMatchInfo'] && val['trackerMatchInfo']['peopleFinderPersonAssociation'][0]) {
-            association = (val['trackerMatchInfo']['peopleFinderPersonAssociation'][0] as string).includes('speaker') ? 'SPEAKER' : 'VISITOR'
+          if (
+            val['trackerMatchInfo'] &&
+            val['trackerMatchInfo']['peopleFinderPersonAssociation'][0]
+          ) {
+            association = (
+              val['trackerMatchInfo'][
+                'peopleFinderPersonAssociation'
+              ][0] as string
+            ).includes('speaker')
+              ? 'SPEAKER'
+              : 'VISITOR';
           }
           return {
             ...val,
@@ -399,8 +427,8 @@ export class SharedService {
     } else {
       const countryData: { data: Country[] } = { data: data.data };
       return {
-        data: countryData.data
-      }
+        data: countryData.data,
+      };
     }
   }
   async getCompanyAndUserDataForProspect(

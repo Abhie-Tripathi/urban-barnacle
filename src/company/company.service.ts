@@ -5,11 +5,11 @@ import { ProspectSchemaDto } from 'src/shared/shared.dto';
 import { SharedService } from 'src/shared/shared.service';
 import { decrypt, encrypt } from 'src/utils';
 import { microserviceEndpoints } from 'src/utils/endpoints';
-import { TCachedUser } from 'src/utils/types';
+import { defaultEventTypes, TCachedUser } from 'src/utils/types';
 
 @Injectable()
 export class CompanyService {
-  constructor(private readonly sharedService: SharedService) { }
+  constructor(private readonly sharedService: SharedService) {}
   async getCompanyProspectData(query: ProspectSchemaDto, viewAs: string) {
     return await this.sharedService.getCompanyAndUserDataForProspect(
       query,
@@ -26,7 +26,14 @@ export class CompanyService {
       '',
     );
     const baseURL = process.env.MICROSERVICE_URL || '';
-    const endpoint = microserviceEndpoints.company.events.replace(":companyId", companyId);
+    const endpoint = microserviceEndpoints.company.events.replace(
+      ':companyId',
+      companyId,
+    );
+    const backend = process.env.BACKEND;
+    if (backend && backend in defaultEventTypes) {
+      query['eventTypes'] = Object.values(defaultEventTypes[backend]);
+    }
     const queryString = new URLSearchParams(query).toString();
     const url = `${baseURL}${endpoint}?${queryString}`;
     console.log(url);
@@ -44,7 +51,7 @@ export class CompanyService {
     } else {
       const countryData: { data: Country[] } = { data: data.data };
       return {
-        data: countryData.data
+        data: countryData.data,
       };
     }
   }
@@ -54,7 +61,10 @@ export class CompanyService {
       '',
     );
     const baseURL = process.env.MICROSERVICE_URL || '';
-    const endpoint = microserviceEndpoints.company.poc.replace(":companyId", companyId);
+    const endpoint = microserviceEndpoints.company.poc.replace(
+      ':companyId',
+      companyId,
+    );
     // const queryString = new URLSearchParams(query).toString();
     const url = `${baseURL}${endpoint}`;
     const response = await fetch(url, {
