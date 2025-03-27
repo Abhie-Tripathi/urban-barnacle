@@ -61,6 +61,9 @@ export class TrackerService {
       sourceEntity: 'TRACKER',
       sourceEntityId: tracker.id,
     });
+    this.getTrackerResponse(user, tracker, {
+      refresh: true,
+    });
     return tracker;
   }
 
@@ -121,13 +124,12 @@ export class TrackerService {
         {
           ...tracker.filterValues,
           createdAt: lastActive.last_active_gte,
-          ...(groupBy ? { groupBy: [groupBy] } : {}),
         } as CountQueryDto,
         groupBy ? groupBy : undefined,
         // groupBy,
       );
 
-      tracker.filterValues = await this.sharedService.convertIdParamsToSlug(
+      filterValues = await this.sharedService.convertIdParamsToSlug(
         tracker.filterValues,
       );
       await this.cacheManager.set(
@@ -140,7 +142,7 @@ export class TrackerService {
       id: tracker.id,
       name: tracker.name,
       type: tracker.type,
-      filterValues: tracker.filterValues,
+      filterValues: filterValues,
     };
     return {
       ...trackerValues,
@@ -238,19 +240,55 @@ export class TrackerService {
   }
 
   async getGroupedEventsCount(params: CountQueryDto, groupBy?: CountGroup) {
-    const data = await this.eventService.getEventsCount(params, false);
-    if (!groupBy) return data.count;
     if (groupBy === CountGroup.status) {
+      params['groupBy'] = ['status'] as CountGroup[];
+      const data = await this.eventService.getEventsCount(params, false);
       return data.count;
-    } else if (groupBy === CountGroup.eventTypeGroup && data) {
-      return data.reduce((acc, curr) => {
-        acc[curr.group_name] = {
-          total: curr.count,
-          new: curr.new ?? 0,
-        };
-        return acc;
-      }, {});
     }
+    if (groupBy === CountGroup.eventTypeGroup) {
+      const [social, business, unattended] = await Promise.all([
+        this.eventService.getEventsCount(
+          {
+            ...params,
+            eventTypeGroup: 'social',
+            groupBy: [CountGroup.eventTypeGroup],
+          },
+          false,
+        ),
+        this.eventService.getEventsCount(
+          {
+            ...params,
+            eventTypeGroup: 'business',
+            groupBy: [CountGroup.eventTypeGroup],
+          },
+          false,
+        ),
+        this.eventService.getEventsCount(
+          {
+            ...params,
+            eventTypeGroup: 'unattended',
+            groupBy: [CountGroup.eventTypeGroup],
+          },
+          false,
+        ),
+      ]);
+      return {
+        social: {
+          total: social.count,
+          new: social.new ?? 0,
+        },
+        business: {
+          total: business.count,
+          new: business.new ?? 0,
+        },
+        unattended: {
+          total: unattended.count,
+          new: unattended.new ?? 0,
+        },
+      };
+    }
+    const data = await this.eventService.getEventsCount(params, false);
+    return data.count;
   }
 
   async updateTracker(
