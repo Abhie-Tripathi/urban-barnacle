@@ -27,7 +27,7 @@ export class EventsController {
   constructor(
     private readonly eventsService: EventsService,
     private readonly sharedService: SharedService,
-  ) { }
+  ) {}
 
   @UseGuards(AuthGuard)
   @Get()
@@ -51,7 +51,9 @@ export class EventsController {
         point - 1,
       );
       flag = true;
-      this.eventsService.createLogForEncryptedQuery(query, user);
+      if (query.view !== 'map') {
+        this.eventsService.createLogForEncryptedQuery(query, user);
+      }
       return { data: events };
     } catch (error) {
       if (flag)
@@ -210,7 +212,10 @@ export class EventsController {
   }
   @UseGuards(AuthGuard)
   @Get(':id/intelScore')
-  async getEventIntelScore(@Param('id') id: string, @GetUser() user: TCachedUser) {
+  async getEventIntelScore(
+    @Param('id') id: string,
+    @GetUser() user: TCachedUser,
+  ) {
     try {
       const polygons = await this.eventsService.getEventIntelScore(id, user);
       return { data: polygons };
