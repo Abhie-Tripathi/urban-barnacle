@@ -581,6 +581,22 @@ export const QuerySchema = LimitSchemaWithoutDefault.extend(QueryFilter.shape)
     view: z.nativeEnum(View).optional().default(View.list),
     calendar_type: z.nativeEnum(CalendarViewType).optional(),
     trackerId: z.string().optional(),
+    save: z
+      .string()
+      .refine((val) => ['true', 'false'].includes(val), {
+        message: 'Invalid save option',
+        params: { validOptions: ['true', 'false'].join(', ') },
+      })
+      .transform((val) => (val === 'true' ? true : false))
+      .optional(),
+
+    requestSource: z
+      .string()
+      .refine((val) => ['research', 'trends'].includes(val), {
+        message: 'Invalid request source',
+        params: { validOptions: ['research', 'trends'].join(', ') },
+      })
+      .optional(),
   })
   .transform((data) => {
     // const intersectedKeys = Object.keys(data).filter((key) =>

@@ -16,6 +16,7 @@ import { eventSearchFilterCheck, transformEventData } from './global.service';
 import { IntentDataService } from 'src/intent/intent.data.service';
 import { LimitDto } from 'src/global_dto';
 import { AccountService } from 'src/user/account/account.service';
+import { UserActivitySource } from '@prisma/client';
 @Injectable()
 export class EventsService {
   constructor(
@@ -25,9 +26,13 @@ export class EventsService {
   ) {}
 
   async createLogForEncryptedQuery(query: QueryDto, user: TCachedUser) {
+    const { save, requestSource, ...rest } = query;
     await this.eventsDataService.createLogForEncryptedQuery(
-      encrypt(JSON.stringify(query)),
+      encrypt(JSON.stringify(rest)),
       user,
+      requestSource
+        ? (requestSource.toUpperCase() as UserActivitySource)
+        : 'RESEARCH',
     );
   }
   async getAllEvents(

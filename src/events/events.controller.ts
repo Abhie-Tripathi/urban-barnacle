@@ -51,7 +51,7 @@ export class EventsController {
         point - 1,
       );
       flag = true;
-      if (query.view !== 'map') {
+      if (query.view !== 'map' && (query.save === undefined || query.save)) {
         this.eventsService.createLogForEncryptedQuery(query, user);
       }
       return { data: events };

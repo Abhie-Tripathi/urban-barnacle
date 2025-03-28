@@ -334,15 +334,21 @@ enum ExportFileType {
 
 // discuss request table name
 model UserActivity {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String              @id @default(uuid()) @db.Uuid
   request   Json
   path      String
-  userId    String   @db.Uuid
-  accountId String?  @db.Uuid
-  account   Account? @relation(fields: [accountId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: NoAction)
+  source    UserActivitySource?
+  userId    String              @db.Uuid
+  accountId String?             @db.Uuid
+  account   Account?            @relation(fields: [accountId], references: [id])
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  user      User                @relation(fields: [userId], references: [id], onDelete: NoAction)
+}
+
+enum UserActivitySource {
+  RESEARCH
+  TRENDS
 }
 
 model ApiLogs {

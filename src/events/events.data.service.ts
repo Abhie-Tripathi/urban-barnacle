@@ -8,7 +8,12 @@ import {
   EventDataDto,
   Show,
 } from './dto';
-import { Export, Prisma, UnlockValue } from '@prisma/client';
+import {
+  Export,
+  Prisma,
+  UnlockValue,
+  UserActivitySource,
+} from '@prisma/client';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { ConfigService } from '@nestjs/config';
 import { CreateExportDto } from 'src/exports/dto';
@@ -25,13 +30,18 @@ export class EventsDataService {
     private readonly trackerDataService: TrackerDataService,
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-  ) { }
-  async createLogForEncryptedQuery(encryption: string, user: TCachedUser) {
+  ) {}
+  async createLogForEncryptedQuery(
+    encryption: string,
+    user: TCachedUser,
+    requestSource: UserActivitySource,
+  ) {
     const previousActivity = await this.prisma.userActivity.findFirst({
       where: {
         accountId: user.accountId,
         userId: user.id,
         path: '/events',
+        source: requestSource,
         request: { equals: { data: encryption } },
       },
       select: {
@@ -50,6 +60,7 @@ export class EventsDataService {
         data: {
           path: '/events',
           request: { data: encryption },
+          source: requestSource,
           account: { connect: { id: user.accountId } },
           user: { connect: { id: user.id } },
         },
@@ -249,48 +260,116 @@ export class EventsDataService {
     return data;
   }
   async createTrackerPayloadForIntelScore(user: TCachedUser) {
-    const [speakerCount, peopleCount, keywordCount, competitorCount] = await Promise.all([
-      this.trackerDataService.getTrackersCount(user, { limit: 10, offset: 0, type: 'trackers', subType: 'T_SPEAKING_OPPORTUNITY' }),
-      this.trackerDataService.getTrackersCount(user, { limit: 10, offset: 0, type: 'trackers', subType: 'T_PEOPLE_FINDER' }),
-      this.trackerDataService.getTrackersCount(user, { limit: 10, offset: 0, type: 'trackers', subType: 'T_PRODUCT_KEYWORDS' }),
-      this.trackerDataService.getTrackersCount(user, { limit: 10, offset: 0, type: 'trackers', subType: 'T_COMPETITOR' })
-    ]);
-    const [speakerAllTrackData, peopleAllTrackData, keywordAllTrackData, competitorAllTrackData] = await Promise.all([
-      this.trackerDataService.getTrackers({ limit: speakerCount, offset: 0, type: 'trackers', subType: 'T_SPEAKING_OPPORTUNITY' }, user),
-      this.trackerDataService.getTrackers({ limit: peopleCount, offset: 0, type: 'trackers', subType: 'T_PEOPLE_FINDER' }, user),
-      this.trackerDataService.getTrackers({ limit: keywordCount, offset: 0, type: 'trackers', subType: 'T_PRODUCT_KEYWORDS' }, user),
-      this.trackerDataService.getTrackers({ limit: competitorCount, offset: 0, type: 'trackers', subType: 'T_COMPETITOR' }, user)
+    const [speakerCount, peopleCount, keywordCount, competitorCount] =
+      await Promise.all([
+        this.trackerDataService.getTrackersCount(user, {
+          limit: 10,
+          offset: 0,
+          type: 'trackers',
+          subType: 'T_SPEAKING_OPPORTUNITY',
+        }),
+        this.trackerDataService.getTrackersCount(user, {
+          limit: 10,
+          offset: 0,
+          type: 'trackers',
+          subType: 'T_PEOPLE_FINDER',
+        }),
+        this.trackerDataService.getTrackersCount(user, {
+          limit: 10,
+          offset: 0,
+          type: 'trackers',
+          subType: 'T_PRODUCT_KEYWORDS',
+        }),
+        this.trackerDataService.getTrackersCount(user, {
+          limit: 10,
+          offset: 0,
+          type: 'trackers',
+          subType: 'T_COMPETITOR',
+        }),
+      ]);
+    const [
+      speakerAllTrackData,
+      peopleAllTrackData,
+      keywordAllTrackData,
+      competitorAllTrackData,
+    ] = await Promise.all([
+      this.trackerDataService.getTrackers(
+        {
+          limit: speakerCount,
+          offset: 0,
+          type: 'trackers',
+          subType: 'T_SPEAKING_OPPORTUNITY',
+        },
+        user,
+      ),
+      this.trackerDataService.getTrackers(
+        {
+          limit: peopleCount,
+          offset: 0,
+          type: 'trackers',
+          subType: 'T_PEOPLE_FINDER',
+        },
+        user,
+      ),
+      this.trackerDataService.getTrackers(
+        {
+          limit: keywordCount,
+          offset: 0,
+          type: 'trackers',
+          subType: 'T_PRODUCT_KEYWORDS',
+        },
+        user,
+      ),
+      this.trackerDataService.getTrackers(
+        {
+          limit: competitorCount,
+          offset: 0,
+          type: 'trackers',
+          subType: 'T_COMPETITOR',
+        },
+        user,
+      ),
     ]);
     const requestBody: {
-      speakerBody?: { speakerNames: string, speakerCompanyName: string },
-      peopleBody?: { peopleNames: string, peopleCompanyName: string },
-      keywordBody?: { includeKeywords?: string, excludeKeywords?: string },
-      competitorBody?: { competitorWebsiteNames?: string, competitorCompanyName?: string },
+      speakerBody?: { speakerNames: string; speakerCompanyName: string };
+      peopleBody?: { peopleNames: string; peopleCompanyName: string };
+      keywordBody?: { includeKeywords?: string; excludeKeywords?: string };
+      competitorBody?: {
+        competitorWebsiteNames?: string;
+        competitorCompanyName?: string;
+      };
     } = {};
     if (speakerAllTrackData.length > 0) {
       requestBody.speakerBody = { speakerCompanyName: '', speakerNames: '' };
-      speakerAllTrackData.forEach(tracker => {
+      speakerAllTrackData.forEach((tracker) => {
         const filterValues: any = tracker.filterValues;
-        requestBody.speakerBody!.speakerCompanyName += filterValues.userOrgWebsite;
+        requestBody.speakerBody!.speakerCompanyName +=
+          filterValues.userOrgWebsite;
         requestBody.speakerBody!.speakerNames += filterValues.userName;
-      })
+      });
     }
     if (peopleAllTrackData.length > 0) {
       requestBody.peopleBody = { peopleCompanyName: '', peopleNames: '' };
-      peopleAllTrackData.forEach(tracker => {
+      peopleAllTrackData.forEach((tracker) => {
         const filterValues: any = tracker.filterValues;
-        requestBody.peopleBody!.peopleCompanyName += filterValues.userOrgWebsite;
+        requestBody.peopleBody!.peopleCompanyName +=
+          filterValues.userOrgWebsite;
         requestBody.peopleBody!.peopleNames += filterValues.userName;
-      })
+      });
     }
     if (competitorAllTrackData.length > 0) {
-      requestBody.competitorBody = { competitorCompanyName: '', competitorWebsiteNames: '' };
-      competitorAllTrackData.forEach(tracker => {
+      requestBody.competitorBody = {
+        competitorCompanyName: '',
+        competitorWebsiteNames: '',
+      };
+      competitorAllTrackData.forEach((tracker) => {
         const filterValues: any = tracker.filterValues;
         if (filterValues.orgName)
-          requestBody.competitorBody!.competitorCompanyName += filterValues.orgName;
+          requestBody.competitorBody!.competitorCompanyName +=
+            filterValues.orgName;
         if (filterValues.orgWebsite)
-          requestBody.competitorBody!.competitorWebsiteNames += filterValues.orgWebsite;
+          requestBody.competitorBody!.competitorWebsiteNames +=
+            filterValues.orgWebsite;
       });
       if (requestBody.competitorBody.competitorCompanyName?.length === 0) {
         requestBody.competitorBody.competitorCompanyName = undefined;
@@ -301,12 +380,14 @@ export class EventsDataService {
     }
     if (keywordAllTrackData.length > 0) {
       requestBody.keywordBody = { includeKeywords: '', excludeKeywords: '' };
-      keywordAllTrackData.forEach(tracker => {
+      keywordAllTrackData.forEach((tracker) => {
         const filterValues: any = tracker.filterValues;
         if (filterValues.includeKeywords)
-          requestBody.keywordBody!.includeKeywords += filterValues.includeKeywords;
+          requestBody.keywordBody!.includeKeywords +=
+            filterValues.includeKeywords;
         if (filterValues.excludeKeywords)
-          requestBody.keywordBody!.excludeKeywords += filterValues.excludeKeywords;
+          requestBody.keywordBody!.excludeKeywords +=
+            filterValues.excludeKeywords;
       });
       if (requestBody.keywordBody.includeKeywords?.length === 0) {
         requestBody.keywordBody.includeKeywords = undefined;
@@ -323,7 +404,7 @@ export class EventsDataService {
       microserviceEndpoints.events.eventIntelScore.replace(':eventId', eventId);
     const response = await fetch(url, {
       method: 'POST',
-      body: JSON.stringify((await this.createTrackerPayloadForIntelScore(user))),
+      body: JSON.stringify(await this.createTrackerPayloadForIntelScore(user)),
       headers: {
         'Content-Type': 'application/json',
       },
