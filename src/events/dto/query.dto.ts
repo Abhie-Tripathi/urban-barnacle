@@ -564,6 +564,8 @@ export const QueryFilter = z.object({
 
 export const FilterNames = Object.keys(QueryFilter.shape);
 
+export class QueryFilterDto extends createZodDto(QueryFilter) {}
+
 export const QuerySchema = LimitSchemaWithoutDefault.extend(QueryFilter.shape)
   .extend({
     sortBy: z
