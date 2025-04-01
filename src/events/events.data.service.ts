@@ -8,7 +8,12 @@ import {
   EventDataDto,
   Show,
 } from './dto';
-import { Export, Prisma, UnlockValue } from '@prisma/client';
+import {
+  Export,
+  Prisma,
+  UnlockValue,
+  UserActivitySource,
+} from '@prisma/client';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { ConfigService } from '@nestjs/config';
 import { CreateExportDto } from 'src/exports/dto';
@@ -26,12 +31,17 @@ export class EventsDataService {
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
   ) {}
-  async createLogForEncryptedQuery(encryption: string, user: TCachedUser) {
+  async createLogForEncryptedQuery(
+    encryption: string,
+    user: TCachedUser,
+    requestSource: UserActivitySource,
+  ) {
     const previousActivity = await this.prisma.userActivity.findFirst({
       where: {
         accountId: user.accountId,
         userId: user.id,
         path: '/events',
+        source: requestSource,
         request: { equals: { data: encryption } },
       },
       select: {
@@ -50,6 +60,7 @@ export class EventsDataService {
         data: {
           path: '/events',
           request: { data: encryption },
+          source: requestSource,
           account: { connect: { id: user.accountId } },
           user: { connect: { id: user.id } },
         },
