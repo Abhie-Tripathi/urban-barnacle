@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, UserActivitySource } from '@prisma/client';
 import { TCachedUser } from 'src/utils/types';
 import { GetRecentEventSearchesDto } from './dto';
 import * as crypto from 'crypto';
 import { decrypt } from 'src/utils';
 @Injectable()
 export class MeDataService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async getLastRequest(user: TCachedUser, path: string) {
     const lastRequest = await this.prisma.userActivity.findFirst({
@@ -40,6 +40,7 @@ export class MeDataService {
         userId: user.id,
         accountId: user.accountId,
         path: '/events',
+        source: params.source.toUpperCase() as UserActivitySource,
       },
       orderBy: {
         updatedAt: 'desc',
