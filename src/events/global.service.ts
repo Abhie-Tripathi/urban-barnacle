@@ -233,14 +233,16 @@ export function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
     }
     checkToPassFilter = checkTheValue(main, sub);
     if (checkToPassFilter === false) {
-      checkToPassFilter = checkTheValue(main, (
-        data?.categories?.enabledValue as {
-          id: string;
-          slug: string;
-        }[]
-      )?.map((data) => data.id) ?? []);
-      if (checkToPassFilter === false)
-        rootTodiscard = 'categories';
+      checkToPassFilter = checkTheValue(
+        main,
+        (
+          data?.categories?.enabledValue as {
+            id: string;
+            slug: string;
+          }[]
+        )?.map((data) => data.id) ?? [],
+      );
+      if (checkToPassFilter === false) rootTodiscard = 'categories';
     }
   }
   if (data?.durations?.active_gte && checkToPassFilter) {
@@ -389,7 +391,7 @@ const DataGroups = {
     'trustChangeTag',
     'reputationChangeTag',
     'yoyGrowth',
-    "trackerIntelScore",
+    'trackerIntelScore',
     'scores',
   ],
   audience: ['audienceSpread', 'designationSpread', 'audienceZone'],
