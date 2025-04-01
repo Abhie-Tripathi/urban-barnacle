@@ -107,6 +107,7 @@ export enum EventFormat {
   online,
   hybrid,
   offline,
+  in_person,
 }
 
 export enum EntryType {
@@ -396,7 +397,11 @@ export const QueryFilter = z.object({
   eventFormats: z
     .string()
     .refine((val) => val.split(',').every((item) => item in EventFormat))
-    .transform((val) => val.split(','))
+    .transform((val) =>
+      val
+        .split(',')
+        .map((item) => (item.trim() === 'in_person' ? 'offline' : item.trim())),
+    )
     .optional(),
   entryType: z
     .string()
@@ -563,6 +568,8 @@ export const QueryFilter = z.object({
 });
 
 export const FilterNames = Object.keys(QueryFilter.shape);
+
+export class QueryFilterDto extends createZodDto(QueryFilter) {}
 
 export const QuerySchema = LimitSchemaWithoutDefault.extend(QueryFilter.shape)
   .extend({
