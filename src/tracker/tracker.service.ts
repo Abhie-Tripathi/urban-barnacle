@@ -314,7 +314,14 @@ export class TrackerService {
       );
       updateParams['filterValues'] = convertedParams;
     }
-    return await this.trackerDataService.updateTracker(user, updateParams);
+    const updatedTracker = await this.trackerDataService.updateTracker(
+      user,
+      updateParams,
+    );
+    this.getTrackerResponse(user, updatedTracker, {
+      refresh: true,
+    });
+    return updatedTracker;
   }
 
   async deleteTracker(user: TCachedUser, trackerId: string) {
