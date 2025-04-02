@@ -48,11 +48,11 @@ export class GlobalResponseInterceptor implements NestInterceptor {
             },
           });
         }
-        this.communicationService.createJobForBull(QueueActionOptions.SEND_ERROR_EMAIL, {
+        (process.env.NODE_ENV || '').toLowerCase() === 'production' ? this.communicationService.createJobForBull(QueueActionOptions.SEND_ERROR_EMAIL, {
           apiName: request.url,
           errorType: errorType,
           errorMessage: errorMsg,
-        }, '@10times.com');
+        }, '@10times.com') : '';
         // Handle unexpected errors
         console.log(err);
         throw err;
@@ -84,11 +84,11 @@ export class GlobalResponseInterceptor implements NestInterceptor {
             console.log({ errorResponse });
             errorMsg = errorResponse['message'];
           }
-          this.communicationService.createJobForBull(QueueActionOptions.SEND_ERROR_EMAIL, {
+          (process.env.NODE_ENV || '').toLowerCase() === 'production' ? this.communicationService.createJobForBull(QueueActionOptions.SEND_ERROR_EMAIL, {
             apiName: request.url,
             errorType: errorType,
             errorMessage: errorMsg,
-          }, '@10times.com');
+          }, '@10times.com') : '';
           response
             .status(error.getStatus?.() || HttpStatus.INTERNAL_SERVER_ERROR)
             .send({
