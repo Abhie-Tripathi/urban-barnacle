@@ -23,7 +23,7 @@ import {
   CompanyResponseSchema,
 } from './dto/company.dto';
 import { TagDto, TagResponseDto, TagResponseSchema } from './dto/tags.dto';
-import { getNonEmptyParams } from 'src/utils';
+import { encrypt, getNonEmptyParams } from 'src/utils';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -31,7 +31,7 @@ export class SuggestionDataService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   async getLocations(dto: LocationDto): Promise<LocationResponseDto> {
     try {
@@ -203,7 +203,11 @@ export class SuggestionDataService {
           if (!company.id) {
             return null;
           }
-          return CompanyResponseSchema.parse(company);
+          return {
+            ...CompanyResponseSchema.parse(company), id: encrypt(
+              (company.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY) as string,
+            ),
+          };
         })
         .filter((company) => company !== null);
     } catch (error) {
