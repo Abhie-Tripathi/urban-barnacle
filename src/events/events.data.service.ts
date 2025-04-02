@@ -399,6 +399,10 @@ export class EventsDataService {
     return data;
   }
   async getEventsTrends(params: EventsTrendsDto) {
+    params = {
+      ...params,
+      source: this.configService.get('BACKEND') === 'geo' ? 'geo' : 'gtm',
+    };
     const queryParams = new URLSearchParams(
       params as unknown as Record<string, any>,
     );
