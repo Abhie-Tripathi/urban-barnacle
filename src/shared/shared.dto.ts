@@ -10,7 +10,7 @@ const prospectSchema = LimitSchema.extend({
     companyType: z.enum(['organizer', 'exhibitor', 'other']).optional(),
     eventProductIds: z.string().optional(),
     eventLocationIds: z.string().optional(),
-    eventCategoryIds: z.string().optional(),
+    eventCategorySlugs: z.string().optional(),
     eventFollowers: z.string().optional(),
     eventParticipationType: z
         .string()

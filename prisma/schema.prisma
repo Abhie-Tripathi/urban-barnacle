@@ -61,6 +61,7 @@ model User {
   verificationPasskeys       Verification[]
   accessProvided             Access[]              @relation("accessProvider")
   accessReceived             Access[]              @relation("accessReceiver")
+  accessDeletedByUser        Access[]              @relation("accessDeletedByUser")
   attachments                Attachment[]
   createdTrackers            Tracker[]             @relation("createdByUser")
   modifiedTrackers           Tracker[]             @relation("modifiedByUser")
@@ -369,22 +370,33 @@ model Verification {
 
 // discuss if we want to expire access token after some time / after first use
 model Access {
-  id               String             @id @default(uuid()) @db.Uuid
-  sourceEntity     AccessSourceEntity
-  sourceEntityId   String
-  accessReceiverId String             @db.Uuid
-  accessReceiver   User               @relation(name: "accessReceiver", fields: [accessReceiverId], references: [id])
-  accessProviderId String             @db.Uuid
-  accessProvider   User               @relation(name: "accessProvider", fields: [accessProviderId], references: [id])
-  accessType       AccessType
-  lastModifiedBy   String?            @db.Uuid
-  token            String? // after first use token and expiry will be removed
-  expiry           DateTime? // 7 days
-  accountId        String?            @db.Uuid
-  account          Account?           @relation(fields: [accountId], references: [id])
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  deleted          Boolean            @default(false)
+  id                  String             @id @default(uuid()) @db.Uuid
+  sourceEntity        AccessSourceEntity
+  sourceEntityId      String
+  accessReceiverId    String             @db.Uuid
+  accessReceiver      User               @relation(name: "accessReceiver", fields: [accessReceiverId], references: [id])
+  accessProviderId    String             @db.Uuid
+  accessProvider      User               @relation(name: "accessProvider", fields: [accessProviderId], references: [id])
+  accessType          AccessType
+  lastModifiedBy      String?            @db.Uuid
+  token               String? // after first use token and expiry will be removed
+  expiry              DateTime? // 7 days
+  accessStatus        AccessStatus       @default(PENDING)
+  accountId           String?            @db.Uuid
+  account             Account?           @relation(fields: [accountId], references: [id])
+  deletedBy           String?            @db.Uuid
+  accessDeletedByUser User?              @relation(name: "accessDeletedByUser", fields: [deletedBy], references: [id])
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  deleted             Boolean            @default(false)
+}
+
+enum AccessStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  DELETED
 }
 
 enum AccessSourceEntity {
@@ -689,6 +701,19 @@ enum JobStatus {
   COMPLETED
   FAILED
   PROCESSING
+}
+
+model Preset {
+  id            String        @id @default(uuid()) @db.Uuid
+  name          String        @unique
+  totalEvent    Int           @default(0)
+  data          Json
+  newEventCount Int           @default(0)
+  keywords      String?
+  description   String?
+  trackerType   TrackerType[]
+  deleted       Boolean       @default(false)
+  filterValue   Json
 }
 
 enum EnquiryStatus {
