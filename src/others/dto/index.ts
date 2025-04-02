@@ -32,6 +32,7 @@ export class PresetDto extends createZodDto(presetSchema) { }
 
 
 const demoSchema = z.strictObject({
-    body: z.string()
+    body: z.string(),
+    subject: z.string()
 })
 export class DemoDto extends createZodDto(demoSchema) { }

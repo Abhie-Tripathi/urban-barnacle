@@ -92,7 +92,8 @@ export const errorMailSchema = z.object({
 })
 
 export const demoContactSchema = z.object({
-  body: z.string()
+  body: z.string(),
+  subject: z.string()
 })
 // Union of all DTO schemas
 export const PayloadDTO = z.union([
