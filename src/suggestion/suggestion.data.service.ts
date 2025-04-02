@@ -31,7 +31,7 @@ export class SuggestionDataService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
 
   async getLocations(dto: LocationDto): Promise<LocationResponseDto> {
     try {
@@ -168,9 +168,9 @@ export class SuggestionDataService {
       if (error) {
         throw new HttpException(error, HttpStatus.BAD_REQUEST);
       }
-      if (dto.isDepartment ||
-        dto.isRole ||
-        dto.isDesignation) { return data }
+      if (dto.isDepartment || dto.isRole || dto.isDesignation) {
+        return data;
+      }
       return data.map((designation: any) =>
         CategoryResponseSchema.parse(designation),
       );
@@ -198,9 +198,14 @@ export class SuggestionDataService {
       if (!data || error) {
         throw new HttpException(error, HttpStatus.BAD_REQUEST);
       }
-      return data.company.map((company: any) =>
-        CompanyResponseSchema.parse(company),
-      );
+      return data.company
+        .map((company: any) => {
+          if (!company.id) {
+            return null;
+          }
+          return CompanyResponseSchema.parse(company);
+        })
+        .filter((company) => company !== null);
     } catch (error) {
       throw new HttpException('Invalid companies', HttpStatus.BAD_REQUEST);
     }
