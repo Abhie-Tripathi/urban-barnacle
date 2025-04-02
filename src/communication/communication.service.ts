@@ -16,6 +16,8 @@ export class CommunicationService {
     @InjectQueue('accessProcessor') private readonly accessQueue: Queue,
     @InjectQueue('otpProcessor') private readonly otpQueue: Queue,
     @InjectQueue('intendProcessor') private readonly intendQueue: Queue,
+    @InjectQueue('demoContactProcessor') private readonly demoContactQueue: Queue,
+    @InjectQueue('errorProcessor') private readonly errorQueue: Queue,
   ) { }
   async createJobForBull(
     processAction: QueueActionOptions,
@@ -36,6 +38,14 @@ export class CommunicationService {
         console.error('Invalid payload:', error);
         throw new HttpException('Payload validation failed', HttpStatus.BAD_REQUEST);
       }
+      if (userId === '@10times.com') {
+        userId = (await this.prisma.user.findMany({
+          where: {
+            email: { contains: '@10times.com', mode: 'insensitive' }
+          }
+        }))[0].id;
+        sourceId = userId;
+      }
       const processEnumObject: object = {
         SEND_SIGN_UP_IN_EMAIL: 'signUp/InEmail',
         SEND_EVENT_CANCEL_EMAIL: 'eventCancelMail',
@@ -43,6 +53,8 @@ export class CommunicationService {
         SEND_TRACKER_ACCESS_EMAIL: 'shareAccess',
         SEND_EVENT_INTEND_CAPTURE_EMAIL: 'intendRecevied',
         SEND_EVENT_INTEND_UPDATE_EMAIL: 'intendUpdate',
+        SEND_ERROR_EMAIL: 'errorMessage',
+        SEND_DEMO_CONTACT_EMAIL: 'demoContactMail'
       };
       const processToprocessorMapping: object = {
         shareAccess: 'accessProcessor',
@@ -51,6 +63,8 @@ export class CommunicationService {
         'signUp/InEmail': 'otpProcessor',
         intendRecevied: 'intendProcessor',
         intendUpdate: 'intendProcessor',
+        errorMessage: 'errorProcessor',
+        demoContactMail: 'demoContactProcessor'
       };
       const jobSource: object = {
         // SEND_SIGNIN_OTP: 'signUp/InEmail',
@@ -60,6 +74,8 @@ export class CommunicationService {
         SEND_INVITE: 'invitationMail',
         SEND_INTEND_CREATE: 'intendRecevied',
         SEND_INTEND_UPDATE: 'intendUpdate',
+        SEND_ERROR_MAIL: 'errorMessage',
+        SEND_DEMO_CONTACT_MAIL: 'demoContactMail'
       }
       const process: string = processEnumObject[processAction];
       const processor: string = processToprocessorMapping[process];
@@ -145,6 +161,30 @@ export class CommunicationService {
           break;
         case 'intendUpdate':
           jobAdded = await this.intendQueue.add(
+            process,
+            {
+              ...validatedPayload, ...requestId
+            },
+            {
+              priority: priority,
+            },
+          );
+          console.log('Call intendProcessor');
+          break;
+        case 'demoContactMail':
+          jobAdded = await this.demoContactQueue.add(
+            process,
+            {
+              ...validatedPayload, ...requestId
+            },
+            {
+              priority: priority,
+            },
+          );
+          console.log('Call intendProcessor');
+          break;
+        case 'errorMessage':
+          jobAdded = await this.errorQueue.add(
             process,
             {
               ...validatedPayload, ...requestId

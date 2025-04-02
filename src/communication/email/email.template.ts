@@ -1079,3 +1079,73 @@ export const inviteEmailToEventHtml = `<!DOCTYPE html>
   </body>
 </html>
 `;
+
+
+export const errorTemplate = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Error Notification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .header {
+            font-size: 20px;
+            font-weight: bold;
+            color: #d9534f;
+        }
+        .details {
+            text-align: left;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .error {
+            color: #d9534f;
+            font-weight: bold;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin-top: 20px;
+            background-color: #0275d8;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <p class="header">🚨 API Error Alert 🚨</p>
+        <p>An error occurred in your API service.</p>
+
+        <div class="details">
+            <p><strong>API Name:</strong> <span class="error">{api_name}</span></p>
+            <p><strong>Error Type:</strong> <span class="error">{error_type}</span></p>
+            <p><strong>Message:</strong> {error_message}</p>
+            <p><strong>Timestamp:</strong> {timestamp}</p>
+        </div>
+
+        <p class="footer">This is an automated email. Please do not reply.</p>
+    </div>
+</body>
+</html>
+`
