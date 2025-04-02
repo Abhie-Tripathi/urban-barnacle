@@ -32,6 +32,12 @@ import { InvitationWorkerClass } from './bull-service/bull-invitation.service';
     BullModule.registerQueue({
       name: 'intendProcessor',
     }),
+    BullModule.registerQueue({
+      name: 'demoContactProcessor',
+    }),
+    BullModule.registerQueue({
+      name: 'errorProcessor',
+    }),
   ],
   providers: [
     CommunicationService,

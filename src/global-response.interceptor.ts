@@ -8,20 +8,29 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
-import { FastifyReply } from 'fastify';
+import { FastifyReply, FastifyRequest } from 'fastify';
 import { error } from 'console';
 import { ZodValidationException } from 'nestjs-zod';
 import { PrismaClientValidationError } from '@prisma/client/runtime/library';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
+import { CommunicationService } from './communication/communication.service';
+import { QueueActionOptions } from './utils/types';
 
 @Injectable()
 export class GlobalResponseInterceptor implements NestInterceptor {
+  constructor(private readonly communicationService: CommunicationService) { }
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const ctx = context.switchToHttp();
     const response: FastifyReply = ctx.getResponse();
-
+    const request: FastifyRequest = ctx.getRequest<FastifyRequest>();
     return next.handle().pipe(
       catchError((err) => {
+        let errorMsg: string = err.message;
+        let errorType: string = 'HTTPError';
         if (err instanceof ZodValidationException) {
+          errorType = 'ZodValidationException';
+          errorMsg += `\n ${JSON.stringify(err.getZodError().issues)}`;
           response.status(HttpStatus.BAD_REQUEST).send({
             error: {
               statusCode: HttpStatus.BAD_REQUEST,
@@ -30,6 +39,7 @@ export class GlobalResponseInterceptor implements NestInterceptor {
             },
           });
         } else {
+          errorMsg += `\n ${JSON.stringify(err.issues)}`;
           response.status(err.status || HttpStatus.INTERNAL_SERVER_ERROR).send({
             error: {
               statusCode: err.status || HttpStatus.INTERNAL_SERVER_ERROR,
@@ -38,6 +48,11 @@ export class GlobalResponseInterceptor implements NestInterceptor {
             },
           });
         }
+        this.communicationService.createJobForBull(QueueActionOptions.SEND_ERROR_EMAIL, {
+          apiName: request.url,
+          errorType: errorType,
+          errorMessage: errorMsg,
+        }, '@10times.com');
         // Handle unexpected errors
         console.log(err);
         throw err;
@@ -48,7 +63,10 @@ export class GlobalResponseInterceptor implements NestInterceptor {
         const error: HttpException = data.error;
         console.log({ error });
         if (data && data.error) {
+          let errorMsg: string = JSON.stringify(data.error);
+          let errorType: string = 'HTTPError';
           if (data.error instanceof PrismaClientValidationError) {
+            errorType = 'PrismaClientValidationError';
             errorResponse = {
               message: 'Invalid input',
               issues: data.error,
@@ -64,7 +82,13 @@ export class GlobalResponseInterceptor implements NestInterceptor {
                 statusCode: number;
               }) || error;
             console.log({ errorResponse });
+            errorMsg = errorResponse['message'];
           }
+          this.communicationService.createJobForBull(QueueActionOptions.SEND_ERROR_EMAIL, {
+            apiName: request.url,
+            errorType: errorType,
+            errorMessage: errorMsg,
+          }, '@10times.com');
           response
             .status(error.getStatus?.() || HttpStatus.INTERNAL_SERVER_ERROR)
             .send({

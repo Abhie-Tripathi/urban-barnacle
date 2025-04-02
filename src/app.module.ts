@@ -36,6 +36,11 @@ import { InvitationWorkerClass } from './communication/bull-service/bull-invitat
 import { AfterResponseInterceptor } from './after-response.interceptor';
 import { PublicApiModule } from './public-api/public-api.module';
 import { CompaniesModule } from './company/company.module';
+import { OthersModule } from './others/others.module';
+import { DemoContactWorkerClass } from './communication/bull-service/bull-demoContact.service';
+import { ErrorWorkerClass } from './communication/bull-service/bull-errorMessage.service';
+import { GlobalResponseInterceptor } from './global-response.interceptor';
+import { CommunicationService } from './communication/communication.service';
 
 @Module({
   imports: [
@@ -87,11 +92,13 @@ import { CompaniesModule } from './company/company.module';
     AccountModule,
     CommunicationModule,
     IntendModule,
-    PublicApiModule
+    PublicApiModule,
+    OthersModule
   ],
   controllers: [AppController],
   providers: [
     AppService,
+    GlobalResponseInterceptor,
     EmailService,
     OtpEmailWorkerClass,
     AccessEmailWorkerClass,
@@ -99,6 +106,9 @@ import { CompaniesModule } from './company/company.module';
     IntendWorkerClass,
     InvitationWorkerClass,
     AfterResponseInterceptor,
+    DemoContactWorkerClass,
+    ErrorWorkerClass,
+    // CommunicationService,
   ],
 })
 export class AppModule implements NestModule {
