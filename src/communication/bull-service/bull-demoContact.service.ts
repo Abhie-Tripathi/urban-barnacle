@@ -19,7 +19,7 @@ export class DemoContactWorkerClass {
     }
     private readonly logger = new Logger(DemoContactWorkerClass.name);
     @Process('demoContactMail')
-    async handleEmailJob(job: Job<{ body: string, jobRequestId: string }>) {
+    async handleEmailJob(job: Job<{ body: string, subject: string, jobRequestId: string }>) {
         try {
             const jobdata = job.data;
             const upadte = await this.prisma.requestedJob.update({
@@ -34,7 +34,7 @@ export class DemoContactWorkerClass {
             const { data, error } = await this.email.multiMailSender(
                 (process.env.DEMO_MAIL_RECIPIENTS || '').split(','),
                 emailSenderAddress,
-                `Whr.AI access request`,
+                jobdata.subject,
                 jobdata.body,
             );
             let status = 'COMPLETED' as JobStatus;
