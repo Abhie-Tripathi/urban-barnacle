@@ -55,7 +55,7 @@ export class CommunicationService {
         SEND_EVENT_INTEND_UPDATE_EMAIL: 'intendUpdate',
         SEND_ERROR_EMAIL: 'errorMessage',
         SEND_DEMO_CONTACT_EMAIL: 'demoContactMail',
-        sdsd:'inviteUserMail'
+        SEND_USER_INVITATION_EMAIL:'inviteUserMail'
       };
       const processToprocessorMapping: object = {
         shareAccess: 'accessProcessor',
