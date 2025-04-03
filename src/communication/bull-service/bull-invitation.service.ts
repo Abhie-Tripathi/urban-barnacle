@@ -10,6 +10,7 @@ import {
   emailSenderAddress,
   eventCancelMailToUsersHtml,
   inviteEmailToEventHtml,
+  inviteUserEmailTemplate,
 } from '../email/email.template';
 interface InviteData {
   userEmail: string;
@@ -67,6 +68,59 @@ export class InvitationWorkerClass {
         jobdata.userEmail,
         emailSenderAddress,
         `You are invited to ${jobdata.eventName}`,
+        inviteEmailToEventTemplate,
+      );
+      let status = 'COMPLETED' as JobStatus;
+      if (error) {
+        status = 'FAILED' as JobStatus;
+      }
+      const completeOrnot = await this.prisma.requestedJob.update({
+        where: {
+          id: update.id,
+        },
+        data: {
+          status: status,
+        },
+      });
+      return {};
+    } catch (error) {
+      console.log(JSON.stringify(error));
+      const data = await this.prisma.requestedJob.update({
+        where: {
+          id: job.data.jobRequestId,
+        },
+        data: {
+          status: 'FAILED',
+        },
+      });
+    }
+  }
+  @Process('inviteUserMail')
+  async handleInviteEmailJob(job: Job<{
+    jobRequestId: string,
+    invitedUserName: string,
+    referredByUserName: string,
+    invitedUserEmail: string,
+  }>) {
+    try {
+      const jobdata = job.data;
+
+      const update = await this.prisma.requestedJob.update({
+        where: {
+          id: jobdata.jobRequestId,
+        },
+        data: {
+          status: 'PROCESSING',
+        },
+      });
+      const inviteEmailToEventTemplate = inviteUserEmailTemplate
+        .replaceAll('{invitedUserName}', jobdata.invitedUserName)
+        .replaceAll('{referredByUserName}', jobdata.referredByUserName)
+      console.log(inviteEmailToEventTemplate);
+      const { data, error } = await this.email.mailSender(
+        jobdata.invitedUserEmail,
+        emailSenderAddress,
+        `${jobdata.referredByUserName} has invited you on Whr`,
         inviteEmailToEventTemplate,
       );
       let status = 'COMPLETED' as JobStatus;
