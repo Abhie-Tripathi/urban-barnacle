@@ -1079,3 +1079,124 @@ export const inviteEmailToEventHtml = `<!DOCTYPE html>
   </body>
 </html>
 `;
+
+
+export const errorTemplate = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Error Notification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .header {
+            font-size: 20px;
+            font-weight: bold;
+            color: #d9534f;
+        }
+        .details {
+            text-align: left;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .error {
+            color: #d9534f;
+            font-weight: bold;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin-top: 20px;
+            background-color: #0275d8;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <p class="header">🚨 API Error Alert 🚨</p>
+        <p>An error occurred in your API service.</p>
+
+        <div class="details">
+            <p><strong>API Name:</strong> <span class="error">{api_name}</span></p>
+            <p><strong>Error Type:</strong> <span class="error">{error_type}</span></p>
+            <p><strong>Message:</strong> {error_message}</p>
+            <p><strong>Timestamp:</strong> {timestamp}</p>
+        </div>
+
+        <p class="footer">This is an automated email. Please do not reply.</p>
+    </div>
+</body>
+</html>
+`
+
+
+export const inviteUserEmailTemplate = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WHR.ai Invitation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: auto;
+        }
+        .button {
+            display: inline-block;
+            background-color: #007BFF;
+            color: #ffffff;
+            padding: 12px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .footer {
+            font-size: 12px;
+            color: #666;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <p>Hello <strong>{invitedUserName}</strong>,</p>
+        <p>You have been referred by <strong>{referredByUserName}</strong> to explore <a href="https://whr.ai" target="_blank">whr.ai</a>, a platform that provides intelligence on real-world events to help you plan better, forecast accurately, and make informed business decisions.</p>
+        <p>Start leveraging event intelligence today!</p>
+        <p><a href="https://whr.ai" class="button">Explore WHR.ai</a></p>
+        <p class="footer">Best,<br>The WHR Team</p>
+    </div>
+</body>
+</html>
+`

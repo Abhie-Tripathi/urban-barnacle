@@ -45,3 +45,5 @@ test.ts
 eventGTM-backend.code-workspace
 
 apiDoc.yml
+
+*.code-workspace

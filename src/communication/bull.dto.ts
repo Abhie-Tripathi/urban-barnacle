@@ -85,7 +85,22 @@ export const InviteEmailDataSchema = z.strictObject({
 });
 
 export class InviteEmailDataDto extends createZodDto(InviteEmailDataSchema) { }
+export const errorMailSchema = z.object({
+  apiName: z.string(),
+  errorType: z.string(),
+  errorMessage: z.string(),
+})
 
+export const demoContactSchema = z.object({
+  body: z.string(),
+  subject: z.string()
+})
+const userInviteSchema = z.object({
+  referredByUserName: z.string(),
+  invitedUserEmail: z.string(),
+  sourceId: z.string(),
+})
+export class UserInviteDto extends createZodDto(userInviteSchema) { }
 // Union of all DTO schemas
 export const PayloadDTO = z.union([
   AccessEmailDataSchema,
@@ -94,4 +109,7 @@ export const PayloadDTO = z.union([
   IntendUpdateDataSchema,
   OtpEmailDataSchema,
   InviteEmailDataSchema,
+  errorMailSchema,
+  demoContactSchema,
+  userInviteSchema
 ]);
