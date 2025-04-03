@@ -54,12 +54,14 @@ export class CommunicationService {
         SEND_EVENT_INTEND_CAPTURE_EMAIL: 'intendRecevied',
         SEND_EVENT_INTEND_UPDATE_EMAIL: 'intendUpdate',
         SEND_ERROR_EMAIL: 'errorMessage',
-        SEND_DEMO_CONTACT_EMAIL: 'demoContactMail'
+        SEND_DEMO_CONTACT_EMAIL: 'demoContactMail',
+        SEND_USER_INVITATION_EMAIL:'inviteUserMail'
       };
       const processToprocessorMapping: object = {
         shareAccess: 'accessProcessor',
         eventCancelMail: 'eventProcessor',
         invitationMail: 'inviteProcessor',
+        inviteUserMail:'inviteProcessor',
         'signUp/InEmail': 'otpProcessor',
         intendRecevied: 'intendProcessor',
         intendUpdate: 'intendProcessor',
@@ -72,6 +74,7 @@ export class CommunicationService {
         SEND_ACCESS: 'shareAccess',
         EVENT_CANCEl: 'eventCancelMail',
         SEND_INVITE: 'invitationMail',
+        SEND_USER_INVITE:'inviteUserMail',
         SEND_INTEND_CREATE: 'intendRecevied',
         SEND_INTEND_UPDATE: 'intendUpdate',
         SEND_ERROR_MAIL: 'errorMessage',
@@ -123,6 +126,18 @@ export class CommunicationService {
           console.log('Call eventProcessor');
           break;
         case 'invitationMail':
+          jobAdded = await this.inviteQueue.add(
+            process,
+            {
+              ...validatedPayload, ...requestId
+            },
+            {
+              priority: priority,
+            },
+          );
+          console.log('Call inviteProcessor');
+          break;
+        case 'inviteUserMail':
           jobAdded = await this.inviteQueue.add(
             process,
             {

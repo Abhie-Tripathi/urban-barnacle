@@ -95,6 +95,12 @@ export const demoContactSchema = z.object({
   body: z.string(),
   subject: z.string()
 })
+const userInviteSchema = z.object({
+  referredByUserName: z.string(),
+  invitedUserEmail: z.string(),
+  sourceId: z.string(),
+})
+export class UserInviteDto extends createZodDto(userInviteSchema) { }
 // Union of all DTO schemas
 export const PayloadDTO = z.union([
   AccessEmailDataSchema,
@@ -104,5 +110,6 @@ export const PayloadDTO = z.union([
   OtpEmailDataSchema,
   InviteEmailDataSchema,
   errorMailSchema,
-  demoContactSchema
+  demoContactSchema,
+  userInviteSchema
 ]);

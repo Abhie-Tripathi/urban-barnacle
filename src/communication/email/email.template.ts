@@ -1149,3 +1149,54 @@ export const errorTemplate = `
 </body>
 </html>
 `
+
+
+export const inviteUserEmailTemplate = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WHR.ai Invitation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: auto;
+        }
+        .button {
+            display: inline-block;
+            background-color: #007BFF;
+            color: #ffffff;
+            padding: 12px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .footer {
+            font-size: 12px;
+            color: #666;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <p>Hello <strong>{invitedUserName}</strong>,</p>
+        <p>You have been referred by <strong>{referredByUserName}</strong> to explore <a href="https://whr.ai" target="_blank">whr.ai</a>, a platform that provides intelligence on real-world events to help you plan better, forecast accurately, and make informed business decisions.</p>
+        <p>Start leveraging event intelligence today!</p>
+        <p><a href="https://whr.ai" class="button">Explore WHR.ai</a></p>
+        <p class="footer">Best,<br>The WHR Team</p>
+    </div>
+</body>
+</html>
+`
