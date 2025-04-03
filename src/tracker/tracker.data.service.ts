@@ -8,7 +8,7 @@ import { TCachedUser, TrackerTypes } from 'src/utils/types';
 
 @Injectable()
 export class TrackerDataService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const tracker = await this.prisma.tracker.create({
@@ -18,6 +18,26 @@ export class TrackerDataService {
         type: data.type,
         createdBy: user.id,
         accountId: user.accountId,
+      },
+      include: {
+        createdByUser: {
+          select: {
+            id: true,
+            email: true,
+            firstname: true,
+            lastname: true,
+            imageUrl: true,
+          },
+        },
+        modifiedByUser: {
+          select: {
+            id: true,
+            email: true,
+            firstname: true,
+            lastname: true,
+            imageUrl: true,
+          },
+        },
       },
     });
     return tracker;
@@ -33,10 +53,27 @@ export class TrackerDataService {
 
     const trackers: TrackerWithAccessDate[] = await this.prisma.$queryRaw`
       SELECT
-        T.*,a."createdAt" "accesscreatedAt"
+        T.*,
+        a."createdAt" "accesscreatedAt",
+        json_build_object(
+          'id', U.ID,
+          'email', U.email,
+          'firstName', U."firstname",
+          'lastName', U."lastname",
+          'imageUrl', U."imageUrl"
+        ) as "createdByUser",
+        json_build_object(
+          'id', U2.ID,
+          'email', U2.email,
+          'firstName', U2."firstname",
+          'lastName', U2."lastname",
+          'imageUrl', U2."imageUrl"
+        ) as "modifiedByUser"
       FROM
         "Tracker" T
         JOIN "Access" A ON T.ID = A."sourceEntityId"::UUID
+        JOIN "User" U ON T."createdBy" = U.ID
+        LEFT JOIN "User" U2 ON T."lastModifiedBy" = U2.ID
         AND A."sourceEntity" = 'TRACKER'
         AND A."accessReceiverId" = ${Prisma.sql`${user.id}::UUID`}
         AND A."accountId" = ${Prisma.sql`${user.accountId}::UUID`}

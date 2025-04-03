@@ -18,7 +18,7 @@ import { SharedService } from 'src/shared/shared.service';
 import { EventsService } from 'src/events/events.service';
 import { CountGroup, CountQueryDto, QueryDto, View } from 'src/events/dto';
 import { IntentDataService } from 'src/intent/intent.data.service';
-import { AccessType, Prisma, Tracker } from '@prisma/client';
+import { AccessType, Prisma, Tracker, User } from '@prisma/client';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { UserDataService } from 'src/user/user.data.service';
 import { CommentService } from 'src/comment/comment.service';
@@ -61,15 +61,19 @@ export class TrackerService {
       sourceEntity: 'TRACKER',
       sourceEntityId: tracker.id,
     });
-    this.getTrackerResponse(user, tracker, {
-      refresh: true,
-    });
+    this.getTrackerResponse(
+      user,
+      tracker as Tracker & { createdByUser: User; modifiedByUser: User },
+      {
+        refresh: true,
+      },
+    );
     return tracker;
   }
 
   async getTrackerResponse(
     user: TCachedUser,
-    tracker: Tracker,
+    tracker: Tracker & { createdByUser: User; modifiedByUser: User },
     query: GetTrackerByIdDto,
   ) {
     const lastActive = await this.lastActive(
@@ -138,11 +142,36 @@ export class TrackerService {
         82800000,
       );
     }
+
     const trackerValues = {
       id: tracker.id,
       name: tracker.name,
       type: tracker.type,
       filterValues: filterValues,
+      createdAt: tracker.createdAt,
+      updatedAt: tracker.updatedAt,
+      createdBy: {
+        id: tracker.createdByUser.id,
+        name: getNameFromEmail(
+          tracker.createdByUser.email,
+          tracker.createdByUser.firstname,
+          tracker.createdByUser.lastname,
+        ),
+        email: tracker.createdByUser.email,
+        imageUrl: tracker.createdByUser.imageUrl,
+      },
+      lastModifiedBy: tracker.modifiedByUser.id
+        ? {
+            id: tracker.modifiedByUser.id,
+            name: getNameFromEmail(
+              tracker.modifiedByUser.email,
+              tracker.modifiedByUser.firstname,
+              tracker.modifiedByUser.lastname,
+            ),
+            email: tracker.modifiedByUser.email,
+            imageUrl: tracker.modifiedByUser.imageUrl,
+          }
+        : null,
     };
     return {
       ...trackerValues,
@@ -197,9 +226,13 @@ export class TrackerService {
 
     const allTrackers = await Promise.all(
       trackers.map((tracker) => {
-        const trackerResponse = this.getTrackerResponse(user, tracker, {
-          refresh: params.refresh,
-        });
+        const trackerResponse = this.getTrackerResponse(
+          user,
+          tracker as Tracker & { createdByUser: User; modifiedByUser: User },
+          {
+            refresh: params.refresh,
+          },
+        );
         return trackerResponse;
       }),
     );
@@ -235,7 +268,11 @@ export class TrackerService {
       'SUPER_ADMIN',
       'USER',
     ]);
-    const trackerResponse = await this.getTrackerResponse(user, tracker, query);
+    const trackerResponse = await this.getTrackerResponse(
+      user,
+      tracker as Tracker & { createdByUser: User; modifiedByUser: User },
+      query,
+    );
     return trackerResponse;
   }
 
@@ -318,9 +355,13 @@ export class TrackerService {
       user,
       updateParams,
     );
-    this.getTrackerResponse(user, updatedTracker, {
-      refresh: true,
-    });
+    this.getTrackerResponse(
+      user,
+      updatedTracker as Tracker & { createdByUser: User; modifiedByUser: User },
+      {
+        refresh: true,
+      },
+    );
     return updatedTracker;
   }
 
