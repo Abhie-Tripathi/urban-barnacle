@@ -71,12 +71,13 @@ export class TrackerDataService {
         ) as "modifiedByUser"
       FROM
         "Tracker" T
-        JOIN "Access" A ON T.ID = A."sourceEntityId"::UUID
         JOIN "User" U ON T."createdBy" = U.ID
         LEFT JOIN "User" U2 ON T."lastModifiedBy" = U2.ID
+        JOIN "Access" A ON T.ID = A."sourceEntityId"::UUID
         AND A."sourceEntity" = 'TRACKER'
         AND A."accessReceiverId" = ${Prisma.sql`${user.id}::UUID`}
         AND A."accountId" = ${Prisma.sql`${user.accountId}::UUID`}
+        AND A.deleted = false
       WHERE
         T.DELETED = false
           ${where.length > 0 ? Prisma.sql`AND ${Prisma.join(where, ' AND ')}` : Prisma.sql``}
