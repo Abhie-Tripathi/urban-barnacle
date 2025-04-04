@@ -7,6 +7,7 @@ import {
   PocsUnmaskDto,
   EventDataDto,
   Show,
+  View,
 } from './dto';
 import {
   Export,
@@ -68,10 +69,10 @@ export class EventsDataService {
     }
   }
   async getEvents(params: QueryDto) {
-    // params = {
-    //   ...params,
-    //   show: [...(params.show || []), 'newLocation' as Show],
-    // };
+    params = {
+      ...params,
+      view: params.view === 'suggestion' ? View.list : params.view,
+    };
     const queryParams = new URLSearchParams(
       params as unknown as Record<string, any>,
     );
@@ -85,8 +86,7 @@ export class EventsDataService {
       this.configService.get('MICROSERVICE_URL') +
       microserviceEndpoints.events.events +
       '?' +
-      queryParams.toString() +
-      '&showValues=basic,advance,insights,audience';
+      queryParams.toString();
     console.log(url);
     const response = await fetch(url);
     const result = await response.json();
