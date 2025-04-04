@@ -19,13 +19,14 @@ import { QueueActionOptions } from './utils/types';
 
 @Injectable()
 export class GlobalResponseInterceptor implements NestInterceptor {
-  constructor(private readonly communicationService: CommunicationService) {}
+  constructor(private readonly communicationService: CommunicationService) { }
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const ctx = context.switchToHttp();
     const response: FastifyReply = ctx.getResponse();
     const request: FastifyRequest = ctx.getRequest<FastifyRequest>();
     return next.handle().pipe(
       catchError((err) => {
+        console.log(err);
         let errorMsg: string = err.message;
         let errorType: string = 'HTTPError';
         if (err instanceof ZodValidationException) {
@@ -49,25 +50,23 @@ export class GlobalResponseInterceptor implements NestInterceptor {
           });
           (process.env.NODE_ENV || '').toLowerCase() === 'production'
             ? this.communicationService.createJobForBull(
-                QueueActionOptions.SEND_ERROR_EMAIL,
-                {
-                  apiName: request.url,
-                  errorType: errorType,
-                  errorMessage: errorMsg,
-                },
-                '@10times.com',
-              )
+              QueueActionOptions.SEND_ERROR_EMAIL,
+              {
+                apiName: request.url,
+                errorType: errorType,
+                errorMessage: errorMsg,
+              },
+              '@10times.com',
+            )
             : '';
         }
-        // Handle unexpected errors
-        console.log(err);
         throw err;
       }),
       tap((data) => {
         let errorResponse: any;
-        // console.log({ error: data.error });
         const error: HttpException = data.error;
-        console.log({ error });
+        if (data.error)
+          console.log({ error: data.error });
         if (data && data.error) {
           let errorMsg: string = JSON.stringify(data.error);
           let errorType: string = 'HTTPError';
@@ -81,26 +80,25 @@ export class GlobalResponseInterceptor implements NestInterceptor {
           }
           // Check if the response contains an error property
           else {
-            // console.log({ error });
             errorResponse = error.getResponse
               ? (error.getResponse() as unknown as {
-                  message: string;
-                  issues: any[];
-                  statusCode: number;
-                })
+                message: string;
+                issues: any[];
+                statusCode: number;
+              })
               : error;
             errorMsg = errorResponse['message'];
           }
           (process.env.NODE_ENV || '').toLowerCase() === 'production'
             ? this.communicationService.createJobForBull(
-                QueueActionOptions.SEND_ERROR_EMAIL,
-                {
-                  apiName: request.url,
-                  errorType: errorType,
-                  errorMessage: errorMsg,
-                },
-                '@10times.com',
-              )
+              QueueActionOptions.SEND_ERROR_EMAIL,
+              {
+                apiName: request.url,
+                errorType: errorType,
+                errorMessage: errorMsg,
+              },
+              '@10times.com',
+            )
             : '';
           response
             .status(error.getStatus?.() || HttpStatus.INTERNAL_SERVER_ERROR)
