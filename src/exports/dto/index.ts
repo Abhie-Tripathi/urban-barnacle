@@ -1,12 +1,12 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { ExportFileType, JobStatus } from '@prisma/client';
-import { QuerySchema } from 'src/events/dto';
+import { QueryHttpSchema } from 'src/events/dto';
 
 const CreateExportSchema = z.object({
   name: z.string(),
   format: z.nativeEnum(ExportFileType),
-  parameters: QuerySchema,
+  parameters: QueryHttpSchema,
 });
 
 export class CreateExportDto extends createZodDto(CreateExportSchema) {}
