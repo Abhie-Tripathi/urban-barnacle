@@ -138,10 +138,12 @@ export class TrackerController {
     @Query() query: GetTrackerEventsDto,
   ) {
     try {
+      const showValues = 'basic,advance,insights,audience';
       const events = await this.trackerService.getTrackerEvents(
         user,
         id,
         query,
+        showValues,
       );
       return { data: events };
     } catch (error) {
@@ -176,10 +178,12 @@ export class TrackerController {
     @Query() query: GetTrackerEventsDto,
   ) {
     try {
+      const showValues = 'basic,advance,insights,audience';
       const events = await this.trackerService.getTrackerSavedEvents(
         user,
         id,
         query,
+        showValues,
       );
       return { data: events };
     } catch (error) {

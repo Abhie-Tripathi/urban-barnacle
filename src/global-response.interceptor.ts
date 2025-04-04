@@ -19,7 +19,7 @@ import { QueueActionOptions } from './utils/types';
 
 @Injectable()
 export class GlobalResponseInterceptor implements NestInterceptor {
-  constructor(private readonly communicationService: CommunicationService) { }
+  constructor(private readonly communicationService: CommunicationService) {}
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const ctx = context.switchToHttp();
     const response: FastifyReply = ctx.getResponse();
@@ -50,14 +50,14 @@ export class GlobalResponseInterceptor implements NestInterceptor {
           });
           (process.env.NODE_ENV || '').toLowerCase() === 'production'
             ? this.communicationService.createJobForBull(
-              QueueActionOptions.SEND_ERROR_EMAIL,
-              {
-                apiName: request.url,
-                errorType: errorType,
-                errorMessage: errorMsg,
-              },
-              '@10times.com',
-            )
+                QueueActionOptions.SEND_ERROR_EMAIL,
+                {
+                  apiName: request.url || 'undefined',
+                  errorType: errorType || 'undefined',
+                  errorMessage: errorMsg || 'undefined',
+                },
+                '@10times.com',
+              )
             : '';
         }
         throw err;
@@ -65,8 +65,7 @@ export class GlobalResponseInterceptor implements NestInterceptor {
       tap((data) => {
         let errorResponse: any;
         const error: HttpException = data.error;
-        if (data.error)
-          console.log({ error: data.error });
+        if (data.error) console.log({ error: data.error });
         if (data && data.error) {
           let errorMsg: string = JSON.stringify(data.error);
           let errorType: string = 'HTTPError';
@@ -82,23 +81,23 @@ export class GlobalResponseInterceptor implements NestInterceptor {
           else {
             errorResponse = error.getResponse
               ? (error.getResponse() as unknown as {
-                message: string;
-                issues: any[];
-                statusCode: number;
-              })
+                  message: string;
+                  issues: any[];
+                  statusCode: number;
+                })
               : error;
             errorMsg = errorResponse['message'];
           }
           (process.env.NODE_ENV || '').toLowerCase() === 'production'
             ? this.communicationService.createJobForBull(
-              QueueActionOptions.SEND_ERROR_EMAIL,
-              {
-                apiName: request.url,
-                errorType: errorType,
-                errorMessage: errorMsg,
-              },
-              '@10times.com',
-            )
+                QueueActionOptions.SEND_ERROR_EMAIL,
+                {
+                  apiName: request.url || 'undefined',
+                  errorType: errorType || 'undefined',
+                  errorMessage: errorMsg || 'undefined',
+                },
+                '@10times.com',
+              )
             : '';
           response
             .status(error.getStatus?.() || HttpStatus.INTERNAL_SERVER_ERROR)

@@ -297,3 +297,41 @@ export const blackListDomain = [
   'web.de',
   'alice.it',
 ];
+
+// ["a4a3b8d9-e170-4972-8981-0282e58ccb45","e485cdd3-0e61-5f36-b896-aed7ba606697","0ba63d1a-eb97-4587-b1c7-6c79c2948256",1,0]
+
+// SELECT
+//          T.*,
+//          a."createdAt" "accesscreatedAt",
+//          a.deleted "accessDeleted",
+//          json_build_object(
+//            'id', U.ID,
+//            'email', U.email,
+//            'firstName', U."firstname",
+//            'lastName', U."lastname",
+//            'imageUrl', U."imageUrl"
+//          ) as "createdByUser",
+//          json_build_object(
+//            'id', U2.ID,
+//            'email', U2.email,
+//            'firstName', U2."firstname",
+//            'lastName', U2."lastname",
+//            'imageUrl', U2."imageUrl"
+//          ) as "modifiedByUser"
+//        FROM
+//          "Tracker" T
+//          JOIN "Access" A ON T.ID = A."sourceEntityId"::UUID
+//          JOIN "User" U ON T."createdBy" = U.ID
+//          LEFT JOIN "User" U2 ON T."lastModifiedBy" = U2.ID
+//          AND A."sourceEntity" = 'TRACKER'
+//          AND A."accessReceiverId" = 'a4a3b8d9-e170-4972-8981-0282e58ccb45'::UUID
+//          AND A."accountId" = 'e485cdd3-0e61-5f36-b896-aed7ba606697'::UUID
+//        WHERE
+//          T.DELETED = false
+//            AND T.ID::TEXT IN ('0ba63d1a-eb97-4587-b1c7-6c79c2948256')
+//        ORDER BY
+//          T."createdAt" DESC
+//        LIMIT
+//          1
+//        OFFSET
+//          0;
