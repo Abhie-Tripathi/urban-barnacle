@@ -59,11 +59,11 @@ export const TrackerQuerySchema = z.object({
     .optional(),
 });
 export const TrackerParamsSchema = QueryFilter.extend(TrackerQuerySchema.shape);
-export const TrackerEventSearchSchema = QuerySchema.innerType()
-  .extend(TrackerQuerySchema.shape)
-  .extend({
-    view: z.nativeEnum(View).optional().default(View.tracker),
-  });
+export const TrackerEventSearchSchema = QuerySchema.extend(
+  TrackerQuerySchema.shape,
+).extend({
+  view: z.nativeEnum(View).optional().default(View.tracker),
+});
 export const ParamsSchema = TrackerParamsSchema.extend(
   EventsTrendsSchema.shape,
 ).partial({
