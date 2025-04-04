@@ -8,12 +8,7 @@ import { TrackerDataService } from 'src/tracker/tracker.data.service';
 @Global()
 @Module({
   controllers: [SuggestionController],
-  providers: [
-    SuggestionService,
-    SuggestionDataService,
-    EventsDataService,
-    TrackerDataService,
-  ],
+  providers: [SuggestionService, SuggestionDataService],
   exports: [SuggestionService],
 })
 export class SuggestionModule {}

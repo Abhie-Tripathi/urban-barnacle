@@ -12,9 +12,6 @@ import {
 } from './dto';
 import { CompanyResponseDto } from './dto/company.dto';
 import { TagResponseDto } from './dto/tags.dto';
-import { EventDto } from './dto/event.dto';
-import { EventsDataService } from 'src/events/events.data.service';
-import { View } from 'src/events/dto';
 
 type SuggestionType =
   | 'event-types'
@@ -26,10 +23,7 @@ type SuggestionType =
 
 @Injectable()
 export class SuggestionService {
-  constructor(
-    private readonly suggestionDataService: SuggestionDataService,
-    private readonly eventsDataService: EventsDataService,
-  ) {}
+  constructor(private readonly suggestionDataService: SuggestionDataService) {}
 
   async getSuggestions(suggestionType: SuggestionType, dto: any): Promise<any> {
     switch (suggestionType) {
@@ -66,12 +60,5 @@ export class SuggestionService {
   }
   async getTrackerName(dto: TrackerDto) {
     return await this.suggestionDataService.getTrackerName(dto);
-  }
-
-  async getEvents(dto: EventDto) {
-    const events = await this.eventsDataService.getEvents({
-      ...dto,
-      view: View.list,
-    });
   }
 }

@@ -17,7 +17,6 @@ import {
 import { TagDto } from './dto/tags.dto';
 import { AuthGuard } from 'src/user/auth/guard';
 import { CompanyDto } from './dto/company.dto';
-import { EventDto } from './dto/event.dto';
 
 @Controller('suggestions')
 export class SuggestionController {
@@ -109,16 +108,6 @@ export class SuggestionController {
     try {
       const trackerName = await this.suggestionService.getTrackerName(dto);
       return { data: { ...trackerName } };
-    } catch (error) {
-      return { error: new HttpException(error, HttpStatus.BAD_REQUEST) };
-    }
-  }
-  @UseGuards(AuthGuard)
-  @Get('events')
-  async getEvents(@Query() dto: EventDto) {
-    try {
-      const events = await this.suggestionService.getEvents(dto);
-      return { data: { events } };
     } catch (error) {
       return { error: new HttpException(error, HttpStatus.BAD_REQUEST) };
     }
