@@ -380,6 +380,7 @@ export class TrackerService {
     user: TCachedUser,
     trackerId: string,
     params: GetTrackerEventsDto,
+    showValues: string,
   ) {
     try {
       const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
@@ -429,6 +430,7 @@ export class TrackerService {
         view: View.tracker,
         ...convertedParams,
         trackerId: trackerId,
+        showValues: showValues,
       } as QueryDto;
       if (searchByEntity) {
         eventParams['searchByEntity'] = searchByEntity;
@@ -466,6 +468,7 @@ export class TrackerService {
     user: TCachedUser,
     trackerId: string,
     params: GetTrackerEventsDto,
+    showValues: string,
   ) {
     try {
       const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
@@ -525,6 +528,7 @@ export class TrackerService {
         limit: params.limit,
         offset: 0,
         view: View.tracker,
+        showValues: showValues,
       } as QueryDto;
 
       const events = await this.eventService.getAllEvents(

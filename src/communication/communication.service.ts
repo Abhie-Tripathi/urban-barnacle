@@ -16,9 +16,10 @@ export class CommunicationService {
     @InjectQueue('accessProcessor') private readonly accessQueue: Queue,
     @InjectQueue('otpProcessor') private readonly otpQueue: Queue,
     @InjectQueue('intendProcessor') private readonly intendQueue: Queue,
-    @InjectQueue('demoContactProcessor') private readonly demoContactQueue: Queue,
+    @InjectQueue('demoContactProcessor')
+    private readonly demoContactQueue: Queue,
     @InjectQueue('errorProcessor') private readonly errorQueue: Queue,
-  ) { }
+  ) {}
   async createJobForBull(
     processAction: QueueActionOptions,
     payload: unknown,
@@ -36,14 +37,19 @@ export class CommunicationService {
         sourceId = jobRequestPayload.sourceId;
       } catch (error) {
         console.error('Invalid payload:', error);
-        throw new HttpException('Payload validation failed', HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          'Payload validation failed',
+          HttpStatus.BAD_REQUEST,
+        );
       }
       if (userId === '@10times.com') {
-        userId = (await this.prisma.user.findMany({
-          where: {
-            email: { contains: '@10times.com', mode: 'insensitive' }
-          }
-        }))[0].id;
+        userId = (
+          await this.prisma.user.findMany({
+            where: {
+              email: { contains: '@10times.com', mode: 'insensitive' },
+            },
+          })
+        )[0].id;
         sourceId = userId;
       }
       const processEnumObject: object = {
@@ -55,18 +61,18 @@ export class CommunicationService {
         SEND_EVENT_INTEND_UPDATE_EMAIL: 'intendUpdate',
         SEND_ERROR_EMAIL: 'errorMessage',
         SEND_DEMO_CONTACT_EMAIL: 'demoContactMail',
-        SEND_USER_INVITATION_EMAIL:'inviteUserMail'
+        SEND_USER_INVITATION_EMAIL: 'inviteUserMail',
       };
       const processToprocessorMapping: object = {
         shareAccess: 'accessProcessor',
         eventCancelMail: 'eventProcessor',
         invitationMail: 'inviteProcessor',
-        inviteUserMail:'inviteProcessor',
+        inviteUserMail: 'inviteProcessor',
         'signUp/InEmail': 'otpProcessor',
         intendRecevied: 'intendProcessor',
         intendUpdate: 'intendProcessor',
         errorMessage: 'errorProcessor',
-        demoContactMail: 'demoContactProcessor'
+        demoContactMail: 'demoContactProcessor',
       };
       const jobSource: object = {
         // SEND_SIGNIN_OTP: 'signUp/InEmail',
@@ -74,30 +80,35 @@ export class CommunicationService {
         SEND_ACCESS: 'shareAccess',
         EVENT_CANCEl: 'eventCancelMail',
         SEND_INVITE: 'invitationMail',
-        SEND_USER_INVITE:'inviteUserMail',
+        SEND_USER_INVITE: 'inviteUserMail',
         SEND_INTEND_CREATE: 'intendRecevied',
         SEND_INTEND_UPDATE: 'intendUpdate',
         SEND_ERROR_MAIL: 'errorMessage',
-        SEND_DEMO_CONTACT_MAIL: 'demoContactMail'
-      }
+        SEND_DEMO_CONTACT_MAIL: 'demoContactMail',
+      };
       const process: string = processEnumObject[processAction];
       const processor: string = processToprocessorMapping[process];
       console.log(process, processor);
 
-      let jobSourceType: string = process === 'signUp/InEmail' && jobRequestPayload.process === 'sign-up' ? 'SEND_SIGNUP_OTP'
-        : (process === 'signUp/InEmail' && jobRequestPayload.process === 'sign-in' ? 'SEND_SIGNUP_OTP' : '');
+      let jobSourceType: string =
+        process === 'signUp/InEmail' && jobRequestPayload.process === 'sign-up'
+          ? 'SEND_SIGNUP_OTP'
+          : process === 'signUp/InEmail' &&
+              jobRequestPayload.process === 'sign-in'
+            ? 'SEND_SIGNUP_OTP'
+            : '';
       for (const key in jobSource) {
         if (jobSource[key] === process) {
           jobSourceType = key;
           break;
         }
       }
-      const requestId = (await this.createJobInDatabase(
+      const requestId = await this.createJobInDatabase(
         userId,
         validatedPayload,
         jobSourceType as JobSource,
-        sourceId
-      ));
+        sourceId,
+      );
       let jobAdded: any = {};
       switch (process) {
         case 'shareAccess':
@@ -105,7 +116,7 @@ export class CommunicationService {
             process,
             {
               ...validatedPayload,
-              ...requestId
+              ...requestId,
             },
             {
               priority: priority,
@@ -117,7 +128,8 @@ export class CommunicationService {
           jobAdded = await this.eventCanelQueue.add(
             process,
             {
-              ...validatedPayload, ...requestId
+              ...validatedPayload,
+              ...requestId,
             },
             {
               priority: priority,
@@ -129,7 +141,8 @@ export class CommunicationService {
           jobAdded = await this.inviteQueue.add(
             process,
             {
-              ...validatedPayload, ...requestId
+              ...validatedPayload,
+              ...requestId,
             },
             {
               priority: priority,
@@ -141,7 +154,34 @@ export class CommunicationService {
           jobAdded = await this.inviteQueue.add(
             process,
             {
-              ...validatedPayload, ...requestId
+              ...validatedPayload,
+              ...requestId,
+            },
+            {
+              priority: priority,
+            },
+          );
+          console.log('Call inviteProcessor');
+          break;
+        case 'inviteUserMail':
+          jobAdded = await this.inviteQueue.add(
+            process,
+            {
+              ...validatedPayload,
+              ...requestId,
+            },
+            {
+              priority: priority,
+            },
+          );
+          console.log('Call inviteProcessor');
+          break;
+        case 'inviteUserMail':
+          jobAdded = await this.inviteQueue.add(
+            process,
+            {
+              ...validatedPayload,
+              ...requestId,
             },
             {
               priority: priority,
@@ -153,7 +193,8 @@ export class CommunicationService {
           jobAdded = await this.otpQueue.add(
             process,
             {
-              ...validatedPayload, ...requestId
+              ...validatedPayload,
+              ...requestId,
             },
             {
               priority: priority,
@@ -165,7 +206,8 @@ export class CommunicationService {
           jobAdded = await this.intendQueue.add(
             process,
             {
-              ...validatedPayload, ...requestId
+              ...validatedPayload,
+              ...requestId,
             },
             {
               priority: priority,
@@ -178,7 +220,8 @@ export class CommunicationService {
           jobAdded = await this.intendQueue.add(
             process,
             {
-              ...validatedPayload, ...requestId
+              ...validatedPayload,
+              ...requestId,
             },
             {
               priority: priority,
@@ -190,7 +233,8 @@ export class CommunicationService {
           jobAdded = await this.demoContactQueue.add(
             process,
             {
-              ...validatedPayload, ...requestId
+              ...validatedPayload,
+              ...requestId,
             },
             {
               priority: priority,
@@ -202,7 +246,60 @@ export class CommunicationService {
           jobAdded = await this.errorQueue.add(
             process,
             {
-              ...validatedPayload, ...requestId
+              ...validatedPayload,
+              ...requestId,
+            },
+            {
+              priority: priority,
+            },
+          );
+          console.log('Call intendProcessor');
+          break;
+        case 'demoContactMail':
+          jobAdded = await this.demoContactQueue.add(
+            process,
+            {
+              ...validatedPayload,
+              ...requestId,
+            },
+            {
+              priority: priority,
+            },
+          );
+          console.log('Call intendProcessor');
+          break;
+        case 'errorMessage':
+          jobAdded = await this.errorQueue.add(
+            process,
+            {
+              ...validatedPayload,
+              ...requestId,
+            },
+            {
+              priority: priority,
+            },
+          );
+          console.log('Call intendProcessor');
+          break;
+        case 'demoContactMail':
+          jobAdded = await this.demoContactQueue.add(
+            process,
+            {
+              ...validatedPayload,
+              ...requestId,
+            },
+            {
+              priority: priority,
+            },
+          );
+          console.log('Call intendProcessor');
+          break;
+        case 'errorMessage':
+          jobAdded = await this.errorQueue.add(
+            process,
+            {
+              ...validatedPayload,
+              ...requestId,
             },
             {
               priority: priority,
@@ -219,7 +316,7 @@ export class CommunicationService {
       return { message: 'Job created successfully.' };
     } catch (error) {
       console.log(error);
-      throw new HttpException('unable to create job.', HttpStatus.BAD_REQUEST);
+      // throw new HttpException('unable to create job.', HttpStatus.BAD_REQUEST);
     }
   }
   // async test() {
@@ -229,14 +326,14 @@ export class CommunicationService {
     userId: string,
     payload: any,
     source: JobSource,
-    sourceId: string
+    sourceId: string,
   ) {
     const job = await this.prisma.requestedJob.create({
       data: {
         userId: String(userId),
         inputData: payload,
         source: source,
-        sourceId: sourceId
+        sourceId: sourceId,
       },
       select: {
         id: true,
@@ -244,16 +341,13 @@ export class CommunicationService {
     });
     return { jobRequestId: job.id };
   }
-  private async updateJobInDatabase(
-    processId: number,
-    jobId: string
-  ) {
+  private async updateJobInDatabase(processId: number, jobId: string) {
     const job = await this.prisma.requestedJob.update({
       where: {
-        id: jobId
+        id: jobId,
       },
       data: {
-        processId: Number(processId)
+        processId: Number(processId),
       },
       select: {
         id: true,
