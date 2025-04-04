@@ -47,12 +47,12 @@ export class GlobalResponseInterceptor implements NestInterceptor {
               issues: err.issues || [],
             },
           });
+          (process.env.NODE_ENV || '').toLowerCase() === 'production' ? this.communicationService.createJobForBull(QueueActionOptions.SEND_ERROR_EMAIL, {
+            apiName: request.url,
+            errorType: errorType,
+            errorMessage: errorMsg,
+          }, '@10times.com') : '';
         }
-        (process.env.NODE_ENV || '').toLowerCase() === 'production' ? this.communicationService.createJobForBull(QueueActionOptions.SEND_ERROR_EMAIL, {
-          apiName: request.url,
-          errorType: errorType,
-          errorMessage: errorMsg,
-        }, '@10times.com') : '';
         // Handle unexpected errors
         console.log(err);
         throw err;
