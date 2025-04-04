@@ -375,8 +375,11 @@ export class AuthService {
         countryId?: string;
         countryName?: string;
       };
+      socialId?: { google?: string, linkedin?: string }
     } = response.data;
-
+    if (!data['email']) {
+      throw new HttpException('email is required', HttpStatus.FAILED_DEPENDENCY);
+    }
     const users = await this.userDataService.getUsers({
       email: [data['email'] as string],
       limit: 1,
@@ -405,10 +408,12 @@ export class AuthService {
         const updatedUser = await this.userDataService.updateUser({
           id: user.id,
           currentOnboardingState: OnboardingState.COMPLETED,
-          socialIds: {
-            google: source.source === 'google' && response.socialId ? response.socialId['userId'] : (user.socialIds as any)['google']
-            , linkedin: source.source === 'linkedin' && response.socialId ? response.socialId['userId'] : (user.socialIds as any)['linkedin']
-          }
+          ...(['google', 'linkedin'].includes(source.source) ? {
+            socialIds: {
+              google: source.source === 'google' && response.socialId ? response.socialId['userId'] : (user?.socialIds as any)['google']
+              , linkedin: source.source === 'linkedin' && response.socialId ? response.socialId['userId'] : (user?.socialIds as any)['linkedin']
+            }
+          } : {})
         });
         userDetail = updatedUser;
       } else {
