@@ -60,7 +60,10 @@ export class IntentService {
         enquiry = enquiries[0];
       }
       if (!data.enquiryId && data.eventId && enquiries.length === 0) {
-        const event = await this.eventService.getEvent(data.eventId);
+        const event = await this.eventService.getEvent(
+          data.eventId,
+          'suggestion',
+        );
         if (!event) {
           throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
         }

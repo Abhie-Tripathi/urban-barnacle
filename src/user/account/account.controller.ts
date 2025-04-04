@@ -72,9 +72,11 @@ export class AccountController {
     @Query() query: GetEnquiriesHttpDto,
   ) {
     try {
+      const showValues = 'basic,advance,insights,audience';
       const enquiries = await this.accountService.getAccountEnquiries(
         user,
         query,
+        showValues,
       );
       return { data: enquiries };
     } catch (error) {

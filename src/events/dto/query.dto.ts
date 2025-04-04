@@ -43,6 +43,7 @@ export enum View {
   'calendar' = 'calendar',
   'tracker' = 'tracker',
   'detail' = 'detail',
+  'suggestion' = 'suggestion',
 }
 
 export enum CalendarViewType {
@@ -571,7 +572,9 @@ export const FilterNames = Object.keys(QueryFilter.shape);
 
 export class QueryFilterDto extends createZodDto(QueryFilter) {}
 
-export const QuerySchema = LimitSchemaWithoutDefault.extend(QueryFilter.shape)
+export const QueryHttpSchema = LimitSchemaWithoutDefault.extend(
+  QueryFilter.shape,
+)
   .extend({
     sortBy: z
       .string()
@@ -650,6 +653,12 @@ export const QuerySchema = LimitSchemaWithoutDefault.extend(QueryFilter.shape)
     }
     return data;
   });
+
+export class QueryHttpDto extends createZodDto(QueryHttpSchema) {}
+
+export const QuerySchema = QueryHttpSchema.innerType().extend({
+  showValues: z.string(),
+});
 
 export class QueryDto extends createZodDto(QuerySchema) {}
 

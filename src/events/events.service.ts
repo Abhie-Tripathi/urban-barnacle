@@ -136,12 +136,13 @@ export class EventsService {
     return events;
   }
 
-  async getEvent(eventId: string, user?: TCachedUser) {
+  async getEvent(eventId: string, showValues: string, user?: TCachedUser) {
     const data = await this.eventsDataService.getEvents({
       eventIds: [eventId],
       view: View.detail,
       limit: 1,
       offset: 0,
+      showValues,
     });
     if (
       !data ||

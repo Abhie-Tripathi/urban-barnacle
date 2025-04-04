@@ -170,6 +170,26 @@ export class TrackerDataService {
         ...data,
         lastModifiedBy: user.id,
       },
+      include: {
+        createdByUser: {
+          select: {
+            id: true,
+            email: true,
+            firstname: true,
+            lastname: true,
+            imageUrl: true,
+          },
+        },
+        modifiedByUser: {
+          select: {
+            id: true,
+            email: true,
+            firstname: true,
+            lastname: true,
+            imageUrl: true,
+          },
+        },
+      },
     });
     return tracker;
   }
