@@ -119,7 +119,7 @@ export const defaultEventTypes = {
     tradeshows: '9b5524b4-60f5-5478-b3f0-38e2e12e3981',
     conferences: '4de48054-46fb-5452-a23f-8aac6c00592e',
     workshops: 'ad7c83a5-b8fc-5109-a159-9306848de22c',
-    // holiday : '5b37e581-53f7-5dcf-8177-c6a43774b168'
+    holiday: '5b37e581-53f7-5dcf-8177-c6a43774b168',
   },
   gtm: {
     tradeshows: '9b5524b4-60f5-5478-b3f0-38e2e12e3981',
@@ -297,4 +297,3 @@ export const blackListDomain = [
   'web.de',
   'alice.it',
 ];
-
