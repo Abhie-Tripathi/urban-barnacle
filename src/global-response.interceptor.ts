@@ -26,6 +26,7 @@ export class GlobalResponseInterceptor implements NestInterceptor {
     const request: FastifyRequest = ctx.getRequest<FastifyRequest>();
     return next.handle().pipe(
       catchError((err) => {
+        console.log(err);
         let errorMsg: string = err.message;
         let errorType: string = 'HTTPError';
         if (err instanceof ZodValidationException) {
@@ -47,21 +48,25 @@ export class GlobalResponseInterceptor implements NestInterceptor {
               issues: err.issues || [],
             },
           });
-          (process.env.NODE_ENV || '').toLowerCase() === 'production' ? this.communicationService.createJobForBull(QueueActionOptions.SEND_ERROR_EMAIL, {
-            apiName: request.url,
-            errorType: errorType,
-            errorMessage: errorMsg,
-          }, '@10times.com') : '';
+          (process.env.NODE_ENV || '').toLowerCase() === 'production'
+            ? this.communicationService.createJobForBull(
+              QueueActionOptions.SEND_ERROR_EMAIL,
+              {
+                apiName: request.url,
+                errorType: errorType,
+                errorMessage: errorMsg,
+              },
+              '@10times.com',
+            )
+            : '';
         }
-        // Handle unexpected errors
-        console.log(err);
         throw err;
       }),
       tap((data) => {
         let errorResponse: any;
-        console.log({ error: data.error });
         const error: HttpException = data.error;
-        console.log({ error });
+        if (data.error)
+          console.log({ error: data.error });
         if (data && data.error) {
           let errorMsg: string = JSON.stringify(data.error);
           let errorType: string = 'HTTPError';
@@ -75,20 +80,26 @@ export class GlobalResponseInterceptor implements NestInterceptor {
           }
           // Check if the response contains an error property
           else {
-            errorResponse =
-              (error.getResponse() as unknown as {
+            errorResponse = error.getResponse
+              ? (error.getResponse() as unknown as {
                 message: string;
                 issues: any[];
                 statusCode: number;
-              }) || error;
-            console.log({ errorResponse });
+              })
+              : error;
             errorMsg = errorResponse['message'];
           }
-          (process.env.NODE_ENV || '').toLowerCase() === 'production' ? this.communicationService.createJobForBull(QueueActionOptions.SEND_ERROR_EMAIL, {
-            apiName: request.url,
-            errorType: errorType,
-            errorMessage: errorMsg,
-          }, '@10times.com') : '';
+          (process.env.NODE_ENV || '').toLowerCase() === 'production'
+            ? this.communicationService.createJobForBull(
+              QueueActionOptions.SEND_ERROR_EMAIL,
+              {
+                apiName: request.url,
+                errorType: errorType,
+                errorMessage: errorMsg,
+              },
+              '@10times.com',
+            )
+            : '';
           response
             .status(error.getStatus?.() || HttpStatus.INTERNAL_SERVER_ERROR)
             .send({
