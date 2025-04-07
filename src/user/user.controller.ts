@@ -1,4 +1,12 @@
-import { Controller, Get, HttpException, HttpStatus, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { ProspectSchemaDto } from 'src/shared/shared.dto';
 import { UserSchemaDto } from './dto/user.search.dto';
@@ -11,31 +19,52 @@ import { CompanyEventDto } from 'src/company/dto';
 
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService,
-    private readonly sharedService: SharedService
-  ) { }
+  constructor(
+    private readonly userService: UserService,
+    private readonly sharedService: SharedService,
+  ) {}
   @UseGuards(AuthGuard)
   @Get('search')
-  async getUserProspectData(@Query() query: ProspectSchemaDto, @GetUser() userData: TCachedUser) {
+  async getUserProspectData(
+    @Query() query: ProspectSchemaDto,
+    @GetUser() userData: TCachedUser,
+  ) {
     let flag = false;
     try {
-      const point = await this.sharedService.getPointForRequest(PointColumn.pendingCompanySearchRequests, userData.currentSubscriptionId);
+      const point = await this.sharedService.getPointForRequest(
+        PointColumn.pendingCompanySearchRequests,
+        userData.currentSubscriptionId,
+      );
       if (point <= 0) {
-        throw new HttpException('You have reached the maximum limit to view data. Please get in touch with us.', HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          'You have reached the maximum limit to view data. Please get in touch with us.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
       }
       const result = await this.userService.getUserProspectData(query);
-      await this.sharedService.deductPointForRequest(PointColumn.pendingCompanySearchRequests, userData.currentSubscriptionId, point - 1)
+      await this.sharedService.deductPointForRequest(
+        PointColumn.pendingCompanySearchRequests,
+        userData.currentSubscriptionId,
+        point - 1,
+      );
       flag = true;
       return result;
     } catch (error) {
       if (flag)
-        this.sharedService.creditPointForRequest(PointColumn.pendingCompanySearchRequests, userData.currentSubscriptionId)
+        this.sharedService.creditPointForRequest(
+          PointColumn.pendingCompanySearchRequests,
+          userData.currentSubscriptionId,
+        );
       return { error: error };
     }
   }
   @UseGuards(AuthGuard)
   @Get(':userId')
-  async getUserData(@Param('userId') userId, @Query() query: UserSchemaDto, @GetUser() userData: TCachedUser) {
+  async getUserData(
+    @Param('userId') userId,
+    @Query() query: UserSchemaDto,
+    @GetUser() userData: TCachedUser,
+  ) {
     try {
       return await this.userService.getUserData(query, userId, userData);
     } catch (error) {
@@ -44,7 +73,11 @@ export class UserController {
   }
   @UseGuards(AuthGuard)
   @Get(':userId/events')
-  async getUserEvent(@Param('userId') userId, @Query() query: CompanyEventDto, @GetUser() userData: TCachedUser) {
+  async getUserEvent(
+    @Param('userId') userId,
+    @Query() query: CompanyEventDto,
+    @GetUser() userData: TCachedUser,
+  ) {
     try {
       return await this.userService.getUserEvent(userId, query);
     } catch (error) {
