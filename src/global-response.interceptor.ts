@@ -10,7 +10,10 @@ import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { ZodValidationException } from 'nestjs-zod';
-import { PrismaClientValidationError } from '@prisma/client/runtime/library';
+import {
+  PrismaClientKnownRequestError,
+  PrismaClientValidationError,
+} from '@prisma/client/runtime/library';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { CommunicationService } from './communication/communication.service';
@@ -83,25 +86,40 @@ export class GlobalResponseInterceptor implements NestInterceptor {
           let errorType: string = 'HTTPError';
           let errorResponse: any;
 
-          const error: HttpException = data.error;
-          if (data.error) console.log({ error: data.error });
-          if (data.error instanceof PrismaClientValidationError) {
-            errorType = 'PrismaClientValidationError';
-            errorResponse = {
-              message: 'Invalid input',
-              issues: data.error,
-              statusCode: HttpStatus.BAD_REQUEST,
-            };
-          } else {
-            errorResponse = error.getResponse
-              ? (error.getResponse() as unknown as {
-                  message: string;
-                  issues: any[];
-                  statusCode: number;
-                })
-              : error;
-            errorMsg = errorResponse['message'];
-          }
+          const error = data.error;
+          console.log(error);
+          if (error)
+            if (error instanceof PrismaClientValidationError) {
+              // console.log({
+              //   error: error,
+              //   errorKeys: Object.keys(error),
+              // });
+              errorType = 'PrismaClientValidationError';
+              errorResponse = {
+                message: 'Invalid input',
+                issues: error,
+                statusCode: HttpStatus.BAD_REQUEST,
+              };
+            } else if (error instanceof PrismaClientKnownRequestError) {
+              errorType = 'PrismaClientKnownRequestError';
+              errorResponse = {
+                message: error.message,
+                issues: error,
+                statusCode: HttpStatus.BAD_REQUEST,
+              };
+            } else {
+              if (error instanceof HttpException) {
+                const e: HttpException = error;
+                errorResponse = {
+                  message: e.message,
+                  issues: [],
+                  statusCode: e.getStatus(),
+                };
+              } else {
+                errorResponse = error;
+              }
+              errorMsg = errorResponse['message'];
+            }
 
           // Send error email only for Internal Server Error (500)
           if (errorResponse.statusCode === HttpStatus.INTERNAL_SERVER_ERROR) {
