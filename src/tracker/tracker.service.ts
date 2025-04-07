@@ -160,7 +160,7 @@ export class TrackerService {
         email: tracker.createdByUser.email,
         imageUrl: tracker.createdByUser.imageUrl,
       },
-      lastModifiedBy: tracker.modifiedByUser.id
+      lastModifiedBy: tracker.modifiedByUser
         ? {
             id: tracker.modifiedByUser.id,
             name: getNameFromEmail(
