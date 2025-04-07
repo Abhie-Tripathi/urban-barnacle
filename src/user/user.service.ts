@@ -6,7 +6,11 @@ import { AccountDataService } from './account/account.data.service';
 import { UserDataService } from './user.data.service';
 import { SharedService } from 'src/shared/shared.service';
 import { ProspectSchemaDto } from 'src/shared/shared.dto';
-import { PocUnmaskDto, pocUnmaskSchemaMandate, UserSchemaDto } from './dto/user.search.dto';
+import {
+  PocUnmaskDto,
+  pocUnmaskSchemaMandate,
+  UserSchemaDto,
+} from './dto/user.search.dto';
 import { PointColumn } from 'src/shared/types';
 import { UnlockType, UnlockValue } from '@prisma/client';
 import { decrypt } from 'src/utils';
@@ -20,7 +24,7 @@ export class UserService {
     private readonly userDataService: UserDataService,
     private readonly sharedService: SharedService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) { }
+  ) {}
 
   async signOut(token: string) {
     await this.cacheManager.del(token);
@@ -57,32 +61,45 @@ export class UserService {
     };
   }
   async getUserProspectData(query: ProspectSchemaDto) {
-    return await this.sharedService.getCompanyAndUserDataForProspect(query, 'list', 'user');
+    return await this.sharedService.getCompanyAndUserDataForProspect(
+      query,
+      'list',
+      'user',
+    );
   }
-  async getPocsUnmasked(
-    pocId: string,
-    query: PocUnmaskDto,
-    user: TCachedUser,
-  ) {
+  async getPocsUnmasked(pocId: string, query: PocUnmaskDto, user: TCachedUser) {
     pocId = decrypt(pocId).replace(process.env.TEN_TIMES_ID_ENCRYPT_KEY!, '');
     if (query.target === 'COMPANY' && query.targetId) {
-      query.targetId = decrypt(query.targetId).replace(process.env.TEN_TIMES_ID_ENCRYPT_KEY!, '');
+      query.targetId = decrypt(query.targetId).replace(
+        process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+        '',
+      );
     }
     const [checkForEntry, limitForPoc] = await Promise.all([
-      this.userDataService.getPocUnlockedDatabyAccount(user.accountId, query.targetId, query.source, pocId),
+      this.userDataService.getPocUnlockedDatabyAccount(
+        user.accountId,
+        query.targetId,
+        query.source,
+        pocId,
+      ),
       this.sharedService.getPointForRequest(
         query.target === 'COMPANY' || query.target === 'EVENT'
           ? PointColumn.pendingPocUnlockRequests
           : PointColumn.pendingProspectPocUnlockRequests,
-        user.currentSubscriptionId
+        user.currentSubscriptionId,
       ),
     ]);
 
     if (limitForPoc <= 0) {
-      throw new HttpException('Limit exceeded for POC viewing', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Limit exceeded for POC viewing',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
 
-    const unlockedValues = new Set<String>(checkForEntry.map(entry => entry.unlockValue));
+    const unlockedValues = new Set<String>(
+      checkForEntry.map((entry) => entry.unlockValue),
+    );
     let countForSeenUnlockValue = -1;
 
     if (limitForPoc < 2) {
@@ -93,12 +110,19 @@ export class UserService {
 
     for (const val of query.unmask.toUpperCase().split(',')) {
       if (unlockedValues.has(val)) {
-        const entry = checkForEntry.find(entry => entry.unlockValue === val);
+        const entry = checkForEntry.find((entry) => entry.unlockValue === val);
         if (entry) {
           this.userDataService.updatePocUnlockedTransaction(entry.id);
         }
       } else {
-        await this.userDataService.craetePocunlockedTransaction(user, query.targetId, query.source, pocId, val as UnlockValue, query.target);
+        await this.userDataService.craetePocunlockedTransaction(
+          user,
+          query.targetId,
+          query.source,
+          pocId,
+          val as UnlockValue,
+          query.target,
+        );
         remainingUnmask.push(val);
         countForSeenUnlockValue--;
         if (countForSeenUnlockValue === 0) {
@@ -115,25 +139,45 @@ export class UserService {
           ? PointColumn.pendingPocUnlockRequests
           : PointColumn.pendingProspectPocUnlockRequests,
         user.currentSubscriptionId,
-        limitForPoc - remainingUnmask.length
+        limitForPoc - remainingUnmask.length,
       );
     }
 
-    return { data: await this.userDataService.getPocsunlocked(pocId, query.unmask.toUpperCase().split(',') as UnlockValue[]) };
+    return {
+      data: await this.userDataService.getPocsunlocked(
+        pocId,
+        query.unmask.toUpperCase().split(',') as UnlockValue[],
+      ),
+    };
   }
-  async getUserData(query: UserSchemaDto, userId: string, userData: TCachedUser) {
+  async getUserData(
+    query: UserSchemaDto,
+    userId: string,
+    userData: TCachedUser,
+  ) {
     if (query.unmask && query.target && query.source) {
-      return await this.getPocsUnmasked(userId, pocUnmaskSchemaMandate.parse(query), userData);
+      return await this.getPocsUnmasked(
+        userId,
+        pocUnmaskSchemaMandate.parse(query),
+        userData,
+      );
     }
     if (isUUID(userId)) {
       return {};
     } else if (!isUUID(userId)) {
-      return await this.sharedService.getCompanyAndUserDataForProspect({ userId: userId, limit: 10, offset: 0 }, 'detail', 'user');
+      return await this.sharedService.getCompanyAndUserDataForProspect(
+        { userId: userId, limit: 10, offset: 0 },
+        'detail',
+        'user',
+      );
     }
   }
   async getUserEvent(userId: string, query: CompanyEventDto) {
     if (!isUUID(userId))
-      return await this.sharedService.getProspectEventAndMap(userId, { ...query, type: 'user' });
+      return await this.sharedService.getProspectEventAndMap(userId, {
+        ...query,
+        type: 'user',
+      });
     throw new HttpException(`user not found`, 404);
   }
 }

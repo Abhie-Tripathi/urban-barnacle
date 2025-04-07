@@ -14,16 +14,21 @@ import { PrismaClientValidationError } from '@prisma/client/runtime/library';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { CommunicationService } from './communication/communication.service';
-import { QueueActionOptions } from './utils/types';
+import {
+  QueueActionOptions,
+  RequestWithUser,
+  TCachedUser,
+} from './utils/types';
 
 @Injectable()
 export class GlobalResponseInterceptor implements NestInterceptor {
-  constructor(private readonly communicationService: CommunicationService) { }
+  constructor(private readonly communicationService: CommunicationService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const ctx = context.switchToHttp();
     const response: FastifyReply = ctx.getResponse();
-    const request: FastifyRequest = ctx.getRequest<FastifyRequest>();
+    const request: RequestWithUser = ctx.getRequest();
+    const user = request.user;
 
     return next.handle().pipe(
       catchError((err) => {
@@ -54,16 +59,19 @@ export class GlobalResponseInterceptor implements NestInterceptor {
 
           // Send error email only for Internal Server Error (500)
           if (statusCode === HttpStatus.INTERNAL_SERVER_ERROR) {
-            (process.env.NODE_ENV || '').toLowerCase() === 'production'
+            ['production', 'development'].includes(
+              (process.env.NODE_ENV || '').toLowerCase(),
+            )
               ? this.communicationService.createJobForBull(
-                QueueActionOptions.SEND_ERROR_EMAIL,
-                {
-                  apiName: request.url || 'undefined',
-                  errorType: errorType || 'undefined',
-                  errorMessage: errorMsg || JSON.stringify(request.body) || 'undefined',
-                },
-                '@10times.com',
-              )
+                  QueueActionOptions.SEND_ERROR_EMAIL,
+                  {
+                    apiName: request.url || 'undefined',
+                    errorType: errorType || 'undefined',
+                    errorMessage: `${errorMsg || JSON.stringify(request.body) || 'undefined'} 
+                      ${JSON.stringify({ userId: user?.id, accountId: user?.accountId })}`,
+                  },
+                  '@10times.com',
+                )
               : '';
           }
         }
@@ -86,33 +94,45 @@ export class GlobalResponseInterceptor implements NestInterceptor {
             };
           } else {
             errorResponse = error.getResponse
-              ? (error.getResponse() as unknown as { message: string; issues: any[]; statusCode: number })
+              ? (error.getResponse() as unknown as {
+                  message: string;
+                  issues: any[];
+                  statusCode: number;
+                })
               : error;
             errorMsg = errorResponse['message'];
           }
 
           // Send error email only for Internal Server Error (500)
           if (errorResponse.statusCode === HttpStatus.INTERNAL_SERVER_ERROR) {
-            (process.env.NODE_ENV || '').toLowerCase() === 'production'
+            ['production', 'development'].includes(
+              (process.env.NODE_ENV || '').toLowerCase(),
+            )
               ? this.communicationService.createJobForBull(
-                QueueActionOptions.SEND_ERROR_EMAIL,
-                {
-                  apiName: request.url || 'undefined',
-                  errorType: errorType || 'undefined',
-                  errorMessage: errorMsg || JSON.stringify(request.body) || 'undefined',
-                },
-                '@10times.com',
-              )
+                  QueueActionOptions.SEND_ERROR_EMAIL,
+                  {
+                    apiName: request.url || 'undefined',
+                    errorType: errorType || 'undefined',
+                    errorMessage: `${errorMsg || JSON.stringify(request.body) || 'undefined'} 
+                      ${JSON.stringify({ userId: user?.id, accountId: user?.accountId })}`,
+                  },
+                  '@10times.com',
+                )
               : '';
           }
 
-          response.status(errorResponse.statusCode || HttpStatus.INTERNAL_SERVER_ERROR).send({
-            error: {
-              statusCode: errorResponse.statusCode || HttpStatus.INTERNAL_SERVER_ERROR,
-              message: errorResponse.message || errorResponse,
-              issues: errorResponse.issues || [],
-            },
-          });
+          response
+            .status(
+              errorResponse.statusCode || HttpStatus.INTERNAL_SERVER_ERROR,
+            )
+            .send({
+              error: {
+                statusCode:
+                  errorResponse.statusCode || HttpStatus.INTERNAL_SERVER_ERROR,
+                message: errorResponse.message || errorResponse,
+                issues: errorResponse.issues || [],
+              },
+            });
         } else {
           // Handle successful responses
           response.status(HttpStatus.OK).send(data);

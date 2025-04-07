@@ -546,7 +546,7 @@ export class SharedService {
     if (point <= 0) {
       throw new HttpException(
         `You have reached the maximum limit to view data. Please get in touch with us.`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.TOO_MANY_REQUESTS,
       );
     }
     await this.prisma.subscription.update({
