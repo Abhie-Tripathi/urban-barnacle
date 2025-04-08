@@ -15,10 +15,10 @@ const GetRecentEventSearchesSchema = LimitSchema.extend({
 
 export class GetRecentEventSearchesDto extends createZodDto(
   GetRecentEventSearchesSchema,
-) {}
+) { }
 
 const GetMyExports = LimitSchema.extend({
   name: z.string().optional(),
 });
 
-export class GetMyExportsDto extends createZodDto(GetMyExports) {}
+export class GetMyExportsDto extends createZodDto(GetMyExports) { }

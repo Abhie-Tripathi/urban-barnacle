@@ -63,7 +63,12 @@ export class MeService {
 
     return { count: trackerCount, trackers };
   }
-
+  async getMyTrackersCount(
+    user: TCachedUser,
+    query: GetTrackersHttpDto,
+  ) {
+    return await this.trackerService.getTrackersCount(user, { limit: 10, offset: 0 }, query.groupBy);
+  }
   async getMyRecentSearches(
     user: TCachedUser,
     params: GetRecentEventSearchesDto,
