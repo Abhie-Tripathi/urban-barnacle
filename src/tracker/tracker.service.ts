@@ -142,7 +142,6 @@ export class TrackerService {
         82800000,
       );
     }
-
     const trackerValues = {
       id: tracker.id,
       name: tracker.name,
@@ -160,18 +159,19 @@ export class TrackerService {
         email: tracker.createdByUser.email,
         imageUrl: tracker.createdByUser.imageUrl,
       },
-      lastModifiedBy: tracker.modifiedByUser.id
-        ? {
-            id: tracker.modifiedByUser.id,
-            name: getNameFromEmail(
-              tracker.modifiedByUser.email,
-              tracker.modifiedByUser.firstname,
-              tracker.modifiedByUser.lastname,
-            ),
-            email: tracker.modifiedByUser.email,
-            imageUrl: tracker.modifiedByUser.imageUrl,
-          }
-        : null,
+      lastModifiedBy:
+        tracker.modifiedByUser && tracker.modifiedByUser.id
+          ? {
+              id: tracker.modifiedByUser.id,
+              name: getNameFromEmail(
+                tracker.modifiedByUser.email,
+                tracker.modifiedByUser.firstname,
+                tracker.modifiedByUser.lastname,
+              ),
+              email: tracker.modifiedByUser.email,
+              imageUrl: tracker.modifiedByUser.imageUrl,
+            }
+          : null,
     };
     return {
       ...trackerValues,
