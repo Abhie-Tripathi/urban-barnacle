@@ -40,7 +40,7 @@ export class TrackerService {
     private readonly userDataService: UserDataService,
     private readonly configService: ConfigService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) {}
+  ) { }
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const nonEmptyParams = getNonEmptyParams(data.filterValues);
@@ -98,9 +98,9 @@ export class TrackerService {
           : undefined;
     tracker.filterValues = tracker.filterValues
       ? {
-          ...(tracker.filterValues as Record<string, any>),
-          searchByEntity,
-        }
+        ...(tracker.filterValues as Record<string, any>),
+        searchByEntity,
+      }
       : { searchByEntity };
 
     const savedEventsCount =
@@ -239,7 +239,7 @@ export class TrackerService {
     return allTrackers;
   }
 
-  async getTrackersCount(user: TCachedUser, params: GetTrackersHttpDto) {
+  async getTrackersCount(user: TCachedUser, params: GetTrackersHttpDto, groupBy: string | null = null) {
     // const trackerCount = await this.accessService.getAccessCount({
     //   accessReceiverId: user.id,
     //   accountId: user.accountId,
@@ -254,6 +254,7 @@ export class TrackerService {
     const trackerCount = await this.trackerDataService.getTrackersCount(
       user,
       params,
+      groupBy
     );
     return trackerCount;
   }
