@@ -27,7 +27,7 @@ export class EventsController {
   constructor(
     private readonly eventsService: EventsService,
     private readonly sharedService: SharedService,
-  ) {}
+  ) { }
 
   @UseGuards(AuthGuard)
   @Get()
@@ -112,7 +112,11 @@ export class EventsController {
       };
     }
   }
+  @UseGuards(AuthGuard)
+  @Get('duplicate')
+  async checkDuplicateEvents(@Query() query) {
 
+  }
   @UseGuards(AuthGuard)
   @Get(':id/pocs')
   async getEventPocs(@Param('id') id: string, @Query() query: SortingDto) {
