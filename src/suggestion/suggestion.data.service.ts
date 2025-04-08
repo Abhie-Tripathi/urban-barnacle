@@ -23,7 +23,7 @@ import {
   CompanyResponseSchema,
 } from './dto/company.dto';
 import { TagDto, TagResponseDto, TagResponseSchema } from './dto/tags.dto';
-import { getNonEmptyParams } from 'src/utils';
+import { encrypt, getNonEmptyParams } from 'src/utils';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -168,9 +168,9 @@ export class SuggestionDataService {
       if (error) {
         throw new HttpException(error, HttpStatus.BAD_REQUEST);
       }
-      if (dto.isDepartment ||
-        dto.isRole ||
-        dto.isDesignation) { return data }
+      if (dto.isDepartment || dto.isRole || dto.isDesignation) {
+        return data;
+      }
       return data.map((designation: any) =>
         CategoryResponseSchema.parse(designation),
       );
@@ -198,9 +198,18 @@ export class SuggestionDataService {
       if (!data || error) {
         throw new HttpException(error, HttpStatus.BAD_REQUEST);
       }
-      return data.company.map((company: any) =>
-        CompanyResponseSchema.parse(company),
-      );
+      return data.company
+        .map((company: any) => {
+          if (!company.id) {
+            return null;
+          }
+          return {
+            ...CompanyResponseSchema.parse(company), id: encrypt(
+              (company.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY) as string,
+            ),
+          };
+        })
+        .filter((company) => company !== null);
     } catch (error) {
       throw new HttpException('Invalid companies', HttpStatus.BAD_REQUEST);
     }

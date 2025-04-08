@@ -23,7 +23,7 @@ type SuggestionType =
 
 @Injectable()
 export class SuggestionService {
-  constructor(private readonly suggestionDataService: SuggestionDataService) { }
+  constructor(private readonly suggestionDataService: SuggestionDataService) {}
 
   async getSuggestions(suggestionType: SuggestionType, dto: any): Promise<any> {
     switch (suggestionType) {
@@ -59,6 +59,6 @@ export class SuggestionService {
     }
   }
   async getTrackerName(dto: TrackerDto) {
-    return await this.suggestionDataService.getTrackerName(dto)
+    return await this.suggestionDataService.getTrackerName(dto);
   }
 }

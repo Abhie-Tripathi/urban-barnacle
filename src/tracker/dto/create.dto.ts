@@ -3,6 +3,7 @@ import { createZodDto } from 'nestjs-zod';
 import {
   EventsTrendsSchema,
   QueryFilter,
+  QueryHttpSchema,
   QuerySchema,
   View,
 } from 'src/events/dto';
@@ -59,7 +60,7 @@ export const TrackerQuerySchema = z.object({
     .optional(),
 });
 export const TrackerParamsSchema = QueryFilter.extend(TrackerQuerySchema.shape);
-export const TrackerEventSearchSchema = QuerySchema.innerType()
+export const TrackerEventSearchSchema = QueryHttpSchema.innerType()
   .extend(TrackerQuerySchema.shape)
   .extend({
     view: z.nativeEnum(View).optional().default(View.tracker),

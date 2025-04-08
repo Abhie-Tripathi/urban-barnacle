@@ -13,7 +13,9 @@ import {
   EventsTrendsDto,
   PocsUnmaskDto,
   QueryDto,
+  QueryHttpDto,
   SortingDto,
+  View,
 } from './dto';
 import { AuthGuard } from 'src/user/auth/guard';
 import { TCachedUser } from 'src/utils/types';
@@ -31,7 +33,10 @@ export class EventsController {
 
   @UseGuards(AuthGuard)
   @Get()
-  async getAllEvents(@Query() query: QueryDto, @GetUser() user: TCachedUser) {
+  async getAllEvents(
+    @Query() query: QueryHttpDto,
+    @GetUser() user: TCachedUser,
+  ) {
     let flag = false;
     try {
       const point = await this.sharedService.getPointForRequest(
@@ -41,18 +46,31 @@ export class EventsController {
       if (point <= 0) {
         throw new HttpException(
           'You have reached the maximum limit to view data. Please get in touch with us.',
-          HttpStatus.INTERNAL_SERVER_ERROR,
+          HttpStatus.TOO_MANY_REQUESTS,
         );
       }
-      const events = await this.eventsService.getAllEvents(query, true, user);
-      await this.sharedService.deductPointForRequest(
-        PointColumn.pendingRequests,
-        user.currentSubscriptionId,
-        point - 1,
+      const queryDto: QueryDto = {
+        ...query,
+        showValues:
+          query.view === 'suggestion'
+            ? 'suggestion'
+            : 'basic,advance,insights,audience',
+      };
+      const events = await this.eventsService.getAllEvents(
+        queryDto,
+        true,
+        user,
       );
+      if (query.view !== 'suggestion') {
+        await this.sharedService.deductPointForRequest(
+          PointColumn.pendingRequests,
+          user.currentSubscriptionId,
+          point - 1,
+        );
+      }
       flag = true;
       if (query.view !== 'map' && (query.save === undefined || query.save)) {
-        this.eventsService.createLogForEncryptedQuery(query, user);
+        this.eventsService.createLogForEncryptedQuery(queryDto, user);
       }
       return { data: events };
     } catch (error) {
@@ -227,7 +245,8 @@ export class EventsController {
   @Get(':id')
   async getEvent(@Param('id') id: string, @GetUser() user: TCachedUser) {
     try {
-      const event = await this.eventsService.getEvent(id, user);
+      const showValues = 'basic,advance,insights,audience';
+      const event = await this.eventsService.getEvent(id, showValues, user);
       return { data: event };
     } catch (error) {
       return {

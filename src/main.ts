@@ -66,7 +66,7 @@ async function bootstrap() {
   app.useGlobalInterceptors(
     new AfterResponseInterceptor(app.get(PrismaService)),
   );
-  app.useGlobalInterceptors(new GlobalResponseInterceptor());
+  app.useGlobalInterceptors(app.get(GlobalResponseInterceptor));
   // Zod validation pipe
   app.useGlobalPipes(new ZodValidationPipe());
 

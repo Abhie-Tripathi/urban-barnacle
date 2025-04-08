@@ -98,7 +98,11 @@ export class AccountService {
     const events = await this.eventService.getAllEvents(eventParams, false);
     return { ...events, count: count.length };
   }
-  async getAccountEnquiries(user: TCachedUser, query: GetEnquiriesHttpDto) {
+  async getAccountEnquiries(
+    user: TCachedUser,
+    query: GetEnquiriesHttpDto,
+    showValues: string,
+  ) {
     const {
       limit,
       offset,
@@ -136,6 +140,7 @@ export class AccountService {
       active_lte: event_active_lte,
       limit: limit,
       offset: offset,
+      showValues: showValues,
     })) as any;
     const enquiryCount = events.count;
     const selectedEnquiries = eventIds
