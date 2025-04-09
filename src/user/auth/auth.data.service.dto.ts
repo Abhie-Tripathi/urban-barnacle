@@ -220,9 +220,9 @@ export class AuthDataService {
   async fetchImageFromOtherDomian(imageUrlstring: string, userId) {
     const response = await fetch(imageUrlstring);
 
-    if (!response.ok) {
-      throw new HttpException(`Failed to fetch image. Status: ${response.status}`, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
+    // if (!response.ok) {
+    //   throw new HttpException(`Failed to fetch image. Status: ${response.status}`, HttpStatus.INTERNAL_SERVER_ERROR);
+    // }
 
     const fileName = `${randomUUID() + new Date().toISOString()}.jpg`; // or any other logic to generate file name
     // const filePath = join(__dirname, '..', 'uploads', fileName);
