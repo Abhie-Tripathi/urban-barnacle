@@ -499,8 +499,8 @@ export class AuthService {
       }
       if (!user) {
         user = await this.userDataService.createUser({
-          firstname: data.name.split(' ')[0],
-          ...(data.name.split(' ').length > 1 ? { lastname: data.name.substring(data.name.indexOf('') + 1) } : {}),
+          firstname: data.name ? data.name.split(' ')[0] : '',
+          ...(data.name && data.name.split(' ').length > 1 ? { lastname: data.name.substring(data.name.indexOf('') + 1) } : {}),
           email: data.email,
           role: 'CUSTOMER',
           primaryCompanyId: company?.id,
