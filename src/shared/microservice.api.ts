@@ -15,6 +15,7 @@ export const microServiceApis = {
   userevents: process.env.MICROSERVICE_URL + '/users/:userId/events',
   userpoc: process.env.MICROSERVICE_URL + '/users/:userId/pocs',
   userbyId: process.env.MICROSERVICE_URL + '/users/:userId',
+  locationSuggestionApi: process.env.MICROSERVICE_URL + '/suggestions/locations'
 };
 
 export async function fetchDatafromMicroService(
