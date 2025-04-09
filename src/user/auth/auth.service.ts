@@ -514,7 +514,7 @@ export class AuthService {
         if (data.profilepicture && data.profilepicture.length > 5) {
           const profilepicture = await this.authDataService.fetchImageFromOtherDomian(data.profilepicture, user.id);
           if (profilepicture) {
-            await this.userDataService.updateUser({
+            user = await this.userDataService.updateUser({
               id: user.id,
               imageUrl: profilepicture.fileUrl,
               profileImageId: profilepicture.id
