@@ -235,8 +235,8 @@ export class EventsController {
     @GetUser() user: TCachedUser,
   ) {
     try {
-      const polygons = await this.eventsService.getEventIntelScore(id, user);
-      return { data: polygons };
+      const intelscore = await this.eventsService.getEventIntelScore(id, user);
+      return { data: intelscore };
     } catch (error) {
       return { error };
     }

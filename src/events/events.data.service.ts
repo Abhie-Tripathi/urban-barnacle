@@ -364,10 +364,10 @@ export class EventsDataService {
       keywordAllTrackData.forEach((tracker) => {
         const filterValues: any = tracker.filterValues;
         if (filterValues.includeKeywords)
-          requestBody.keywordBody!.includeKeywords +=
+          requestBody.keywordBody!.includeKeywords +=','+
             filterValues.includeKeywords;
         if (filterValues.excludeKeywords)
-          requestBody.keywordBody!.excludeKeywords +=
+          requestBody.keywordBody!.excludeKeywords +=','+
             filterValues.excludeKeywords;
       });
       if (requestBody.keywordBody.includeKeywords?.length === 0) {
