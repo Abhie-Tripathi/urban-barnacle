@@ -30,7 +30,7 @@ import {
 
 @Controller('me/account')
 export class AccountController {
-  constructor(private readonly accountService: AccountService) {}
+  constructor(private readonly accountService: AccountService) { }
 
   @UseGuards(AuthGuard)
   @Get('company')
@@ -59,7 +59,8 @@ export class AccountController {
     @Query() query: GetBookmarkedEventDto,
   ) {
     try {
-      const events = await this.accountService.getSavedEvent(user, query);
+      const showValues = 'basic,advance,insights,audience';
+      const events = await this.accountService.getSavedEvent(user, query,showValues);
       return { data: events };
     } catch (error) {
       return { error: error };
