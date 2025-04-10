@@ -1,4 +1,4 @@
-import { EventType } from '@prisma/client';
+import { EventSourceModule, EventType, Interest } from '@prisma/client';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
@@ -8,6 +8,8 @@ export const eventDto = z.strictObject({
   logoUrl: z.string().optional(),
   // interest: z.string().optional(),
   // sourceId: z.string().optional(),
+  referenceId: z.string().optional(),
+  sourceModule: z.nativeEnum(EventSourceModule),
   note: z.string().optional(),
   type: z.nativeEnum(EventType).default('PARENT'),
   widgetId: z.string().optional(),
@@ -16,6 +18,7 @@ export const eventDto = z.strictObject({
   waitlisting: z.string().optional(),
   registration: z.string().optional(),
   approval: z.string().optional(),
+  interest: z.nativeEnum(Interest).optional()
 });
 
 export class CreateEventDto extends createZodDto(eventDto) { }
@@ -41,15 +44,20 @@ export const EventDetailsSchema = z.object({
   start_time: z.string(),
   end_time: z.string(),
   gmt_time: z.string(),
-  location_city: z.string(),
-  location_country: z.string(),
+  location_city_id: z.string().optional(),
+  location_city: z.string().optional(),
+  location_country: z.string().optional(),
+  location_country_id: z.string().optional(),
+  location_country_iso_code: z.string().optional(),
   location_state: z.string().optional(),
-  venueName: z.string().optional(),
-  venueAddress: z.string().optional(),
+  location_state_id: z.string().optional(),
   description: z.string(),
   logoUrl: z.string().nullable().optional(),
   venue_name: z.string().optional(),
   venue_address: z.string().optional(),
+  venue_latitude: z.number().optional(),
+  venue_longitude: z.number().optional(),
+  venue_id: z.string().optional(),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
   format: z.string(),
@@ -63,6 +71,22 @@ export const EventDetailsSchema = z.object({
   maxCapacity: z.number().optional(),
   virtualLink: z.string().optional(),
   posterLink: z.string().optional(),
+}).refine((data) => {
+  if (data.location_city_id || data.location_country_id) {
+    return data.location_city && data.location_country && data.location_country_iso_code;
+  }
+  return true;
+}, {
+  message: 'location_city, location_country, and location_country_iso_code are required when location_city_id or location_country_id is present',
+  path: ['location_city', 'location_country', 'location_country_iso_code'],
+}).refine((data) => {
+  if (data.venue_id) {
+    return data.venue_name;
+  }
+  return true;
+}, {
+  message: 'venue_name is required when venue_id is present',
+  path: ['venue_name'],
 });
 export const eventspeakerDto = z.strictObject({
   eventId: z.string(),

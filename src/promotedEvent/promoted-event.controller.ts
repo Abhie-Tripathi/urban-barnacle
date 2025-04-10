@@ -15,6 +15,7 @@ import {
 import { PromotedEventsService } from './promoted-event.service';
 import {
   CreateEventDto,
+  EventDuplicate_DTO,
   EventIdParamDto,
   EventSpeakerDto,
   Query_Dto,
@@ -22,14 +23,22 @@ import {
   UpdateEventDto,
 } from './dto';
 import { File, FileInterceptor } from '@nest-lab/fastify-multer';
-import { SelectedUserDetails } from 'src/utils/types';
+import { SelectedUserDetails, TCachedUser } from 'src/utils/types';
 import { AuthGuard } from '../user/auth/guard';
 import { GetUser } from '../user/decorator';
 
 @Controller('promot-event')
 export class PromotedEventsController {
-  constructor(private eventService: PromotedEventsService) {}
-
+  constructor(private eventService: PromotedEventsService) { }
+  @UseGuards(AuthGuard)
+  @Post('find-duplicates')
+  async checkDuplicateEvents(@Body() body: EventDuplicate_DTO, @GetUser() user: TCachedUser) {
+    try {
+      return await this.eventService.checkDuplicateEvents(body, user)
+    } catch (error) {
+      return { error };
+    }
+  }
   @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor('file'))
   @Post()

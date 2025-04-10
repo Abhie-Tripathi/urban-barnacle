@@ -131,11 +131,6 @@ export class EventsController {
     }
   }
   @UseGuards(AuthGuard)
-  @Get('duplicate')
-  async checkDuplicateEvents(@Query() query) {
-
-  }
-  @UseGuards(AuthGuard)
   @Get(':id/pocs')
   async getEventPocs(@Param('id') id: string, @Query() query: SortingDto) {
     try {

@@ -554,29 +554,36 @@ enum EventType {
   CHILD
 }
 
+enum EventSourceModule {
+  PROMOTE
+  COORDINATE
+}
+
 // EVENT GENI
 model Event {
-  id            String      @id @default(uuid()) @db.Uuid
+  id            String            @id @default(uuid()) @db.Uuid
   name          String
   data          Json
-  deleted       Boolean     @default(false)
-  attachmentId  String?     @db.Uuid
-  type          EventType   @default(PARENT)
-  createdAt     DateTime    @default(now())
-  updateAt      DateTime    @updatedAt
-  createdBy     String      @db.Uuid
-  approval      Boolean     @default(true)
-  capacity      Int         @default(0)
-  registration  Boolean     @default(true)
-  waitlisting   Boolean     @default(false)
-  Attachment    Attachment? @relation(fields: [attachmentId], references: [id])
-  account       Account     @relation(fields: [accountId], references: [id])
-  accountId     String      @db.Uuid
-  User          User        @relation(fields: [createdBy], references: [id])
-  parentEventId String?     @db.Uuid
-  parentEvent   Event?      @relation(name: "parentEvent", fields: [parentEventId], references: [id])
-  subEvents     Event[]     @relation("parentEvent")
-  WidgetEvents  Widget[]    @relation("EventToWidget")
+  referenceId   String?
+  sourceModule  EventSourceModule @default(PROMOTE)
+  deleted       Boolean           @default(false)
+  attachmentId  String?           @db.Uuid
+  type          EventType         @default(PARENT)
+  createdAt     DateTime          @default(now())
+  updateAt      DateTime          @updatedAt
+  createdBy     String            @db.Uuid
+  approval      Boolean           @default(true)
+  capacity      Int               @default(0)
+  registration  Boolean           @default(true)
+  waitlisting   Boolean           @default(false)
+  Attachment    Attachment?       @relation(fields: [attachmentId], references: [id])
+  account       Account           @relation(fields: [accountId], references: [id])
+  accountId     String            @db.Uuid
+  User          User              @relation(fields: [createdBy], references: [id])
+  parentEventId String?           @db.Uuid
+  parentEvent   Event?            @relation(name: "parentEvent", fields: [parentEventId], references: [id])
+  subEvents     Event[]           @relation("parentEvent")
+  WidgetEvents  Widget[]          @relation("EventToWidget")
   // Widget        Widget?     @relation(fields: [widgetId], references: [id])
   // widgetId      String?     @db.Uuid
 }

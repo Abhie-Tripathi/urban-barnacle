@@ -15,7 +15,8 @@ export const microServiceApis = {
   userevents: process.env.MICROSERVICE_URL + '/users/:userId/events',
   userpoc: process.env.MICROSERVICE_URL + '/users/:userId/pocs',
   userbyId: process.env.MICROSERVICE_URL + '/users/:userId',
-  locationSuggestionApi: process.env.MICROSERVICE_URL + '/suggestions/locations'
+  locationSuggestionApi: process.env.MICROSERVICE_URL + '/locations',
+  findDuplicateEvent: process.env.MICROSERVICE_URL + '/events/find-duplicate'
 };
 
 export async function fetchDatafromMicroService(
@@ -29,6 +30,30 @@ export async function fetchDatafromMicroService(
     console.log(url);
     const response = await fetch(url, {
       method: 'GET',
+    });
+    const data = await response.json();
+    // console.log(data);
+
+    return data;
+  } catch (error: any) {
+    console.error(error);
+    throw new HttpException('something went wrong', HttpStatus.BAD_REQUEST);
+  }
+}
+
+export async function postDatafromMicroService(
+  apiToFetch: string,
+  body: any,
+) {
+  try {
+    const url = `${microServiceApis[`${apiToFetch}`]}`;
+    console.log(url);
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body)
     });
     const data = await response.json();
     // console.log(data);

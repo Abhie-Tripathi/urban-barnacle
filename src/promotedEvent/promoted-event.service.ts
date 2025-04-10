@@ -8,11 +8,12 @@ import * as crypto from 'crypto';
 import {
   CreateEventDto,
   EventDetailsSchema,
+  EventDuplicate_DTO,
   EventSpeakerDto,
   Query_Dto,
   UpdateEventDto,
 } from './dto';
-import { SelectedUserDetails } from 'src/utils/types';
+import { SelectedUserDetails, TCachedUser } from 'src/utils/types';
 import { File } from '@nest-lab/fastify-multer';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
@@ -23,7 +24,8 @@ import { FileCreationService } from 'src/shared/file-creation.service';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { PromotedEventsDataService } from './promoted-even.data.service';
-import { fetchDatafromMicroService } from 'src/shared/microservice.api';
+import { fetchDatafromMicroService, postDatafromMicroService } from 'src/shared/microservice.api';
+import { unknown } from 'zod';
 @Injectable()
 export class PromotedEventsService {
   constructor(
@@ -34,6 +36,823 @@ export class PromotedEventsService {
     // @InjectQueue('eventProcessor') private readonly eventCanelQueue: Queue,
   ) { }
 
+  async processEvent(content: EventDuplicate_DTO, user: TCachedUser) {
+    content.name = content.name?.trim();
+    // content.website = content.website?.trim();
+    const eventRuleArray: Record<number, number> = {};
+    let rule = "N-A";
+    // Website domain extraction
+    // let domain = '';
+    // if (content.website) {
+    //   domain = content.website;
+    // }
+
+    let blockStatus = 1;
+    // const eventData = [];
+    // let latLong = 1;
+
+    // Get lat/long from venue if not provided and venue is numeric
+    // if ((!latitude || !longitude) && !isNaN(content.venue)) {
+    //   latLong = 0;
+    //   const cityLatLong = await this.venueRepository.findOne({
+    //     where: { id: content.venue },
+    //     relations: ['country']
+    //   });
+
+    //   if (cityLatLong) {
+    //     latitude = cityLatLong.geoLat;
+    //     longitude = cityLatLong.geoLong;
+    //     cntry = cityLatLong.country.id;
+    //   }
+    // }
+
+
+    // Get lat/long from city if not provided and city is numeric
+    // if ((!latitude || !longitude) && !isNaN(content.city)) {
+    //   latLong = 0;
+    //   const cityLatLong = await this.cityRepository.findOne({
+    //     where: { id: content.city },
+    //     relations: ['country', 'stateId']
+    //   });
+
+    //   if (cityLatLong) {
+    //     latitude = cityLatLong.geoLat;
+    //     longitude = cityLatLong.geoLong;
+    //     cntry = cityLatLong.country.id;
+    //   }
+    // }
+
+    // Check if we have valid latitude/longitude
+    if (!content.latitude || !content.longitude) {
+      throw new HttpException('latitude and longitude are missing', HttpStatus.FAILED_DEPENDENCY);
+    }
+    let latitude: number, longitude: number
+
+    latitude = content.latitude;
+    longitude = content.longitude;
+
+    // Calculate search radius parameters
+    const radius = 50; // kilometers
+    const parameter = 0.02 * radius;
+    const R = 6371; // earth's mean radius, km
+
+    let maxLat = latitude + this.rad2deg(radius / R);
+    let minLat = latitude - this.rad2deg(radius / R);
+    let maxLon = longitude + this.rad2deg(radius / R / Math.cos(this.deg2rad(latitude)));
+    let minLon = longitude - this.rad2deg(radius / R / Math.cos(this.deg2rad(latitude)));
+
+    if (minLat > maxLat) {
+      maxLat = latitude - this.rad2deg(radius / R);
+      minLat = latitude + this.rad2deg(radius / R);
+    }
+
+    if (minLon > maxLon) {
+      maxLon = longitude + this.rad2deg(radius / R / Math.cos(this.deg2rad(latitude)));
+      minLon = longitude - this.rad2deg(radius / R / Math.cos(this.deg2rad(latitude)));
+    }
+
+    const andWhere = `( (data ->> 'longitude')::FLOAT > (${minLon}) AND  (data ->> 'longitude')::FLOAT < (${maxLon}) AND (data ->> 'latitude')::FLOAT > (${minLat}) AND (data ->> 'latitude')::FLOAT < (${maxLat}))`;
+
+    const dist: string = `(3959 * acos (cos ( radians(${latitude}) )* cos( radians( (data ->> 'latitude')::FLOAT  ) )* cos( radians(  (data ->> 'longitude')::FLOAT ) - radians(${longitude}) )+ sin ( radians(${latitude}) )* sin( radians( (data ->> 'latitude')::FLOAT  ) )))*1.60934 AS distance, (cos ( radians(${latitude}) )* cos( radians( (data ->> 'latitude')::FLOAT  ) )* cos( radians(  (data ->> 'longitude')::FLOAT ) - radians(${longitude}) )+ sin ( radians(${latitude}) )* sin( radians( (data ->> 'latitude')::FLOAT  ) ))  acosval `;
+
+    // Process event name for search
+    const searchOrigWithSpace = ['-'];
+    const replaceOrigWithSpace = [' - '];
+
+    // Get stop words from S3
+    const stopWordsArraySpace = await this.getStopWordsFromS3();
+    stopWordsArraySpace.sort((a, b) => b.length - a.length);
+
+    const stopWordsArray = ['+', '!', '-', "'", ':', '(', ')', '’', '/', '"', '&', ',', '@', '#', '$', '%', '^', '*', '—', '=', '_', '{', '[', ']', '}', ';', '.', '‘', '<', '>', '?', '|'];
+
+    let tempName = this.replaceAll(content.name, searchOrigWithSpace, replaceOrigWithSpace);
+    let origName = this.replaceAll(tempName, stopWordsArray, [' ']);
+    let origNameWithNum = origName;
+    origName = origName.replace(/[\d]+/g, '');
+    origName = [...new Set([...origName.split(' '), ...origNameWithNum.split(' ')])].join(' ');
+    origName = origName.replace(/\s+/g, ' ');
+
+    // Get city info for additional filtering
+    const cityReplace = await fetchDatafromMicroService('locationSuggestionApi', { id: content.locationIds }) as {
+      "data": {
+        "formattedLocations":
+        {
+          "id": string,
+          "name": string,
+          "displayName": string,
+          "latitude": number,
+          "longitude": number,
+          "locationType": string,
+          "country"?: {
+            "id": string,
+            "name": string,
+            "latitude"?: number,
+            "longitude"?: number,
+            "iso"?: string
+          },
+          "state"?: {
+            "id": string,
+            "name": string,
+            "latitude"?: number,
+            "longitude"?: number
+          }
+        }[]
+
+      }
+    };
+
+    let origNameModified = ` ${origName.toLowerCase()} `;
+    for (const word of stopWordsArraySpace) {
+      origNameModified = origNameModified.replace(new RegExp(` ${word} `, 'gi'), ' ');
+    }
+    console.log(cityReplace);
+    if (cityReplace) {
+      origNameModified = origNameModified.replace(new RegExp(` ${cityReplace.data.formattedLocations[0].name.toLowerCase()} `, 'gi'), ' ');
+      if (cityReplace.data.formattedLocations[0]?.country)
+        origNameModified = origNameModified.replace(new RegExp(` ${cityReplace.data.formattedLocations[0]?.country?.name?.toLowerCase()} `, 'gi'), ' ');
+      if (cityReplace.data.formattedLocations[0]?.state) {
+        origNameModified = origNameModified.replace(new RegExp(` ${cityReplace.data.formattedLocations[0]?.state?.name?.toLowerCase()} `, 'gi'), ' ');
+      }
+    }
+
+    origNameModified = origNameModified.replace(/\s+/g, ' ').trim();
+    const origNameArray = origNameModified.split(' ').map(word => {
+      if (!word.match(/&([a-zA-Z])(uml|acute|grave|circ|tilde);/)) {
+        let temp = word.normalize('NFKD');
+        temp = temp.replace(/&([a-zA-Z])(uml|acute|grave|circ|tilde);/g, '$1');
+        return temp;
+      }
+      return word;
+    });
+    let flagForRule: boolean = true;
+    const whereConditions: string[] = [];
+    whereConditions.push(andWhere);
+    // HAVING condition
+    const havingClause = `   where   
+          distance <= ${radius} OR
+          acosval > 1 OR 
+          acosval < -1 
+        `;
+    // whereLike = whereLike.replace(/^ OR /, '');
+    // whereLikeSn = whereLikeSn.replace(/^ OR /, '');
+    if (flagForRule && content['name'] && content['name'].length > 0 && content['startDate'] && content['startDate'].length > 0) {
+
+
+      whereConditions.push(`
+        ("name" = '${content.name}')
+      `);
+
+      whereConditions.push(`(data->>'start_date')::DATE = '${content.startDate}'`);
+
+
+      // Exclude condition
+      if (content.excludeEventIds) {
+        whereConditions.push(`"id" NOT IN (${content.excludeEventIds})`);
+      }
+
+      // Combine all conditions
+      const whereClause = whereConditions.join(' AND ');
+
+      // Execute raw query with Prisma
+      const eventQuery: string = `
+      SELECT *
+FROM (
+     SELECT DISTINCT
+    id,
+    "name",
+    data ->> 'location_country_id' AS "eventCountryId",
+    data ->> 'location_city_id' AS "eventCityId",
+    data ->> 'location_state_id' as "eventStateId",
+    data ->> 'location_state' as "eventState",
+    data ->> 'location_city' AS "cityName",
+    data ->> 'location_country' AS "countryName",
+        ${dist}
+      FROM 
+        "Event"
+      WHERE 
+        ${whereClause}
+        ) AS subquery
+
+        ${havingClause}
+    `;
+      const eventData: object[] = await this.eventDataService.checkDuplicate(eventQuery);
+      // Process event data
+      for (const value of eventData) {
+        let eventName = this.replaceAll(value['name'], stopWordsArray, [' ']);
+        eventName = eventName.replace(/[\d]+/g, '');
+        eventName = eventName.replace(/\s+/g, ' ').trim();
+
+        let eventNameModified = ` ${eventName.toLowerCase()} `;
+
+        // Remove stop words
+        for (const word of stopWordsArraySpace) {
+          eventNameModified = eventNameModified.replace(new RegExp(` ${word} `, 'gi'), ' ');
+        }
+
+        // Remove location-related words
+        eventNameModified = eventNameModified
+          .replace(new RegExp(` ${value['cityName'].toLowerCase()} `, 'gi'), ' ')
+          .replace(new RegExp(` ${value['countryName'].toLowerCase()} `, 'gi'), ' ')
+          .replace(new RegExp(` ${value['eventState']?.toLowerCase() || ''} `, 'gi'), ' ');
+
+        eventNameModified = eventNameModified.trim();
+
+        // Check for exact name match
+        if (origName === eventNameModified && !eventRuleArray[value['id']]) {
+          eventRuleArray[value['id']] = 1;
+        } else if (
+          (value['name']?.toLowerCase() === content.name.toLowerCase()) &&
+          !eventRuleArray[value['name']]
+        ) {
+          eventRuleArray[value['name']] = 1;
+        }
+      }
+
+      blockStatus = -1;
+      rule = "1";
+
+    }
+    if (flagForRule && content['name'] && content['name'].length > 0 && content['endDate'] && content['endDate'].length > 0) {
+
+
+      whereConditions.push(`
+        (e."name" = '${content.name}')
+      `);
+
+      whereConditions.push(`(data->>'end_date')::DATE = '${content.endDate}'`);
+
+
+      // Exclude condition
+      if (content.excludeEventIds) {
+        whereConditions.push(`"id" NOT IN (${content.excludeEventIds})`);
+      }
+
+      // Combine all conditions
+      const whereClause = whereConditions.join(' AND ');
+
+
+      // Execute raw query with Prisma
+      const eventQuery: string = `
+      SELECT *
+FROM (
+     SELECT DISTINCT
+    id,
+    "name",
+    data ->> 'location_country_id' AS "eventCountryId",
+    data ->> 'location_city_id' AS "eventCityId",
+    data ->> 'location_state_id' as "eventStateId",
+    data ->> 'location_state' as "eventState",
+    data ->> 'location_city' AS "cityName",
+    data ->> 'location_country' AS "countryName",
+        ${dist}
+      FROM 
+        "Event"
+      WHERE 
+        ${whereClause}
+        ) AS subquery
+
+        ${havingClause}
+    `;
+      const eventData: object[] = await this.eventDataService.checkDuplicate(eventQuery);
+      // Process event data
+      for (const value of eventData) {
+        let eventName = this.replaceAll(value['name'], stopWordsArray, [' ']);
+        eventName = eventName.replace(/[\d]+/g, '');
+        eventName = eventName.replace(/\s+/g, ' ').trim();
+
+        let eventNameModified = ` ${eventName.toLowerCase()} `;
+
+        // Remove stop words
+        for (const word of stopWordsArraySpace) {
+          eventNameModified = eventNameModified.replace(new RegExp(` ${word} `, 'gi'), ' ');
+        }
+
+        // Remove location-related words
+        eventNameModified = eventNameModified
+          .replace(new RegExp(` ${value['cityName'].toLowerCase()} `, 'gi'), ' ')
+          .replace(new RegExp(` ${value['countryName'].toLowerCase()} `, 'gi'), ' ')
+          .replace(new RegExp(` ${value['eventState']?.toLowerCase() || ''} `, 'gi'), ' ');
+
+        eventNameModified = eventNameModified.trim();
+
+        // Check for exact name match
+        if (origName === eventNameModified && !eventRuleArray[value['id']]) {
+          eventRuleArray[value['id']] = 2;
+        } else if (
+          (value['name']?.toLowerCase() === content.name.toLowerCase()) &&
+          !eventRuleArray[value['name']]
+        ) {
+          eventRuleArray[value['name']] = 2;
+        }
+      }
+
+      blockStatus = -2;
+      rule = "2";
+
+    }
+    //     if (flagForRule && content['name'] && content['name'].length > 0) {
+
+    //       whereConditions.push(`
+    //         ("name" = '${content.name}')
+    //       `);
+
+    //       // Exclude condition
+    //       if (content.excludeEventIds) {
+    //         whereConditions.push(`"id" NOT IN (${content.excludeEventIds})`);
+    //       }
+
+    //       // Combine all conditions
+    //       const whereClause = whereConditions.join(' AND ');
+    //       // Execute raw query with Prisma
+    //       const eventQuery: string = `
+    //       SELECT *
+    // FROM (
+    //      SELECT DISTINCT
+    //     id,
+    //     "name",
+    //     data ->> 'location_country_id' AS "eventCountryId",
+    //     data ->> 'location_city_id' AS "eventCityId",
+    //     data ->> 'location_state_id' as "eventStateId",
+    //     data ->> 'location_state' as "eventState",
+    //     data ->> 'location_city' AS "cityName",
+    //     data ->> 'location_country' AS "countryName",
+    //         ${dist}
+    //       FROM 
+    //         "Event"
+    //       WHERE 
+    //         ${whereClause}
+    //         ) AS subquery
+
+    //         ${havingClause}
+    //     `;
+    //       const eventData: object[] = await this.eventDataService.checkDuplicate(eventQuery);[];
+    //       // Process event data
+    //       for (const value of eventData) {
+    //         let eventName = this.replaceAll(value['name'], stopWordsArray, [' ']);
+    //         eventName = eventName.replace(/[\d]+/g, '');
+    //         eventName = eventName.replace(/\s+/g, ' ').trim();
+
+    //         let eventNameModified = ` ${eventName.toLowerCase()} `;
+
+    //         // Remove stop words
+    //         for (const word of stopWordsArraySpace) {
+    //           eventNameModified = eventNameModified.replace(new RegExp(` ${word} `, 'gi'), ' ');
+    //         }
+
+    //         // Remove location-related words
+    //         eventNameModified = eventNameModified
+    //           .replace(new RegExp(` ${value['cityName'].toLowerCase()} `, 'gi'), ' ')
+    //           .replace(new RegExp(` ${value['countryName'].toLowerCase()} `, 'gi'), ' ')
+    //           .replace(new RegExp(` ${value['eventState']?.toLowerCase() || ''} `, 'gi'), ' ');
+
+    //         eventNameModified = eventNameModified.trim();
+
+    //         // Check for exact name match
+    //         if (origName === eventNameModified && !eventRuleArray[value['id']]) {
+    //           eventRuleArray[value['id']] = 3;
+    //         } else if (
+    //           (value['name']?.toLowerCase() === content.name.toLowerCase()) &&
+    //           !eventRuleArray[value['name']]
+    //         ) {
+    //           eventRuleArray[value['name']] = 3;
+    //         }
+    //       }
+
+    //       blockStatus = -3;
+    //       rule = "3/4";
+    //     }
+    // if (flagForRule && content['name'] && content['name'].length > 0 && content['website'] && content['website'].length > 0) {
+
+    //   whereConditions.push(`
+    //     (e."name" = '${content.name}') OR 
+    //   `);
+    //   whereConditions.push(`
+    //     (e."hosts" = '${content['website']}')
+    //   `);
+    //   // Exclude condition
+    //   if (content.excludeEventIds) {
+    //     whereConditions.push(`er."id" NOT IN (${content.excludeEventIds})`);
+    //   }
+
+    //   // Combine all conditions
+    //   const whereClause = whereConditions.join(' AND ');
+
+    //   // HAVING condition
+    //   const havingClause = `
+    //   (
+    //   (distance <= ${radius} OR 
+    //   distance1 <= ${radius} OR 
+    //   acosval > 1 OR 
+    //   acosval < -1 OR 
+    //   acosval1 > 1 OR 
+    //   acosval1 < -1))
+    // `;
+
+    //   // Execute raw query with Prisma
+    //   const eventQuery: string = `
+    //   SELECT 
+    //     DISTINCT er."event",
+    //     e."name",
+    //     e."abbrName" AS "abbrName",
+    //     e."multiCity" AS "multici",
+    //     er."country" AS "con",
+    //     er."city" AS "eventCity",
+    //     cit."state",
+    //     cit."name" AS "cityName",
+    //     country."name" AS "countryName",
+    //     ${dist}
+    //   FROM 
+    //     "EventReplica" er
+    //   INNER JOIN 
+    //     "Event" e ON e."id" = er."event" AND e."eventType" < 10
+    //   LEFT JOIN 
+    //     "City" cit ON cit."id" = er."phyCity"
+    //   LEFT JOIN 
+    //     "Country" country ON country."id" = er."country"
+    //   WHERE 
+    //     ${whereClause}
+    //   HAVING 
+    //     ${havingClause}
+    // `;
+    //   const eventData: object[] = await this.eventDataService.checkDuplicate(eventQuery);[];
+    //   // Process event data
+    //   for (const value of eventData) {
+    //     let eventName = this.replaceAll(value['name'], stopWordsArray, [' ']);
+    //     eventName = eventName.replace(/[\d]+/g, '');
+    //     eventName = eventName.replace(/\s+/g, ' ').trim();
+
+    //     let eventNameModified = ` ${eventName.toLowerCase()} `;
+
+    //     // Remove stop words
+    //     for (const word of stopWordsArraySpace) {
+    //       eventNameModified = eventNameModified.replace(new RegExp(` ${word} `, 'gi'), ' ');
+    //     }
+
+    //     // Remove location-related words
+    //     eventNameModified = eventNameModified
+    //       .replace(new RegExp(` ${value['cityName'].toLowerCase()} `, 'gi'), ' ')
+    //       .replace(new RegExp(` ${value['countryName'].toLowerCase()} `, 'gi'), ' ')
+    //       .replace(new RegExp(` ${value['state']?.toLowerCase() || ''} `, 'gi'), ' ');
+
+    //     eventNameModified = eventNameModified.trim();
+
+    //     // Check for exact name match
+    //     if (origName === eventNameModified && !eventRuleArray[value['event']]) {
+    //       eventRuleArray[value['event']] = 4;
+    //     } else if (
+    //       (value['name']?.toLowerCase() === content.name.toLowerCase()) &&
+    //       !eventRuleArray[value['name']]
+    //     ) {
+    //       eventRuleArray[value['name']] = 4;
+    //     }
+    //   }
+
+    //   blockStatus = -4;
+    //   rule = "4";
+    // }
+    //     if (origName && origName.length > 0) {
+
+    //       whereConditions.push(`
+    //         ("name" = '${content.name}')
+    //       `);
+    //       // Exclude condition
+    //       if (content.excludeEventIds) {
+    //         whereConditions.push(`"id" NOT IN (${content.excludeEventIds})`);
+    //       }
+
+    //       // Combine all conditions
+    //       const whereClause = whereConditions.join(' AND ');
+
+    //       // Execute raw query with Prisma
+    //       const eventQuery: string = `
+    //       SELECT *
+    // FROM (
+    //      SELECT DISTINCT
+    //     id,
+    //     "name",
+    //     data ->> 'location_country_id' AS "eventCountryId",
+    //     data ->> 'location_city_id' AS "eventCityId",
+    //     data ->> 'location_state_id' as "eventStateId",
+    //     data ->> 'location_state' as "eventState",
+    //     data ->> 'location_city' AS "cityName",
+    //     data ->> 'location_country' AS "countryName",
+    //         ${dist}
+    //       FROM 
+    //         "Event"
+    //       WHERE 
+    //         ${whereClause}
+    //         ) AS subquery
+
+    //         ${havingClause}
+    //     `;
+    //       const eventData: object[] = await this.eventDataService.checkDuplicate(eventQuery);[];
+    //       // Process event data
+    //       for (const value of eventData) {
+    //         // Replace special characters in the name
+    //         let processedName = this.replaceAll(value['name'], searchOrigWithSpace, replaceOrigWithSpace);
+
+    //         // Remove stop words (case insensitive)
+    //         console.log(processedName, stopWordsArray)
+    //         processedName = this.replaceAllCaseInsensitive(processedName, stopWordsArray, ' ');
+
+    //         // Remove numbers and extra spaces
+    //         processedName = processedName.replace(/[\d]+/g, '')
+    //           .replace(/\s+/g, ' ')
+    //           .trim();
+
+    //         // Convert to lowercase and split into words
+    //         const eventNameArray = processedName.toLowerCase().split(' ');
+
+    //         // Process the name with space padding for whole word matching
+    //         let eventName = ` ${processedName.toLowerCase()} `;
+
+    //         // Remove stop words (space-padded version)
+    //         for (const stopWord of stopWordsArraySpace) {
+    //           eventName = eventName.replace(new RegExp(` ${stopWord} `, 'gi'), ' ');
+    //         }
+
+    //         // Remove location-related words
+    //         if (value['cityName']) {
+    //           eventName = eventName.replace(new RegExp(` ${value['cityName'].toLowerCase()} `, 'gi'), ' ');
+    //         }
+    //         if (value['countryName']) {
+    //           eventName = eventName.replace(new RegExp(` ${value['countryName'].toLowerCase()} `, 'gi'), ' ');
+    //         }
+    //         if (value['eventState']) {
+    //           eventName = eventName.replace(new RegExp(` ${value['eventState'].toLowerCase()} `, 'gi'), ' ');
+    //         }
+
+    //         // Final cleanup
+    //         const eventNameModified = eventName.trim();
+    //         const finalEventNameArray = eventNameModified.toLowerCase().split(' ');
+
+    //         // Calculate differences between original and processed names
+    //         const diff1 = this.arrayDifference(origNameArray, finalEventNameArray);
+    //         const diff2 = this.arrayDifference(finalEventNameArray, origNameArray);
+
+    //         // Set event rule if either difference is empty (exact or subset match)
+    //         if ((diff1.length === 0 || diff2.length === 0) && !eventRuleArray[value['id']]) {
+    //           eventRuleArray[value['id']] = 5;
+    //         }
+    //       }
+    //       blockStatus = -5;
+    //       rule = "5";
+    //     }
+    //     if (origName && origName.length > 0) {
+    //       ///&& content['website'] && content['website'].length > 0
+    //       whereConditions.push(`
+    //         ("name" = '${content.name}')
+    //       `);
+    //       // whereConditions.push(`
+    //       //   (e."hosts" = '${content.hosts}')
+    //       // `);
+    //       // Exclude condition
+    //       if (content.excludeEventIds) {
+    //         whereConditions.push(`"id" NOT IN (${content.excludeEventIds})`);
+    //       }
+
+    //       // Combine all conditions
+    //       const whereClause = whereConditions.join(' AND ');
+
+    //       // Execute raw query with Prisma
+    //       const eventQuery: string = `
+    //       SELECT *
+    // FROM (
+    //      SELECT DISTINCT
+    //     id,
+    //     "name",
+    //     data ->> 'location_country_id' AS "eventCountryId",
+    //     data ->> 'location_city_id' AS "eventCityId",
+    //     data ->> 'location_state_id' as "eventStateId",
+    //     data ->> 'location_state' as "eventState",
+    //     data ->> 'location_city' AS "cityName",
+    //     data ->> 'location_country' AS "countryName",
+    //         ${dist}
+    //       FROM 
+    //         "Event"
+    //       WHERE 
+    //         ${whereClause}
+    //         ) AS subquery
+
+    //         ${havingClause}
+    //     `;
+    //       const eventData: object[] = await this.eventDataService.checkDuplicate(eventQuery);[];
+    //       // Process event data
+    //       for (const value of eventData) {
+    //         // Replace special characters in the name
+    //         let processedName = this.replaceAll(value['name'], searchOrigWithSpace, replaceOrigWithSpace);
+
+    //         // Remove stop words (case insensitive)
+    //         processedName = this.replaceAllCaseInsensitive(processedName, stopWordsArray, ' ');
+
+    //         // Remove numbers and extra spaces
+    //         processedName = processedName.replace(/[\d]+/g, '')
+    //           .replace(/\s+/g, ' ')
+    //           .trim();
+
+    //         // Convert to lowercase and split into words
+    //         const eventNameArray = processedName.toLowerCase().split(' ');
+
+    //         // Process the name with space padding for whole word matching
+    //         let eventName = ` ${processedName.toLowerCase()} `;
+
+    //         // Remove stop words (space-padded version)
+    //         for (const stopWord of stopWordsArraySpace) {
+    //           eventName = eventName.replace(new RegExp(` ${stopWord} `, 'gi'), ' ');
+    //         }
+
+    //         // Remove location-related words
+    //         if (value['cityName']) {
+    //           eventName = eventName.replace(new RegExp(` ${value['cityName'].toLowerCase()} `, 'gi'), ' ');
+    //         }
+    //         if (value['countryName']) {
+    //           eventName = eventName.replace(new RegExp(` ${value['countryName'].toLowerCase()} `, 'gi'), ' ');
+    //         }
+    //         if (value['eventState']) {
+    //           eventName = eventName.replace(new RegExp(` ${value['eventState'].toLowerCase()} `, 'gi'), ' ');
+    //         }
+
+    //         // Final cleanup
+    //         const eventNameModified = eventName.trim();
+    //         const finalEventNameArray = eventNameModified.toLowerCase().split(' ');
+
+    //         // Calculate differences between original and processed names
+    //         const diff1 = this.arrayDifference(origNameArray, finalEventNameArray);
+    //         const diff2 = this.arrayDifference(finalEventNameArray, origNameArray);
+
+    //         // Set event rule if either difference is empty (exact or subset match)
+    //         if ((diff1.length === 0 || diff2.length === 0) && !eventRuleArray[value['id']]) {
+    //           eventRuleArray[value['id']] = 6;
+    //         }
+    //       }
+    //       blockStatus = -6;
+    //       rule = "6";
+    //     }
+    if (origName && origName.length > 0 && content['venueId'] && content['startDate'] && content['startDate'].length > 0) {
+
+      whereConditions.push(`
+        (e."name" = '${content.name}')
+      `);
+      whereConditions.push(`
+        (data->"venue_id" = '${content.venueId}')
+      `);
+      whereConditions.push(`data->"start_date"::DATE = '${content.startDate}'`);
+
+      // Exclude condition
+      if (content.excludeEventIds) {
+        whereConditions.push(`"id" NOT IN (${content.excludeEventIds})`);
+      }
+
+      // Combine all conditions
+      const whereClause = whereConditions.join(' AND ');
+
+      // Execute raw query with Prisma
+      const eventQuery: string = `
+      SELECT *
+FROM (
+     SELECT DISTINCT
+    id,
+    "name",
+    data ->> 'location_country_id' AS "eventCountryId",
+    data ->> 'location_city_id' AS "eventCityId",
+    data ->> 'location_state_id' as "eventStateId",
+    data ->> 'location_state' as "eventState",
+    data ->> 'location_city' AS "cityName",
+    data ->> 'location_country' AS "countryName",
+        ${dist}
+      FROM 
+        "Event"
+      WHERE 
+        ${whereClause}
+        ) AS subquery
+
+        ${havingClause}
+    `;
+      const eventData: object[] = await this.eventDataService.checkDuplicate(eventQuery);[];
+      // Process event data
+      for (const value of eventData) {
+        // Replace special characters in the name
+        let processedName = this.replaceAll(value['name'], searchOrigWithSpace, replaceOrigWithSpace);
+
+        // Remove stop words (case insensitive)
+        processedName = this.replaceAllCaseInsensitive(processedName, stopWordsArray, ' ');
+
+        // Remove numbers and extra spaces
+        processedName = processedName.replace(/[\d]+/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        // Convert to lowercase and split into words
+        const eventNameArray = processedName.toLowerCase().split(' ');
+
+        // Process the name with space padding for whole word matching
+        let eventName = ` ${processedName.toLowerCase()} `;
+
+        // Remove stop words (space-padded version)
+        for (const stopWord of stopWordsArraySpace) {
+          eventName = eventName.replace(new RegExp(` ${stopWord} `, 'gi'), ' ');
+        }
+
+        // Remove location-related words
+        if (value['cityName']) {
+          eventName = eventName.replace(new RegExp(` ${value['cityName'].toLowerCase()} `, 'gi'), ' ');
+        }
+        if (value['countryName']) {
+          eventName = eventName.replace(new RegExp(` ${value['countryName'].toLowerCase()} `, 'gi'), ' ');
+        }
+        if (value['eventState']) {
+          eventName = eventName.replace(new RegExp(` ${value['eventState'].toLowerCase()} `, 'gi'), ' ');
+        }
+
+        // Final cleanup
+        const eventNameModified = eventName.trim();
+        const finalEventNameArray = eventNameModified.toLowerCase().split(' ');
+
+        // Calculate differences between original and processed names
+        const diff1 = this.arrayDifference(origNameArray, finalEventNameArray);
+        const diff2 = this.arrayDifference(finalEventNameArray, origNameArray);
+
+        // Set event rule if either difference is empty (exact or subset match)
+        if ((diff1.length === 0 || diff2.length === 0) && !eventRuleArray[value['id']]) {
+          eventRuleArray[value['id']] = 7;
+        }
+      }
+      blockStatus = -7;
+      rule = "7";
+    }
+    let blockedEvent: object[] = [];
+    let index = 0;
+    if (Object.entries(eventRuleArray).length > 0) {
+      {
+        const eventIdArray: string[] = Object.keys(eventRuleArray);
+        const blockedEventData = await this.eventDataService
+          .findManyPromotedEvents(user.accountId, ` and  id in ('${eventIdArray.join("','")}')`,
+            "e.\"createdAt\"", 'desc', String(eventIdArray.length), '0');
+        console.log('eventRuleArray', eventRuleArray, blockedEventData);
+        for (const key of blockedEventData) {
+          blockedEvent[index] = key;
+          blockedEvent[index]['rule'] = eventRuleArray[key['id']];
+          index++;
+        }
+      }
+    }
+    return {
+      blocked: blockedEvent
+    };
+  }
+  private deg2rad(deg: number): number {
+    return deg * (Math.PI / 180);
+  }
+  private escapeRegExp(term: string): string {
+    return term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  private replaceAllCaseInsensitive(str: string, search: string[], replacement: string): string {
+    let result = str;
+    for (const term of search) {
+      const escapedTerm = this.escapeRegExp(term);
+      result = result.replace(new RegExp(escapedTerm, 'gi'), replacement);
+    }
+    return result;
+  }
+
+  private rad2deg(rad: number): number {
+    return rad * (180 / Math.PI);
+  }
+  private arrayDifference(a: string[], b: string[]): string[] {
+    return a.filter(x => !b.includes(x));
+  }
+  private replaceAll(str: string, search: string[], replacement: string[]): string {
+    let result = str;
+    for (let i = 0; i < search.length; i++) {
+      result = result.split(search[i]).join(replacement[i]);
+    }
+    return result;
+  }
+
+  private async getStopWordsFromS3(): Promise<string[]> {
+    const url = 'https://gifbt.s3.amazonaws.com/manage/csv/stop_words_array_spaceList.tsv';
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch stop words: ${response.status} ${response.statusText}`);
+    }
+
+    const text = await response.text();
+    return text.split('\n');
+  }
+  async checkDuplicateEvents(body: EventDuplicate_DTO, user: TCachedUser) {
+    const dataForBloack = await Promise.all([this.processEvent(body, user), postDatafromMicroService('findDuplicateEvent', { ...body, ...(body.excludeEventIds ? { excludeEventIds: body.excludeEventIds.replaceAll("','", ',') } : {}) })]);
+    const localDbEventBlocked: object[] = dataForBloack[0].blocked;
+    const duplicateEventFrom10times: {
+      "data": {
+        "blocked": object[],
+        "review": object[]
+      }
+    } = dataForBloack[1];
+    console.log({ localDbEventBlocked, duplicateEventFrom10times });
+    return { data: { blocked: [...localDbEventBlocked, ...duplicateEventFrom10times.data.blocked], review: duplicateEventFrom10times.data.review } }
+  }
   async getGeniEventById(id: string) {
     try {
       const { data, iddWid, widgetData } =
