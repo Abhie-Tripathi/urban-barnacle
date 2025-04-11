@@ -132,7 +132,7 @@ export class PromotedEventsDataService {
     const data = (await this.prisma.$queryRaw(
       Prisma.raw(
         `
-              SELECT e.id, e.name,e.type, e.data,e.approval, e.capacity, e.registration, e.waitlisting,e."createdAt" 
+              SELECT e.id, e.name,e.type, e.data,e.approval, e.capacity, e.registration, e.waitlisting,e."createdAt" ,e."referenceId"
                FROM "Event" e
             where e.deleted = false  and (e."parentEventId" is null OR e."parentEventId"::TEXT ='')
         and e."accountId" = '${userAccountId}'
@@ -146,6 +146,7 @@ export class PromotedEventsDataService {
       data: Record<any, any>;
       createdAt: Date;
       type: EventType;
+      referenceId?: string
     }[];
     return data;
   }

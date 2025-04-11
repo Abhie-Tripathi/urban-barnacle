@@ -1482,12 +1482,13 @@ FROM (
       if (backend && backend in defaultEventTypes) {
         eventTypes = Object.values(defaultEventTypes[backend]).join(',');
       }
+      const referenceIds: string = productDbEvent.map(val => val.referenceId).filter(val => val).join(',');
       const limitReaming = query.limit - productDbEvent.length;
       const microServiceEvent = await fetchDatafromMicroService('eventSuggestionsFetch', {
         view: 'promote',
         showValues: 'basic',
         limit: limitReaming,
-        notEventIds: '',
+        ...(referenceIds.length > 5 ? { notEventIds: referenceIds } : {}),
         eventTypes: eventTypes
       });
 
