@@ -19,6 +19,7 @@ enum UserSource {
   PROMOTE_EVENT_INVITE
   ACCESS_INVITE
   SCRIPT
+  IMPORT_10T
 }
 
 model User {
