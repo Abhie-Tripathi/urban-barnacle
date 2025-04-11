@@ -908,7 +908,7 @@ export class TrackerService {
 
     if (receiver && receiver.length > 0) {
       const receiverAccess = await this.accessService.getAccess({
-        accessReceiverId: data.accessReceiverId,
+        accessReceiverId: receiver[0].id,
         accountId: user.accountId,
         sourceEntity: 'TRACKER',
         sourceEntityId: trackerId,
