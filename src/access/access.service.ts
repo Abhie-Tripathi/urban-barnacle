@@ -28,7 +28,7 @@ export class AccessService {
     private readonly communicationService: CommunicationService,
     private readonly configService: ConfigService,
     private readonly companyDataService: CompanyDataService,
-  ) { }
+  ) {}
 
   async createAccess(
     user: TCachedUser,
@@ -62,7 +62,10 @@ export class AccessService {
       receiver = users[0];
     } else if (data.accessReceiverEmail) {
       if (data.accessReceiverEmail.split('@')[1] !== user.email.split('@')[1]) {
-        throw new HttpException('User domain not matched', HttpStatus.NOT_FOUND);
+        throw new HttpException(
+          'User domain not matched',
+          HttpStatus.NOT_FOUND,
+        );
       }
       const users = await this.userDataService.getUsers({
         email: [data.accessReceiverEmail],
@@ -75,9 +78,9 @@ export class AccessService {
         });
         const primaryDetails = newUserPrimaryCompany
           ? {
-            primaryCompanyId: newUserPrimaryCompany.id,
-            primaryAccountId: newUserPrimaryCompany.accountId,
-          }
+              primaryCompanyId: newUserPrimaryCompany.id,
+              primaryAccountId: newUserPrimaryCompany.accountId,
+            }
           : null;
         const newUser = await this.userDataService.createUser({
           source: 'ACCESS_INVITE',

@@ -10,9 +10,10 @@ import { FileCreationService } from 'src/shared/file-creation.service';
 
 @Injectable()
 export class UserDataService {
-  constructor(private readonly prisma: PrismaService,
-    private readonly fileService: FileCreationService
-  ) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly fileService: FileCreationService,
+  ) {}
 
   async createUser(data: CreateUserDto) {
     const { accountId, primaryCompanyId, ...rest } = data;
@@ -24,21 +25,21 @@ export class UserDataService {
     }
     const account: object = accountId
       ? {
-        accounts: {
-          connect: {
-            id: data.accountId,
+          accounts: {
+            connect: {
+              id: data.accountId,
+            },
           },
-        },
-      }
+        }
       : {};
     const company = primaryCompanyId
       ? {
-        company: {
-          connect: {
-            id: data.primaryCompanyId,
+          company: {
+            connect: {
+              id: data.primaryCompanyId,
+            },
           },
-        },
-      }
+        }
       : {};
     const user = await this.prisma.user.create({
       data: {
@@ -83,13 +84,23 @@ export class UserDataService {
     return users;
   }
 
-  async updateUser(data: UpdateUserDto, file?: File, removePicture: boolean = false) {
+  async updateUser(
+    data: UpdateUserDto,
+    file?: File,
+    removePicture: boolean = false,
+  ) {
     const userData: Record<string, any> = {
       ...data,
     };
     if (file && file.buffer) {
-      const { fileData } = await this.fileService.createFile('',
-        file, data.id, 'IMAGE', 'USER', data.id);
+      const { fileData } = await this.fileService.createFile(
+        '',
+        file,
+        data.id,
+        'IMAGE',
+        'USER',
+        data.id,
+      );
       userData['imageUrl'] = fileData?.fileUrl;
       userData['profileImageId'] = fileData?.id;
     } else if (removePicture) {
@@ -185,12 +196,14 @@ export class UserDataService {
   async getPocsunlocked(pocId: string, params: UnlockValue[]) {
     const url =
       process.env.MICROSERVICE_URL +
-      microserviceEndpoints.events.eventPocsUnlocked.replace(':userId', pocId).replace('{unlock}', params.join(',').toLowerCase());
-    console.log(url)
+      microserviceEndpoints.events.eventPocsUnlocked
+        .replace(':userId', pocId)
+        .replace('{unlock}', params.join(',').toLowerCase());
+    console.log(url);
     const response = await fetch(url);
     const { data, error } = await response.json();
     if (!data || error) {
-      console.log(data, error)
+      console.log(data, error);
       throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
     return {
