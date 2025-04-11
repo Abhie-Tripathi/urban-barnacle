@@ -58,7 +58,31 @@ export class AuthController {
       return { error: error };
     }
   }
-
+  @Post(':token/sign-up')
+  async tokenBasedSignUp(@Body() body: SignUpDto, @Param('token') token: string, @Res({ passthrough: true }) reply: FastifyReply,) {
+    try {
+      if (process.env.SIGN_UP_TOKEN !== token) {
+        throw new HttpException('token not fount/matched', HttpStatus.FORBIDDEN);
+      }
+      const data = await this.authService.tokenBasedSignUp(body);
+      const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
+      reply.cookie(key, data.user.token);
+      return { data: { user: data.user.userData } };
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return {
+          error: new HttpException(
+            'User already exists',
+            HttpStatus.BAD_REQUEST,
+          ),
+        };
+      }
+      return { error: error };
+    }
+  }
   @Post('sign-in')
   async signIn(@Body() body: SignInDto) {
     try {

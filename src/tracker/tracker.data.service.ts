@@ -8,7 +8,7 @@ import { TCachedUser, TrackerTypes } from 'src/utils/types';
 
 @Injectable()
 export class TrackerDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const tracker = await this.prisma.tracker.create({
@@ -18,6 +18,7 @@ export class TrackerDataService {
         type: data.type,
         createdBy: user.id,
         accountId: user.accountId,
+        source: data.source
       },
       include: {
         createdByUser: {

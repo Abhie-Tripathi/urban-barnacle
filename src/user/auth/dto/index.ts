@@ -30,6 +30,7 @@ export const SignUpSchema = z.strictObject({
     .optional(),
   category: z.string().optional(),
   email: z.string().email(),
+  profileUrl: z.string().optional()
 });
 
 export class SignUpDto extends createZodDto(SignUpSchema) { }
