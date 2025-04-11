@@ -127,6 +127,9 @@ export class WidgetsService {
   async getWidgetById(id: string, query, accountId: string) {
     try {
       console.log(query, id, accountId);
+      if (!id) {
+        throw new HttpException("widget id not found", HttpStatus.NOT_FOUND);
+      }
       let dataEvent: object = {};
       let where: object = {};
       if (query.eventInfo) {
