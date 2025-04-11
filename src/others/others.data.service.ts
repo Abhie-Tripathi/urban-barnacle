@@ -32,7 +32,7 @@ export class OthersDataService {
                            FROM "Preset"
                              ${sqlBody}`))
         ]);
-        return { count: Number(count[0].count), data };
+        return { data: { count: Number(count[0].count), trackers: data } };
     }
     async sendDemoContactEmail(data: DemoDto) {
         await this.communicationService.createJobForBull(QueueActionOptions.SEND_DEMO_CONTACT_EMAIL, data, '@10times.com');
