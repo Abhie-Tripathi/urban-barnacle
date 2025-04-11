@@ -440,6 +440,10 @@ WHERE a."A" = '${eventId}';
     });
     return data;
   }
+  async checkDuplicate(sqlQuery: string) {
+    const data: any[] = await this.prisma.$queryRaw(Prisma.raw(sqlQuery));
+    return data;
+  }
   async createEventCancelJob(
     data: typeof EventCancelDataSchema,
     userId: string,
