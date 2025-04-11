@@ -511,6 +511,7 @@ export class AuthService {
             ? { lastname: data.name.substring(data.name.indexOf(' ') + 1) } : {}),
           email: data.email,
           role: 'CUSTOMER',
+          source: 'IMPORT_10T',
           primaryCompanyId: company?.id,
           accountId: account.id,
           primaryAccountId: account.id,
