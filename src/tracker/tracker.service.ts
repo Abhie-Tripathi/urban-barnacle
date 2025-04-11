@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { TrackerDataService } from './tracker.data.service';
-import { LastActive, TCachedUser } from 'src/utils/types';
+import { blackListDomain, LastActive, TCachedUser } from 'src/utils/types';
 import {
   CreateTrackerDto,
   GetTrackerByIdDto,
@@ -27,6 +27,7 @@ import { createHash, randomUUID } from 'crypto';
 import { CommentsResponseSchema } from 'src/comment/dto/response';
 import { ConfigService } from '@nestjs/config';
 import { QueryFilter, QueryFilterDto } from 'src/events/dto/query.dto';
+import { AccountDataService } from 'src/user/account/account.data.service';
 @Injectable()
 export class TrackerService {
   constructor(
@@ -39,6 +40,7 @@ export class TrackerService {
     private readonly commentService: CommentService,
     private readonly userDataService: UserDataService,
     private readonly configService: ConfigService,
+    private readonly accountDataService: AccountDataService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
@@ -863,10 +865,64 @@ export class TrackerService {
     trackerId: string,
     data: CreateAccessHttpDto,
   ) {
+    if (
+      (data.accessReceiverEmail && data.accessReceiverEmail === user.email) ||
+      (data.accessReceiverId && data.accessReceiverId === user.id)
+    ) {
+      throw new HttpException(
+        'Can not invite yourself',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
     const [tracker, access] = await this.hasTrackerAccess(user, trackerId, [
       'ADMIN',
       'SUPER_ADMIN',
     ]);
+
+    const accounts = await this.accountDataService.getAccounts({
+      id: user.accountId,
+      limit: 1,
+      offset: 0,
+    });
+    if (!accounts || accounts.length === 0) {
+      throw new HttpException(
+        'Company account not found',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const account = accounts[0];
+    if (account.domain && blackListDomain.includes(account.domain)) {
+      throw new HttpException(
+        'Can not invite user to this account',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const receiver = await this.userDataService.getUsers({
+      ...(data.accessReceiverId && { ids: [data.accessReceiverId] }),
+      ...(data.accessReceiverEmail && { email: [data.accessReceiverEmail] }),
+      accountId: user.accountId,
+      limit: 1,
+      offset: 0,
+    });
+
+    if (receiver && receiver.length > 0) {
+      const receiverAccess = await this.accessService.getAccess({
+        accessReceiverId: data.accessReceiverId,
+        accountId: user.accountId,
+        sourceEntity: 'TRACKER',
+        sourceEntityId: trackerId,
+        limit: 1,
+        offset: 0,
+      });
+
+      if (receiverAccess.length > 0) {
+        throw new HttpException(
+          'User already has access',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    }
 
     const hash = createHash('sha256').update(randomUUID()).digest('hex');
     const expiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
