@@ -50,6 +50,7 @@ export const EnquiryResponseSchema = z.object({
       activitySubType: z.string().nullable(),
     }),
   ),
+  isProductEvent: z.boolean()
 });
 
-export class EnquiryResponseDto extends createZodDto(EnquiryResponseSchema) {}
+export class EnquiryResponseDto extends createZodDto(EnquiryResponseSchema) { }

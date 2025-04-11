@@ -13,7 +13,7 @@ import {
   Query_Dto,
   UpdateEventDto,
 } from './dto';
-import { SelectedUserDetails, TCachedUser } from 'src/utils/types';
+import { defaultEventTypes, SelectedUserDetails, TCachedUser } from 'src/utils/types';
 import { File } from '@nest-lab/fastify-multer';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
@@ -1041,7 +1041,7 @@ FROM (
   escapeSqlString(value: string): string {
     return value.replace(/'/g, "''");
   }
-  async getEvent(user: SelectedUserDetails, query: Query_Dto) {
+  async getEvent(user: TCachedUser, query: Query_Dto) {
     try {
       if (query.views === 'suggestion') {
         return await this.getEventSuggestion(query, user);
@@ -1477,13 +1477,19 @@ FROM (
       } else {
         proEvent.push(...productDbEvent);
       }
+      let eventTypes: string = '';
+      const backend = process.env.BACKEND;
+      if (backend && backend in defaultEventTypes) {
+        eventTypes = Object.values(defaultEventTypes[backend]).join(',');
+      }
       const limitReaming = query.limit - productDbEvent.length;
       const microServiceEvent = await fetchDatafromMicroService('eventSuggestionsFetch', {
-        max: limitReaming + '',
-        eventName: query.name,
-        widget: 'y',
-        eventNameExcept: productDbEvent.map((val) => val.name).join(','),
-      })
+        view: 'promote',
+        showValues: 'basic',
+        limit: limitReaming,
+        notEventIds: '',
+        eventTypes: eventTypes
+      });
 
       // (await this.search(
       //   {

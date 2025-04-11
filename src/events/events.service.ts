@@ -137,7 +137,7 @@ export class EventsService {
     return events;
   }
 
-  async getEvent(eventId: string, showValues: string, user?: TCachedUser) {
+  async getEvent(eventId: string, showValues: string, user?: TCachedUser, flag: boolean = true) {
     const data = await this.eventsDataService.getEvents({
       eventIds: [eventId],
       view: View.detail,
@@ -146,11 +146,22 @@ export class EventsService {
       showValues,
     });
     if (
-      !data ||
-      (data && !data.events) ||
-      (data && data.events && data.events.length === 0)
+      flag && (!data ||
+        (data && !data.events) ||
+        (data && data.events && data.events.length === 0))
     ) {
       throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
+    }
+    if (
+      flag === false && (!data ||
+        (data && !data.events) ||
+        (data && data.events && data.events.length === 0))
+    ) {
+      return {
+        interests: {},
+        basic: {},
+        advance: {},
+      };
     }
     const event = data.events[0];
     let userInterests = {};

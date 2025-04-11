@@ -82,7 +82,7 @@ export class PromotedEventsController {
   @Get()
   async findAll(
     @Query() type: Query_Dto,
-    @GetUser() user: SelectedUserDetails,
+    @GetUser() user: TCachedUser,
   ) {
     try {
       const result = await this.eventService.getEvent(user, type);
