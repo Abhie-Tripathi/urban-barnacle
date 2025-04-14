@@ -8,7 +8,7 @@ import { TCachedUser, TrackerTypes } from 'src/utils/types';
 
 @Injectable()
 export class TrackerDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const tracker = await this.prisma.tracker.create({
@@ -18,6 +18,7 @@ export class TrackerDataService {
         type: data.type,
         createdBy: user.id,
         accountId: user.accountId,
+        source: data.source
       },
       include: {
         createdByUser: {
@@ -93,10 +94,10 @@ export class TrackerDataService {
     });
   }
 
-  async getTrackersCountByUser(user: TCachedUser, where: Prisma.Sql[]) {
-    const trackerCount: { count: number }[] = await this.prisma.$queryRaw`
+  async getTrackersCountByUser(user: TCachedUser, where: Prisma.Sql[], groupBy: string | null = null) {
+    const trackerCount: { count: number }[] | { count: number, type: TrackerType }[] = await this.prisma.$queryRaw`
       SELECT
-        count(1)
+        count(*) ${groupBy ? Prisma.sql`, "type"` : Prisma.sql``}
       FROM
         "Tracker" T
         INNER JOIN "Access" A ON T.ID = A."sourceEntityId"::UUID
@@ -106,8 +107,17 @@ export class TrackerDataService {
       WHERE
         T.DELETED = false
           ${where.length > 0 ? Prisma.sql`AND ${Prisma.join(where, ' AND ')}` : Prisma.sql``}
+          ${groupBy ? Prisma.sql`GROUP BY "type"` : Prisma.sql``}
           `;
     console.log({ trackerCount });
+    if (groupBy) {
+      return trackerCount.map(val => {
+        return {
+          type: val.type,
+          count: Number(val.count)
+        }
+      });
+    }
     return trackerCount[0].count;
   }
 
@@ -140,7 +150,7 @@ export class TrackerDataService {
     return trackers;
   }
 
-  async getTrackersCount(user: TCachedUser, data: GetTrackersDto) {
+  async getTrackersCount(user: TCachedUser, data: GetTrackersDto, groupBy: string | null = null) {
     const where: Prisma.Sql[] = [];
     if (data.ids && data.ids.length > 0)
       where.push(Prisma.sql`T.ID::TEXT IN (${Prisma.join(data.ids, ',')})`);
@@ -160,7 +170,10 @@ export class TrackerDataService {
       if (data.createdBy === 'others')
         where.push(Prisma.raw(`T."createdBy" != '${user.id}'::UUID`));
     }
-    const count = await this.getTrackersCountByUser(user, where);
+    const count = await this.getTrackersCountByUser(user, where, groupBy);
+    if (groupBy) {
+      return count;
+    }
     return Number(count);
   }
 

@@ -21,7 +21,7 @@ export const microserviceEndpoints = {
     eventPolygons: '/events/:eventId/polygons',
     eventIntelScore: '/events/:eventId/intelScore',
     createExport: '/events/export',
-    trends: '/trends',
+    trends: '/events/trends',
     eventPocsUnlocked: '/users/:userId?unlock={unlock}',
   },
   company: {

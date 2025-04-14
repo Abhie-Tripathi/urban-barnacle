@@ -8,6 +8,7 @@ import { CommentService } from 'src/comment/comment.service';
 import { EnquiryDataService } from 'src/enquiry/enquiry.data.service';
 import { UserDataService } from 'src/user/user.data.service';
 import { EnquiryService } from 'src/enquiry/enquiry.service';
+import { PromotedEventsDataService } from 'src/promotedEvent/promoted-even.data.service';
 
 @Module({
   controllers: [IntentController],
@@ -17,8 +18,9 @@ import { EnquiryService } from 'src/enquiry/enquiry.service';
     EnquiryService,
     EnquiryDataService,
     UserDataService,
+    PromotedEventsDataService
   ],
   exports: [IntentService, IntentDataService],
   imports: [forwardRef(() => EnquiryModule), EventsModule],
 })
-export class IntentModule {}
+export class IntentModule { }
