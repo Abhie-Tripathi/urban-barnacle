@@ -4,6 +4,7 @@ import {
   AuthenticatDto,
   SignInDto,
   SignUpDto,
+  SignUpTempDto,
   SourceDto,
   VerifyAccessDto,
   VerifyOtpDto,
@@ -36,6 +37,7 @@ import { InterestDefaultConfigurations } from '../account/account.config';
 import { InterestDefaultConfigurationsWithIndustry } from '../account/account.config';
 import { AccountService } from '../account/account.service';
 import { KitService } from 'src/widgets/kit.service';
+import { SavedLocationService } from 'src/saved-location/saved-location.service';
 
 @Injectable()
 export class AuthService {
@@ -51,7 +53,8 @@ export class AuthService {
     private readonly communicationService: CommunicationService,
     private readonly sharedService: SharedService,
     private readonly accessService: AccessService,
-    private readonly brandKitService: KitService
+    private readonly brandKitService: KitService,
+    private readonly savedLocationsService: SavedLocationService
   ) { }
 
   async signUp(data: SignUpDto) {
@@ -600,7 +603,8 @@ export class AuthService {
       }
     }
   }
-  async tokenBasedSignUp(data: SignUpDto) {
+  async tokenBasedSignUp(data: SignUpTempDto) {
+    const { locationId, profileUrl, ...rest } = data;
     const domain = data.email.split('@')[1];
     // let nonBusinessFlag: Boolean = false;
     // if (blackListDomain.includes(domain)) {
@@ -691,23 +695,12 @@ export class AuthService {
       }
       if (!user) {
         user = await this.userDataService.createUser({
-          firstname: data.email.split('@')[0],
-          ...data,
+          ...rest,
           role: 'CUSTOMER',
           primaryCompanyId: company?.id,
           accountId: account.id,
           primaryAccountId: account.id,
         });
-        if (data.profileUrl && data.profileUrl.length > 5) {
-          const profilepicture = await this.authDataService.fetchImageFromOtherDomian(data.profileUrl, user.id);
-          if (profilepicture) {
-            user = await this.userDataService.updateUser({
-              id: user.id,
-              imageUrl: profilepicture.fileUrl,
-              profileImageId: profilepicture.id
-            });
-          }
-        }
       } else if (
         user &&
         user.currentOnboardingState === OnboardingState.VERIFICATION &&
@@ -715,7 +708,7 @@ export class AuthService {
       ) {
         user = await this.userDataService.updateUser({
           id: user.id,
-          ...data,
+          ...rest,
         });
         const accounts = await this.accountDataService.getAccounts({
           id: company.accountId,
@@ -738,6 +731,42 @@ export class AuthService {
               ? InterestDefaultConfigurationsWithIndustry[data.industry]
               : InterestDefaultConfigurations.interests,
           );
+        }
+      }
+      if (locationId) {
+        const data = await this.savedLocationsService.saveLocations(JSON.stringify(locationId) as any, {
+          email: user.email, accountId: account.id,
+          primaryAccountId: user.primaryAccountId,
+          primaryCompanyId: user.primaryCompanyId,
+          accountConfigurationId: account.configurationId,
+          currentSubscriptionId: account.currentSubscriptionId,
+          id: user.id,
+          industry: user.industry,
+          subIndustry: user.subIndustry,
+          category: user.category,
+          currentOnboardingState: user.currentOnboardingState,
+          department: user.department,
+          designation: user.designation,
+          firstname: user.firstname,
+          lastname: user.lastname,
+          phoneNumber: user.phoneNumber,
+          imageUrl: user.imageUrl,
+          primaryLocation: user.primaryLocation,
+          role: user.role,
+          token:"dfas"
+        });
+      }
+      user = await this.userDataService.updateUser({
+        id: user.id,
+      });
+      if (data.profileUrl && data.profileUrl.length > 5) {
+        const profilepicture = await this.authDataService.fetchImageFromOtherDomian(data.profileUrl, user.id);
+        if (profilepicture) {
+          user = await this.userDataService.updateUser({
+            id: user.id,
+            imageUrl: profilepicture.fileUrl,
+            profileImageId: profilepicture.id
+          });
         }
       }
       if (flag) {
