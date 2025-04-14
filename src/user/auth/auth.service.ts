@@ -36,6 +36,7 @@ import { InterestDefaultConfigurations } from '../account/account.config';
 import { InterestDefaultConfigurationsWithIndustry } from '../account/account.config';
 import { AccountService } from '../account/account.service';
 import { KitService } from 'src/widgets/kit.service';
+import { fetchDatafromMicroService } from 'src/shared/microservice.api';
 
 @Injectable()
 export class AuthService {
@@ -375,6 +376,7 @@ export class AuthService {
         countryId?: string;
         countryName?: string;
       };
+      confirmCategory?: { id: number, name?: string }[]
       socialId?: { google?: string, linkedin?: string }
     } = response.data;
     if (!data['email']) {
@@ -498,11 +500,18 @@ export class AuthService {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
       }
       if (!user) {
+        let category: string | undefined = undefined;
+        if (data.confirmCategory) {
+          const dataTofetch: { data: { id: string; name: string }[] } = await fetchDatafromMicroService('categoryFetch', { id_10x: data.confirmCategory.map(val => val.id).join(',') });
+          if (dataTofetch.data.length > 0)
+            category = dataTofetch.data.map(val => val.id).join(',');
+        }
         user = await this.userDataService.createUser({
-          firstname: data.name ? data.name.split(' ')[0] : '',
-          ...(data.name && data.name.split(' ').length > 1 ? { lastname: data.name.substring(data.name.indexOf(' ') + 1) } : {}),
+          firstname: source.source !== '10times' && data.name ? data.name : '',
+          ...(source.source !== '10times' && data.name && data.name.split(' ').length > 1 ? { lastname: data.name.substring(data.name.indexOf(' ') + 1) } : {}),
           email: data.email,
           role: 'CUSTOMER',
+          category: category,
           primaryCompanyId: company?.id,
           accountId: account.id,
           primaryAccountId: account.id,
