@@ -9,7 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { AuthenticatDto, SignInDto, SignUpDto, SourceDto, VerifyAccessDto, VerifyOtpDto } from './dto';
+import { AuthenticatDto, SignInDto, SignUpDto, SignUpTempDto, SourceDto, VerifyAccessDto, VerifyOtpDto } from './dto';
 import { FastifyReply } from 'fastify';
 import { Prisma } from '@prisma/client';
 import { GetUser } from '../decorator';
@@ -59,7 +59,7 @@ export class AuthController {
     }
   }
   @Post(':token/sign-up')
-  async tokenBasedSignUp(@Body() body: SignUpDto, @Param('token') token: string, @Res({ passthrough: true }) reply: FastifyReply,) {
+  async tokenBasedSignUp(@Body() body: SignUpTempDto, @Param('token') token: string, @Res({ passthrough: true }) reply: FastifyReply,) {
     try {
       if (process.env.SIGN_UP_TOKEN !== token) {
         throw new HttpException('token not fount/matched', HttpStatus.FORBIDDEN);
