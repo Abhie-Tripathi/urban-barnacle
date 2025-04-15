@@ -40,7 +40,6 @@ import { KitService } from 'src/widgets/kit.service';
 import { fetchDatafromMicroService } from 'src/shared/microservice.api';
 import { SavedLocationService } from 'src/saved-location/saved-location.service';
 
-
 @Injectable()
 export class AuthService {
   constructor(
