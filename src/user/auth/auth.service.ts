@@ -518,6 +518,7 @@ export class AuthService {
           category: category,
           primaryCompanyId: company?.id,
           accountId: account.id,
+          phoneNumber: data.phone,
           primaryAccountId: account.id,
           socialIds: {
             google: source.source === 'google' && response.socialId ? response.socialId['userId'] : undefined
