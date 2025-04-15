@@ -61,7 +61,7 @@ export class MeController {
     @Body() body: UpdateMeDto,
   ) {
     try {
-      const user = await this.meService.updateMe(userData, body,file);
+      const user = await this.meService.updateMe(userData, body, file);
       return {
         data: {
           user: UserDataSchema.parse(user),
@@ -126,7 +126,25 @@ export class MeController {
       };
     }
   }
-
+  @UseGuards(AuthGuard)
+  @Get('trackers/count')
+  async getMyTrackersCount(
+    @GetUser() user: TCachedUser,
+    @Query() query: GetTrackersHttpDto,
+  ) {
+    try {
+      const trackers = await this.meService.getMyTrackersCount(user, query);
+      return { data: { count: trackers } };
+    } catch (error) {
+      console.error(error);
+      return {
+        error: new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        ),
+      };
+    }
+  }
   @UseGuards(AuthGuard)
   @Get('saved-locations')
   async getMySavedLocations(

@@ -32,6 +32,7 @@ const CreateUserSchema = SignUpSchema.extend({
   source: z.nativeEnum(UserSource).optional(),
   socialIds: SocialIdsSchema.optional(),
   phoneNumber: z.string().optional(),
+  category: z.string().optional(),
 });
 
 export class CreateUserDto extends createZodDto(CreateUserSchema) { }

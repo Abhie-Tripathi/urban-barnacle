@@ -739,6 +739,10 @@ const columns = {
 };
 
 export const EventsTrendsSchema = QueryFilter.extend({
+  source: z
+    .string()
+    .refine((val) => val in ['geo', 'gtm'])
+    .optional(),
   groupBy: z.string().refine((val) => val in groupByOptions, {
     message: 'Invalid groupBy option',
     params: { validOptions: Object.keys(groupByOptions).join(', ') },
