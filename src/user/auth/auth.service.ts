@@ -367,6 +367,7 @@ export class AuthService {
       email: string;
       profilepicture?: string;
       company?: string;
+      phone?: string;
       designationName?: string;
       industry?: string;
       departmentName?: string;
@@ -412,8 +413,8 @@ export class AuthService {
           currentOnboardingState: OnboardingState.COMPLETED,
           ...(['google', 'linkedin'].includes(source.source) ? {
             socialIds: {
-              google: source.source === 'google' && response.socialId ? response.socialId['userId'] : (user?.socialIds as any)['google']
-              , linkedin: source.source === 'linkedin' && response.socialId ? response.socialId['userId'] : (user?.socialIds as any)['linkedin']
+              google: source.source === 'google' && response.socialId ? response.socialId['userId'] : (user?.socialIds) ? (user?.socialIds as any)['google'] : undefined
+              , linkedin: source.source === 'linkedin' && response.socialId ? response.socialId['userId'] : (user?.socialIds) ? (user?.socialIds as any)['linkedin'] : undefined
             }
           } : {})
         });
@@ -510,7 +511,7 @@ export class AuthService {
             category = dataTofetch.data.map(val => val.id).join(',');
         }
         user = await this.userDataService.createUser({
-          firstname: source.source !== '10times' && data.name ? data.name : '',
+          firstname: source.source !== '10times' && data.name ? data.name.split(' ')[0] : data.name,
           ...(source.source !== '10times' && data.name && data.name.split(' ').length > 1 ? { lastname: data.name.substring(data.name.indexOf(' ') + 1) } : {}),
           email: data.email,
           role: 'CUSTOMER',

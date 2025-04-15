@@ -566,11 +566,13 @@ export const QueryFilter = z.object({
       return data?.split(',').map((item) => item.trim());
     })
     .optional(),
+  jobComposite: z.string()
+    .optional(),
 });
 
 export const FilterNames = Object.keys(QueryFilter.shape);
 
-export class QueryFilterDto extends createZodDto(QueryFilter) {}
+export class QueryFilterDto extends createZodDto(QueryFilter) { }
 
 export const QueryHttpSchema = LimitSchemaWithoutDefault.extend(
   QueryFilter.shape,
@@ -654,13 +656,13 @@ export const QueryHttpSchema = LimitSchemaWithoutDefault.extend(
     return data;
   });
 
-export class QueryHttpDto extends createZodDto(QueryHttpSchema) {}
+export class QueryHttpDto extends createZodDto(QueryHttpSchema) { }
 
 export const QuerySchema = QueryHttpSchema.innerType().extend({
   showValues: z.string(),
 });
 
-export class QueryDto extends createZodDto(QuerySchema) {}
+export class QueryDto extends createZodDto(QuerySchema) { }
 
 export enum CountGroup {
   'year' = 'year',
@@ -714,7 +716,7 @@ export const CountQuerySchema = QueryFilter.extend({
   return data;
 });
 
-export class CountQueryDto extends createZodDto(CountQuerySchema) {}
+export class CountQueryDto extends createZodDto(CountQuerySchema) { }
 
 const groupByOptions = {
   date: 'date',
@@ -754,10 +756,10 @@ export const EventsTrendsSchema = QueryFilter.extend({
   }),
 });
 
-export class EventsTrendsDto extends createZodDto(EventsTrendsSchema) {}
+export class EventsTrendsDto extends createZodDto(EventsTrendsSchema) { }
 
 const sortSchema = LimitSchemaWithoutDefault.extend({
   sortBy: z.string().optional(),
 });
 
-export class SortingDto extends createZodDto(sortSchema) {}
+export class SortingDto extends createZodDto(sortSchema) { }
