@@ -79,15 +79,16 @@ export interface LastActive {
 }
 
 export type TrackerParams = z.infer<typeof TrackerParamsSchema>;
-export interface TrackerParamsOptions extends LastActive, TrackerParams {}
+export interface TrackerParamsOptions extends LastActive, TrackerParams { }
 
 const CreateTrackerSchema = z.object({
   name: z.string(),
   filterValues: ParamsSchema.strict(),
   type: z.nativeEnum(TrackerType),
+  source: z.string().optional()
 });
 
-export class CreateTrackerDto extends createZodDto(CreateTrackerSchema) {}
+export class CreateTrackerDto extends createZodDto(CreateTrackerSchema) { }
 
 const UpdateTrackerHttpSchema = CreateTrackerSchema.partial().omit({
   type: true,
@@ -95,11 +96,11 @@ const UpdateTrackerHttpSchema = CreateTrackerSchema.partial().omit({
 
 export class UpdateTrackerHttpDto extends createZodDto(
   UpdateTrackerHttpSchema,
-) {}
+) { }
 
 const UpdateTrackerSchema = UpdateTrackerHttpSchema.extend({
   id: z.string().uuid(),
   deleted: z.boolean().optional(),
 });
 
-export class UpdateTrackerDto extends createZodDto(UpdateTrackerSchema) {}
+export class UpdateTrackerDto extends createZodDto(UpdateTrackerSchema) { }

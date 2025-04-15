@@ -14,7 +14,7 @@ import {
 import { GetUserHttpDto } from '../dto';
 import { UserService } from '../user.service';
 import { UserDataService } from '../user.data.service';
-import { EnquiryActivityType, EnquiryStatus, Prisma } from '@prisma/client';
+import { Enquiry, EnquiryActivityType, EnquiryStatus, Prisma } from '@prisma/client';
 import {
   AccountConfigDto,
   FilterConfigurationDto,
@@ -44,6 +44,7 @@ import { EnquiryResponseSchema } from 'src/enquiry/dto/response';
 import { getNameFromEmail } from 'src/utils';
 import { QueryDto, View } from 'src/events/dto';
 import { EventsService } from 'src/events/events.service';
+import { PromotedEventsService } from 'src/promotedEvent/promoted-event.service';
 
 @Injectable()
 export class AccountService {
@@ -54,7 +55,8 @@ export class AccountService {
     private readonly userDataService: UserDataService,
     private readonly intentDataService: IntentDataService,
     private readonly eventService: EventsService,
-  ) {}
+    private readonly promoteEventService: PromotedEventsService,
+  ) { }
 
   async getAccountCompany(user: TCachedUser) {
     const company = await this.companyDataService.getCompany({
@@ -103,40 +105,48 @@ export class AccountService {
     const events = await this.eventService.getAllEvents(eventParams, false);
     return { ...events, count: count.length };
   }
-  async getAccountEnquiries(
-    user: TCachedUser,
-    query: GetEnquiriesHttpDto,
-    showValues: string,
+  async getEventFromProductDb(user: TCachedUser, eventIds: string[], name: string | undefined, event_active_gte: string | undefined
+    , event_active_lte: string | undefined, limit: number | undefined, offset: number | undefined, showValues: string, enquiries: Enquiry[]) {
+    const events = (await this.promoteEventService.getEvent(user, {
+      limit: eventIds.length,
+      offset: 0,
+      ...(name ? { name: name } : {}),
+      ...(event_active_lte && event_active_gte ? { start_date: event_active_gte, end_date: event_active_lte }
+        : event_active_lte ? { expired: (new Date()).toISOString() } : event_active_gte ? { upcoming: 'true' } : {})
+    })) as unknown as { data: { totalCount: number, data: any[] } };
+    const selectedEnquiries = eventIds
+      .map((eventId, index) => {
+        // const selectedEnquiries = events.events.map((event) => {
+        const event = events.data.data.find((event) => event.id === eventId);
+        const enquiry = enquiries[index];
+        if (!event || !enquiry) {
+          return null;
+        }
+        return {
+          ...enquiry,
+          eventData: {
+            eventId: event.id,
+            name: event.name,
+            startDate: event.data['start_date'] || null,
+            endDate: event.data['end_date'] || null,
+            logoUrl: event.data['end_date'] || null,
+            website: null,
+            organizerName: null,
+            location: {
+              cityName: event.data['location_city'] || null,
+              stateName: event.data['location_state'] || null,
+              countryName: event.data['location_country'] || null,
+            },
+          },
+          isProductEvent: true
+        };
+      })
+      .filter((item) => item !== null);
+    return selectedEnquiries;
+  }
+  async getEventFromMicroService(eventIds: string[], name: string | undefined, event_active_gte: string | undefined
+    , event_active_lte: string | undefined, limit: number | undefined, offset: number | undefined, showValues: string, enquiries: Enquiry[]
   ) {
-    const {
-      limit,
-      offset,
-      status,
-      type,
-      event_active_gte,
-      event_active_lte,
-      groupBy,
-      initiatedBy,
-      name,
-      upvotedBy,
-      eventId,
-    } = query;
-    const enquiries = await this.enquiryService.getEnquiries({
-      accountId: user.accountId,
-      userId: user.id,
-      initiatedBy: initiatedBy,
-      upvotedBy: upvotedBy,
-      status: status,
-      type: type,
-      ...(eventId ? { eventId: eventId } : {}),
-    });
-    if (enquiries.length === 0) {
-      return {
-        count: 0,
-        enquiries: [],
-      };
-    }
-    const eventIds = enquiries.map((enquiry) => enquiry.eventId);
     const events = (await this.eventService.getAllEvents({
       eventIds: eventIds,
       view: View.list,
@@ -147,7 +157,6 @@ export class AccountService {
       offset: offset,
       showValues: showValues,
     })) as any;
-    const enquiryCount = events.count;
     const selectedEnquiries = eventIds
       .map((eventId, index) => {
         // const selectedEnquiries = events.events.map((event) => {
@@ -188,9 +197,59 @@ export class AccountService {
                   : null,
             },
           },
+          isProductEvent: false
         };
       })
       .filter((item) => item !== null);
+    return selectedEnquiries;
+  }
+  async getAccountEnquiries(
+    user: TCachedUser,
+    query: GetEnquiriesHttpDto,
+    showValues: string,
+  ) {
+    const {
+      limit,
+      offset,
+      status,
+      type,
+      event_active_gte,
+      event_active_lte,
+      groupBy,
+      initiatedBy,
+      name,
+      upvotedBy,
+      eventId,
+    } = query;
+    const enquiries = await this.enquiryService.getEnquiries({
+      accountId: user.accountId,
+      userId: user.id,
+      initiatedBy: initiatedBy,
+      upvotedBy: upvotedBy,
+      status: status,
+      type: type,
+      ...(eventId ? { eventId: eventId } : {}),
+    });
+    if (enquiries.length === 0) {
+      return {
+        count: 0,
+        enquiries: [],
+      };
+    } const eventIds = enquiries.map((enquiry) => enquiry.eventId);
+    const enquiryCount = eventIds.length;
+
+    const [productEvents, microServiceEvents] = await Promise.all([
+      this.getEventFromProductDb(user, eventIds, name, event_active_gte, event_active_lte, limit, offset, showValues, enquiries),
+      this.getEventFromMicroService(eventIds, name, event_active_gte, event_active_lte, limit, offset, showValues, enquiries)
+    ]);
+    const combinedEvents = [...productEvents, ...microServiceEvents]
+    const eventMap = new Map<string, any>();
+    combinedEvents.forEach(event => {
+      eventMap.set(event.eventId, event);
+    });
+    const selectedEnquiries = eventIds
+      .map(id => eventMap.get(id))
+      .filter(event => event !== undefined && event !== null);
     // return selectedEnquiries;
     // const [enquiries, enquiryCount] = await Promise.all([
     //   this.enquiryService.getEnquiries({
