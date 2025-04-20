@@ -367,7 +367,7 @@ model ApiLogs {
 model Verification {
   passkey   String
   userId    String   @id @unique @db.Uuid
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   expiresAt DateTime
@@ -682,7 +682,7 @@ enum WidgetStatus {
 model RequestedJob {
   id        String    @id @default(uuid()) @db.Uuid
   userId    String    @db.Uuid
-  user      User      @relation(fields: [userId], references: [id])
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   source    JobSource
   sourceId  String
   processId Int?
