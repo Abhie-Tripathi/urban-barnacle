@@ -156,7 +156,7 @@ model Attachment {
   fileSize        Float // kb
   createdAt       DateTime               @default(now())
   updatedAt       DateTime               @updatedAt
-  createdByUser   User                   @relation(fields: [createdByUserId], references: [id])
+  createdByUser   User                   @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
   createdByUserId String                 @db.Uuid
   deleted         Boolean                @default(false)
   sourceModule    AttachmentSourceModule
