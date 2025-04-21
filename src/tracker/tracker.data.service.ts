@@ -11,6 +11,15 @@ export class TrackerDataService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
+    console.log({
+      data: {
+        name: data.name,
+        filterValues: data.filterValues,
+        type: data.type,
+        createdBy: user.id,
+        accountId: user.accountId,
+      },
+    });
     const tracker = await this.prisma.tracker.create({
       data: {
         name: data.name,
@@ -93,8 +102,14 @@ export class TrackerDataService {
     });
   }
 
-  async getTrackersCountByUser(user: TCachedUser, where: Prisma.Sql[], groupBy: string | null = null) {
-    const trackerCount: { count: number }[] | { count: number, type: TrackerType }[] = await this.prisma.$queryRaw`
+  async getTrackersCountByUser(
+    user: TCachedUser,
+    where: Prisma.Sql[],
+    groupBy: string | null = null,
+  ) {
+    const trackerCount:
+      | { count: number }[]
+      | { count: number; type: TrackerType }[] = await this.prisma.$queryRaw`
       SELECT
         count(*) ${groupBy ? Prisma.sql`, "type"` : Prisma.sql``}
       FROM
@@ -110,11 +125,11 @@ export class TrackerDataService {
           `;
     console.log({ trackerCount });
     if (groupBy) {
-      return trackerCount.map(val => {
+      return trackerCount.map((val) => {
         return {
           type: val.type,
-          count: Number(val.count)
-        }
+          count: Number(val.count),
+        };
       });
     }
     return trackerCount[0].count;
@@ -149,7 +164,11 @@ export class TrackerDataService {
     return trackers;
   }
 
-  async getTrackersCount(user: TCachedUser, data: GetTrackersDto, groupBy: string | null = null) {
+  async getTrackersCount(
+    user: TCachedUser,
+    data: GetTrackersDto,
+    groupBy: string | null = null,
+  ) {
     const where: Prisma.Sql[] = [];
     if (data.ids && data.ids.length > 0)
       where.push(Prisma.sql`T.ID::TEXT IN (${Prisma.join(data.ids, ',')})`);
