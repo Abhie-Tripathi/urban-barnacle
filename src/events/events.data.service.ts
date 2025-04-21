@@ -31,7 +31,7 @@ export class EventsDataService {
     private readonly trackerDataService: TrackerDataService,
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
   async createLogForEncryptedQuery(
     encryption: string,
     user: TCachedUser,
@@ -260,33 +260,36 @@ export class EventsDataService {
     return data;
   }
   async createTrackerPayloadForIntelScore(user: TCachedUser) {
-    const [peopleCount, keywordCount, competitorCount] = await Promise.all([
-      // this.trackerDataService.getTrackersCount(user, { limit: 10, offset: 0, type: 'trackers', subType: 'T_SPEAKING_OPPORTUNITY' }),
-      this.trackerDataService.getTrackersCount(user, {
-        limit: 10,
-        offset: 0,
-        type: 'trackers',
-        subType: 'T_PEOPLE_FINDER',
-      }),
-      this.trackerDataService.getTrackersCount(user, {
-        limit: 10,
-        offset: 0,
-        type: 'trackers',
-        subType: 'T_PRODUCT_KEYWORDS',
-      }),
-      this.trackerDataService.getTrackersCount(user, {
-        limit: 10,
-        offset: 0,
-        type: 'trackers',
-        subType: 'T_COMPETITOR',
-      }),
-    ]);
+    // const [peopleCount, keywordCount, competitorCount] = await Promise.all([
+    //   // this.trackerDataService.getTrackersCount(user, { limit: 10, offset: 0, type: 'trackers', subType: 'T_SPEAKING_OPPORTUNITY' }),
+    //   this.trackerDataService.getTrackersCount(user, {
+    //     limit: 2,
+    //     offset: 0,
+    //     type: 'trackers',
+    //     subType: 'T_PEOPLE_FINDER',
+    //   }),
+    //   this.trackerDataService.getTrackersCount(user, {
+    //     limit: 2,
+    //     offset: 0,
+    //     type: 'trackers',
+    //     subType: 'T_PRODUCT_KEYWORDS',
+    //   }),
+    //   this.trackerDataService.getTrackersCount(user, {
+    //     limit: 2,
+    //     offset: 0,
+    //     type: 'trackers',
+    //     subType: 'T_COMPETITOR',
+    //   }),
+    // ]);
+    let flagForEmptyPayload: boolean = false;
+    let countForFlag: number = 0;
+    const limit: number = 2;
     const [peopleAllTrackData, keywordAllTrackData, competitorAllTrackData] =
       await Promise.all([
         // this.trackerDataService.getTrackers({ limit: speakerCount, offset: 0, type: 'trackers', subType: 'T_SPEAKING_OPPORTUNITY' }, user),
         this.trackerDataService.getTrackers(
           {
-            limit: peopleCount,
+            limit: limit,
             offset: 0,
             type: 'trackers',
             subType: 'T_PEOPLE_FINDER',
@@ -295,7 +298,7 @@ export class EventsDataService {
         ),
         this.trackerDataService.getTrackers(
           {
-            limit: keywordCount,
+            limit: limit,
             offset: 0,
             type: 'trackers',
             subType: 'T_PRODUCT_KEYWORDS',
@@ -304,7 +307,7 @@ export class EventsDataService {
         ),
         this.trackerDataService.getTrackers(
           {
-            limit: competitorCount,
+            limit: limit,
             offset: 0,
             type: 'trackers',
             subType: 'T_COMPETITOR',
@@ -312,6 +315,7 @@ export class EventsDataService {
           user,
         ),
       ]);
+    console.log(peopleAllTrackData, keywordAllTrackData, competitorAllTrackData)
     const requestBody: {
       speakerBody?: { speakerNames: string; speakerCompanyName: string };
       peopleBody?: { peopleNames: string; peopleCompanyName: string };
@@ -337,6 +341,8 @@ export class EventsDataService {
           filterValues.userOrgWebsite;
         requestBody.peopleBody!.peopleNames += filterValues.userName;
       });
+    } else {
+      countForFlag++;
     }
     if (competitorAllTrackData.length > 0) {
       requestBody.competitorBody = {
@@ -358,6 +364,8 @@ export class EventsDataService {
       if (requestBody.competitorBody.competitorWebsiteNames?.length === 0) {
         requestBody.competitorBody.competitorWebsiteNames = undefined;
       }
+    } else {
+      countForFlag++;
     }
     if (keywordAllTrackData.length > 0) {
       requestBody.keywordBody = { includeKeywords: '', excludeKeywords: '' };
@@ -376,16 +384,25 @@ export class EventsDataService {
       if (requestBody.keywordBody.excludeKeywords?.length === 0) {
         requestBody.keywordBody.excludeKeywords = undefined;
       }
+    } else {
+      countForFlag++;
     }
-    return requestBody;
+    return { requestBody, flagForEmptyPayload: countForFlag === 3 ? true : false };
   }
   async getEventIntelScore(eventId: string, user: TCachedUser) {
     const url =
       this.configService.get('MICROSERVICE_URL') +
       microserviceEndpoints.events.eventIntelScore.replace(':eventId', eventId);
+    const { flagForEmptyPayload, requestBody } = await this.createTrackerPayloadForIntelScore(user);
+    if (flagForEmptyPayload) {
+      return {
+        data:
+          { intelScore: [] }
+      }
+    }
     const response = await fetch(url, {
       method: 'POST',
-      body: JSON.stringify(await this.createTrackerPayloadForIntelScore(user)),
+      body: JSON.stringify(requestBody),
       headers: {
         'Content-Type': 'application/json',
       },
