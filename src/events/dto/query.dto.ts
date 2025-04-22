@@ -711,6 +711,14 @@ export const CountQuerySchema = QueryFilter.extend({
   //     data.eventTypes = defaultEventTypes[backend];
   //   }
   // }
+
+  if (!data.status || (data.status && data.status.length === 0)) {
+    data.status = [
+      EventStatus.ACTIVE,
+      EventStatus.CANCELLED,
+      EventStatus.POSTPONED,
+    ];
+  }
   return data;
 });
 
