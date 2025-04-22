@@ -125,15 +125,21 @@ export class TrackerService {
       filterValues: object;
     };
     let { groupedEventsCount, filterValues } = cachedValues ?? {};
-    if (!groupedEventsCount || !filterValues || query.refresh) {
-      groupedEventsCount = await this.getGroupedEventsCount(
-        {
-          ...tracker.filterValues,
-          createdAt: lastActive.last_active_gte,
-        } as CountQueryDto,
-        groupBy ? groupBy : undefined,
-        // groupBy,
-      );
+    if (
+      (!groupedEventsCount && !tracker.type.startsWith('TR_')) ||
+      !filterValues ||
+      query.refresh
+    ) {
+      if (!tracker.type.startsWith('TR_')) {
+        groupedEventsCount = await this.getGroupedEventsCount(
+          {
+            ...tracker.filterValues,
+            createdAt: lastActive.last_active_gte,
+          } as CountQueryDto,
+          groupBy ? groupBy : undefined,
+          // groupBy,
+        );
+      }
 
       filterValues = await this.sharedService.convertIdParamsToSlug(
         tracker.filterValues,
