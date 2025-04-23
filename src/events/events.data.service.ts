@@ -31,7 +31,7 @@ export class EventsDataService {
     private readonly trackerDataService: TrackerDataService,
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
   async createLogForEncryptedQuery(
     encryption: string,
     user: TCachedUser,
@@ -315,7 +315,11 @@ export class EventsDataService {
           user,
         ),
       ]);
-    console.log(peopleAllTrackData, keywordAllTrackData, competitorAllTrackData)
+    console.log(
+      peopleAllTrackData,
+      keywordAllTrackData,
+      competitorAllTrackData,
+    );
     const requestBody: {
       speakerBody?: { speakerNames: string; speakerCompanyName: string };
       peopleBody?: { peopleNames: string; peopleCompanyName: string };
@@ -387,18 +391,21 @@ export class EventsDataService {
     } else {
       countForFlag++;
     }
-    return { requestBody, flagForEmptyPayload: countForFlag === 3 ? true : false };
+    return {
+      requestBody,
+      flagForEmptyPayload: countForFlag === 3 ? true : false,
+    };
   }
   async getEventIntelScore(eventId: string, user: TCachedUser) {
     const url =
       this.configService.get('MICROSERVICE_URL') +
       microserviceEndpoints.events.eventIntelScore.replace(':eventId', eventId);
-    const { flagForEmptyPayload, requestBody } = await this.createTrackerPayloadForIntelScore(user);
+    const { flagForEmptyPayload, requestBody } =
+      await this.createTrackerPayloadForIntelScore(user);
     if (flagForEmptyPayload) {
       return {
-        data:
-          { intelScore: [] }
-      }
+        data: { intelScore: [] },
+      };
     }
     const response = await fetch(url, {
       method: 'POST',
@@ -416,6 +423,10 @@ export class EventsDataService {
     return data;
   }
   async getEventsTrends(params: EventsTrendsDto) {
+    params = {
+      ...params,
+      source: this.configService.get('BACKEND') === 'geo' ? 'geo' : 'gtm',
+    };
     const queryParams = new URLSearchParams(
       params as unknown as Record<string, any>,
     );
