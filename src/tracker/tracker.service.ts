@@ -42,7 +42,7 @@ export class TrackerService {
     private readonly configService: ConfigService,
     private readonly accountDataService: AccountDataService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) { }
+  ) {}
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const nonEmptyParams = getNonEmptyParams(data.filterValues);
@@ -100,9 +100,9 @@ export class TrackerService {
           : undefined;
     tracker.filterValues = tracker.filterValues
       ? {
-        ...(tracker.filterValues as Record<string, any>),
-        searchByEntity,
-      }
+          ...(tracker.filterValues as Record<string, any>),
+          searchByEntity,
+        }
       : { searchByEntity };
 
     const savedEventsCount =
@@ -247,7 +247,11 @@ export class TrackerService {
     return allTrackers;
   }
 
-  async getTrackersCount(user: TCachedUser, params: GetTrackersHttpDto, groupBy: string | null = null) {
+  async getTrackersCount(
+    user: TCachedUser,
+    params: GetTrackersHttpDto,
+    groupBy: string | null = null,
+  ) {
     // const trackerCount = await this.accessService.getAccessCount({
     //   accessReceiverId: user.id,
     //   accountId: user.accountId,
@@ -262,7 +266,7 @@ export class TrackerService {
     const trackerCount = await this.trackerDataService.getTrackersCount(
       user,
       params,
-      groupBy
+      groupBy,
     );
     return trackerCount;
   }
@@ -642,10 +646,38 @@ export class TrackerService {
               params.groupBy[0] === CountGroup.month ? {} : undefined,
             countByYear: params.groupBy[0] === CountGroup.year ? {} : undefined,
           };
+        } else if (
+          params.groupBy &&
+          ['city', 'state', 'country'].includes(params.groupBy[0])
+        ) {
+          return [];
+        } else if (params.groupBy && params.groupBy[0] === CountGroup.status) {
+          return {
+            past: 0,
+            active: 0,
+            new: 0,
+          };
+        } else if (
+          params.groupBy &&
+          params.groupBy[0] === CountGroup.eventTypeGroup
+        ) {
+          return [
+            {
+              group_name: 'business',
+              count: 0,
+            },
+            {
+              group_name: 'social',
+              count: 0,
+            },
+            {
+              group_name: 'unattended',
+              count: 0,
+            },
+          ];
         }
         return {
           count: 0,
-          events: [],
         };
       }
       throw error;
@@ -722,10 +754,38 @@ export class TrackerService {
               params.groupBy[0] === CountGroup.month ? {} : undefined,
             countByYear: params.groupBy[0] === CountGroup.year ? {} : undefined,
           };
+        } else if (
+          params.groupBy &&
+          ['city', 'state', 'country'].includes(params.groupBy[0])
+        ) {
+          return [];
+        } else if (params.groupBy && params.groupBy[0] === CountGroup.status) {
+          return {
+            past: 0,
+            active: 0,
+            new: 0,
+          };
+        } else if (
+          params.groupBy &&
+          params.groupBy[0] === CountGroup.eventTypeGroup
+        ) {
+          return [
+            {
+              group_name: 'business',
+              count: 0,
+            },
+            {
+              group_name: 'social',
+              count: 0,
+            },
+            {
+              group_name: 'unattended',
+              count: 0,
+            },
+          ];
         }
         return {
           count: 0,
-          events: [],
         };
       }
       throw error;
