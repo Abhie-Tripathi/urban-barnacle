@@ -187,7 +187,7 @@ export class CommentService {
       id: data.id,
       deleted: true,
     });
-    return comment;
+    return { data: { message: 'Upvote deleted successfully' } };
   }
 
   async createCommentUpvote(user: TCachedUser, data: CreateIntentHttpDto) {
