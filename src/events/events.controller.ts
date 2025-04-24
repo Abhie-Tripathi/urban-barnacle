@@ -250,7 +250,7 @@ export class EventsController {
     @GetUser() user: TCachedUser,
     @Query() query: GetCommentsDto) {
     try {
-      const alterSource = 'EVENT_DETAIL_PAGE';
+      const alterSource = 'coordinate,EVENT_DETAIL_PAGE';
       const comments = await this.eventsService.getEventsComment(
         user,
         eventId,
