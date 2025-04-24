@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Interest, Prisma } from '@prisma/client';
+import { CommentSourceModule, Interest, Prisma } from '@prisma/client';
 import {
   CreateEnquiryDto,
   GetEnquiriesDto,
@@ -11,7 +11,7 @@ import { GetCommentCountDto, GetCommentsDto } from 'src/comment/dto';
 
 @Injectable()
 export class EnquiryDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async createEnquiry(data: CreateEnquiryDto) {
     const enquiry = await this.prisma.enquiry.create({
@@ -256,10 +256,17 @@ export class EnquiryDataService {
   }
 
   async getComments(data: GetCommentsDto) {
-    const { limit, offset, ...where } = data;
+    const { limit, offset, sourceModule, ...where } = data;
+
+    const normalizedSourceModule = Array.isArray(sourceModule)
+      ? sourceModule
+      : sourceModule
+        ? [sourceModule]
+        : undefined;
     const comments = await this.prisma.comment.findMany({
       where: {
         ...where,
+        ...(normalizedSourceModule ? { sourceModule: { in: normalizedSourceModule } } : {}),
         deleted: false,
       },
       include: {
@@ -280,12 +287,23 @@ export class EnquiryDataService {
   }
 
   async getCommentCount(data: GetCommentCountDto) {
+    const { sourceModule, ...rest } = data;
+
+    const normalizedSourceModule = Array.isArray(sourceModule)
+      ? sourceModule
+      : sourceModule
+        ? [sourceModule]
+        : undefined;
+
     const commentCount = await this.prisma.comment.count({
       where: {
-        ...data,
+        ...rest,
+        ...(normalizedSourceModule ? { sourceModule: { in: normalizedSourceModule } } : {}),
         deleted: false,
       },
     });
+
     return commentCount;
   }
+
 }

@@ -9,7 +9,7 @@ import {
 } from './dto';
 import { AccessService } from 'src/access/access.service';
 import { IntentService } from 'src/intent/intent.service';
-import { IntentTargetModule, InterestSourceModule } from '@prisma/client';
+import { CommentSourceModule, IntentTargetModule, InterestSourceModule } from '@prisma/client';
 import { CommentWithParentSchema } from './dto/response';
 import { CreateIntentHttpDto } from 'src/intent/dto';
 import { File } from '@nest-lab/fastify-multer';
@@ -26,7 +26,7 @@ export class CommentService {
     if (data.parentCommentId) {
       const parentComment = await this.commentDataService.getComments({
         id: data.parentCommentId,
-        sourceModule: data.sourceModule,
+        sourceModule: data.sourceModule.split(',') as CommentSourceModule[],
         sourceId: data.sourceId,
         accountId: user.accountId,
         limit: 1,

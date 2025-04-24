@@ -56,10 +56,16 @@ export class CommentDataService {
   }
 
   async getComments(data: GetCommentsDto) {
-    const { limit, offset, ...where } = data;
+    const { limit, offset, sourceModule, ...where } = data;
+    const normalizedSourceModule = Array.isArray(sourceModule)
+      ? sourceModule
+      : sourceModule
+        ? [sourceModule]
+        : undefined;
     const comments = await this.prisma.comment.findMany({
       where: {
         ...where,
+        ...(normalizedSourceModule ? { sourceModule: { in: normalizedSourceModule } } : {}),
         deleted: false,
       },
       include: {
@@ -80,9 +86,16 @@ export class CommentDataService {
   }
 
   async getCommentCount(data: GetCommentCountDto) {
+    const { sourceModule, ...rest } = data;
+    const normalizedSourceModule = Array.isArray(sourceModule)
+      ? sourceModule
+      : sourceModule
+        ? [sourceModule]
+        : undefined;
     const commentCount = await this.prisma.comment.count({
       where: {
-        ...data,
+        ...rest,
+        ...(normalizedSourceModule ? { sourceModule: { in: normalizedSourceModule } } : {}),
         deleted: false,
       },
     });

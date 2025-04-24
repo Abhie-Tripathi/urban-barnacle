@@ -16,14 +16,17 @@ import { eventSearchFilterCheck, transformEventData } from './global.service';
 import { IntentDataService } from 'src/intent/intent.data.service';
 import { LimitDto } from 'src/global_dto';
 import { AccountService } from 'src/user/account/account.service';
-import { UserActivitySource } from '@prisma/client';
+import { CommentSourceModule, UserActivitySource } from '@prisma/client';
+import { EnquiryService } from 'src/enquiry/enquiry.service';
+import { GetCommentsDto } from 'src/comment/dto';
 @Injectable()
 export class EventsService {
   constructor(
     private readonly eventsDataService: EventsDataService,
     private readonly sharedService: SharedService,
     private readonly intentDataService: IntentDataService,
-  ) {}
+    private readonly enquiryService: EnquiryService
+  ) { }
 
   async createLogForEncryptedQuery(query: QueryDto, user: TCachedUser) {
     const { save, requestSource, ...rest } = query;
@@ -122,8 +125,8 @@ export class EventsService {
             Object.keys(userInterests).length > 0
               ? userInterests[event.basic.id]
               : !query.eventTypes ||
-                  (query.eventTypes.length > 0 &&
-                    !query.eventTypes.includes('alert'))
+                (query.eventTypes.length > 0 &&
+                  !query.eventTypes.includes('alert'))
                 ? []
                 : undefined,
         };
@@ -288,5 +291,11 @@ export class EventsService {
       true,
     );
     return await this.eventsDataService.getEventsTrends(convertedParams);
+  }
+  async getEventsComment(user: TCachedUser,
+    eventId: string,
+    source: CommentSourceModule[],
+    query: GetCommentsDto) {
+    return await this.enquiryService.getEnquiryComments(user, eventId, source, query);
   }
 }
