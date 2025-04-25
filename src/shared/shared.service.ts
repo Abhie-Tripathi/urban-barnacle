@@ -2,7 +2,7 @@
 
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { JobSource } from '@prisma/client';
+import { JobSource, SubscriptionPlan } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { FeatureCollection } from 'geojson';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -42,7 +42,7 @@ export class SharedService {
     private readonly prisma: PrismaService,
     private readonly suggestionService: SuggestionService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) {}
+  ) { }
 
   async signToken(user: SelectedUserDetails, token: string) {
     const tokenData: TCachedUser = { ...user, token };
@@ -411,7 +411,7 @@ export class SharedService {
           ) {
             association = (
               val['trackerMatchInfo'][
-                'peopleFinderPersonAssociation'
+              'peopleFinderPersonAssociation'
               ][0] as string
             ).includes('speaker')
               ? 'SPEAKER'
@@ -453,18 +453,18 @@ export class SharedService {
       if (viewAs === 'detail') {
         return responseData?.data?.id
           ? {
-              ...responseData.data,
-              id: encrypt(
-                responseData.data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
-              ),
-            }
+            ...responseData.data,
+            id: encrypt(
+              responseData.data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+            ),
+          }
           : {
-              ...responseData.data,
-              user_id: encrypt(
-                responseData.data.user_id +
-                  process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
-              ),
-            };
+            ...responseData.data,
+            user_id: encrypt(
+              responseData.data.user_id +
+              process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+            ),
+          };
       }
       if (responseData.data?.error) {
         throw new HttpException(
@@ -562,6 +562,31 @@ export class SharedService {
       data: { [column]: point + 1 },
     });
     return { data: { message: 'points updated' } };
+  }
+  async getAccountMemberShipStatus(subscriptionId: string) {
+    const membership = await this.prisma.subscription.findFirst({
+      where: {
+        id: subscriptionId,
+      },
+      select: {
+        plan: true,
+        planEndDate: true,
+      },
+    });
+    if (!membership) {
+      throw new HttpException('membership not found', HttpStatus.NOT_FOUND);
+    }
+    const membershipMap: Record<SubscriptionPlan, number> = {
+      BASIC: 0,
+      ESSENTIAL: 10,
+      SCALE: 20,
+      ADVANCE: 30,
+      ENTERPRISE: 40,
+    };
+    return {
+      membership: membershipMap[membership.plan],
+      endDate: membership.planEndDate,
+    };
   }
 }
 
