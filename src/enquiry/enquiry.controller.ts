@@ -106,7 +106,7 @@ export class EnquiryController {
     @Query() query: GetCommentsDto,
   ) {
     try {
-      const alterSource = source === 'coordinate' || source === 'eventDetailPage' ? 'coordinate,EVENT_DETAIL_PAGE' : 'outreach';
+      const alterSource = source === 'coordinate' ? 'coordinate,EVENT_DETAIL_PAGE' : 'outreach';
       const comments = await this.enquiryService.getEnquiryComments(
         user,
         eventId,

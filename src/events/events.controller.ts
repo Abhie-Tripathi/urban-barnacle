@@ -244,13 +244,16 @@ export class EventsController {
     }
   }
   @UseGuards(AuthGuard)
-  @Get(':eventId/:source/comments')
+  @Get(':eventId/comments/:source?')
   async getEventComment(@Param('eventId') eventId: string,
-    @Param('source') source: 'eventDetailPage',
     @GetUser() user: TCachedUser,
-    @Query() query: GetCommentsDto) {
+    @Query() query: GetCommentsDto,
+    @Param('source') source?: 'coordinate' | 'outreach',) {
     try {
-      const alterSource = 'coordinate,EVENT_DETAIL_PAGE';
+      const alterSource =
+        !source || source === 'coordinate'
+          ? 'coordinate,EVENT_DETAIL_PAGE'
+          : 'outreach';
       const comments = await this.eventsService.getEventsComment(
         user,
         eventId,
