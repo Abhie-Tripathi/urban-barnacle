@@ -20,7 +20,7 @@ export class SavedLocationService {
     private readonly sharedService: SharedService,
     private readonly savedLocationDataService: SavedLocationDataService,
     private readonly userDataService: UserDataService,
-  ) { }
+  ) {}
 
   async saveAreaOfSavedLocation(savedLocation: SavedLocation) {
     let area: null | number = null;
@@ -68,6 +68,7 @@ export class SavedLocationService {
           coordinates: [location.latitude, location.longitude],
         },
         properties: {
+          // locationName: location.locationName,
           radius: location.radius,
           radiusUnit: location.radiusUnit,
         },
@@ -85,7 +86,7 @@ export class SavedLocationService {
             ...updatedUser,
             accountId: user.accountId,
             accountConfigurationId: user.accountConfigurationId,
-            currentSubscriptionId: user.accountConfigurationId
+            currentSubscriptionId: user.accountConfigurationId,
           },
           user.token,
         ),
@@ -123,6 +124,7 @@ export class SavedLocationService {
 
     const locationData: Record<string, LocationResponseDto | null> = {};
     locations.forEach(async (location) => {
+      console.log({ location });
       if (location.locationType === 'LOCATION_ID' && location.locationId) {
         locationData[location.locationId] = null;
       } else if (location.locationType === 'GEO_JSON') {
@@ -132,18 +134,20 @@ export class SavedLocationService {
       }
     });
 
-    const validLocations = (await this.suggestionService.getSuggestions(
-      'locations',
-      {
-        ids: Object.keys(locationData),
-      },
-    )) as LocationResponseDto;
+    if (Object.keys(locationData).length > 0) {
+      const validLocations = (await this.suggestionService.getSuggestions(
+        'locations',
+        {
+          ids: Object.keys(locationData),
+        },
+      )) as LocationResponseDto;
 
-    if (
-      validLocations.formattedLocations.length !==
-      Object.keys(locationData).length
-    ) {
-      throw new HttpException('Invalid location', HttpStatus.BAD_REQUEST);
+      if (
+        validLocations.formattedLocations.length !==
+        Object.keys(locationData).length
+      ) {
+        throw new HttpException('Invalid location', HttpStatus.BAD_REQUEST);
+      }
     }
 
     const savedLocations = await this.savedLocationDataService.saveLocations(

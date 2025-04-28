@@ -36,16 +36,25 @@ export class GetTrackersDto extends createZodDto(GetTrackersSchema) { }
 
 export class GetTrackersCountDto extends createZodDto(GetTrackersSchema) { }
 
-const GetTrackerEventsSchema = LimitSchema.extend(
-  TrackerEventSearchSchema.shape,
-)
-  .extend({
-    type: z
-      .string()
-      .refine((val) => val in EventTabs)
-      .transform((val) => val as keyof typeof EventTabs)
-      .optional(),
-  })
+const GetTrackerEventsSchema = TrackerEventSearchSchema.extend({
+  type: z
+    .string()
+    .refine((val) => val in EventTabs)
+    .transform((val) => val as keyof typeof EventTabs)
+    .optional(),
+})
+  .refine(
+    (val) => {
+      if (val && val.limit && val.limit > 100) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Limit must be a number less than or equal to 100',
+      path: ['limit'],
+    },
+  )
   .transform((data) => {
     if (data.type && ['business', 'social', 'unattended'].includes(data.type)) {
       data.eventTypeGroup = data.type;

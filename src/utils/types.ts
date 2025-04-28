@@ -19,6 +19,7 @@ export const GeoJsonSchema = z.object({
     coordinates: z.array(z.number()).length(2),
   }),
   properties: z.object({
+    locationName: z.string().optional(),
     radius: z.number().positive(),
     radiusUnit: z
       .string()

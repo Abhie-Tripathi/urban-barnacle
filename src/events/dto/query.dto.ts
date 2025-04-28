@@ -609,52 +609,41 @@ export const QueryHttpSchema = LimitSchemaWithoutDefault.extend(
       .optional(),
   })
   .transform((data) => {
-    // const intersectedKeys = Object.keys(data).filter((key) =>
-    //   FilterNames.includes(key),
-    // );
-    // if (
-    //   !(
-    //     intersectedKeys.length === 1 && intersectedKeys[0].trim() === 'query'
-    //   ) &&
-    //   !(data.eventIds && data.eventIds.length)
-    // ) {
-    //   const defaultStartDate = new Date().toISOString();
-    //   const defaultEndDate = new Date(
-    //     new Date().getTime() + (90 - 1) * 24 * 60 * 60 * 1000,
-    //   ).toISOString();
-    //   if (!data['active_gte'] && !data['active_lte']) {
-    //     data['active_gte'] = defaultStartDate;
-    //     data['active_lte'] = defaultEndDate;
-    //   } else if (!data['active_lte'] && data['active_gte']) {
-    //     data['active_gte'] = data['active_gte'];
-    //   } else if (!data['active_gte'] && data['active_lte']) {
-    //     data['active_lte'] = data['active_lte'];
-    //   }
-    // }
-    // if (!data.show || data.show.length === 0) {
-    //   data['show'] = (Object.values(Show) as Show[]).filter((item) => {
-    //     return item !== Show.isNew && item !== Show.old;
-    //   });
-    // }
     data['show'] = (Object.values(Show) as Show[]).filter((item) => {
       return item !== Show.isNew && item !== Show.old;
     });
     if (data.view !== 'map' && !data.limit) {
       data.limit = 10;
     }
-    // if (!data.eventTypes || (data.eventTypes && data.eventTypes.length === 0)) {
-    //   const backend = process.env.BACKEND;
-    //   if (backend && backend in defaultEventTypes) {
-    //     data.eventTypes = defaultEventTypes[backend];
-    //   }
-    // }
     if (!data.sortBy || data.sortBy.length === 0) {
       data.sortBy = ['-score'];
+    }
+
+    if (!data.status || (data.status && data.status.length === 0)) {
+      data.status = [
+        EventStatus.ACTIVE,
+        EventStatus.CANCELLED,
+        EventStatus.POSTPONED,
+      ];
     }
     return data;
   });
 
-export class QueryHttpDto extends createZodDto(QueryHttpSchema) {}
+export class QueryHttpDto extends createZodDto(
+  QueryHttpSchema.refine(
+    (val) => {
+      console.log({ val });
+      if (val && val.limit && val.limit <= 100) {
+        return true;
+      }
+      return false;
+    },
+    {
+      message: 'Limit must be a number less than or equal to 100',
+      path: ['limit'],
+    },
+  ),
+) {}
 
 export const QuerySchema = QueryHttpSchema.innerType().extend({
   showValues: z.string(),
