@@ -25,27 +25,36 @@ const GetTrackersHttpSchema = LimitSchema.extend({
   groupBy: z.enum(['trackerType']).optional(),
 });
 
-export class GetTrackersHttpDto extends createZodDto(GetTrackersHttpSchema) { }
+export class GetTrackersHttpDto extends createZodDto(GetTrackersHttpSchema) {}
 
 const GetTrackersSchema = GetTrackersHttpSchema.extend({
   ids: z.array(z.string().uuid()).optional(),
   accountId: z.string().uuid().optional(),
 });
 
-export class GetTrackersDto extends createZodDto(GetTrackersSchema) { }
+export class GetTrackersDto extends createZodDto(GetTrackersSchema) {}
 
-export class GetTrackersCountDto extends createZodDto(GetTrackersSchema) { }
+export class GetTrackersCountDto extends createZodDto(GetTrackersSchema) {}
 
-const GetTrackerEventsSchema = LimitSchema.extend(
-  TrackerEventSearchSchema.shape,
-)
-  .extend({
-    type: z
-      .string()
-      .refine((val) => val in EventTabs)
-      .transform((val) => val as keyof typeof EventTabs)
-      .optional(),
-  })
+const GetTrackerEventsSchema = TrackerEventSearchSchema.extend({
+  type: z
+    .string()
+    .refine((val) => val in EventTabs)
+    .transform((val) => val as keyof typeof EventTabs)
+    .optional(),
+})
+  .refine(
+    (val) => {
+      if (val && val.limit && val.limit > 100) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Limit must be a number less than or equal to 100',
+      path: ['limit'],
+    },
+  )
   .transform((data) => {
     if (data.type && ['business', 'social', 'unattended'].includes(data.type)) {
       data.eventTypeGroup = data.type;
@@ -81,7 +90,7 @@ const GetTrackerEventsSchema = LimitSchema.extend(
     return data;
   });
 
-export class GetTrackerEventsDto extends createZodDto(GetTrackerEventsSchema) { }
+export class GetTrackerEventsDto extends createZodDto(GetTrackerEventsSchema) {}
 
 const GetTrackerEventsCountSchema = CountQuerySchema.innerType()
   .extend({
@@ -117,13 +126,13 @@ const GetTrackerEventsCountSchema = CountQuerySchema.innerType()
 
 export class GetTrackerEventsCountDto extends createZodDto(
   GetTrackerEventsCountSchema,
-) { }
+) {}
 
 const GetTrackerCommentsSchema = LimitSchema.extend({});
 
 export class GetTrackerCommentDto extends createZodDto(
   GetTrackerCommentsSchema,
-) { }
+) {}
 
 export const GetTrackerByIdSchema = z.object({
   refresh: z
@@ -132,8 +141,8 @@ export const GetTrackerByIdSchema = z.object({
     .transform((val) => val === 'true')
     .optional(),
 });
-export class GetTrackerByIdDto extends createZodDto(GetTrackerByIdSchema) { }
+export class GetTrackerByIdDto extends createZodDto(GetTrackerByIdSchema) {}
 
 const GetTrackerUsersSchema = LimitSchema.extend({});
 
-export class GetTrackerUsersDto extends createZodDto(GetTrackerUsersSchema) { }
+export class GetTrackerUsersDto extends createZodDto(GetTrackerUsersSchema) {}
