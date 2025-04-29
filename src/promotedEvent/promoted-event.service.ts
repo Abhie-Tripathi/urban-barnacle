@@ -26,6 +26,7 @@ import { Queue } from 'bull';
 import { PromotedEventsDataService } from './promoted-even.data.service';
 import { fetchDatafromMicroService, postDatafromMicroService } from 'src/shared/microservice.api';
 import { unknown } from 'zod';
+import { IntentService } from 'src/intent/intent.service';
 @Injectable()
 export class PromotedEventsService {
   constructor(
@@ -33,6 +34,7 @@ export class PromotedEventsService {
     private configService: ConfigService,
     private readonly posterService: PosterService,
     private readonly fileCreate: FileCreationService,
+    private readonly intentService: IntentService
     // @InjectQueue('eventProcessor') private readonly eventCanelQueue: Queue,
   ) { }
 
@@ -185,7 +187,7 @@ export class PromotedEventsService {
       return word;
     });
     let flagForRule: boolean = true;
-    const whereConditions: string[] = [];
+    const whereConditions: string[] = [` "sourceModule"='COORDINATE' `];
     whereConditions.push(andWhere);
     // HAVING condition
     const havingClause = `   where   
@@ -850,6 +852,7 @@ FROM (
         "review": object[]
       }
     } = dataForBloack[1];
+    console.log(duplicateEventFrom10times);
     console.log({ localDbEventBlocked, duplicateEventFrom10times });
     return { data: { blocked: [...localDbEventBlocked, ...duplicateEventFrom10times.data.blocked], review: duplicateEventFrom10times.data.review } }
   }
@@ -906,7 +909,7 @@ FROM (
   async createEvent(
     body: CreateEventDto,
     file: File,
-    user: SelectedUserDetails,
+    user: TCachedUser,
   ) {
     try {
       // let jsonDta = {};
@@ -1000,6 +1003,9 @@ FROM (
         jsonDta.participationType ?? '',
         data.id,
       );
+      if (body.sourceModule && body.sourceModule === 'COORDINATE' && body.interest) {
+        await this.intentService.createUserEventInterest(user, { eventId: data.id, sourceModule: 'PROMOTED_EVENT', interest: body.interest, accountId: user.accountId, interestedUserId: user.id })
+      }
       return { data: { message: 'event added', data: data } };
     } catch (error) {
       console.error(error);
