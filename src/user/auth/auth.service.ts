@@ -703,7 +703,7 @@ export class AuthService {
         user = await this.userDataService.createUser({
           ...rest,
           role: 'CUSTOMER',
-          source: 'IMPORT_10T',
+          source: data.source || 'IMPORT_10T',
           primaryCompanyId: company?.id,
           accountId: account.id,
           primaryAccountId: account.id,

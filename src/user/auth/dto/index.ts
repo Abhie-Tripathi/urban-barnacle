@@ -1,7 +1,7 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { Industries, SubIndustries } from '../../../utils/types';
-import { AccessSourceEntity } from '@prisma/client';
+import { AccessSourceEntity, UserSource } from '@prisma/client';
 
 const SignInSchema = z.object({
   email: z.string().email(),
@@ -53,6 +53,7 @@ export const SignUpTempSchema = z.strictObject({
     })
     .optional(),
   category: z.string().optional(),
+  source: z.nativeEnum(UserSource).optional(),
   email: z.string().email(),
   firstname: z.string(),
   lastname: z.string().optional(),
