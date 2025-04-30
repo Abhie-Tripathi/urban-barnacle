@@ -33,7 +33,37 @@ export const SignUpSchema = z.strictObject({
 });
 
 export class SignUpDto extends createZodDto(SignUpSchema) { }
+export const SignUpTempSchema = z.strictObject({
+  industry: z
+    .string()
+    .refine((industry) => {
+      if (process.env.BACKEND === 'geo') {
+        return Object.values(Industries.geo).includes(industry);
+      }
+      return Object.values(Industries.gtm).includes(industry);
+    })
+    .optional(),
+  subIndustry: z
+    .string()
+    .refine((subIndustry) => {
+      if (process.env.BACKEND === 'geo') {
+        return Object.values(SubIndustries).includes(subIndustry);
+      }
+      return true;
+    })
+    .optional(),
+  category: z.string().optional(),
+  email: z.string().email(),
+  firstname: z.string(),
+  lastname: z.string().optional(),
+  department: z.string().optional(),
+  designation: z.string().optional(),
+  profileUrl: z.string().optional(),
+  locationId: z.string().optional(),
+  phoneNumber: z.string().optional(),
+});
 
+export class SignUpTempDto extends createZodDto(SignUpTempSchema) { }
 const VerifyOtpSchema = z.object({
   email: z.string().email(),
   otp: z.string(),
