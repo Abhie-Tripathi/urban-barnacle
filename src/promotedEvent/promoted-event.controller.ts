@@ -44,7 +44,7 @@ export class PromotedEventsController {
   @Post()
   async createEvent(
     @Body() body: CreateEventDto,
-    @GetUser() user: SelectedUserDetails,
+    @GetUser() user: TCachedUser,
     @UploadedFile() file: File,
   ) {
     try {

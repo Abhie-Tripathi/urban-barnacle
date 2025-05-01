@@ -106,6 +106,7 @@ export class AccountService {
     const events = (await this.promoteEventService.getEvent(user, {
       limit: eventIds.length,
       offset: 0,
+      source: 'COORDINATE',
       ...(name ? { name: name } : {}),
       ...(event_active_lte && event_active_gte ? { start_date: event_active_gte, end_date: event_active_lte }
         : event_active_lte ? { expired: (new Date()).toISOString() } : event_active_gte ? { upcoming: 'true' } : {})
@@ -125,7 +126,7 @@ export class AccountService {
             name: event.name,
             startDate: event.data['start_date'] || null,
             endDate: event.data['end_date'] || null,
-            logoUrl: event.data['end_date'] || null,
+            logoUrl: event.data['logoUrl'] || null,
             website: null,
             organizerName: null,
             location: {
