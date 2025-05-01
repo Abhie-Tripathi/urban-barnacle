@@ -9,10 +9,12 @@ import { AccessModule } from 'src/access/access.module';
 import { WidgetsModule } from 'src/widgets/widgets.module';
 import { KitService } from 'src/widgets/kit.service';
 import { WidgetDataService } from 'src/widgets/widget.data.service';
+import { SavedLocationService } from 'src/saved-location/saved-location.service';
+import { SavedLocationDataService } from 'src/saved-location/saved-location.data.service';
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, AuthDataService, KitService, WidgetDataService],
+  providers: [AuthService, AuthDataService, KitService, WidgetDataService, SavedLocationService, SavedLocationDataService],
   exports: [AuthService, AuthDataService],
   imports: [UserModule, CompanyModule, AccountModule, AccessModule],
 })
