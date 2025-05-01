@@ -4,6 +4,7 @@ import {
   AuthenticatDto,
   SignInDto,
   SignUpDto,
+  SignUpTempDto,
   SourceDto,
   VerifyAccessDto,
   VerifyOtpDto,
@@ -675,6 +676,203 @@ export class AuthService {
         }
       }
     }
+  }
+  async tokenBasedSignUp(data: SignUpTempDto) {
+    const { locationId, profileUrl, ...rest } = data;
+    const domain = data.email.split('@')[1];
+    // let nonBusinessFlag: Boolean = false;
+    // if (blackListDomain.includes(domain)) {
+    //   nonBusinessFlag = true;
+    // }
+    let flag: boolean = false;
+    let [users, company] = await Promise.all([
+      this.userDataService.getUsers({
+        email: [data.email],
+        limit: 1,
+        offset: 0,
+      }),
+      blackListDomain.includes(domain)
+        ? null
+        : await this.companyDataService.getCompany({
+          domain: domain,
+        }),
+    ]);
+    let user = users && users.length > 0 ? users[0] : null;
+    let account = company
+      ? {
+        id: company.accountId,
+        currentSubscriptionId: company.accounts.currentSubscriptionId,
+        configurationId: company.accounts.configurationId,
+      }
+      : null;
+    if (
+      user &&
+      user.currentOnboardingState !== OnboardingState.VERIFICATION &&
+      company
+    ) {
+      account = (
+        await this.accountDataService.getAccounts({
+          id: company.accountId,
+          userId: user.id,
+          limit: 1,
+          offset: 0,
+        })
+      )[0];
+
+      if (account) {
+        throw new HttpException('User already exists', HttpStatus.CONFLICT);
+      }
+      await this.accountDataService.addAccountUser(company.accountId, user.id);
+    } else {
+      if (!company) {
+        const accountDefault = {};
+        if (blackListDomain.includes(domain)) {
+          accountDefault['domain'] = domain;
+        }
+        const createSubscription =
+          await this.accountDataService.createSubscription({
+            planEndDate: new Date('2126-01-01'),
+          });
+        account = await this.accountDataService.createAccount({
+          ...accountDefault,
+          currentSubscriptionId: createSubscription.id,
+          interestConfig: data.industry
+            ? InterestDefaultConfigurationsWithIndustry[data.industry]
+            : InterestDefaultConfigurations.interests,
+        });
+        flag = true;
+        const updateSubscription =
+          await this.accountDataService.updateSubscription(
+            { accountId: account.id },
+            createSubscription.id,
+          );
+        if (!blackListDomain.includes(domain)) {
+          company = await this.companyDataService.createCompany({
+            name: domain,
+            domain: domain,
+            accountId: account.id,
+          });
+          flag = true;
+        }
+
+        if (user) {
+          await Promise.all([
+            company
+              ? this.userDataService.updateUser({
+                id: user.id,
+                companyId: company.id,
+              })
+              : null,
+            this.accountDataService.addAccountUser(account.id, user.id),
+          ]);
+        }
+      }
+      if (!account || !(account && account.id)) {
+        throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
+      }
+      if (!user) {
+        user = await this.userDataService.createUser({
+          ...rest,
+          role: 'CUSTOMER',
+          source: data.source || 'IMPORT_10T',
+          primaryCompanyId: company?.id,
+          accountId: account.id,
+          primaryAccountId: account.id,
+        });
+      } else if (
+        user &&
+        user.currentOnboardingState === OnboardingState.VERIFICATION &&
+        company
+      ) {
+        user = await this.userDataService.updateUser({
+          id: user.id,
+          ...rest,
+        });
+        const accounts = await this.accountDataService.getAccounts({
+          id: company.accountId,
+          userId: user.id,
+          limit: 1,
+          offset: 0,
+        });
+        const account = accounts && accounts.length > 0 ? accounts[0] : null;
+        if (account) {
+          await this.accountService.updateAccountConfiguration(
+            {
+              ...user,
+              accountId: account.id,
+              accountConfigurationId: account.configurationId,
+              currentSubscriptionId: account.currentSubscriptionId,
+              token: '',
+            },
+            'interest',
+            data.industry
+              ? InterestDefaultConfigurationsWithIndustry[data.industry]
+              : InterestDefaultConfigurations.interests,
+          );
+        }
+      }
+      if (locationId) {
+        const data = await this.savedLocationsService.saveLocations(JSON.stringify(locationId) as any, {
+          email: user.email, accountId: account.id,
+          primaryAccountId: user.primaryAccountId,
+          primaryCompanyId: user.primaryCompanyId,
+          accountConfigurationId: account.configurationId,
+          currentSubscriptionId: account.currentSubscriptionId,
+          id: user.id,
+          industry: user.industry,
+          subIndustry: user.subIndustry,
+          category: user.category,
+          currentOnboardingState: user.currentOnboardingState,
+          department: user.department,
+          designation: user.designation,
+          firstname: user.firstname,
+          lastname: user.lastname,
+          phoneNumber: user.phoneNumber,
+          imageUrl: user.imageUrl,
+          primaryLocation: user.primaryLocation,
+          role: user.role,
+          token: "dfas"
+        });
+      }
+      user = await this.userDataService.updateUser({
+        id: user.id,
+      });
+      if (data.profileUrl && data.profileUrl.length > 5) {
+        const profilepicture =
+          await this.authDataService.fetchImageFromOtherDomian(
+            data.profileUrl,
+            user.id,
+          );
+        if (profilepicture) {
+          user = await this.userDataService.updateUser({
+            id: user.id,
+            imageUrl: profilepicture.fileUrl,
+            profileImageId: profilepicture.id,
+          });
+        }
+      }
+      if (flag) {
+        this.createDefaultBrandKit(
+          {
+            id: user.id,
+            accountId: account.id,
+            domain: domain,
+          },
+          blackListDomain.includes(domain),
+        );
+      }
+    }
+
+    return {
+      user: await this.sharedService.UserResponse({
+        ...user,
+        accountId: account.id,
+        primaryAccountId: user.primaryAccountId,
+        primaryCompanyId: user.primaryCompanyId,
+        accountConfigurationId: account.configurationId,
+        currentSubscriptionId: account.currentSubscriptionId,
+      }),
+    };
   }
   // async userBasicInfo(email: string) {
   //   try {
