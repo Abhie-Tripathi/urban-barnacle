@@ -562,11 +562,10 @@ export class AuthService {
                 : undefined,
           },
         });
-        if (data.location) {
+        if (data.location && (data.location?.cityId || data.location?.countryId)) {
           const locationIdsRaw: string = data.location.cityId ? `city-${data.location.cityId}` : `country-${data.location.countryId}`;
           if (locationIdsRaw.length > 3) {
             const dataTofetch: { data: { formattedLocations: { id: string; name: string, displayName: string }[] } } = await fetchDatafromMicroService('locationSuggestions', { id_10x: locationIdsRaw });
-
             const data = await this.savedLocationsService.saveLocations([{ "locationType": "LOCATION_ID", "locationName": dataTofetch.data.formattedLocations[0].displayName, "locationId": dataTofetch.data.formattedLocations[0].id }] as any, {
               email: user.email, accountId: account.id,
               primaryAccountId: user.primaryAccountId,
