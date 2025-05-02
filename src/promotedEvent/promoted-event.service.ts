@@ -187,7 +187,7 @@ export class PromotedEventsService {
       return word;
     });
     let flagForRule: boolean = true;
-    const whereConditions: string[] = [];
+    const whereConditions: string[] = [` "sourceModule"='COORDINATE' `];
     whereConditions.push(andWhere);
     // HAVING condition
     const havingClause = `   where   
@@ -860,6 +860,7 @@ FROM (
         "review": object[]
       }
     } = dataForBloack[1];
+    console.log(duplicateEventFrom10times);
     console.log({ localDbEventBlocked, duplicateEventFrom10times });
     return { data: { blocked: [...localDbEventBlocked, ...duplicateEventFrom10times.data?.blocked], review: duplicateEventFrom10times.data?.review } }
   }

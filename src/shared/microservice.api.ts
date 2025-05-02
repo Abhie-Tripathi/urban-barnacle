@@ -47,7 +47,7 @@ export async function postDatafromMicroService(
 ) {
   try {
     const url = `${microServiceApis[`${apiToFetch}`]}`;
-    console.log(url);
+    console.log(url, JSON.stringify(body));
     const response = await fetch(url, {
       method: 'POST',
       headers: {
