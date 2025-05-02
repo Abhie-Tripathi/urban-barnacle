@@ -120,7 +120,9 @@ export class TrackerService {
         : this.configService.get('BACKEND') === 'geo'
           ? CountGroup.eventTypeGroup
           : undefined;
-    let cachedValues = (await this.cacheManager.get(tracker.id)) as {
+    let cachedValues = (await this.cacheManager.get(
+      `tracker-${tracker.id}`,
+    )) as {
       groupedEventsCount: object;
       filterValues: object;
     };
@@ -145,7 +147,7 @@ export class TrackerService {
         tracker.filterValues,
       );
       await this.cacheManager.set(
-        tracker.id,
+        `tracker-${tracker.id}`,
         { groupedEventsCount, filterValues: tracker.filterValues },
         82800000,
       );
