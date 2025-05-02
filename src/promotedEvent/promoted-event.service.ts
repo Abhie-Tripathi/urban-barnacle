@@ -1002,15 +1002,15 @@ FROM (
         sourceModule: body.sourceModule,
         ...eventBody,
       });
-      if (body.interest) {
-        await this.intentService.createUserEventInterest(user, { eventId: data.id, sourceModule: 'PROMOTED_EVENT', interest: body.interest, accountId: user.accountId, interestedUserId: user.id });
-      }
       this.createPoster(
         data.name,
         jsonDta['logoUrl'] as string,
         jsonDta.participationType ?? '',
         data.id,
       );
+      if (body.sourceModule && body.sourceModule === 'COORDINATE' && body.interest) {
+        await this.intentService.createUserEventInterest(user, { eventId: data.id, sourceModule: 'PROMOTED_EVENT', interest: body.interest, accountId: user.accountId, interestedUserId: user.id })
+      }
       return { data: { message: 'event added', data: data } };
     } catch (error) {
       console.error(error);
