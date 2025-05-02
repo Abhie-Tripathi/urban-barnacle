@@ -633,7 +633,7 @@ export class QueryHttpDto extends createZodDto(
   QueryHttpSchema.refine(
     (val) => {
       console.log({ val });
-      if (val && val.limit && val.limit <= 100) {
+      if ((val && val.limit && val.limit <= 100) || val.view === 'map') {
         return true;
       }
       return false;
