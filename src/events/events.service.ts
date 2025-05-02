@@ -18,6 +18,7 @@ import { LimitDto } from 'src/global_dto';
 import { AccountService } from 'src/user/account/account.service';
 import { UserActivitySource } from '@prisma/client';
 import { fetchDatafromMicroService } from 'src/shared/microservice.api';
+import { PromotedEventsService } from 'src/promotedEvent/promoted-event.service';
 @Injectable()
 export class EventsService {
   constructor(
@@ -256,6 +257,14 @@ export class EventsService {
     return count;
   }
   async getEventPocs(eventId: string, query: SortingDto) {
+    try {
+      const eventProductData = await this.eventsDataService.getPromotedEventById(eventId);
+      if (eventProductData && eventProductData.referenceId) {
+        eventId = eventProductData.referenceId;
+      }
+    } catch (error) {
+      console.log('event not fount in product event table')
+    }
     return await this.eventsDataService.getEventPocs(
       eventId,
       query.sortBy ? query.sortBy : 'desc',

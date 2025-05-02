@@ -492,4 +492,10 @@ export class EventsDataService {
       reply.status(500).send('Error fetching the file');
     });
   }
+  async getPromotedEventById(eventId: string) {
+    const eventData = await this.prisma.event.findUnique({
+      where: { id: eventId }
+    });
+    return eventData
+  }
 }

@@ -21,6 +21,7 @@ export class PromotedEventsDataService {
         select: {
           id: true,
           type: true,
+          referenceId: true,
           name: true,
           data: true,
           parentEventId: true,

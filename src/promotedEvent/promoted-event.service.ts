@@ -867,6 +867,9 @@ FROM (
     try {
       const { data, iddWid, widgetData } =
         await this.eventDataService.getEventForGeni(id);
+      if (!data) {
+        throw new HttpException('event not fount', HttpStatus.NOT_FOUND);
+      }
       const eventData: any = data?.data;
       eventData['customizationData'] = JSON.parse(
         eventData['customizationData'],
