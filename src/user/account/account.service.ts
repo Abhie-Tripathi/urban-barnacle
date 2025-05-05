@@ -226,9 +226,9 @@ export class AccountService {
         count: 0,
         enquiries: [],
       };
-    } const eventIds = enquiryEvents.map((enquiry) => enquiry.eventId);
-    const enquiryCount = enquiries.map((enquiry) => enquiry.eventId).length;
-
+    } const eventIds = enquiries.map((enquiry) => enquiry.eventId);
+    const enquiryCount = eventIds.length;
+    const selectedEventIds: string[] = enquiryEvents.map((enquiry) => enquiry.eventId);
     const [productEvents, microServiceEvents] = await Promise.all([
       this.getEventFromProductDb(user, eventIds, name, event_active_gte, event_active_lte, limit, offset, showValues, enquiries),
       this.getEventFromMicroService(eventIds, name, event_active_gte, event_active_lte, limit, offset, showValues, enquiries)
@@ -238,7 +238,10 @@ export class AccountService {
     combinedEvents.forEach(event => {
       eventMap.set(event.eventId, event);
     });
-    const selectedEnquiries = eventIds
+
+    // console.log({ selectedEventIds }, eventMap, { microServiceEvents });
+
+    const selectedEnquiries = selectedEventIds
       .map(id => eventMap.get(id))
       .filter(event => event !== undefined && event !== null);
     // return selectedEnquiries;
