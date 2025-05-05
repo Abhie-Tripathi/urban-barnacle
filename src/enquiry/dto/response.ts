@@ -14,22 +14,7 @@ export const EnquiryResponseSchema = z.object({
   id: z.string().uuid(),
   status: z.nativeEnum(EnquiryStatus),
   eventId: z.string().uuid(),
-  eventData: z.object({
-    name: z.string(),
-    endDate: z.string(),
-    eventId: z.string().uuid(),
-    startDate: z.string(),
-    logoUrl: z.string().nullable().optional(),
-    website: z.string().nullable().optional(),
-    organizerName: z.string().nullable().optional(),
-    location: z
-      .object({
-        cityName: z.string().nullable().optional(),
-        stateName: z.string().nullable().optional(),
-        countryName: z.string().nullable().optional(),
-      })
-      .optional(),
-  }),
+  eventData: z.any(),
   owner: z
     .object({
       id: z.string().uuid(),

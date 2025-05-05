@@ -127,18 +127,34 @@ export class AccountService {
         return {
           ...enquiry,
           eventData: {
-            eventId: event.id,
-            name: event.name,
-            startDate: event.data['start_date'] || null,
-            endDate: event.data['end_date'] || null,
-            logoUrl: event.data['logoUrl'] || null,
-            website: null,
-            organizerName: null,
-            location: {
-              cityName: event.data['location_city'] || null,
-              stateName: event.data['location_state'] || null,
-              countryName: event.data['location_country'] || null,
+            "id": eventId,
+            "name": event['name'],
+            "primaryEventType": event.data['event_type']?.toLowerCase() || null,
+            "format": event.data['format']?.toLowerCase() || null,
+            "description": event.data['description'] || null,
+            "startDateTime": event.data['start_date'] || null,
+            "endDateTime": event.data['end_date'] || null,
+            "logoUrl": event.data['logoUrl'] || null,
+            "rating": null,
+            "organizer": null,
+            "eventLocation": {
+              "id": event.data['venue_id'] || event.data['location_city_id'],
+              "name": event.data['venue_name'] || event.data['location_city'],
+              "locationType": event.data['venue_id'] ? "VENUE" : 'CITY',
+              "latitude": event.data['venue_latitude'] || event.data['latitude'],
+              "longitude": event.data['venue_longitude'] || event.data['longitude'],
+              ...(event.data['location_city_id'] ? {
+                "cityId": event.data['location_city_id'],
+                "cityName": event.data['location_city'],
+              } : {}),
+              "countryIso": event.data['location_country_iso_code'],
+              "stateId": event.data['location_state_id'],
+              "stateName": event.data['location_state'],
+              "countryId": event.data['location_country_id'],
+              "countryName": event.data['location_country'],
+              "displayName": `${(event.data['venue_name'] ? event.data['venue_name'] + ',' : '')}${(event.data['location_city'] ? event.data['location_city'] + ',' : '')}${(event.data['location_country'] ? event.data['location_country'] : '')}`,
             },
+
           },
           isProductEvent: true
         };
@@ -170,18 +186,7 @@ export class AccountService {
         return {
           ...enquiry,
           eventData: {
-            eventId: event.basic.id,
-            name: event.basic.name,
-            startDate: event.basic.startDateTime,
-            endDate: event.basic.endDateTime,
-            logoUrl: event.basic.logoUrl!,
-            website: event.basic.website!,
-            organizerName: event.basic.organizer?.name,
-            location: {
-              cityName: event.basic.eventLocation?.city?.name,
-              stateName: event.basic.eventLocation?.state?.name,
-              countryName: event.basic.eventLocation?.country?.name,
-            },
+            ...event.basic
           },
           isProductEvent: false
         };
@@ -242,8 +247,8 @@ export class AccountService {
       eventIds = selectedEventIds
     }
     const [productEvents, microServiceEvents] = await Promise.all([
-      this.getEventFromProductDb(user, eventIds, name, event_active_gte, event_active_lte, limit, offset, showValues, enquiries),
-      this.getEventFromMicroService(eventIds, name, event_active_gte, event_active_lte, limit, offset, showValues, enquiries)
+      this.getEventFromProductDb(user, eventIds, name, event_active_gte, event_active_lte, limit, 0, showValues, enquiries),
+      this.getEventFromMicroService(eventIds, name, event_active_gte, event_active_lte, limit, 0, showValues, enquiries)
     ]);
     const combinedEvents = event_active_gte || event_active_lte ? this.filterEvents([...productEvents, ...microServiceEvents], { event_active_gte, event_active_lte }) : [...productEvents, ...microServiceEvents]
     const eventMap = new Map<string, any>();
