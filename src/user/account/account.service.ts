@@ -175,11 +175,15 @@ export class AccountService {
       offset: offset,
       showValues: showValues,
     })) as any;
+    const enquiryDataMappedToeventId: object = {};
+    enquiries.map(val => {
+      enquiryDataMappedToeventId[val.eventId] = val;
+    })
     const selectedEnquiries = eventIds
       .map((eventId, index) => {
         // const selectedEnquiries = events.events.map((event) => {
         const event = events.events.find((event) => event.basic.id === eventId);
-        const enquiry = enquiries[index];
+        const enquiry = enquiryDataMappedToeventId[eventId];
         if (!event || !enquiry) {
           return null;
         }
