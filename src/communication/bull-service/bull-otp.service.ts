@@ -50,7 +50,7 @@ export class OtpEmailWorkerClass {
       const { data, error } = await this.email.mailSender(
         userData.email,
         emailSenderAddress,
-        'WHR OTP-' + jobdata.otp,
+        'WHR OTP - ' + jobdata.otp,
         signUpEmailTemplate,
       );
       let status = 'COMPLETED' as JobStatus;
