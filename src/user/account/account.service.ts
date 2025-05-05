@@ -406,14 +406,14 @@ export class AccountService {
       return true; // No filters
     });
 
-    filtered.sort((a, b) => {
-      const dateA = new Date(a.eventData[sortBy]);
-      const dateB = new Date(b.eventData[sortBy]);
+    // filtered.sort((a, b) => {
+    //   const dateA = new Date(a.eventData[sortBy]);
+    //   const dateB = new Date(b.eventData[sortBy]);
 
-      return sortOrder === 'asc'
-        ? dateA.getTime() - dateB.getTime()
-        : dateB.getTime() - dateA.getTime();
-    });
+    //   return sortOrder === 'asc'
+    //     ? dateA.getTime() - dateB.getTime()
+    //     : dateB.getTime() - dateA.getTime();
+    // });
 
     return filtered;
   }
