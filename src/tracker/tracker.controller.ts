@@ -16,6 +16,7 @@ import {
   GetTrackerByIdDto,
   GetTrackerEventsCountDto,
   GetTrackerEventsDto,
+  GetTrackerExportsDto,
   GetTrackerUsersDto,
   UpdateTrackerDto,
   UpdateTrackerHttpDto,
@@ -28,7 +29,7 @@ import { CreateAccessHttpDto, UpdateAccessHttpDto } from 'src/access/dto';
 
 @Controller('trackers')
 export class TrackerController {
-  constructor(private readonly trackerService: TrackerService) {}
+  constructor(private readonly trackerService: TrackerService) { }
 
   @UseGuards(AuthGuard)
   @Post()
@@ -243,7 +244,20 @@ export class TrackerController {
       return { error: error };
     }
   }
-
+  @UseGuards(AuthGuard)
+  @Get(':id/exports')
+  async getTrackerEventDataExported(
+    @Param('id') id: string,
+    @GetUser() user: TCachedUser,
+    @Query() query: GetTrackerExportsDto,
+  ) {
+    try {
+      const tracker = await this.trackerService.getTrackerEventDataExported(id, user, query);
+      return { data: tracker };
+    } catch (error) {
+      return { error: error };
+    }
+  }
   @UseGuards(AuthGuard)
   @Get(':id')
   async getTracker(

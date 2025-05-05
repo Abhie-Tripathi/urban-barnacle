@@ -146,3 +146,9 @@ export class GetTrackerByIdDto extends createZodDto(GetTrackerByIdSchema) { }
 const GetTrackerUsersSchema = LimitSchema.extend({});
 
 export class GetTrackerUsersDto extends createZodDto(GetTrackerUsersSchema) { }
+
+const GetTrackerExportsSchema = z.strictObject({
+  type: z.enum(['all', 'new', 'past', 'active'])
+})
+
+export class GetTrackerExportsDto extends createZodDto(GetTrackerExportsSchema) { }
