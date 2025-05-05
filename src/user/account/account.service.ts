@@ -202,7 +202,15 @@ export class AccountService {
       upvotedBy,
       eventId,
     } = query;
-    const enquiries = await this.enquiryService.getEnquiries({
+    const [enquiries, enquiryEvents] = await Promise.all([this.enquiryService.getEnquiries({
+      accountId: user.accountId,
+      userId: user.id,
+      initiatedBy: initiatedBy,
+      upvotedBy: upvotedBy,
+      status: status,
+      type: type,
+      ...(eventId ? { eventId: eventId } : {}),
+    }), await this.enquiryService.getEnquiries({
       accountId: user.accountId,
       userId: user.id,
       initiatedBy: initiatedBy,
@@ -212,14 +220,14 @@ export class AccountService {
       limit,
       offset,
       ...(eventId ? { eventId: eventId } : {}),
-    });
+    })]);
     if (enquiries.length === 0) {
       return {
         count: 0,
         enquiries: [],
       };
-    } const eventIds = enquiries.map((enquiry) => enquiry.eventId);
-    const enquiryCount = eventIds.length;
+    } const eventIds = enquiryEvents.map((enquiry) => enquiry.eventId);
+    const enquiryCount = enquiries.map((enquiry) => enquiry.eventId).length;
 
     const [productEvents, microServiceEvents] = await Promise.all([
       this.getEventFromProductDb(user, eventIds, name, event_active_gte, event_active_lte, limit, offset, showValues, enquiries),
