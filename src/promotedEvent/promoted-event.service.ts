@@ -1072,6 +1072,9 @@ FROM (
           where += ` and lower(e.name) like '%${data.toLowerCase()}%'`;
         }
       }
+      if (query.eventIds) {
+        where += ` and id in ('${query.eventIds.join("','")}')  `;
+      }
       if (query.event_type) {
         where += ` and lower(e.data->>'event_type')
          in ('${query.event_type.toLowerCase().split(',').join("','")}') `;

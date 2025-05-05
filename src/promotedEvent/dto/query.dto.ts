@@ -105,7 +105,8 @@ const AllDataSchema = z.strictObject({
       if (value === 'year') return value;
       return value;
     }),
-  source: z.nativeEnum(EventSourceModule).default('PROMOTE')
+  source: z.nativeEnum(EventSourceModule).default('PROMOTE'),
+  eventIds: z.array(z.string()).optional()
 });
 export class Query_Dto extends createZodDto(AllDataSchema) { }
 

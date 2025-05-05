@@ -109,13 +109,18 @@ export class AccountService {
       source: 'COORDINATE',
       ...(name ? { name: name } : {}),
       ...(event_active_lte && event_active_gte ? { start_date: event_active_gte, end_date: event_active_lte }
-        : event_active_lte ? { expired: (new Date()).toISOString() } : event_active_gte ? { upcoming: 'true' } : {})
+        : event_active_lte ? { expired: (new Date()).toISOString() } : event_active_gte ? { upcoming: 'true' } : {}),
+      eventIds
     })) as unknown as { data: { totalCount: number, data: any[] } };
+    const enquiryDataMappedToeventId: object = {};
+    enquiries.map(val => {
+      enquiryDataMappedToeventId[val.eventId] = val;
+    })
     const selectedEnquiries = eventIds
       .map((eventId, index) => {
         // const selectedEnquiries = events.events.map((event) => {
         const event = events.data.data.find((event) => event.id === eventId);
-        const enquiry = enquiries[index];
+        const enquiry = enquiryDataMappedToeventId[eventId];
         if (!event || !enquiry) {
           return null;
         }
@@ -221,27 +226,34 @@ export class AccountService {
       offset,
       ...(eventId ? { eventId: eventId } : {}),
     })]);
+    console.log("start=>1")
+      ;
     if (enquiries.length === 0) {
       return {
         count: 0,
         enquiries: [],
       };
-    } const eventIds = enquiries.map((enquiry) => enquiry.eventId);
+    }
+    console.log("start=>2")
+      ; let eventIds = enquiries.map((enquiry) => enquiry.eventId);
     const enquiryCount = eventIds.length;
     const selectedEventIds: string[] = enquiryEvents.map((enquiry) => enquiry.eventId);
+    if (!event_active_gte || !event_active_lte) {
+      eventIds = selectedEventIds
+    }
     const [productEvents, microServiceEvents] = await Promise.all([
       this.getEventFromProductDb(user, eventIds, name, event_active_gte, event_active_lte, limit, offset, showValues, enquiries),
       this.getEventFromMicroService(eventIds, name, event_active_gte, event_active_lte, limit, offset, showValues, enquiries)
     ]);
-    const combinedEvents = [...productEvents, ...microServiceEvents]
+    const combinedEvents = event_active_gte || event_active_lte ? this.filterEvents([...productEvents, ...microServiceEvents], { event_active_gte, event_active_lte }) : [...productEvents, ...microServiceEvents]
     const eventMap = new Map<string, any>();
     combinedEvents.forEach(event => {
       eventMap.set(event.eventId, event);
     });
 
-    // console.log({ selectedEventIds }, eventMap, { microServiceEvents });
 
-    const selectedEnquiries = selectedEventIds
+
+    const selectedEnquiries = eventIds
       .map(id => eventMap.get(id))
       .filter(event => event !== undefined && event !== null);
     // return selectedEnquiries;
@@ -267,7 +279,7 @@ export class AccountService {
     //     }),
     //   ),
     // ]);
-    console.log(selectedEnquiries);
+    console.log("selectedEventIds=>", { productEvents }, { selectedEventIds }, { eventMap }, { microServiceEvents }, { selectedEnquiries });
     const transformedEnquires = await Promise.all(
       selectedEnquiries.map(async (enquiry) => {
         const [interestedCount, activityCount, myActivity] = await Promise.all([
@@ -329,7 +341,7 @@ export class AccountService {
         activityCount.forEach((curr) => {
           activityCounts.total += curr._count.id;
           activityCounts[curr.activitySubType.toLowerCase()] = curr._count.id;
-        });
+        }); console.log("selectedEventIds=>", { selectedEventIds }, { eventMap }, { microServiceEvents }, { selectedEnquiries });
         return EnquiryResponseSchema.parse({
           ...enquiry,
           activityCount: activityCounts,
@@ -344,6 +356,60 @@ export class AccountService {
       enquiries: transformedEnquires,
     };
   }
+  filterEvents(
+    events: any[],
+    filters: {
+      event_active_gte?: string;
+      event_active_lte?: string;
+      sortBy?: 'startDate' | 'endDate';
+      sortOrder?: 'asc' | 'desc';
+    }
+  ): any[] {
+    const {
+      event_active_gte,
+      event_active_lte,
+      sortBy = 'startDate',
+      sortOrder = 'desc',
+    } = filters;
+
+    const gte = event_active_gte ? new Date(event_active_gte) : null;
+    const lte = event_active_lte ? new Date(event_active_lte) : null;
+
+    let filtered = events.filter(event => {
+      const start = new Date(event.eventData.startDate);
+      const end = new Date(event.eventData.endDate);
+
+      if (lte && !gte) {
+        // Case 1: Only lte (past events)
+        return end <= lte;
+      }
+
+      if (gte && !lte) {
+        // Case 2: Only gte (upcoming events)
+        return start >= gte || (start <= gte && end >= gte);
+      }
+
+      if (gte && lte) {
+        // Case 3: Range overlap
+        return end >= gte && start <= lte;
+      }
+
+      return true; // No filters
+    });
+
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.eventData[sortBy]);
+      const dateB = new Date(b.eventData[sortBy]);
+
+      return sortOrder === 'asc'
+        ? dateA.getTime() - dateB.getTime()
+        : dateB.getTime() - dateA.getTime();
+    });
+
+    return filtered;
+  }
+
+
 
   async getAccountUsers(user: TCachedUser, query: GetUserHttpDto) {
     const users = await this.userDataService.getUsers({
