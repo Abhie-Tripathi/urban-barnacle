@@ -209,6 +209,8 @@ export class AccountService {
       upvotedBy: upvotedBy,
       status: status,
       type: type,
+      limit,
+      offset,
       ...(eventId ? { eventId: eventId } : {}),
     });
     if (enquiries.length === 0) {
