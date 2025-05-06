@@ -733,6 +733,8 @@ model Preset {
   trackerType   TrackerType[]
   deleted       Boolean       @default(false)
   filterValue   Json
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt @default(now())
 }
 
 enum EnquiryStatus {
