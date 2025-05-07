@@ -164,6 +164,7 @@ model Attachment {
   sourceModule    AttachmentSourceModule
   sourceId        String
   event           Event[]
+  exports         Export[]
 }
 
 enum AttachmentSourceModule {
@@ -325,6 +326,9 @@ model Export {
   exportFileType ExportFileType
   inputData      Json
   outputData     Json?
+  fileUrl        String?        @db.Text
+  attachment     Attachment?    @relation(fields: [fileUrl], references: [fileUrl])
+  status         JobStatus      @default(PENDING)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   deleted        Boolean        @default(false)
@@ -333,6 +337,7 @@ model Export {
 enum ExportFileType {
   CSV
   JSON
+  EXCEL
 }
 
 // discuss request table name
@@ -713,6 +718,7 @@ enum JobSource {
   SEND_INTEND_UPDATE
   SEND_ERROR_MAIL
   SEND_DEMO_CONTACT_MAIL
+  SEND_TRACKER_EXPORT_MAIL
 }
 
 enum JobStatus {

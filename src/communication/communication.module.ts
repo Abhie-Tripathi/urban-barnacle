@@ -38,10 +38,17 @@ import { InvitationWorkerClass } from './bull-service/bull-invitation.service';
     BullModule.registerQueue({
       name: 'errorProcessor',
     }),
+    BullModule.registerQueue({
+      name: 'exportProcessor',
+      defaultJobOptions: {
+        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
+        removeOnFail: false
+      }
+    }),
   ],
   providers: [
     CommunicationService,
-    // OtpEmailWorkerClass,
+    // OtpEmailWorkerClass, ExportWorkerClass
     // AccessEmailWorkerClass,
     // EventWorkerClass,
     // IntendWorkerClass,
