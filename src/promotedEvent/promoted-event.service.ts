@@ -801,8 +801,28 @@ FROM (
       }
     }
     return {
-      blocked: blockedEvent
+      blocked: blockedEvent.length > 0 ? this.transformResult(blockedEvent) : []
     };
+  }
+  private transformResult(data: object[]) {
+    return data.map(val => {
+      const eventData = val['data'];
+      return {
+        id: val['id'],
+        "name": val['name'],
+        "startDate": eventData['start_date'],
+        "endDate": eventData['end_date'],
+        "venueName": eventData['venue_name'] || null,
+        "cityName": eventData['location_city'],
+        "state": eventData['location_state'],
+        "countryId": eventData['location_country_iso_code'],
+        "countryName": eventData['location_country'],
+        "companyName": null,
+        "eventType": eventData['event_type'].split(','),
+        rule: val['rule'],
+        isProductEvent: true
+      }
+    })
   }
   private deg2rad(deg: number): number {
     return deg * (Math.PI / 180);
