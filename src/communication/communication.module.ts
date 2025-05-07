@@ -20,28 +20,28 @@ import { InvitationWorkerClass } from './bull-service/bull-invitation.service';
     BullModule.registerQueue({
       name: 'accessProcessor',
       defaultJobOptions: {
-        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 1000),
+        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
         removeOnFail: false,
       },
     }),
     BullModule.registerQueue({
       name: 'inviteProcessor',
       defaultJobOptions: {
-        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 1000),
+        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
         removeOnFail: false,
       },
     }),
     BullModule.registerQueue({
       name: 'eventProcessor',
       defaultJobOptions: {
-        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 1000),
+        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
         removeOnFail: false,
       },
     }),
     BullModule.registerQueue({
       name: 'otpProcessor',
       defaultJobOptions: {
-        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 1000),
+        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
         removeOnFail: false,
       },
     }),
@@ -55,14 +55,14 @@ import { InvitationWorkerClass } from './bull-service/bull-invitation.service';
     BullModule.registerQueue({
       name: 'demoContactProcessor',
       defaultJobOptions: {
-        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 1000),
+        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
         removeOnFail: false,
       },
     }),
     BullModule.registerQueue({
       name: 'errorProcessor',
       defaultJobOptions: {
-        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 1000),
+        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
         removeOnFail: false,
       },
     }),
