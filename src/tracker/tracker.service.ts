@@ -134,14 +134,18 @@ export class TrackerService {
       query.refresh
     ) {
       if (!tracker.type.startsWith('TR_')) {
-        groupedEventsCount = await this.getGroupedEventsCount(
-          {
-            ...tracker.filterValues,
-            createdAt: lastActive.last_active_gte,
-          } as CountQueryDto,
-          groupBy ? groupBy : undefined,
-          // groupBy,
-        );
+        try {
+          groupedEventsCount = await this.getGroupedEventsCount(
+            {
+              ...tracker.filterValues,
+              createdAt: lastActive.last_active_gte,
+            } as CountQueryDto,
+            groupBy ? groupBy : undefined,
+            // groupBy,
+          );
+        } catch (error) {
+
+        }
       }
 
       filterValues = await this.sharedService.convertIdParamsToSlug(
