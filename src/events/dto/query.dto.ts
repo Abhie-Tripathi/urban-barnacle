@@ -401,7 +401,7 @@ export const QueryFilter = z.object({
     .transform((val) =>
       val
         .split(',')
-        .map((item) => (item.trim() === 'in_person' ? 'offline' : item.trim())),
+        .map((item) => (item.trim() === 'offline' ? 'in_person' : item.trim())),
     )
     .optional(),
   entryType: z
