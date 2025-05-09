@@ -54,7 +54,7 @@ export class AccountService {
     private readonly userDataService: UserDataService,
     private readonly intentDataService: IntentDataService,
     private readonly eventService: EventsService,
-  ) { }
+  ) {}
 
   async getAccountCompany(user: TCachedUser) {
     const company = await this.companyDataService.getCompany({
@@ -66,7 +66,11 @@ export class AccountService {
     const comment = await this.accountDataService.getLatestComment(user);
     return comment;
   }
-  async getSavedEvent(user: TCachedUser, query: GetBookmarkedEventDto, showValues: string) {
+  async getSavedEvent(
+    user: TCachedUser,
+    query: GetBookmarkedEventDto,
+    showValues: string,
+  ) {
     const [savedEvents, count] = await Promise.all([
       this.intentDataService.getUserEventInterest({
         interest: ['BOOKMARK'],
@@ -152,6 +156,7 @@ export class AccountService {
         if (!event || !enquiry) {
           return null;
         }
+        const location = event.basic.eventLocation;
         return {
           ...enquiry,
           eventData: {
@@ -163,9 +168,24 @@ export class AccountService {
             website: event.basic.website!,
             organizerName: event.basic.organizer?.name,
             location: {
-              cityName: event.basic.eventLocation?.city?.name,
-              stateName: event.basic.eventLocation?.state?.name,
-              countryName: event.basic.eventLocation?.country?.name,
+              cityName:
+                location.locationType === 'VENUE'
+                  ? location.cityName
+                  : location.locationType === 'CITY'
+                    ? location.name
+                    : null,
+              stateName: ['VENUE', 'CITY'].includes(location.locationType)
+                ? location.stateName
+                : location.locationType === 'STATE'
+                  ? location.name
+                  : null,
+              countryName: ['VENUE', 'CITY', 'STATE'].includes(
+                location.locationType,
+              )
+                ? location.countryName
+                : location.locationType === 'COUNTRY'
+                  ? location.name
+                  : null,
             },
           },
         };
@@ -224,15 +244,15 @@ export class AccountService {
         ]);
         const owner = enquiry.owner
           ? {
-            id: enquiry.owner.id,
-            name: getNameFromEmail(
-              enquiry.owner.email,
-              enquiry.owner.firstname,
-              enquiry.owner.lastname,
-            ),
-            email: enquiry.owner.email,
-            imageUrl: enquiry.owner.imageUrl,
-          }
+              id: enquiry.owner.id,
+              name: getNameFromEmail(
+                enquiry.owner.email,
+                enquiry.owner.firstname,
+                enquiry.owner.lastname,
+              ),
+              email: enquiry.owner.email,
+              imageUrl: enquiry.owner.imageUrl,
+            }
           : null;
         const interestCounts = {
           total: 0,
@@ -409,9 +429,9 @@ export class AccountService {
       }),
       params.groupBy === UserInterestsGroupBy.status
         ? this.enquiryService.getEnquiryCount({
-          accountId: user.accountId,
-          groupBy: params.groupBy,
-        })
+            accountId: user.accountId,
+            groupBy: params.groupBy,
+          })
         : null,
     ]);
     let response = {};
@@ -447,11 +467,11 @@ export class AccountService {
         };
         const groupedInterestsByStatus = enquiryCount
           ? (
-            enquiryCount as Array<{ status: string; _count: { id: number } }>
-          ).reduce((acc, curr) => {
-            acc[curr.status.toLowerCase()] = curr._count.id;
-            return acc;
-          }, defaultStatusCount)
+              enquiryCount as Array<{ status: string; _count: { id: number } }>
+            ).reduce((acc, curr) => {
+              acc[curr.status.toLowerCase()] = curr._count.id;
+              return acc;
+            }, defaultStatusCount)
           : null;
         response = {
           ...groupedInterestsByStatus,
