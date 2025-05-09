@@ -47,3 +47,4 @@ eventGTM-backend.code-workspace
 apiDoc.yml
 
 *.code-workspace
+start_prod.sh
