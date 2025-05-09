@@ -64,7 +64,9 @@ export class TrackerService {
       sourceEntityId: tracker.id,
       flagForEmail: true
     });
-    if (data.cachingFlag)
+    console.log("data.cachingFlag==> ", data.cachingFlag);
+
+    if (data.cachingFlag) {
       this.getTrackerResponse(
         user,
         tracker as Tracker & { createdByUser: User; modifiedByUser: User },
@@ -72,6 +74,7 @@ export class TrackerService {
           refresh: true,
         },
       );
+    }
     return tracker;
   }
 
