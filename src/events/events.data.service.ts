@@ -129,7 +129,7 @@ export class EventsDataService {
         // } else
         result[key] = value.join(',');
       } else {
-        result[key] = value;
+        result[key] = value + '';
       }
     }
     return result;
