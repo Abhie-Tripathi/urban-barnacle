@@ -11,15 +11,6 @@ export class TrackerDataService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
-    console.log({
-      data: {
-        name: data.name,
-        filterValues: data.filterValues,
-        type: data.type,
-        createdBy: user.id,
-        accountId: user.accountId,
-      },
-    });
     const tracker = await this.prisma.tracker.create({
       data: {
         name: data.name,
@@ -123,7 +114,6 @@ export class TrackerDataService {
           ${where.length > 0 ? Prisma.sql`AND ${Prisma.join(where, ' AND ')}` : Prisma.sql``}
           ${groupBy ? Prisma.sql`GROUP BY "type"` : Prisma.sql``}
           `;
-    console.log({ trackerCount });
     if (groupBy) {
       return trackerCount.map((val) => {
         return {
