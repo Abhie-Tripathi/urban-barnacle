@@ -1,17 +1,34 @@
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Inject, Logger, Scope } from '@nestjs/common';
-import { JobStatus, User } from '@prisma/client';
+import { HttpException, HttpStatus, Inject, Logger, Scope } from '@nestjs/common';
+import { AttachmentSourceModule, JobStatus, User } from '@prisma/client';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { Job } from 'bull';
 import { Processor, Process, JOB_REF } from '@nestjs/bull';
 import { EmailService } from '../email/email.service';
-import { emailSenderAddress, trackerAccessHtml } from '../email/email.template';
-import fs from 'fs';
-import ExcelJS from 'exceljs';
+import { emailSenderAddress, exportCompleteMailTemplate, trackerAccessHtml, exportFailMailTemplate } from '../email/email.template';
+import * as fs from 'fs';
+import * as ExcelJS from 'exceljs';
 import { TrackerService } from 'src/tracker/tracker.service';
 import { View } from 'src/events/dto';
 import { EventTabs } from 'src/tracker/dto';
+import { TCachedUser } from 'src/utils/types';
+
+interface JobDataForExport {
+    userData: TCachedUser,
+    trackerId: string,
+    searchByEntity?: string,
+    jobRequestId: string,
+    redirectUrl: string,
+    exportIdNew?: string,
+    exportIdActive?: string,
+    exportIdPast?: string,
+    exportIdBusiness?: string,
+    exportIdSocial?: string,
+    exportIdUnattended?: string,
+    type: 'all' | 'past' | 'active' | 'new' | 'business' | 'social' | 'unattended',
+    source: 'TRACKER'
+}
 @Processor({ name: 'exportProcessor', scope: Scope.REQUEST })
 export class ExportWorkerClass {
     constructor(
@@ -26,18 +43,12 @@ export class ExportWorkerClass {
         console.log(JSON.stringify(jobRef));
     }
     private readonly logger = new Logger(ExportWorkerClass.name);
-    //     userData
-    // trackerId
-    // searchByEntity
-    // type =
-    // jobRequestId
-    //exportId<Type>
-    //BACKEND
-    // redirectUrl
+
     @Process('exportTrackerEventData')
-    async handleEmailJob(job: Job<any>) {
+    async handleEmailJob(job: Job<JobDataForExport>) {
+        const jobData = job.data;
         try {
-            const jobData = job.data;
+            jobData['email'] = jobData.userData.email;
             const eventTypeData: string = jobData['type']
             console.log(`Processing job: ${JSON.stringify(jobData)}`);
             const dir = './public/export';
@@ -53,117 +64,149 @@ export class ExportWorkerClass {
                     status: status,
                 },
             });
-            const trackerTypeGTM: string[] = ['past', 'active', 'new',]
-            const trackerTypeGEO: string[] = ['busniness', 'social', 'unattended']
             const trackerData = await this.prisma.tracker.findUnique({
                 where: {
-                    id: jobData['trackerId']
+                    id: jobData['trackerId'],
+                    deleted: false,
                 }
             });
             if (!trackerData) {
                 status = 'FAILED' as JobStatus;
-                return {};
+                throw new HttpException("Failed to find tracker", HttpStatus.NOT_FOUND)
             }
-            const bulkUpdateExport: { id: string; status: JobStatus; outputResponse?: object; fileUrl?: string }[] = []
+            const searchByEntity = ['T_COMPETITOR', 'T_CUSTOMER_ICP'].includes(
+                trackerData.type,
+            )
+                ? 'company'
+                : trackerData.type === 'T_PEOPLE_FINDER'
+                    ? 'user'
+                    : trackerData.type === 'T_SPEAKING_OPPORTUNITY'
+                        ? 'speaker'
+                        : trackerData.type === 'T_RECRUITMENT'
+                            ? 'recruitment'
+                            : trackerData.type === 'T_PRODUCT_KEYWORDS'
+                                ? 'keywords'
+                                : undefined;
+            jobData['searchByEntity'] = searchByEntity;
+            let flagForExportStatus: number = 0;
+            const bulkUpdateExport: { id?: string; status: JobStatus; outputResponse?: object; fileUrl?: string, fileSize?: Number }[] = []
             if (process.env.BACKEND === 'gtm') {
                 if (eventTypeData === 'all') {
                     const [past, active, newEvents] = await Promise.all([
-                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (past).xlsx`, jobData['email'], 'past'),
-                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (past).xlsx`, jobData['email'], 'active'),
-                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (past).xlsx`, jobData['email'], 'new'),
+                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (past).xlsx`, jobData['email'], 'past', jobData.userData['id'], jobData.trackerId, jobData.source),
+                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (active).xlsx`, jobData['email'], 'active', jobData.userData['id'], jobData.trackerId, jobData.source),
+                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (new).xlsx`, jobData['email'], 'new', jobData.userData['id'], jobData.trackerId, jobData.source),
                     ]);
 
-                    if (past.error) {
+                    if (past.status === "error") {
                         bulkUpdateExport.push({
                             id: jobData['exportIdPast'],
                             status: 'FAILED',
+                            outputResponse: { ...past },
                         })
                     } else {
+                        flagForExportStatus++;
                         bulkUpdateExport.push({
                             id: jobData['exportIdPast'],
                             status: 'COMPLETED',
                             outputResponse: { ...past },
-                            fileUrl: '' + past.fileName
+                            fileUrl: past.fileUrl,
+                            fileSize: past.fileSize
                         })
                     }
-                    if (active.error) {
+                    if (active.status === "error") {
                         bulkUpdateExport.push({
                             id: jobData['exportIdActive'],
                             status: 'FAILED',
+                            outputResponse: { ...active },
                         })
                     } else {
+                        flagForExportStatus++;
                         bulkUpdateExport.push({
                             id: jobData['exportIdActive'],
                             status: 'COMPLETED',
                             outputResponse: { ...active },
-                            fileUrl: '' + active.fileName
+                            fileUrl: active.fileUrl,
+                            fileSize: active.fileSize
                         })
                     }
-                    if (newEvents.error) {
+                    if (newEvents.status === "error") {
                         bulkUpdateExport.push({
                             id: jobData['exportIdNew'],
                             status: 'FAILED',
+                            outputResponse: { ...newEvents },
                         })
                     } else {
+                        flagForExportStatus++;
                         bulkUpdateExport.push({
                             id: jobData['exportIdNew'],
                             status: 'COMPLETED',
                             outputResponse: { ...newEvents },
-                            fileUrl: '' + newEvents.fileName
+                            fileUrl: newEvents.fileUrl,
+                            fileSize: newEvents.fileSize
                         })
                     }
                 }
                 if (eventTypeData === 'past') {
                     const [past] = await Promise.all([
-                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (past).xlsx`, jobData['email'], 'past'),
+                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (past).xlsx`, jobData['email'], 'past', jobData.userData['id'], jobData.trackerId, jobData.source),
                     ]);
                     if (past.error) {
                         bulkUpdateExport.push({
                             id: jobData['exportIdPast'],
                             status: 'FAILED',
+                            outputResponse: { ...past },
                         })
                     } else {
+                        flagForExportStatus++;
                         bulkUpdateExport.push({
                             id: jobData['exportIdPast'],
                             status: 'COMPLETED',
                             outputResponse: { ...past },
-                            fileUrl: '' + past.fileName
+                            fileUrl: past.fileUrl,
+                            fileSize: past.fileSize
                         })
                     }
                 }
                 if (eventTypeData === 'active') {
                     const [active] = await Promise.all([
-                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (past).xlsx`, jobData['email'], 'active'),
+                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (active).xlsx`, jobData['email'], 'active', jobData.userData['id'], jobData.trackerId, jobData.source),
                     ]);
                     if (active.error) {
                         bulkUpdateExport.push({
                             id: jobData['exportIdActive'],
                             status: 'FAILED',
+                            outputResponse: { ...active },
                         })
                     } else {
+                        flagForExportStatus++;
                         bulkUpdateExport.push({
                             id: jobData['exportIdActive'],
                             status: 'COMPLETED',
                             outputResponse: { ...active },
-                            fileUrl: '' + active.fileName
+                            fileUrl: active.fileUrl,
+                            fileSize: active.fileSize
                         })
                     }
 
                 }
                 if (eventTypeData === 'new') {
-                    const [newEvents] = await Promise.all([this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (past).xlsx`, jobData['email'], 'new'),
+                    const [newEvents] = await Promise.all([this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (new).xlsx`, jobData['email'], 'new', jobData.userData['id'], jobData.trackerId, jobData.source),
                     ]);
                     if (newEvents.error) {
                         bulkUpdateExport.push({
                             id: jobData['exportIdNew'],
                             status: 'FAILED',
+                            outputResponse: { ...newEvents },
                         })
                     } else {
+                        flagForExportStatus++;
                         bulkUpdateExport.push({
                             id: jobData['exportIdNew'],
                             status: 'COMPLETED',
                             outputResponse: { ...newEvents },
-                            fileUrl: '' + newEvents.fileName
+                            fileUrl: newEvents.fileUrl,
+                            fileSize: newEvents.fileSize
                         })
                     }
                 }
@@ -176,102 +219,122 @@ export class ExportWorkerClass {
                     )
                 );
             } else if (process.env.BACKEND === 'geo') {
+                console.log({ jobData });
+
                 if (eventTypeData === 'all') {
-                    const [busniness, social, unattended] = await Promise.all([
-                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (past).xlsx`, jobData['email'], 'busniness'),
-                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (past).xlsx`, jobData['email'], 'social'),
-                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (past).xlsx`, jobData['email'], 'unattended'),
+                    const [business, social, unattended] = await Promise.all([
+                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (business).xlsx`, jobData['email'], 'business', jobData.userData['id'], jobData.trackerId, jobData.source),
+                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (social).xlsx`, jobData['email'], 'social', jobData.userData['id'], jobData.trackerId, jobData.source),
+                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (unattended).xlsx`, jobData['email'], 'unattended', jobData.userData['id'], jobData.trackerId, jobData.source),
                     ]);
-                    if (busniness.error) {
+                    if (business.error) {
                         bulkUpdateExport.push({
-                            id: jobData['exportIdBusniess'],
+                            id: jobData['exportIdBusiness'],
                             status: 'FAILED',
+                            outputResponse: { ...business },
                         })
                     } else {
+                        flagForExportStatus++;
                         bulkUpdateExport.push({
-                            id: jobData['exportIdBusniess'],
+                            id: jobData['exportIdBusiness'],
                             status: 'COMPLETED',
-                            outputResponse: { ...busniness },
-                            fileUrl: '' + busniness.fileName
+                            outputResponse: { ...business },
+                            fileUrl: business.fileUrl,
+                            fileSize: business.fileSize
                         })
                     }
                     if (social.error) {
                         bulkUpdateExport.push({
                             id: jobData['exportIdSocial'],
                             status: 'FAILED',
+                            outputResponse: { ...social },
                         })
                     } else {
+                        flagForExportStatus++;
                         bulkUpdateExport.push({
                             id: jobData['exportIdSocial'],
                             status: 'COMPLETED',
                             outputResponse: { ...social },
-                            fileUrl: '' + social.fileName
+                            fileUrl: social.fileUrl,
+                            fileSize: business.fileSize
                         })
                     }
                     if (unattended.error) {
                         bulkUpdateExport.push({
                             id: jobData['exportIdUnattended'],
                             status: 'FAILED',
+                            outputResponse: { ...social },
                         })
                     } else {
+                        flagForExportStatus++;
                         bulkUpdateExport.push({
                             id: jobData['exportIdUnattended'],
                             status: 'COMPLETED',
                             outputResponse: { ...unattended },
-                            fileUrl: '' + unattended.fileName
+                            fileUrl: unattended.fileUrl,
+                            fileSize: business.fileSize
                         })
                     }
                 }
-                if (eventTypeData === 'busniness') {
-                    const [busniness] = await Promise.all([
-                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (past).xlsx`, jobData['email'], 'busniness'),
+                if (eventTypeData === 'business') {
+                    const [business] = await Promise.all([
+                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (business).xlsx`, jobData['email'], 'business', jobData.userData['id'], jobData.trackerId, jobData.source),
                     ]);
-                    if (busniness.error) {
+                    if (business.error) {
                         bulkUpdateExport.push({
-                            id: jobData['exportIdBusniess'],
+                            id: jobData['exportIdBusiness'],
                             status: 'FAILED',
+                            outputResponse: { ...business },
                         })
                     } else {
+                        flagForExportStatus++;
                         bulkUpdateExport.push({
-                            id: jobData['exportIdBusniess'],
+                            id: jobData['exportIdBusiness'],
                             status: 'COMPLETED',
-                            outputResponse: { ...busniness },
-                            fileUrl: '' + busniness.fileName
+                            outputResponse: { ...business },
+                            fileUrl: business.fileUrl,
+                            fileSize: business.fileSize
                         })
                     }
                 }
                 if (eventTypeData === 'social') {
                     const [social] = await Promise.all([
-                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (past).xlsx`, jobData['email'], 'social'),
+                        this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (social).xlsx`, jobData['email'], 'social', jobData.userData['id'], jobData.trackerId, jobData.source),
                     ]);
                     if (social.error) {
                         bulkUpdateExport.push({
                             id: jobData['exportIdSocial'],
                             status: 'FAILED',
+                            outputResponse: { ...social },
                         })
                     } else {
+                        flagForExportStatus++;
                         bulkUpdateExport.push({
                             id: jobData['exportIdSocial'],
                             status: 'COMPLETED',
                             outputResponse: { ...social },
-                            fileUrl: '' + social.fileName
+                            fileUrl: social.fileUrl,
+                            fileSize: social.fileSize
                         })
                     }
                 }
                 if (eventTypeData === 'unattended') {
-                    const [unattended] = await Promise.all([this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (past).xlsx`, jobData['email'], 'unattended'),
+                    const [unattended] = await Promise.all([this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (unattended).xlsx`, jobData['email'], 'unattended', jobData.userData['id'], jobData.trackerId, jobData.source),
                     ]);
                     if (unattended.error) {
                         bulkUpdateExport.push({
                             id: jobData['exportIdUnattended'],
                             status: 'FAILED',
+                            outputResponse: { ...unattended },
                         })
                     } else {
+                        flagForExportStatus++;
                         bulkUpdateExport.push({
                             id: jobData['exportIdUnattended'],
                             status: 'COMPLETED',
                             outputResponse: { ...unattended },
-                            fileUrl: '' + unattended.fileName
+                            fileUrl: unattended.fileUrl,
+                            fileSize: unattended.fileSize
                         })
                     }
                 }
@@ -284,18 +347,76 @@ export class ExportWorkerClass {
                     )
                 );
             }
+            if (flagForExportStatus >= 1) {
+                status = 'COMPLETED' as JobStatus;
+            } else {
+                status = 'FAILED' as JobStatus;
+            }
+            if (jobData['email'] === 'vipul.gupta@10times.com') {
+                jobData.userData.email = 'piyush@10times.com';
+            }
+            if (status === 'COMPLETED') {
+                const exportCompletMail: string = exportCompleteMailTemplate
+                    .replaceAll('{firstName}', jobData.userData.firstname || '')
+                    .replaceAll('{lastName}', jobData.userData.lastname || '')
+                    .replaceAll('{redirectLink}', jobData.redirectUrl);
+                const { data, error } = await this.email.mailSender(
+                    jobData.userData.email,
+                    emailSenderAddress,
+                    'Export Event Data Request Completed',
+                    exportCompletMail,
+                );
+                let status = 'COMPLETED' as JobStatus;
+                if (error) {
+                    status = 'FAILED' as JobStatus;
+                }
+            } else {
+                const exportFailMail: string = exportFailMailTemplate
+                    .replaceAll('{firstName}', jobData.userData.firstname || '')
+                    .replaceAll('{lastName}', jobData.userData.lastname || '');
+
+                const { data, error } = await this.email.mailSender(
+                    jobData.userData.email,
+                    emailSenderAddress,
+                    'Export Event Data Request Failed',
+                    exportFailMail,
+                );
+                let status = 'COMPLETED' as JobStatus;
+                if (error) {
+                    status = 'FAILED' as JobStatus;
+                }
+            }
+            console.log((jobData));
+            await this.prisma.requestedJob.update({
+                where: {
+                    id: jobData['jobRequestId'],
+                },
+                data: {
+                    status: status,
+                },
+            });
             return {}
         } catch (error) {
-
+            console.log(JSON.stringify(error));
+            console.log((error));
+            const data = await this.prisma.requestedJob.update({
+                where: {
+                    id: job.data.jobRequestId,
+                },
+                data: {
+                    status: 'FAILED',
+                },
+            });
         }
     }
-    async createTraclerExportForEventData(jobData: any, fileName: string, email: string, type: string) {
+    async createTraclerExportForEventData(jobData: any, fileName: string, email: string, type: string, userId: string, sourceId: string, sourceModule: AttachmentSourceModule) {
         try {
             const dir = './public/export';
-            const excelFilePath = `${dir}/${fileName.replace(/\.csv$/, '.xlsx')}`;
+            fileName = fileName.replace(/\.csv$/, '.xlsx').replaceAll(' ', '-').replace(")", `)${Math.random()}`)
+            const excelFilePath = `${dir}/${fileName.replace(/\.csv$/, '.xlsx').replaceAll(' ', '-').replace(")", `)${Math.random()}`)}`;
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet('Events');
-
+            const mediaHost: string = process.env.MEDIA_STORAGE_DOMAIN || '';
             worksheet.columns = [
                 { header: 'Event Id', key: 'id', width: 20 },
                 { header: 'Event Name', key: 'name', width: 30 },
@@ -326,32 +447,40 @@ export class ExportWorkerClass {
                 { header: 'International Audience (%)', key: 'international', width: 20 },
                 { header: 'Matched Keywords', key: 'matched', width: 30 },
                 { header: 'Match Score (%)', key: 'matchScore', width: 20 },
-                { header: 'Association', key: 'association', width: 30 },
-                { header: 'Association Match (%)', key: 'associationPercentage', width: 25 },
-                { header: 'Competitor Association', key: 'competitorAssociation', width: 30 },
             ];
-
+            if (jobData['searchByEntity']) {
+                worksheet.columns.push({ header: 'Association', key: 'association', width: 30 },
+                    { header: 'Association Match (%)', key: 'associationPercentage', width: 25 },
+                    { header: 'Competitor Association', key: 'competitorAssociation', width: 30 },)
+            }
             let offset = 0;
             const limit = 30;
             let flagforCount: boolean = false;
             let totalCount: number = 1000;
-            if (((JSON.stringify(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || [])) as unknown as string[]).includes(email)) {
+            const fullAccessUsers = JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || '[]') as string[];
+            const limitedAccessUsers = JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || '[]') as string[];
+
+            if (fullAccessUsers.includes(email)) {
                 totalCount = Infinity;
                 flagforCount = true;
-            } else if (((JSON.stringify(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || [])) as unknown as string[]).includes(email)) {
+            } else if (limitedAccessUsers.includes(email)) {
                 totalCount = 1000;
             } else {
                 totalCount = 0;
             }
+            console.log({ totalCount }, {
+                fullAccessUsers,
+                limitedAccessUsers
+            }, email);
 
-
+            let linesWrittern: number = 0;
             while (offset < totalCount) {
                 console.log(`Processing ${offset} to ${offset + limit} records`);
                 const showValues = 'basic,advance,insights,audience';
                 const response = await this.trackerService.getTrackerEvents(jobData['userData'], jobData['trackerId'],
                     {
                         limit, offset, view: View.tracker, type: type as keyof typeof EventTabs
-                        , sortBy: ['score', 'title']
+                        , sortBy: ['score', 'title'],
                     }, showValues) as {
                         count?: number;
                         events: {
@@ -361,25 +490,19 @@ export class ExportWorkerClass {
                             trackerMatchInfo?: Record<string, any>;
                         }[];
                     };
-
+                console.log(response);
                 const events = response?.events || [];
                 totalCount = flagforCount ? (response?.count || 0) : totalCount;
-                if (events.length === 0) break;
+                if (events.length === 0 || linesWrittern === totalCount) break;
 
                 for (const data of events) {
-                    const lat = data.basic.eventLocation?.venue?.latitude || data.basic.eventLocation?.city?.latitude;
-                    const lon = data.basic.eventLocation?.venue?.longitude || data.basic.eventLocation?.city?.longitude;
+                    if (linesWrittern === totalCount) break;
+                    const locationPayload = data.basic.eventLocation?.locationType ? this.devLocationTranformation(data) : this.prodLocationTranformation(data);
                     worksheet.addRow({
                         id: data.basic.id,
                         name: data.basic.name,
                         page: 'https://10times.com/' + data.basic['10timesEventPageUrl'],
                         website: data.basic.website,
-                        venueName: data.basic.eventLocation?.venue?.name || '',
-                        venueAddress: data.basic.eventLocation?.venue?.address || '',
-                        geo: `Latitude:${lat}, Longitude:${lon}`,
-                        city: data.basic.eventLocation?.city?.name || '',
-                        country: data.basic.eventLocation?.country?.name || '',
-                        region: data.basic.eventLocation?.country?.regions?.join(', ') || '',
                         startDate: data.basic.startDateTime,
                         endDate: data.basic.endDateTime,
                         frequency: data.advance?.frequency || '',
@@ -398,6 +521,7 @@ export class ExportWorkerClass {
                         exhibitor: data.insights?.estimatedExhibitors || '',
                         international: data['internationalScore'] || '',
                         matched: data.basic?.matchedKeywords?.join(',') || '',
+                        ...locationPayload,
                         matchScore: data.basic?.matchedKeywordsPercentage || '',
                         ...(data.trackerMatchInfo ? {
                             association: (jobData?.searchByEntity === 'company' ? data.trackerMatchInfo['competitorDomainOrName']
@@ -407,6 +531,8 @@ export class ExportWorkerClass {
                             ...(jobData?.searchByEntity === 'company' ? { competitorAssociation: data.trackerMatchInfo['competitorAssociation'] } : {})
                         } : {})
                     });
+
+                    linesWrittern++;
                 }
 
                 offset += limit;
@@ -418,17 +544,92 @@ export class ExportWorkerClass {
             const fileSizeInKB = (fileSizeInBytes / 1024).toFixed(2);
             const fileSizeInMB = (fileSizeInBytes / (1024 * 1024)).toFixed(2);
             console.log(`Excel file written to ${excelFilePath}`);
+            const upload = await this.prisma.attachment.upsert({
+                where: {
+                    fileUrl: mediaHost + '/public/' + fileName
+                },
+                create: {
+                    fileName: fileName,
+                    fileType: 'EXCEL',
+                    fileSize: Number(fileSizeInKB),
+                    fileUrl: (mediaHost + '/public/' + fileName).replaceAll(' ', '-'),
+                    createdByUser: { connect: { id: userId } },
+                    sourceModule: sourceModule,
+                    sourceId: sourceId,
+                },
+                update: {
+
+                },
+                select: {
+                    id: true,
+                    fileName: true,
+                    fileUrl: true,
+                    fileType: true,
+                    fileSize: true,
+                },
+            });
             return {
                 status: "done",
-                fileName,
                 fileSizeInKB,
-                fileSizeInMB
+                fileSizeInMB,
+                ...upload
             }
         } catch (error) {
+            console.error(error);
+            console.log(error);
+            console.log(JSON.stringify(error));
+
+
             return {
                 status: "error",
-                error
+                ...error
             }
+        }
+    }
+
+    devLocationTranformation(data: any) {
+        // {
+        //     "id": "8f8ccdac-9912-52b7-8db1-3d31c5218010",
+        //     "name": "INDIA EXPO CENTRE & MART",
+        //     "locationType": "VENUE",
+        //     "latitude": "28.472939",
+        //     "longitude": "77.503889",
+        //     "countryIso": "IN",
+        //     "address": "FGF3+5HC Knowledge Park I Greater Noida Uttar Pradesh 201310 India",
+        //     "cityId": "86650b08-2f0a-5184-bc81-eb1737191221",
+        //     "cityName": "Greater Noida",
+        //     "stateId": "b14417f4-f187-5273-ac70-5a0f17fac7c9",
+        //     "stateName": "Uttar Pradesh",
+        //     "countryId": "226e11ef-32fc-5484-9843-7087fdfb413d",
+        //     "countryName": "India",
+        //     "displayName": "INDIA EXPO CENTRE & MART,Greater Noida,Uttar Pradesh,India",
+        //     "cityLatitude": "28.474000",
+        //     "cityLongitude": "77.504000"
+        //   }
+        const lat = data.basic.eventLocation?.latitude;
+        const lon = data.basic.eventLocation?.longitude;
+
+        return {
+            venueName: data.basic.eventLocation.locationType === 'VENUE' ? data.basic.eventLocation?.name || '' : '',
+            venueAddress: data.basic.eventLocation.locationType === 'VENUE' ? data.basic.eventLocation?.address || '' : '',
+            geo: `Latitude:${lat}, Longitude:${lon}`,
+            city: data.basic.eventLocation.locationType === 'CITY' ? data.basic.eventLocation?.name || '' : data.basic.eventLocation?.cityName || '',
+            country: data.basic.eventLocation?.countryName || '',
+            region: data.basic.eventLocation?.country?.regions?.join(', ') || '',
+
+        }
+    }
+    prodLocationTranformation(data: any) {
+        const lat = data.basic.eventLocation?.venue?.latitude;
+        const lon = data.basic.eventLocation?.venue?.longitude;
+        return {
+            venueName: data.basic.eventLocation?.venue?.name || '',
+            venueAddress: data.basic.eventLocation?.venue?.address || '',
+            geo: `Latitude:${lat}, Longitude:${lon}`,
+            city: data.basic.eventLocation?.city?.name || '',
+            country: data.basic.eventLocation?.country?.name || '',
+            region: data.basic.eventLocation?.country?.regions?.join(', ') || '',
+
         }
     }
 }

@@ -13,10 +13,10 @@ import {
 import { TrackerService } from './tracker.service';
 import {
   CreateTrackerDto,
+  CreateTrackerExportsDto,
   GetTrackerByIdDto,
   GetTrackerEventsCountDto,
   GetTrackerEventsDto,
-  GetTrackerExportsDto,
   GetTrackerUsersDto,
   UpdateTrackerDto,
   UpdateTrackerHttpDto,
@@ -245,11 +245,11 @@ export class TrackerController {
     }
   }
   @UseGuards(AuthGuard)
-  @Get(':id/exports')
+  @Post(':id/exports')
   async getTrackerEventDataExported(
     @Param('id') id: string,
     @GetUser() user: TCachedUser,
-    @Query() query: GetTrackerExportsDto,
+    @Body() query: CreateTrackerExportsDto,
   ) {
     try {
       const tracker = await this.trackerService.getTrackerEventDataExported(id, user, query);

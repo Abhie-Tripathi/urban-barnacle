@@ -63,7 +63,7 @@ export class CommunicationService {
         SEND_ERROR_EMAIL: 'errorMessage',
         SEND_DEMO_CONTACT_EMAIL: 'demoContactMail',
         SEND_USER_INVITATION_EMAIL: 'inviteUserMail',
-        SEND_TRACKER_EXPORT_MAIL:'exportProcessor'
+        SEND_TRACKER_EXPORT_MAIL: 'exportTrackerEventData'
       };
       const processToprocessorMapping: object = {
         shareAccess: 'accessProcessor',
@@ -75,7 +75,7 @@ export class CommunicationService {
         intendUpdate: 'intendProcessor',
         errorMessage: 'errorProcessor',
         demoContactMail: 'demoContactProcessor',
-        exportTrackerEventData:'exportProcessor'
+        exportTrackerEventData: 'exportProcessor'
       };
       const jobSource: object = {
         // SEND_SIGNIN_OTP: 'signUp/InEmail',
@@ -88,11 +88,11 @@ export class CommunicationService {
         SEND_INTEND_UPDATE: 'intendUpdate',
         SEND_ERROR_MAIL: 'errorMessage',
         SEND_DEMO_CONTACT_MAIL: 'demoContactMail',
-        SEND_TRACKER_EXPORT_MAIL:'exportTrackerEventData'
+        SEND_TRACKER_EXPORT_MAIL: 'exportTrackerEventData'
       };
       const process: string = processEnumObject[processAction];
       const processor: string = processToprocessorMapping[process];
-      console.log(process, processor);
+      console.log(process, processor, jobSource);
 
       let jobSourceType: string =
         process === 'signUp/InEmail' && jobRequestPayload.process === 'sign-up'
@@ -298,19 +298,19 @@ export class CommunicationService {
           );
           console.log('Call intendProcessor');
           break;
-          case 'exportProcessor':
-            jobAdded = await this.exportQueue.add(
-              process,
-              {
-                ...validatedPayload,
-                ...requestId,
-              },
-              {
-                priority: priority,
-              },
-            );
-            console.log('Call intendProcessor');
-            break;
+        case 'exportTrackerEventData':
+          jobAdded = await this.exportQueue.add(
+            process,
+            {
+              ...validatedPayload,
+              ...requestId,
+            },
+            {
+              priority: priority,
+            },
+          );
+          console.log('Call exportProcessor');
+          break;
         case 'errorMessage':
           jobAdded = await this.errorQueue.add(
             process,

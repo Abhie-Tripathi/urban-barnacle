@@ -41,6 +41,7 @@ import { DemoContactWorkerClass } from './communication/bull-service/bull-demoCo
 import { ErrorWorkerClass } from './communication/bull-service/bull-errorMessage.service';
 import { GlobalResponseInterceptor } from './global-response.interceptor';
 import { CommunicationService } from './communication/communication.service';
+import { ExportWorkerClass } from './communication/bull-service/bull-export.service';
 
 @Module({
   imports: [
@@ -108,6 +109,7 @@ import { CommunicationService } from './communication/communication.service';
     AfterResponseInterceptor,
     DemoContactWorkerClass,
     ErrorWorkerClass,
+    ExportWorkerClass
     // CommunicationService,
   ],
 })

@@ -3,11 +3,11 @@ import { TrackerDataService } from './tracker.data.service';
 import { blackListDomain, LastActive, TCachedUser } from 'src/utils/types';
 import {
   CreateTrackerDto,
+  CreateTrackerExportsDto,
   GetTrackerByIdDto,
   GetTrackerCommentDto,
   GetTrackerEventsCountDto,
   GetTrackerEventsDto,
-  GetTrackerExportsDto,
   GetTrackersHttpDto,
   GetTrackerUsersDto,
   UpdateTrackerHttpDto,
@@ -19,7 +19,7 @@ import { SharedService } from 'src/shared/shared.service';
 import { EventsService } from 'src/events/events.service';
 import { CountGroup, CountQueryDto, QueryDto, View } from 'src/events/dto';
 import { IntentDataService } from 'src/intent/intent.data.service';
-import { AccessType, Prisma, Tracker, User } from '@prisma/client';
+import { AccessType, ExportSubSource, Prisma, Tracker, User } from '@prisma/client';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { UserDataService } from 'src/user/user.data.service';
 import { CommentService } from 'src/comment/comment.service';
@@ -29,6 +29,7 @@ import { CommentsResponseSchema } from 'src/comment/dto/response';
 import { ConfigService } from '@nestjs/config';
 import { QueryFilter, QueryFilterDto } from 'src/events/dto/query.dto';
 import { AccountDataService } from 'src/user/account/account.data.service';
+import { trackerExportDto } from 'src/communication/bull.dto';
 @Injectable()
 export class TrackerService {
   constructor(
@@ -1139,8 +1140,60 @@ export class TrackerService {
   async getTrackerEventDataExported(
     trackerId: string,
     user: TCachedUser,
-    query: GetTrackerExportsDto,
+    body: CreateTrackerExportsDto,
   ) {
+    const trackerData = await this.getTracker(user, trackerId, {});
+    const allowerUserForExport: string[] = [...(JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || '')), ...(JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || ''))];
+    if (!allowerUserForExport.includes(user.email)) {
+      throw new HttpException('Invalid export request by user', HttpStatus.FORBIDDEN);
+    }
+    const trackerEventTypeMappingObj: object = {
+      'new': 'exportIdNew',
+      'active': 'exportIdActive',
+      'past': 'exportIdPast',
+      'business': 'exportIdBusiness',
+      'social': 'exportIdSocial',
+      'unattended': 'exportIdUnattended',
+      exportIdNew: 'TRACKER_NEW_EVENT',
+      exportIdPast: 'TRACKER_PAST_EVENT',
+      exportIdActive: 'TRACKER_ACTIVE_EVENT',
+      exportIdBusiness: 'TRACKER_BUSINESS_EVENT',
+      exportIdSocial: 'TRACKER_SOCIAL_EVENT',
+      exportIdUnattended: 'TRACKER_UNATTENDED_EVENT',
+    }
+    const trackerTypeGTM: string[] = ['past', 'active', 'new',]
+    const trackerTypeGEO: string[] = ['business', 'social', 'unattended'];
+    const payload: trackerExportDto = { userData: user, type: body.type, source: 'TRACKER', sourceId: trackerId, trackerId: trackerData.id, redirectUrl: body.redirectUrl + `&targetId=${trackerData.id}&target=tracker` };
+    if (body.type === 'all') {
+      if (process.env.BACKEND === 'gtm') {
+        for (const val of trackerTypeGTM) {
+          const key = trackerEventTypeMappingObj[val];
+          const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
+          const result = await this.trackerDataService.createExport({
+            exportOf,
+            inputData: payload,
+            trackerId: trackerData.id
+          }, user);
+          payload[key] = result.id;
+        }
+      } else {
+        for (const val of trackerTypeGEO) {
+          const key = trackerEventTypeMappingObj[val];
+          const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
+          const result = await this.trackerDataService.createExport({
+            exportOf,
+            inputData: payload,
+            trackerId: trackerData.id
+          }, user);
+          payload[key] = result.id;
+        }
+      }
+    } else {
+      payload[trackerEventTypeMappingObj[body.type]] = (await this.trackerDataService.createExport({ exportOf: trackerEventTypeMappingObj[trackerEventTypeMappingObj[body.type]] as ExportSubSource, inputData: payload, trackerId: trackerData.id }, user)).id;
+    }
+    console.log(payload);
 
+    await this.trackerDataService.createTrackerExportJob(payload, user.id);
+    return { data: { message: "Export initiated successfully" } };
   }
 }

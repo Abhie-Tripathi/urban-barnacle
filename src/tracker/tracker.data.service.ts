@@ -1,14 +1,18 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTrackerDto, GetTrackersDto, UpdateTrackerDto } from './dto';
-import { Prisma, PrismaClient, Tracker, TrackerType } from '@prisma/client';
+import { ExportSubSource, Prisma, PrismaClient, Tracker, TrackerType } from '@prisma/client';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { ConfigService } from '@nestjs/config';
-import { TCachedUser, TrackerTypes } from 'src/utils/types';
+import { QueueActionOptions, TCachedUser, TrackerTypes } from 'src/utils/types';
+import { CommunicationService } from '../communication/communication.service';
+import { trackerExportDto } from 'src/communication/bull.dto';
 
 @Injectable()
 export class TrackerDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService,
+    private readonly communicationService: CommunicationService
+  ) { }
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const tracker = await this.prisma.tracker.create({
@@ -205,5 +209,33 @@ export class TrackerDataService {
       },
     });
     return tracker;
+  }
+  async createExport(data: {
+    exportOf: ExportSubSource;
+    inputData: any;
+    trackerId: string;
+  }, user: TCachedUser) {
+    console.log(data);
+
+    return await this.prisma.export.create({
+      data: {
+        userId: user.id,
+        accountId: user.accountId,
+        exportFileType: 'EXCEL',
+        exportOf: data.exportOf,
+        inputData: data.inputData,
+        source: 'TRACKER',
+        sourceId: data.trackerId,
+        status: 'PENDING',
+      },
+      select: {
+        id: true
+      }
+    })
+  }
+  async createTrackerExportJob(
+    body: trackerExportDto, userId: string
+  ) {
+    return await this.communicationService.createJobForBull(QueueActionOptions.SEND_TRACKER_EXPORT_MAIL, body, userId);
   }
 }
