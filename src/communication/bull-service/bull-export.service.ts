@@ -490,7 +490,7 @@ export class ExportWorkerClass {
                             trackerMatchInfo?: Record<string, any>;
                         }[];
                     };
-                console.log(response);
+                // console.log(response);
                 const events = response?.events || [];
                 totalCount = flagforCount ? (response?.count || 0) : totalCount;
                 if (events.length === 0 || linesWrittern === totalCount) break;
