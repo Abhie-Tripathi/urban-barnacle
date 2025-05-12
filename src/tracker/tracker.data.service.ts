@@ -237,7 +237,8 @@ export class TrackerDataService {
       trackerExports: await this.prisma.export.findMany({
         where: {
           source: 'TRACKER',
-          sourceId: trackerId
+          sourceId: trackerId,
+          deleted: false
         }, select: {
           id: true,
           fileSize: true,
@@ -265,7 +266,8 @@ export class TrackerDataService {
       count: await this.prisma.export.count({
         where: {
           source: 'TRACKER',
-          sourceId: trackerId
+          sourceId: trackerId,
+          deleted: false
         },
       })
     }
