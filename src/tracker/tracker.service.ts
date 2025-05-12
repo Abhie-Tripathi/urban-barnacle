@@ -30,6 +30,8 @@ import { ConfigService } from '@nestjs/config';
 import { QueryFilter, QueryFilterDto } from 'src/events/dto/query.dto';
 import { AccountDataService } from 'src/user/account/account.data.service';
 import { trackerExportDto } from 'src/communication/bull.dto';
+import { log } from 'console';
+import { LimitDto } from 'src/global_dto';
 @Injectable()
 export class TrackerService {
   constructor(
@@ -1137,7 +1139,7 @@ export class TrackerService {
     }
     return { startDate, endDate };
   }
-  async getTrackerEventDataExported(
+  async createTrackerEventDataExported(
     trackerId: string,
     user: TCachedUser,
     body: CreateTrackerExportsDto,
@@ -1191,9 +1193,37 @@ export class TrackerService {
     } else {
       payload[trackerEventTypeMappingObj[body.type]] = (await this.trackerDataService.createExport({ exportOf: trackerEventTypeMappingObj[trackerEventTypeMappingObj[body.type]] as ExportSubSource, inputData: payload, trackerId: trackerData.id }, user)).id;
     }
-    console.log(payload);
+    // console.log(payload);
 
     await this.trackerDataService.createTrackerExportJob(payload, user.id);
     return { data: { message: "Export initiated successfully" } };
   }
+  async getTrackerEventDataExported(trackerId: string,
+    user: TCachedUser, query: LimitDto) {
+    const trackerData = await this.getTracker(user, trackerId, {});
+    const allowerUserForExport: string[] = [...(JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || '')), ...(JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || ''))];
+    if (!allowerUserForExport.includes(user.email)) {
+      throw new HttpException('Invalid export request by user', HttpStatus.FORBIDDEN);
+    }
+    const [trackerExports,
+      count] = await Promise.all([this.trackerDataService.getTrackerExport(trackerId, user, query), this.trackerDataService.getTrackerExportCount(trackerId, user, query)]);
+    return {
+      trackerExports: trackerExports.trackerExports,
+      count: count.count
+    };
+  }
+  async deleteTrackerEventDataExported(
+    trackerId: string,
+    exportId: string,
+    user: TCachedUser,
+  ) {
+    const trackerData = await this.getTracker(user, trackerId, {});
+    const allowerUserForExport: string[] = [...(JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || '')), ...(JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || ''))];
+    if (!allowerUserForExport.includes(user.email)) {
+      throw new HttpException('Invalid export request by user', HttpStatus.FORBIDDEN);
+    }
+    await this.trackerDataService.deleteTrackerExport(exportId);
+    return { message: "export deleted successfully" };
+  }
 }
+// getTrackerEventDataExported

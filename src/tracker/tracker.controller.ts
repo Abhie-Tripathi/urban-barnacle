@@ -26,6 +26,7 @@ import { TCachedUser } from 'src/utils/types';
 import { AuthGuard } from 'src/user/auth/guard';
 import { GetCommentsDto } from 'src/comment/dto';
 import { CreateAccessHttpDto, UpdateAccessHttpDto } from 'src/access/dto';
+import { LimitDto } from 'src/global_dto';
 
 @Controller('trackers')
 export class TrackerController {
@@ -246,13 +247,41 @@ export class TrackerController {
   }
   @UseGuards(AuthGuard)
   @Post(':id/exports')
-  async getTrackerEventDataExported(
+  async createTrackerEventDataExported(
     @Param('id') id: string,
     @GetUser() user: TCachedUser,
     @Body() query: CreateTrackerExportsDto,
   ) {
     try {
-      const tracker = await this.trackerService.getTrackerEventDataExported(id, user, query);
+      const tracker = await this.trackerService.createTrackerEventDataExported(id, user, query);
+      return { data: tracker.data };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+  @UseGuards(AuthGuard)
+  @Get(':id/exports')
+  async getTrackerEventDataExported(
+    @Param('id') id: string,
+    @GetUser() user: TCachedUser,
+    @Query() query: LimitDto
+  ) {
+    try {
+      const { count, trackerExports } = await this.trackerService.getTrackerEventDataExported(id, user, query);
+      return { data: { count, trackerExports } };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+  @UseGuards(AuthGuard)
+  @Delete(':id/exports/:exportId')
+  async deleteTrackerEventDataExported(
+    @Param('id') id: string,
+    @Param('exportId') exportId: string,
+    @GetUser() user: TCachedUser,
+  ) {
+    try {
+      const tracker = await this.trackerService.deleteTrackerEventDataExported(id, exportId, user);
       return { data: tracker };
     } catch (error) {
       return { error: error };

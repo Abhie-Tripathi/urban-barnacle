@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { QueueActionOptions, TCachedUser, TrackerTypes } from 'src/utils/types';
 import { CommunicationService } from '../communication/communication.service';
 import { trackerExportDto } from 'src/communication/bull.dto';
+import { LimitDto } from 'src/global_dto';
 
 @Injectable()
 export class TrackerDataService {
@@ -215,8 +216,6 @@ export class TrackerDataService {
     inputData: any;
     trackerId: string;
   }, user: TCachedUser) {
-    console.log(data);
-
     return await this.prisma.export.create({
       data: {
         userId: user.id,
@@ -233,9 +232,57 @@ export class TrackerDataService {
       }
     })
   }
+  async getTrackerExport(trackerId: string, user: TCachedUser, query: LimitDto) {
+    return {
+      trackerExports: await this.prisma.export.findMany({
+        where: {
+          source: 'TRACKER',
+          sourceId: trackerId
+        }, select: {
+          id: true,
+          fileSize: true,
+          fileUrl: true,
+          exportOf: true,
+          createdAt: true,
+          status: true,
+          source: true,
+          sourceId: true,
+          user: {
+            select: {
+              firstname: true,
+              lastname: true,
+            }
+          }
+        },
+        take: query.limit,
+        skip: query.offset,
+        orderBy: { createdAt: 'desc' }
+      })
+    }
+  }
+  async getTrackerExportCount(trackerId: string, user: TCachedUser, query: LimitDto) {
+    return {
+      count: await this.prisma.export.count({
+        where: {
+          source: 'TRACKER',
+          sourceId: trackerId
+        },
+      })
+    }
+  }
   async createTrackerExportJob(
     body: trackerExportDto, userId: string
   ) {
     return await this.communicationService.createJobForBull(QueueActionOptions.SEND_TRACKER_EXPORT_MAIL, body, userId);
+  }
+  async deleteTrackerExport(exportId: string) {
+    return await this.prisma.export.update({
+      where: {
+        id: exportId
+      },
+      data: {
+        deleted: true
+      }
+    })
   }
 }

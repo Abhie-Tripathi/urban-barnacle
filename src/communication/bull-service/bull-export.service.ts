@@ -10,8 +10,8 @@ import { emailSenderAddress, exportCompleteMailTemplate, trackerAccessHtml, expo
 import * as fs from 'fs';
 import * as ExcelJS from 'exceljs';
 import { TrackerService } from 'src/tracker/tracker.service';
-import { View } from 'src/events/dto';
-import { EventTabs } from 'src/tracker/dto';
+import { Show, View } from 'src/events/dto';
+import { EventTabs, TrackerEventStatus } from 'src/tracker/dto';
 import { TCachedUser } from 'src/utils/types';
 
 interface JobDataForExport {
@@ -151,6 +151,8 @@ export class ExportWorkerClass {
                     const [past] = await Promise.all([
                         this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (past).xlsx`, jobData['email'], 'past', jobData.userData['id'], jobData.trackerId, jobData.source),
                     ]);
+                    // console.log("\n\n\n\n\n\n", { past });
+
                     if (past.error) {
                         bulkUpdateExport.push({
                             id: jobData['exportIdPast'],
@@ -164,7 +166,7 @@ export class ExportWorkerClass {
                             status: 'COMPLETED',
                             outputResponse: { ...past },
                             fileUrl: past.fileUrl,
-                            fileSize: past.fileSize
+                            fileSize: Number(past.fileSize)
                         })
                     }
                 }
@@ -210,16 +212,18 @@ export class ExportWorkerClass {
                         })
                     }
                 }
+                // console.log({ bulkUpdateExport });
+
                 await Promise.all(
-                    bulkUpdateExport.map(({ id, status, fileUrl, outputResponse }) =>
+                    bulkUpdateExport.map(({ id, status, fileUrl, outputResponse, fileSize }) =>
                         this.prisma.export.update({
                             where: { id },
-                            data: { status, fileUrl, outputData: outputResponse },
+                            data: { status, fileUrl, outputData: outputResponse, fileSize: fileSize !== undefined ? Number(fileSize) : undefined, },
                         })
                     )
                 );
             } else if (process.env.BACKEND === 'geo') {
-                console.log({ jobData });
+                // console.log({ jobData });
 
                 if (eventTypeData === 'all') {
                     const [business, social, unattended] = await Promise.all([
@@ -280,6 +284,8 @@ export class ExportWorkerClass {
                     const [business] = await Promise.all([
                         this.createTraclerExportForEventData(jobData, `${trackerData.name} ${trackerData.id} (business).xlsx`, jobData['email'], 'business', jobData.userData['id'], jobData.trackerId, jobData.source),
                     ]);
+                    // console.log(business);
+
                     if (business.error) {
                         bulkUpdateExport.push({
                             id: jobData['exportIdBusiness'],
@@ -386,7 +392,7 @@ export class ExportWorkerClass {
                     status = 'FAILED' as JobStatus;
                 }
             }
-            console.log((jobData));
+            // console.log((jobData));
             await this.prisma.requestedJob.update({
                 where: {
                     id: jobData['jobRequestId'],
@@ -417,7 +423,7 @@ export class ExportWorkerClass {
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet('Events');
             const mediaHost: string = process.env.MEDIA_STORAGE_DOMAIN || '';
-            worksheet.columns = [
+            let columns = [
                 { header: 'Event Id', key: 'id', width: 20 },
                 { header: 'Event Name', key: 'name', width: 30 },
                 { header: 'TenTimes Page', key: 'page', width: 30 },
@@ -449,10 +455,13 @@ export class ExportWorkerClass {
                 { header: 'Match Score (%)', key: 'matchScore', width: 20 },
             ];
             if (jobData['searchByEntity']) {
-                worksheet.columns.push({ header: 'Association', key: 'association', width: 30 },
+                columns = columns.concat([
+                    { header: 'Association', key: 'association', width: 30 },
                     { header: 'Association Match (%)', key: 'associationPercentage', width: 25 },
-                    { header: 'Competitor Association', key: 'competitorAssociation', width: 30 },)
+                    { header: 'Competitor Association', key: 'competitorAssociation', width: 30 },
+                ]);
             }
+            worksheet.columns = columns;
             let offset = 0;
             const limit = 30;
             let flagforCount: boolean = false;
@@ -468,10 +477,10 @@ export class ExportWorkerClass {
             } else {
                 totalCount = 0;
             }
-            console.log({ totalCount }, {
-                fullAccessUsers,
-                limitedAccessUsers
-            }, email);
+            // console.log({ totalCount }, {
+            //     fullAccessUsers,
+            //     limitedAccessUsers
+            // }, email);
 
             let linesWrittern: number = 0;
             while (offset < totalCount) {
@@ -479,8 +488,23 @@ export class ExportWorkerClass {
                 const showValues = 'basic,advance,insights,audience';
                 const response = await this.trackerService.getTrackerEvents(jobData['userData'], jobData['trackerId'],
                     {
-                        limit, offset, view: View.tracker, type: type as keyof typeof EventTabs
-                        , sortBy: ['score', 'title'],
+                        limit, offset, view: View.tracker, trackerEventStatus: type as keyof typeof TrackerEventStatus
+                        , sortBy: ['score', 'title'], show: [
+                            'branded',
+                            'series',
+                            'forecasted',
+                            'rating',
+                            'estimatedExhibitors',
+                            'trustScore',
+                            'audienceSpread',
+                            'audienceZone',
+                            'economicImpact',
+                            'rankings',
+                            'scores',
+                            'maturity',
+                            'frequency',
+                            'alerts',
+                        ] as unknown as Show[]
                     }, showValues) as {
                         count?: number;
                         events: {
