@@ -419,7 +419,7 @@ export class ExportWorkerClass {
         try {
             const dir = './public/export';
             fileName = fileName.replace(/\.csv$/, '.xlsx').replaceAll(' ', '-').replace(")", `)${Math.random()}`)
-            const excelFilePath = `${dir}/${fileName.replace(/\.csv$/, '.xlsx').replaceAll(' ', '-').replace(")", `)${Math.random()}`)}`;
+            const excelFilePath = `${dir}/${fileName.replace(/\.csv$/, '.xlsx').replaceAll(' ', '-')}`.toLowerCase();
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet('Events');
             const mediaHost: string = process.env.MEDIA_STORAGE_DOMAIN || '';
