@@ -311,12 +311,15 @@ export class AccountService {
         enquiries,
       ),
     ]);
-    const combinedEvents = [...productEvents, ...microServiceEvents];
+    const combinedEvents = this.filterEvents([...productEvents, ...microServiceEvents], {
+      event_active_gte,
+      event_active_lte,
+    });
     // event_active_gte || event_active_lte
-    //   ? this.filterEvents([...productEvents, ...microServiceEvents], {
-    //     event_active_gte,
-    //     event_active_lte,
-    //   })
+    // ? this.filterEvents([...productEvents, ...microServiceEvents], {
+    //   event_active_gte,
+    //   event_active_lte,
+    // })
     //   :
     const enquiryCount = combinedEvents.length;
     const eventMap = new Map<string, any>();
@@ -461,8 +464,8 @@ export class AccountService {
     const lte = event_active_lte ? new Date(event_active_lte) : null;
 
     let filtered = events.filter((event) => {
-      const start = new Date(event.eventData.startDate);
-      const end = new Date(event.eventData.endDate);
+      const start = new Date(event.eventData.startDateTime);
+      const end = new Date(event.eventData.startDateTime);
 
       if (lte && !gte) {
         // Case 1: Only lte (past events)
