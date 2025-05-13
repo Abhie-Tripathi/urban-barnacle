@@ -47,6 +47,7 @@ export class ExportWorkerClass {
     @Process('exportTrackerEventData')
     async handleEmailJob(job: Job<JobDataForExport>) {
         const jobData = job.data;
+        const bulkUpdateExport: { id?: string; status: JobStatus; outputResponse?: object; fileUrl?: string, fileSize?: Number }[] = []
         try {
             jobData['email'] = jobData.userData.email;
             const eventTypeData: string = jobData['type']
@@ -89,7 +90,6 @@ export class ExportWorkerClass {
                                 : undefined;
             jobData['searchByEntity'] = searchByEntity;
             let flagForExportStatus: number = 0;
-            const bulkUpdateExport: { id?: string; status: JobStatus; outputResponse?: object; fileUrl?: string, fileSize?: Number }[] = []
             if (process.env.BACKEND === 'gtm') {
                 if (eventTypeData === 'all') {
                     const [past, active, newEvents] = await Promise.all([
@@ -213,15 +213,6 @@ export class ExportWorkerClass {
                     }
                 }
                 // console.log({ bulkUpdateExport });
-
-                await Promise.all(
-                    bulkUpdateExport.map(({ id, status, fileUrl, outputResponse, fileSize }) =>
-                        this.prisma.export.update({
-                            where: { id },
-                            data: { status, fileUrl, outputData: outputResponse, fileSize: fileSize !== undefined ? Number(fileSize) : undefined, },
-                        })
-                    )
-                );
             } else if (process.env.BACKEND === 'geo') {
                 // console.log({ jobData });
 
@@ -405,6 +396,14 @@ export class ExportWorkerClass {
         } catch (error) {
             console.log(JSON.stringify(error));
             console.log((error));
+            await Promise.all(
+                bulkUpdateExport.map(({ id, status, fileUrl, outputResponse, fileSize }) =>
+                    this.prisma.export.update({
+                        where: { id },
+                        data: { status: 'FAILED' },
+                    })
+                )
+            );
             const data = await this.prisma.requestedJob.update({
                 where: {
                     id: job.data.jobRequestId,
