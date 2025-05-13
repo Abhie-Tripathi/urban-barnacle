@@ -44,6 +44,7 @@ import { EnquiryResponseSchema } from 'src/enquiry/dto/response';
 import { getNameFromEmail } from 'src/utils';
 import { QueryDto, View } from 'src/events/dto';
 import { EventsService } from 'src/events/events.service';
+import { SharedService } from 'src/shared/shared.service';
 
 @Injectable()
 export class AccountService {
@@ -54,6 +55,7 @@ export class AccountService {
     private readonly userDataService: UserDataService,
     private readonly intentDataService: IntentDataService,
     private readonly eventService: EventsService,
+    private readonly sharedService: SharedService,
   ) {}
 
   async getAccountCompany(user: TCachedUser) {
@@ -310,7 +312,7 @@ export class AccountService {
     }));
   }
   async getAccountMemberShipStatus(currentSubscriptionId: string) {
-    return await this.accountDataService.getAccountMemberShipStatus(
+    return await this.sharedService.getAccountMemberShipStatus(
       currentSubscriptionId,
     );
   }
