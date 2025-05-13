@@ -42,7 +42,7 @@ export class TrackerService {
     private readonly configService: ConfigService,
     private readonly accountDataService: AccountDataService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) {}
+  ) { }
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const nonEmptyParams = getNonEmptyParams(data.filterValues);
@@ -62,6 +62,7 @@ export class TrackerService {
       accountId: user.accountId,
       sourceEntity: 'TRACKER',
       sourceEntityId: tracker.id,
+      flagForEmail: true
     });
     this.getTrackerResponse(
       user,
@@ -100,9 +101,9 @@ export class TrackerService {
           : undefined;
     tracker.filterValues = tracker.filterValues
       ? {
-          ...(tracker.filterValues as Record<string, any>),
-          searchByEntity,
-        }
+        ...(tracker.filterValues as Record<string, any>),
+        searchByEntity,
+      }
       : { searchByEntity };
 
     const savedEventsCount =
@@ -133,14 +134,18 @@ export class TrackerService {
       query.refresh
     ) {
       if (!tracker.type.startsWith('TR_')) {
-        groupedEventsCount = await this.getGroupedEventsCount(
-          {
-            ...tracker.filterValues,
-            createdAt: lastActive.last_active_gte,
-          } as CountQueryDto,
-          groupBy ? groupBy : undefined,
-          // groupBy,
-        );
+        try {
+          groupedEventsCount = await this.getGroupedEventsCount(
+            {
+              ...tracker.filterValues,
+              createdAt: lastActive.last_active_gte,
+            } as CountQueryDto,
+            groupBy ? groupBy : undefined,
+            // groupBy,
+          );
+        } catch (error) {
+
+        }
       }
 
       filterValues = await this.sharedService.convertIdParamsToSlug(
@@ -172,15 +177,15 @@ export class TrackerService {
       lastModifiedBy:
         tracker.modifiedByUser && tracker.modifiedByUser.id
           ? {
-              id: tracker.modifiedByUser.id,
-              name: getNameFromEmail(
-                tracker.modifiedByUser.email,
-                tracker.modifiedByUser.firstname,
-                tracker.modifiedByUser.lastname,
-              ),
-              email: tracker.modifiedByUser.email,
-              imageUrl: tracker.modifiedByUser.imageUrl,
-            }
+            id: tracker.modifiedByUser.id,
+            name: getNameFromEmail(
+              tracker.modifiedByUser.email,
+              tracker.modifiedByUser.firstname,
+              tracker.modifiedByUser.lastname,
+            ),
+            email: tracker.modifiedByUser.email,
+            imageUrl: tracker.modifiedByUser.imageUrl,
+          }
           : null,
     };
     return {
@@ -1008,6 +1013,7 @@ export class TrackerService {
         token: hash,
         expiry: expiry,
         redirectDomain: data.redirectDomain,
+        flagForEmail: data.flagForEmail
       },
       {
         trackerName: tracker.name,

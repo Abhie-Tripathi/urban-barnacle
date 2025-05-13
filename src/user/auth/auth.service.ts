@@ -719,9 +719,9 @@ export class AuthService {
       )[0];
 
       if (account) {
-        throw new HttpException('User already exists', HttpStatus.CONFLICT);
-      }
-      await this.accountDataService.addAccountUser(company.accountId, user.id);
+        // throw new HttpException('User already exists', HttpStatus.CONFLICT);
+      } else
+        await this.accountDataService.addAccountUser(company.accountId, user.id);
     } else {
       if (!company) {
         const accountDefault = {};

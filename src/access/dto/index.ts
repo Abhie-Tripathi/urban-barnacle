@@ -21,9 +21,10 @@ const CreateAccessHttpSchema = z.object({
       },
     )
     .transform((val) => val.toUpperCase() as AccessType),
+  flagForEmail: z.boolean().default(true)
 });
 
-export class CreateAccessHttpDto extends createZodDto(CreateAccessHttpSchema) {}
+export class CreateAccessHttpDto extends createZodDto(CreateAccessHttpSchema) { }
 
 const createAccessSchema = CreateAccessHttpSchema.extend({
   sourceEntity: z.nativeEnum(AccessSourceEntity),
@@ -33,22 +34,23 @@ const createAccessSchema = CreateAccessHttpSchema.extend({
   redirectQueryParams: z.string().optional(),
   token: z.string().optional(),
   expiry: z.date().optional(),
+  flagForEmail: z.boolean().default(true)
 });
 
-export class CreateAccessDto extends createZodDto(createAccessSchema) {}
+export class CreateAccessDto extends createZodDto(createAccessSchema) { }
 
 const UpdateAccessHttpSchema = CreateAccessHttpSchema.pick({
   accessType: true,
 });
 
-export class UpdateAccessHttpDto extends createZodDto(UpdateAccessHttpSchema) {}
+export class UpdateAccessHttpDto extends createZodDto(UpdateAccessHttpSchema) { }
 
 const UpdateAccessSchema = UpdateAccessHttpSchema.partial().extend({
   id: z.string().uuid(),
   deleted: z.boolean().optional(),
 });
 
-export class UpdateAccessDto extends createZodDto(UpdateAccessSchema) {}
+export class UpdateAccessDto extends createZodDto(UpdateAccessSchema) { }
 
 // const GetAccessHttpSchema = LimitSchema.extend({
 //   accessReceiverId: z.string().uuid().optional(),
@@ -78,7 +80,7 @@ const GetAccessSchema = LimitSchema.extend({
     .optional(),
 });
 
-export class GetAccessDto extends createZodDto(GetAccessSchema) {}
+export class GetAccessDto extends createZodDto(GetAccessSchema) { }
 
 const GetAccessCountSchema = GetAccessSchema.omit({
   show: true,
@@ -86,4 +88,4 @@ const GetAccessCountSchema = GetAccessSchema.omit({
   offset: true,
 });
 
-export class GetAccessCountDto extends createZodDto(GetAccessCountSchema) {}
+export class GetAccessCountDto extends createZodDto(GetAccessCountSchema) { }
