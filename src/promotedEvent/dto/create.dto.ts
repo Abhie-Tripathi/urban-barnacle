@@ -71,7 +71,7 @@ export const EventDetailsSchema = z.object({
     return true;
   }
 }, {
-  message: 'event_type is required when venue_id is present',
+  message: 'event_type is required.',
   path: ['event_type'],
 }).refine((data) => {
   if (data.start_date && data.end_date) {
