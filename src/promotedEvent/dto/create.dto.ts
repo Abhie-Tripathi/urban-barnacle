@@ -17,42 +17,6 @@ enum PromoteEventFormat {
   Virtual,
   Hybrid
 }
-export const eventDto = z.strictObject({
-  name: z.string(),
-  data: z.string(),
-  logoUrl: z.string().optional(),
-  // interest: z.string().optional(),
-  // sourceId: z.string().optional(),
-  referenceId: z.string().optional(),
-  sourceModule: z.nativeEnum(EventSourceModule),
-  note: z.string().optional(),
-  type: z.nativeEnum(EventType).default('PARENT'),
-  widgetId: z.string().optional(),
-  eventId: z.string().optional(),
-  capacity: z.string().optional(),
-  waitlisting: z.string().optional(),
-  registration: z.string().optional(),
-  approval: z.string().optional(),
-  interest: z.nativeEnum(Interest).optional()
-});
-
-export class CreateEventDto extends createZodDto(eventDto) { }
-export const UpdateeventDto = z.strictObject({
-  id: z.string(),
-  name: z.string().optional(),
-  data: z.string().optional(),
-  logoUrl: z.string().optional(),
-  interest: z.string().optional(),
-  sourceId: z.string().optional(),
-  note: z.string().optional(),
-  capacity: z.string().optional(),
-  waitlisting: z.string().optional(),
-  registration: z.string().optional(),
-  approval: z.string().optional(),
-  maxCapacity: z.string().optional(),
-});
-
-export class UpdateEventDto extends createZodDto(UpdateeventDto) { }
 export const EventDetailsSchema = z.object({
   start_date: z.string(),
   end_date: z.string(),
@@ -118,6 +82,87 @@ export const EventDetailsSchema = z.object({
   message: 'start_date must be less than or equal to end_date',
   path: ['start_date'],
 });
+export const eventDto = z.strictObject({
+  name: z.string(),
+  data: z.string(),
+  logoUrl: z.string().optional(),
+  // interest: z.string().optional(),
+  // sourceId: z.string().optional(),
+  referenceId: z.string().optional(),
+  sourceModule: z.nativeEnum(EventSourceModule),
+  note: z.string().optional(),
+  type: z.nativeEnum(EventType).default('PARENT'),
+  widgetId: z.string().optional(),
+  eventId: z.string().optional(),
+  capacity: z.string().optional(),
+  waitlisting: z.string().optional(),
+  registration: z.string().optional(),
+  approval: z.string().optional(),
+  interest: z.nativeEnum(Interest).optional()
+}).superRefine((val, ctx) => {
+  if (!val.data) return;
+
+  try {
+    const parsed = JSON.parse(val.data);
+    const result = EventDetailsSchema.safeParse(parsed);
+    if (!result.success) {
+      result.error.errors.forEach(err => {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['data', ...(err.path ?? [])],
+          message: err.message,
+        });
+      });
+    }
+  } catch (e) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['data'],
+      message: 'Invalid JSON format',
+    });
+  }
+});
+
+export class CreateEventDto extends createZodDto(eventDto) { }
+export const UpdateeventDto = z.strictObject({
+  id: z.string(),
+  name: z.string().optional(),
+  data: z.string().optional(),
+  logoUrl: z.string().optional(),
+  interest: z.string().optional(),
+  sourceId: z.string().optional(),
+  note: z.string().optional(),
+  capacity: z.string().optional(),
+  waitlisting: z.string().optional(),
+  registration: z.string().optional(),
+  approval: z.string().optional(),
+  maxCapacity: z.string().optional(),
+}).superRefine((val, ctx) => {
+  if (!val.data) return;
+
+  try {
+    const parsed = JSON.parse(val.data);
+    const result = EventDetailsSchema.safeParse(parsed);
+    if (!result.success) {
+      result.error.errors.forEach(err => {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['data', ...(err.path ?? [])],
+          message: err.message,
+        });
+      });
+    }
+  } catch (e) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['data'],
+      message: 'Invalid JSON format',
+    });
+  }
+});;
+
+export class UpdateEventDto extends createZodDto(UpdateeventDto) { }
+
 export const eventspeakerDto = z.strictObject({
   eventId: z.string(),
   data: z.string(),
