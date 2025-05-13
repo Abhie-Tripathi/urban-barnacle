@@ -418,8 +418,8 @@ export class ExportWorkerClass {
     async createTraclerExportForEventData(jobData: any, fileName: string, email: string, type: string, userId: string, sourceId: string, sourceModule: AttachmentSourceModule) {
         try {
             const dir = './public/export';
-            fileName = fileName.replace(/\.csv$/, '.xlsx').replaceAll(' ', '-').replace(")", `)${Math.random()}`)
-            const excelFilePath = `${dir}/${fileName.replace(/\.csv$/, '.xlsx').replaceAll(' ', '-')}`.toLowerCase();
+            fileName = fileName.replace(/\.csv$/, '.xlsx').replaceAll(' ', '-').replace(")", `)${Math.random()}`).toLowerCase();
+            const excelFilePath = `${dir}/${fileName.replace(/\.csv$/, '.xlsx').replaceAll(' ', '-')}`;
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet('Events');
             const mediaHost: string = process.env.MEDIA_STORAGE_DOMAIN || '';
