@@ -449,14 +449,14 @@ export class AccountService {
     filters: {
       event_active_gte?: string;
       event_active_lte?: string;
-      sortBy?: 'startDate' | 'endDate';
+      sortBy?: 'startDateTime' | 'endDateTime' | 'createdAt';
       sortOrder?: 'asc' | 'desc';
     },
   ): any[] {
     const {
       event_active_gte,
       event_active_lte,
-      sortBy = 'startDate',
+      sortBy = 'createdAt',
       sortOrder = 'desc',
     } = filters;
 
@@ -482,17 +482,17 @@ export class AccountService {
         return end >= gte && start <= lte;
       }
 
-      return start >= end; // No filters
+      return true; // No filters
     });
 
-    // filtered.sort((a, b) => {
-    //   const dateA = new Date(a.eventData[sortBy]);
-    //   const dateB = new Date(b.eventData[sortBy]);
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.eventData[sortBy]);
+      const dateB = new Date(b.eventData[sortBy]);
 
-    //   return sortOrder === 'asc'
-    //     ? dateA.getTime() - dateB.getTime()
-    //     : dateB.getTime() - dateA.getTime();
-    // });
+      return sortOrder === 'asc'
+        ? dateA.getTime() - dateB.getTime()
+        : dateB.getTime() - dateA.getTime();
+    });
 
     return filtered;
   }
