@@ -582,7 +582,7 @@ export class ExportWorkerClass {
                 create: {
                     fileName: fileName,
                     fileType: 'EXCEL',
-                    fileSize: Number(fileSizeInKB),
+                    fileSize: Number(fileSizeInKB || 0),
                     fileUrl: (mediaHost + '/public/' + fileName).replaceAll(' ', '-'),
                     createdByUser: { connect: { id: userId } },
                     sourceModule: sourceModule,
