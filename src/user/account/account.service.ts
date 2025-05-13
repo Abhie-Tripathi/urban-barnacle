@@ -250,7 +250,7 @@ export class AccountService {
       upvotedBy,
       eventId,
     } = query;
-    const [enquiries, enquiryEvents] = await Promise.all([
+    const [enquiries] = await Promise.all([
       this.enquiryService.getEnquiries({
         accountId: user.accountId,
         userId: user.id,
@@ -260,17 +260,17 @@ export class AccountService {
         type: type,
         ...(eventId ? { eventId: eventId } : {}),
       }),
-      await this.enquiryService.getEnquiries({
-        accountId: user.accountId,
-        userId: user.id,
-        initiatedBy: initiatedBy,
-        upvotedBy: upvotedBy,
-        status: status,
-        type: type,
-        limit,
-        offset,
-        ...(eventId ? { eventId: eventId } : {}),
-      }),
+      // await this.enquiryService.getEnquiries({
+      //   accountId: user.accountId,
+      //   userId: user.id,
+      //   initiatedBy: initiatedBy,
+      //   upvotedBy: upvotedBy,
+      //   status: status,
+      //   type: type,
+      //   limit,
+      //   offset,
+      //   ...(eventId ? { eventId: eventId } : {}),
+      // }),
     ]);
     console.log('start=>1');
     if (enquiries.length === 0) {
@@ -282,12 +282,12 @@ export class AccountService {
     console.log('start=>2');
     let eventIds = enquiries.map((enquiry) => enquiry.eventId);
     // const enquiryCount = eventIds.length;
-    const selectedEventIds: string[] = enquiryEvents.map(
-      (enquiry) => enquiry.eventId,
-    );
-    if (!event_active_gte || !event_active_lte || !name) {
-      eventIds = selectedEventIds;
-    }
+    // const selectedEventIds: string[] = enquiry.map(
+    //   (enquiry) => enquiry.eventId,
+    // );
+    // if (!event_active_gte || !event_active_lte) {
+    //   eventIds = selectedEventIds;
+    // }
     const [productEvents, microServiceEvents] = await Promise.all([
       this.getEventFromProductDb(
         user,
@@ -295,7 +295,7 @@ export class AccountService {
         name,
         event_active_gte,
         event_active_lte,
-        limit,
+        eventIds.length,
         0,
         showValues,
         enquiries,
@@ -305,7 +305,7 @@ export class AccountService {
         name,
         event_active_gte,
         event_active_lte,
-        limit,
+        eventIds.length,
         0,
         showValues,
         enquiries,
@@ -353,13 +353,13 @@ export class AccountService {
     console.log(
       'selectedEventIds=>',
       { productEvents },
-      { selectedEventIds },
+      // { selectedEventIds },
       { eventMap },
       { microServiceEvents },
       { selectedEnquiries }
     );
     const transformedEnquires = await Promise.all(
-      selectedEnquiries.map(async (enquiry) => {
+      selectedEnquiries.slice(offset, limit).map(async (enquiry) => {
         const [interestedCount, activityCount, myActivity] = await Promise.all([
           this.intentDataService.getUserEventInterestCount(
             GetUserEventInterestCountSchema.parse({
@@ -422,7 +422,7 @@ export class AccountService {
         });
         console.log(
           'selectedEventIds=>',
-          { selectedEventIds },
+          // { selectedEventIds },
           { eventMap },
           { microServiceEvents },
           { selectedEnquiries },
