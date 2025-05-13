@@ -213,6 +213,14 @@ export class ExportWorkerClass {
                     }
                 }
                 // console.log({ bulkUpdateExport });
+                await Promise.all(
+                    bulkUpdateExport.map(({ id, status, fileUrl, outputResponse }) =>
+                        this.prisma.export.update({
+                            where: { id },
+                            data: { status, fileUrl, outputData: outputResponse },
+                        })
+                    )
+                );
             } else if (process.env.BACKEND === 'geo') {
                 // console.log({ jobData });
 
