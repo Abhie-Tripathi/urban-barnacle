@@ -1,7 +1,22 @@
 import { EventSourceModule, EventType, Interest } from '@prisma/client';
 import { createZodDto } from 'nestjs-zod';
+import { EntryType } from 'src/events/dto';
 import { z } from 'zod';
 
+
+export enum PromoteEventType {
+  Tradeshow,
+  Conference,
+  Workshop,
+  Social,
+  Business,
+  Unattented
+}
+enum PromoteEventFormat {
+  "In-person",
+  Virtual,
+  Hybrid
+}
 export const eventDto = z.strictObject({
   name: z.string(),
   data: z.string(),
@@ -60,10 +75,10 @@ export const EventDetailsSchema = z.object({
   venue_id: z.string().optional(),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
-  format: z.string(),
+  format: z.string().refine((val) => val.split(',').every((item) => item in PromoteEventFormat)),
   booth_number: z.string().optional(),
   participationType: z.string().optional(),
-  event_type: z.string(),
+  event_type: z.string().refine((val) => val.split(',').every((item) => item in PromoteEventType)),
   category: z.string().optional(),
   tags: z.string().optional(),
   customizationData: z.string().optional(),
@@ -87,6 +102,21 @@ export const EventDetailsSchema = z.object({
 }, {
   message: 'venue_name is required when venue_id is present',
   path: ['venue_name'],
+}).refine(data => {
+  if (data.event_type) {
+    return true;
+  }
+}, {
+  message: 'event_type is required when venue_id is present',
+  path: ['event_type'],
+}).refine((data) => {
+  if (data.start_date && data.end_date) {
+    return new Date(data.start_date) <= new Date(data.end_date);
+  }
+  return true;
+}, {
+  message: 'start_date must be less than or equal to end_date',
+  path: ['start_date'],
 });
 export const eventspeakerDto = z.strictObject({
   eventId: z.string(),

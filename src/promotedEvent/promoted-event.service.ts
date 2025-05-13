@@ -1081,7 +1081,7 @@ FROM (
       if (query.views === 'suggestion') {
         return await this.getEventSuggestion(query, user);
       }
-      let where: string = `  and "sourceModule"= '${query.source}' `;
+      let where: string = `  and e."sourceModule"= '${query.source}' `;
       if (query.id) {
         where += ` and e.id in ('${query.id.split("','")}') `;
       }
@@ -1093,7 +1093,7 @@ FROM (
         }
       }
       if (query.eventIds) {
-        where += ` and id in ('${query.eventIds.join("','")}')  `;
+        where += ` and e.id in ('${query.eventIds.join("','")}')  `;
       }
       if (query.event_type) {
         where += ` and lower(e.data->>'event_type')
@@ -1127,7 +1127,7 @@ FROM (
 )`;
       }
       if (!query.sortBy && !query.sortType) {
-        query.sortBy = ` "createdAt" `;
+        query.sortBy = ` e."createdAt" `;
         query.sortType = ' desc ';
       } else {
         query.sortBy = ` e.data->>'${query.sortBy}' `;
@@ -1163,6 +1163,7 @@ FROM (
           query.sortType ?? 'asc',
           query.limit + '',
           query.offset + '',
+          query.source
         ),
       ]);
       // if (subEentId.length > 0) {

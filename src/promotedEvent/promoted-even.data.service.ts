@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { EventType, Prisma } from '@prisma/client';
+import { EventSourceModule, EventType, Prisma } from '@prisma/client';
 import { CommunicationService } from 'src/communication/communication.service';
 import { EventCancelDataSchema } from '../../src/communication/bull.dto';
 import { QueueActionOptions } from 'src/utils/types';
@@ -129,14 +129,25 @@ export class PromotedEventsDataService {
     sortType: string,
     limit: string,
     offset: string,
+    source: EventSourceModule = 'PROMOTE'
   ) {
     const data = (await this.prisma.$queryRaw(
       Prisma.raw(
         `
               SELECT e.id, e.name,e.type, e.data,e.approval, e.capacity, e.registration, e.waitlisting,e."createdAt" ,e."referenceId"
+               ${source === 'COORDINATE' ? `
+                ,u.id user_id,
+                COALESCE(u.firstname, '') || ' ' || COALESCE(u.lastname, '') user_name,
+                a."fileUrl" user_profile_pic
+               ` : ''}
                FROM "Event" e
+               ${source === 'COORDINATE' ? `
+               left JOIN "User" u on e."createdBy" = u.id
+               left JOIN "Attachment" a on u."profileImageId" = a.id::TEXT
+               ` : ''}
+              
             where e.deleted = false  and (e."parentEventId" is null OR e."parentEventId"::TEXT ='')
-        and e."accountId" = '${userAccountId}'
+        and e."accountId" = '${userAccountId}' 
           ${where}
           order by ${sortBy}  ${sortType}
           limit ${limit}  offset ${offset};`,
@@ -147,7 +158,10 @@ export class PromotedEventsDataService {
       data: Record<any, any>;
       createdAt: Date;
       type: EventType;
-      referenceId?: string
+      referenceId?: string,
+      user_id?: string;
+      user_name?: string;
+      user_profile_pic?: string;
     }[];
     return data;
   }

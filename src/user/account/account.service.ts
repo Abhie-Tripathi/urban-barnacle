@@ -183,6 +183,11 @@ export class AccountService {
               displayName: `${event.data['venue_name'] ? event.data['venue_name'] + ',' : ''}${event.data['location_city'] ? event.data['location_city'] + ',' : ''}${event.data['location_country'] ? event.data['location_country'] : ''}`,
             },
           },
+          createdBy: {
+            userId: event['user_id'],
+            userName: event['user_name'],
+            userProfilePicture: event['user_profile_pic']
+          },
           isProductEvent: true,
         };
       })
@@ -423,13 +428,13 @@ export class AccountService {
           activityCounts.total += curr._count.id;
           activityCounts[curr.activitySubType.toLowerCase()] = curr._count.id;
         });
-        console.log(
-          'selectedEventIds=>',
-          // { selectedEventIds },
-          { eventMap },
-          { microServiceEvents },
-          { selectedEnquiries },
-        );
+        // console.log(
+        //   'selectedEventIds=>',
+        //   // { selectedEventIds },
+        //   { eventMap },
+        //   { microServiceEvents },
+        //   { selectedEnquiries },
+        // );
         return EnquiryResponseSchema.parse({
           ...enquiry,
           activityCount: activityCounts,
