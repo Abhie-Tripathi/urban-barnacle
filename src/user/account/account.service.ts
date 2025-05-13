@@ -285,9 +285,9 @@ export class AccountService {
     const selectedEventIds: string[] = enquiryEvents.map(
       (enquiry) => enquiry.eventId,
     );
-    // if (!event_active_gte || !event_active_lte) {
-    //   eventIds = selectedEventIds;
-    // }
+    if (!event_active_gte || !event_active_lte || !name) {
+      eventIds = selectedEventIds;
+    }
     const [productEvents, microServiceEvents] = await Promise.all([
       this.getEventFromProductDb(
         user,
