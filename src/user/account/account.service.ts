@@ -63,7 +63,7 @@ export class AccountService {
     private readonly eventService: EventsService,
     private readonly sharedService: SharedService,
     private readonly promoteEventService: PromotedEventsService,
-  ) {}
+  ) { }
 
   async getAccountCompany(user: TCachedUser) {
     const company = await this.companyDataService.getCompany({
@@ -171,9 +171,9 @@ export class AccountService {
                 event.data['venue_longitude'] || event.data['longitude'],
               ...(event.data['location_city_id']
                 ? {
-                    cityId: event.data['location_city_id'],
-                    cityName: event.data['location_city'],
-                  }
+                  cityId: event.data['location_city_id'],
+                  cityName: event.data['location_city'],
+                }
                 : {}),
               countryIso: event.data['location_country_iso_code'],
               stateId: event.data['location_state_id'],
@@ -311,13 +311,13 @@ export class AccountService {
         enquiries,
       ),
     ]);
-    const combinedEvents =
-      event_active_gte || event_active_lte
-        ? this.filterEvents([...productEvents, ...microServiceEvents], {
-            event_active_gte,
-            event_active_lte,
-          })
-        : [...productEvents, ...microServiceEvents];
+    const combinedEvents = [...productEvents, ...microServiceEvents];
+    // event_active_gte || event_active_lte
+    //   ? this.filterEvents([...productEvents, ...microServiceEvents], {
+    //     event_active_gte,
+    //     event_active_lte,
+    //   })
+    //   :
     const eventMap = new Map<string, any>();
     combinedEvents.forEach((event) => {
       eventMap.set(event.eventId, event);
@@ -355,7 +355,7 @@ export class AccountService {
       { selectedEventIds },
       { eventMap },
       { microServiceEvents },
-      { selectedEnquiries },
+      { selectedEnquiries }
     );
     const transformedEnquires = await Promise.all(
       selectedEnquiries.map(async (enquiry) => {
@@ -386,15 +386,15 @@ export class AccountService {
         ]);
         const owner = enquiry.owner
           ? {
-              id: enquiry.owner.id,
-              name: getNameFromEmail(
-                enquiry.owner.email,
-                enquiry.owner.firstname,
-                enquiry.owner.lastname,
-              ),
-              email: enquiry.owner.email,
-              imageUrl: enquiry.owner.imageUrl,
-            }
+            id: enquiry.owner.id,
+            name: getNameFromEmail(
+              enquiry.owner.email,
+              enquiry.owner.firstname,
+              enquiry.owner.lastname,
+            ),
+            email: enquiry.owner.email,
+            imageUrl: enquiry.owner.imageUrl,
+          }
           : null;
         const interestCounts = {
           total: 0,
@@ -630,9 +630,9 @@ export class AccountService {
       }),
       params.groupBy === UserInterestsGroupBy.status
         ? this.enquiryService.getEnquiryCount({
-            accountId: user.accountId,
-            groupBy: params.groupBy,
-          })
+          accountId: user.accountId,
+          groupBy: params.groupBy,
+        })
         : null,
     ]);
     let response = {};
@@ -668,11 +668,11 @@ export class AccountService {
         };
         const groupedInterestsByStatus = enquiryCount
           ? (
-              enquiryCount as Array<{ status: string; _count: { id: number } }>
-            ).reduce((acc, curr) => {
-              acc[curr.status.toLowerCase()] = curr._count.id;
-              return acc;
-            }, defaultStatusCount)
+            enquiryCount as Array<{ status: string; _count: { id: number } }>
+          ).reduce((acc, curr) => {
+            acc[curr.status.toLowerCase()] = curr._count.id;
+            return acc;
+          }, defaultStatusCount)
           : null;
         response = {
           ...groupedInterestsByStatus,
