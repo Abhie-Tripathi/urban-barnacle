@@ -482,7 +482,7 @@ export class AccountService {
         return end >= gte && start <= lte;
       }
 
-      return true; // No filters
+      return start >= end; // No filters
     });
 
     // filtered.sort((a, b) => {
