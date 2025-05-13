@@ -207,7 +207,7 @@ export class AccountService {
       active_lte: event_active_lte,
       limit: limit,
       offset: offset,
-      showValues: showValues,
+      showValues: 'basic',
     })) as any;
     const enquiryDataMappedToeventId: object = {};
     enquiries.map((val) => {
@@ -224,7 +224,7 @@ export class AccountService {
         return {
           ...enquiry,
           eventData: {
-            ...event.basic,
+            ...event?.basic,
           },
           isProductEvent: false,
         };
@@ -359,7 +359,7 @@ export class AccountService {
       { selectedEnquiries }
     );
     const transformedEnquires = await Promise.all(
-      selectedEnquiries.slice(offset, limit+offset).map(async (enquiry) => {
+      selectedEnquiries.slice(offset, limit + offset).map(async (enquiry) => {
         const [interestedCount, activityCount, myActivity] = await Promise.all([
           this.intentDataService.getUserEventInterestCount(
             GetUserEventInterestCountSchema.parse({
