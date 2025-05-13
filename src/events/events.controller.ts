@@ -136,7 +136,6 @@ export class EventsController {
       };
     }
   }
-
   @UseGuards(AuthGuard)
   @Get(':id/pocs')
   async getEventPocs(@Param('id') id: string, @Query() query: SortingDto) {

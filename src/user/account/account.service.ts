@@ -14,7 +14,12 @@ import {
 import { GetUserHttpDto } from '../dto';
 import { UserService } from '../user.service';
 import { UserDataService } from '../user.data.service';
-import { EnquiryActivityType, EnquiryStatus, Prisma } from '@prisma/client';
+import {
+  Enquiry,
+  EnquiryActivityType,
+  EnquiryStatus,
+  Prisma,
+} from '@prisma/client';
 import {
   AccountConfigDto,
   FilterConfigurationDto,
@@ -45,6 +50,7 @@ import { getNameFromEmail } from 'src/utils';
 import { QueryDto, View } from 'src/events/dto';
 import { EventsService } from 'src/events/events.service';
 import { SharedService } from 'src/shared/shared.service';
+import { PromotedEventsService } from 'src/promotedEvent/promoted-event.service';
 
 @Injectable()
 export class AccountService {
@@ -56,6 +62,7 @@ export class AccountService {
     private readonly intentDataService: IntentDataService,
     private readonly eventService: EventsService,
     private readonly sharedService: SharedService,
+    private readonly promoteEventService: PromotedEventsService,
   ) {}
 
   async getAccountCompany(user: TCachedUser) {
@@ -105,6 +112,126 @@ export class AccountService {
     const events = await this.eventService.getAllEvents(eventParams, false);
     return { ...events, count: count.length };
   }
+  async getEventFromProductDb(
+    user: TCachedUser,
+    eventIds: string[],
+    name: string | undefined,
+    event_active_gte: string | undefined,
+    event_active_lte: string | undefined,
+    limit: number | undefined,
+    offset: number | undefined,
+    showValues: string,
+    enquiries: Enquiry[],
+  ) {
+    const events = (await this.promoteEventService.getEvent(user, {
+      limit: eventIds.length,
+      offset: 0,
+      source: 'COORDINATE',
+      ...(name ? { name: name } : {}),
+      ...(event_active_lte && event_active_gte
+        ? { start_date: event_active_gte, end_date: event_active_lte }
+        : event_active_lte
+          ? { expired: new Date().toISOString() }
+          : event_active_gte
+            ? { upcoming: 'true' }
+            : {}),
+      eventIds,
+    })) as unknown as { data: { totalCount: number; data: any[] } };
+    const enquiryDataMappedToeventId: object = {};
+    enquiries.map((val) => {
+      enquiryDataMappedToeventId[val.eventId] = val;
+    });
+    const selectedEnquiries = eventIds
+      .map((eventId, index) => {
+        // const selectedEnquiries = events.events.map((event) => {
+        const event = events.data.data.find((event) => event.id === eventId);
+        const enquiry = enquiryDataMappedToeventId[eventId];
+        if (!event || !enquiry) {
+          return null;
+        }
+        return {
+          ...enquiry,
+          eventData: {
+            id: eventId,
+            name: event['name'],
+            primaryEventType: event.data['event_type']?.toLowerCase() || null,
+            format: event.data['format']?.toLowerCase() || null,
+            description: event.data['description'] || null,
+            startDateTime: event.data['start_date'] || null,
+            endDateTime: event.data['end_date'] || null,
+            logoUrl: event.data['logoUrl'] || null,
+            rating: null,
+            organizer: null,
+            eventLocation: {
+              id: event.data['venue_id'] || event.data['location_city_id'],
+              name: event.data['venue_name'] || event.data['location_city'],
+              locationType: event.data['venue_id'] ? 'VENUE' : 'CITY',
+              latitude: event.data['venue_latitude'] || event.data['latitude'],
+              longitude:
+                event.data['venue_longitude'] || event.data['longitude'],
+              ...(event.data['location_city_id']
+                ? {
+                    cityId: event.data['location_city_id'],
+                    cityName: event.data['location_city'],
+                  }
+                : {}),
+              countryIso: event.data['location_country_iso_code'],
+              stateId: event.data['location_state_id'],
+              stateName: event.data['location_state'],
+              countryId: event.data['location_country_id'],
+              countryName: event.data['location_country'],
+              displayName: `${event.data['venue_name'] ? event.data['venue_name'] + ',' : ''}${event.data['location_city'] ? event.data['location_city'] + ',' : ''}${event.data['location_country'] ? event.data['location_country'] : ''}`,
+            },
+          },
+          isProductEvent: true,
+        };
+      })
+      .filter((item) => item !== null);
+    return selectedEnquiries;
+  }
+  async getEventFromMicroService(
+    eventIds: string[],
+    name: string | undefined,
+    event_active_gte: string | undefined,
+    event_active_lte: string | undefined,
+    limit: number | undefined,
+    offset: number | undefined,
+    showValues: string,
+    enquiries: Enquiry[],
+  ) {
+    const events = (await this.eventService.getAllEvents({
+      eventIds: eventIds,
+      view: View.list,
+      query: name,
+      active_gte: event_active_gte,
+      active_lte: event_active_lte,
+      limit: limit,
+      offset: offset,
+      showValues: showValues,
+    })) as any;
+    const enquiryDataMappedToeventId: object = {};
+    enquiries.map((val) => {
+      enquiryDataMappedToeventId[val.eventId] = val;
+    });
+    const selectedEnquiries = eventIds
+      .map((eventId, index) => {
+        // const selectedEnquiries = events.events.map((event) => {
+        const event = events.events.find((event) => event.basic.id === eventId);
+        const enquiry = enquiryDataMappedToeventId[eventId];
+        if (!event || !enquiry) {
+          return null;
+        }
+        return {
+          ...enquiry,
+          eventData: {
+            ...event.basic,
+          },
+          isProductEvent: false,
+        };
+      })
+      .filter((item) => item !== null);
+    return selectedEnquiries;
+  }
   async getAccountEnquiries(
     user: TCachedUser,
     query: GetEnquiriesHttpDto,
@@ -123,76 +250,82 @@ export class AccountService {
       upvotedBy,
       eventId,
     } = query;
-    const enquiries = await this.enquiryService.getEnquiries({
-      accountId: user.accountId,
-      userId: user.id,
-      initiatedBy: initiatedBy,
-      upvotedBy: upvotedBy,
-      status: status,
-      type: type,
-      ...(eventId ? { eventId: eventId } : {}),
-    });
+    const [enquiries, enquiryEvents] = await Promise.all([
+      this.enquiryService.getEnquiries({
+        accountId: user.accountId,
+        userId: user.id,
+        initiatedBy: initiatedBy,
+        upvotedBy: upvotedBy,
+        status: status,
+        type: type,
+        ...(eventId ? { eventId: eventId } : {}),
+      }),
+      await this.enquiryService.getEnquiries({
+        accountId: user.accountId,
+        userId: user.id,
+        initiatedBy: initiatedBy,
+        upvotedBy: upvotedBy,
+        status: status,
+        type: type,
+        limit,
+        offset,
+        ...(eventId ? { eventId: eventId } : {}),
+      }),
+    ]);
+    console.log('start=>1');
     if (enquiries.length === 0) {
       return {
         count: 0,
         enquiries: [],
       };
     }
-    const eventIds = enquiries.map((enquiry) => enquiry.eventId);
-    const events = (await this.eventService.getAllEvents({
-      eventIds: eventIds,
-      view: View.list,
-      query: name,
-      active_gte: event_active_gte,
-      active_lte: event_active_lte,
-      limit: limit,
-      offset: offset,
-      showValues: showValues,
-    })) as any;
-    const enquiryCount = events.count;
+    console.log('start=>2');
+    let eventIds = enquiries.map((enquiry) => enquiry.eventId);
+    const enquiryCount = eventIds.length;
+    const selectedEventIds: string[] = enquiryEvents.map(
+      (enquiry) => enquiry.eventId,
+    );
+    if (!event_active_gte || !event_active_lte) {
+      eventIds = selectedEventIds;
+    }
+    const [productEvents, microServiceEvents] = await Promise.all([
+      this.getEventFromProductDb(
+        user,
+        eventIds,
+        name,
+        event_active_gte,
+        event_active_lte,
+        limit,
+        0,
+        showValues,
+        enquiries,
+      ),
+      this.getEventFromMicroService(
+        eventIds,
+        name,
+        event_active_gte,
+        event_active_lte,
+        limit,
+        0,
+        showValues,
+        enquiries,
+      ),
+    ]);
+    const combinedEvents =
+      event_active_gte || event_active_lte
+        ? this.filterEvents([...productEvents, ...microServiceEvents], {
+            event_active_gte,
+            event_active_lte,
+          })
+        : [...productEvents, ...microServiceEvents];
+    const eventMap = new Map<string, any>();
+    combinedEvents.forEach((event) => {
+      eventMap.set(event.eventId, event);
+    });
+
     const selectedEnquiries = eventIds
-      .map((eventId, index) => {
-        // const selectedEnquiries = events.events.map((event) => {
-        const event = events.events.find((event) => event.basic.id === eventId);
-        const enquiry = enquiries[index];
-        if (!event || !enquiry) {
-          return null;
-        }
-        const location = event.basic.eventLocation;
-        return {
-          ...enquiry,
-          eventData: {
-            eventId: event.basic.id,
-            name: event.basic.name,
-            startDate: event.basic.startDateTime,
-            endDate: event.basic.endDateTime,
-            logoUrl: event.basic.logoUrl!,
-            website: event.basic.website!,
-            organizerName: event.basic.organizer?.name,
-            location: {
-              cityName:
-                location.locationType === 'VENUE'
-                  ? location.cityName
-                  : location.locationType === 'CITY'
-                    ? location.name
-                    : null,
-              stateName: ['VENUE', 'CITY'].includes(location.locationType)
-                ? location.stateName
-                : location.locationType === 'STATE'
-                  ? location.name
-                  : null,
-              countryName: ['VENUE', 'CITY', 'STATE'].includes(
-                location.locationType,
-              )
-                ? location.countryName
-                : location.locationType === 'COUNTRY'
-                  ? location.name
-                  : null,
-            },
-          },
-        };
-      })
-      .filter((item) => item !== null);
+      .map((id) => eventMap.get(id))
+      .filter((event) => event !== undefined && event !== null);
     // return selectedEnquiries;
     // const [enquiries, enquiryCount] = await Promise.all([
     //   this.enquiryService.getEnquiries({
@@ -216,7 +349,14 @@ export class AccountService {
     //     }),
     //   ),
     // ]);
-    console.log(selectedEnquiries);
+    console.log(
+      'selectedEventIds=>',
+      { productEvents },
+      { selectedEventIds },
+      { eventMap },
+      { microServiceEvents },
+      { selectedEnquiries },
+    );
     const transformedEnquires = await Promise.all(
       selectedEnquiries.map(async (enquiry) => {
         const [interestedCount, activityCount, myActivity] = await Promise.all([
@@ -279,6 +419,13 @@ export class AccountService {
           activityCounts.total += curr._count.id;
           activityCounts[curr.activitySubType.toLowerCase()] = curr._count.id;
         });
+        console.log(
+          'selectedEventIds=>',
+          { selectedEventIds },
+          { eventMap },
+          { microServiceEvents },
+          { selectedEnquiries },
+        );
         return EnquiryResponseSchema.parse({
           ...enquiry,
           activityCount: activityCounts,
@@ -292,6 +439,58 @@ export class AccountService {
       count: enquiryCount,
       enquiries: transformedEnquires,
     };
+  }
+  filterEvents(
+    events: any[],
+    filters: {
+      event_active_gte?: string;
+      event_active_lte?: string;
+      sortBy?: 'startDate' | 'endDate';
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): any[] {
+    const {
+      event_active_gte,
+      event_active_lte,
+      sortBy = 'startDate',
+      sortOrder = 'desc',
+    } = filters;
+
+    const gte = event_active_gte ? new Date(event_active_gte) : null;
+    const lte = event_active_lte ? new Date(event_active_lte) : null;
+
+    let filtered = events.filter((event) => {
+      const start = new Date(event.eventData.startDate);
+      const end = new Date(event.eventData.endDate);
+
+      if (lte && !gte) {
+        // Case 1: Only lte (past events)
+        return end <= lte;
+      }
+
+      if (gte && !lte) {
+        // Case 2: Only gte (upcoming events)
+        return start >= gte || (start <= gte && end >= gte);
+      }
+
+      if (gte && lte) {
+        // Case 3: Range overlap
+        return end >= gte && start <= lte;
+      }
+
+      return true; // No filters
+    });
+
+    // filtered.sort((a, b) => {
+    //   const dateA = new Date(a.eventData[sortBy]);
+    //   const dateB = new Date(b.eventData[sortBy]);
+
+    //   return sortOrder === 'asc'
+    //     ? dateA.getTime() - dateB.getTime()
+    //     : dateB.getTime() - dateA.getTime();
+    // });
+
+    return filtered;
   }
 
   async getAccountUsers(user: TCachedUser, query: GetUserHttpDto) {
