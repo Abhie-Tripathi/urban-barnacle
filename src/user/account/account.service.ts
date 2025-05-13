@@ -281,7 +281,7 @@ export class AccountService {
     }
     console.log('start=>2');
     let eventIds = enquiries.map((enquiry) => enquiry.eventId);
-    const enquiryCount = eventIds.length;
+    // const enquiryCount = eventIds.length;
     const selectedEventIds: string[] = enquiryEvents.map(
       (enquiry) => enquiry.eventId,
     );
@@ -318,6 +318,7 @@ export class AccountService {
     //     event_active_lte,
     //   })
     //   :
+    const enquiryCount = combinedEvents.length;
     const eventMap = new Map<string, any>();
     combinedEvents.forEach((event) => {
       eventMap.set(event.eventId, event);
