@@ -307,6 +307,18 @@ export class EventsService {
       nonEmptyParams,
       true,
     );
+    if (
+      !nonEmptyParams.eventTypes ||
+      (nonEmptyParams.eventTypes && nonEmptyParams.eventTypes.length === 0)
+    ) {
+      const backend = process.env.BACKEND;
+      if (backend && backend in defaultEventTypes) {
+        
+          nonEmptyParams.eventTypes = Object.values(defaultEventTypes[backend]);
+        
+      }
+    }
+
     return await this.eventsDataService.getEventsTrends(convertedParams);
   }
 }
