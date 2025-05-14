@@ -207,6 +207,27 @@ export const QueryFilter = z.object({
       if (!data) return [];
       return data?.split(',').map((item) => item.trim());
     })
+    .superRefine((values,ctx) => {
+        if (values.length === 0) return;
+        
+        const backend = process.env.BACKEND as keyof typeof defaultEventTypes;
+        
+        if (!backend || !(backend in defaultEventTypes)) {
+          return;
+        }
+        
+        const allowedEventTypes = Object.keys(defaultEventTypes[backend]);
+        
+        const invalidTypes = values.filter(value => !allowedEventTypes.includes(value));
+        
+        if (invalidTypes.length > 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Invalid event types for ${backend}: ${invalidTypes.join(', ')}. Allowed types are: ${allowedEventTypes.join(', ')}`,
+            path: [],
+          });
+        }
+      })
     .optional(),
   categories: z
     .string()
