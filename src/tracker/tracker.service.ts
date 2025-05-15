@@ -64,13 +64,17 @@ export class TrackerService {
       sourceEntityId: tracker.id,
       flagForEmail: true
     });
-    this.getTrackerResponse(
-      user,
-      tracker as Tracker & { createdByUser: User; modifiedByUser: User },
-      {
-        refresh: true,
-      },
-    );
+    console.log("data.cachingFlag==> ", data.cachingFlag);
+
+    if (data.cachingFlag) {
+      this.getTrackerResponse(
+        user,
+        tracker as Tracker & { createdByUser: User; modifiedByUser: User },
+        {
+          refresh: true,
+        },
+      );
+    }
     return tracker;
   }
 
