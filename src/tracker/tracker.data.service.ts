@@ -18,6 +18,7 @@ export class TrackerDataService {
         type: data.type,
         createdBy: user.id,
         accountId: user.accountId,
+        source: data.source,
       },
       include: {
         createdByUser: {
