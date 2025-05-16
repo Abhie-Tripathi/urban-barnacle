@@ -203,8 +203,8 @@ export class EventsDataService {
 
   async getEventEditions(eventId: string, query: LimitDto) {
     const queryParams = new URLSearchParams({
-      take: query.limit.toString(),
-      skip: query.offset.toString(),
+      limit: query.limit.toString(),
+      offset: query.offset.toString(),
     });
     const url =
       this.configService.get('MICROSERVICE_URL') +
@@ -248,8 +248,8 @@ export class EventsDataService {
 
   async getEventSpeakers(eventId: string, query: LimitDto) {
     const queryParams = new URLSearchParams({
-      take: query.limit.toString(),
-      skip: query.offset.toString(),
+      limit: query.limit.toString(),
+      offset: query.offset.toString(),
     });
     const url =
       this.configService.get('MICROSERVICE_URL') +
@@ -266,8 +266,8 @@ export class EventsDataService {
 
   async getEventSponsors(eventId: string, query: LimitDto) {
     const queryParams = new URLSearchParams({
-      take: query.limit.toString(),
-      skip: query.offset.toString(),
+      limit: query.limit.toString(),
+      offset: query.offset.toString(),
     });
     const url =
       this.configService.get('MICROSERVICE_URL') +
@@ -284,8 +284,8 @@ export class EventsDataService {
 
   async getEventExhibitors(eventId: string, query: LimitDto) {
     const queryParams = new URLSearchParams({
-      take: query.limit.toString(),
-      skip: query.offset.toString(),
+      limit: query.limit.toString(),
+      offset: query.offset.toString(),
     });
     const url =
       this.configService.get('MICROSERVICE_URL') +
