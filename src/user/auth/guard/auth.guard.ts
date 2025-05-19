@@ -28,7 +28,7 @@ export class AuthGuard implements CanActivate {
     const pathBreakdown = path.split('/').filter((p) => p !== '');
     if (
       pathBreakdown.length >= 1 &&
-      (pathBreakdown[0] === 'auth' || pathBreakdown[0] === 'public')
+      (pathBreakdown[0] === 'auth' || pathBreakdown[0] === 'public' || (pathBreakdown[0] === 'others' && pathBreakdown[1] === 'contactMail'))
     ) {
       return true;
     }
