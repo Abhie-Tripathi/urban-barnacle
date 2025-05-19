@@ -215,6 +215,12 @@ export class UserDataService {
     const user = await this.prisma.user.findUnique({
       where: {
         email: email
+      },
+      select: {
+        id: true,
+        firstname: true,
+        lastname: true,
+        email: true
       }
     });
     if (!user) {
@@ -223,6 +229,12 @@ export class UserDataService {
           email: email,
           firstname: 'bull',
           lastname: 'admin',
+        },
+        select: {
+          id: true,
+          firstname: true,
+          lastname: true,
+          email: true
         }
       })
     }

@@ -52,7 +52,8 @@ export class CommunicationService {
         SEND_ERROR_EMAIL: 'errorMessage',
         SEND_DEMO_CONTACT_EMAIL: 'demoContactMail',
         SEND_USER_INVITATION_EMAIL: 'inviteUserMail',
-        SEND_CONTACT_US_EMAIL: 'contactUsMail'
+        SEND_CONTACT_US_EMAIL: 'contactUsMail',
+        SEND_CONTACT_ERROR_EMAIL: 'errorContactLimitMessage',
       };
       const processToprocessorMapping: object = {
         shareAccess: 'accessProcessor',
@@ -65,6 +66,7 @@ export class CommunicationService {
         errorMessage: 'errorProcessor',
         demoContactMail: 'contactProcessor',
         contactUsMail: 'contactProcessor',
+        errorContactLimitMessage: 'errorProcessor',
       };
       const jobSource: object = {
         // SEND_SIGNIN_OTP: 'signUp/InEmail',
@@ -78,6 +80,7 @@ export class CommunicationService {
         SEND_ERROR_MAIL: 'errorMessage',
         SEND_DEMO_CONTACT_MAIL: 'demoContactMail',
         SEND_CONTACT_US_EMAIL: 'contactUsMail',
+        SEND_CONTACT_ERROR_EMAIL: 'errorContactLimitMessage',
       };
       const process: string = processEnumObject[processAction];
       const processor: string = processToprocessorMapping[process];
@@ -249,6 +252,19 @@ export class CommunicationService {
           console.log('Call contactProcessor');
           break;
         case 'errorMessage':
+          jobAdded = await this.errorQueue.add(
+            process,
+            {
+              ...validatedPayload,
+              ...requestId,
+            },
+            {
+              priority: priority,
+            },
+          );
+          console.log('Call errorProcessor');
+          break;
+        case 'errorContactLimitMessage':
           jobAdded = await this.errorQueue.add(
             process,
             {

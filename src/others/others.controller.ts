@@ -14,7 +14,7 @@ export class OthersController {
       return error;
     }
   }
-  @Post('conatactMail/:source')
+  @Post('contactMail/:source')
   async sendDemoContactEmail(@Param('source') source: 'demoContact' | 'contactUs', @Body() body: DemoContactDto |
     ContactUsDto) {
     try {

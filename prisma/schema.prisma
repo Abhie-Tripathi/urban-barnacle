@@ -707,6 +707,7 @@ enum JobSource {
   SEND_DEMO_CONTACT_MAIL
   SEND_TRACKER_EXPORT_MAIL
   SEND_CONTACT_US_EMAIL
+  SEND_CONTACT_ERROR_EMAIL
 }
 
 enum JobStatus {
@@ -796,6 +797,7 @@ enum FileType {
 enum ContactEnquirySourceModule {
   DEMO
   CONTACT_US
+  ERROR
 }
 
 model ContactEnquiry {

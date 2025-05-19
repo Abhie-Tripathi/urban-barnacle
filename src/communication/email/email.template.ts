@@ -1202,7 +1202,7 @@ export const inviteUserEmailTemplate = `<!DOCTYPE html>
 `
 
 
-export const demoContactEmailTemplate:string=` <!DOCTYPE html>
+export const demoContactEmailTemplate: string = ` <!DOCTYPE html>
         <html lang="en">
           <head>
             <meta charset="UTF-8" />
@@ -1268,7 +1268,7 @@ export const demoContactEmailTemplate:string=` <!DOCTYPE html>
           </body>
         </html>`
 
-export const contactUsEmailTemplate:string=`<!DOCTYPE html>
+export const contactUsEmailTemplate: string = `<!DOCTYPE html>
         <html lang="en">
           <head>
             <meta charset="UTF-8" />
@@ -1324,3 +1324,65 @@ export const contactUsEmailTemplate:string=`<!DOCTYPE html>
               </div>
           </body>
         </html>`
+
+
+export const contactApiLimitReachedTemplate: string = `
+        <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Contact Limit Reached - Admin Alert</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f2f2f2; padding: 30px;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 6px; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
+    <tr>
+      <td style="padding: 24px;">
+        <h2 style="color: #d9534f;">⚠️ Contact Limit Reached</h2>
+        <p style="color: #333333; font-size: 15px;">
+          Hello Admin,
+        </p>
+        <p style="color: #333333; font-size: 15px;">
+          A contact submission limit has been reached in the system. Please review the details below:
+        </p>
+
+        <table cellpadding="8" cellspacing="0" width="100%" style="background-color: #f9f9f9; border: 1px solid #ddd; margin: 20px 0; border-radius: 4px;">
+          <tr>
+            <td><strong>User Name:</strong></td>
+            <td>{name}<td>
+          </tr>
+        <tr>
+            <td><strong>User Email:</strong></td>
+            <td>{email}td>
+          </tr>
+          <tr>
+            <td><strong>User Submissions Today:</strong></td>
+            <td>{userLimit} / 5 allowed</td>
+          </tr>
+          <tr>
+            <td><strong>Global Submissions Today:</strong></td>
+            <td>{dailyLimit} / 500 allowed</td>
+          </tr>
+          <tr>
+            <td><strong>Date:</strong></td>
+            <td>{time}</td>
+          </tr>
+        </table>
+
+        <p style="color: #333333; font-size: 15px;">
+          No further contact submissions will be processed today for this user or globally, depending on the limit hit.
+        </p>
+
+        <p style="color: #333333; font-size: 15px;">
+          You can monitor or adjust limits in the admin panel if necessary.
+        </p>
+
+        <p style="color: #666666; font-size: 13px;">
+          — System Notification
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`

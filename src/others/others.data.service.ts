@@ -46,17 +46,49 @@ export class OthersDataService {
             SELECT count(*)count FROM "ContactEnquiry" where "createdAt"::Date ='${(new Date()).toISOString().split('T')[0]}' and email='${email}'
             `));
     }
-    async createContactEnuiry(data: any) {
+    async createContactEnquiry(data: any) {
         return await this.prismaService.contactEnquiry.create({
             data: {
                 ...data
             }
         })
     }
+    async upsertContactEnquiry(data: any) {
+        const entry = await this.prismaService.contactEnquiry.findFirst({
+            where: {
+                email: data['email']
+            }
+        });
+        if (!entry) {
+            return await this.prismaService.contactEnquiry.create({
+                data: {
+                    ...data
+                }
+            });
+        } else {
+            return await this.prismaService.contactEnquiry.update({
+                where: {
+                    id: entry.id
+                },
+                data: {
+                    createdAt: new Date()
+                }
+            });
+        }
+
+    }
+    async createOrGetBullUser() {
+        return await this.userDataService.createOrGetBullUser()
+    }
+    async sendDemoContactErrorEmail(data: any, sourceId: string) {
+        await this.communicationService.createJobForBull(
+            QueueActionOptions.SEND_CONTACT_ERROR_EMAIL, { ...data, sourceId: sourceId }, (await this.createOrGetBullUser()).id);
+        return { data: { message: `email send for error.` } }
+    }
     async sendDemoContactEmail(source: 'demoContact' | 'contactUs', data: DemoContactDto |
         ContactUsDto, sourceId: string) {
         await this.communicationService.createJobForBull(source === 'demoContact' ? QueueActionOptions.SEND_DEMO_CONTACT_EMAIL :
-            QueueActionOptions.SEND_CONTACT_US_EMAIL, { ...data, sourceId: sourceId }, (await this.userDataService.createOrGetBullUser()).id);
-        return { data: { message: `email send for ${source}` } }
+            QueueActionOptions.SEND_CONTACT_US_EMAIL, { ...data, sourceId: sourceId }, (await this.createOrGetBullUser()).id);
+        return { data: { message: `email send for ${source}.` } }
     }
 }

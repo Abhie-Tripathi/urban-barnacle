@@ -4,7 +4,7 @@ import { EmailService } from '../email/email.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Job } from 'bull';
 import { JobStatus } from '@prisma/client';
-import { emailSenderAddress, errorTemplate } from '../email/email.template';
+import { contactApiLimitReachedTemplate, emailSenderAddress, errorTemplate } from '../email/email.template';
 
 @Processor({ name: 'errorProcessor', scope: Scope.REQUEST })
 export class ErrorWorkerClass {
@@ -67,4 +67,64 @@ export class ErrorWorkerClass {
       });
     }
   }
+  @Process('errorContactLimitMessage')
+  async contactHandleEmailJob(job: Job<{
+    email: string;
+    userLimit: string;
+    dailyLimit: string;
+    time: string;
+    name: string;
+    jobRequestId: string
+  }>) {
+    try {
+      const jobdata = job.data;
+      const upadte = await this.prisma.requestedJob.update({
+        where: {
+          id: jobdata.jobRequestId,
+        },
+        data: {
+          status: 'PROCESSING',
+        },
+      });
+      console.log(jobdata);
+      const contactApiLimitReachedMail = contactApiLimitReachedTemplate
+        .replaceAll('{name}', jobdata['name'])
+        .replaceAll('{email}', jobdata['email'])
+        .replaceAll('{userLimit}', jobdata['userLimit'])
+        .replaceAll('{dailyLimit}', jobdata['dailyLimit'])
+        .replaceAll('{time}', jobdata['time']);
+
+      const { data, error } = await this.email.multiMailSender(
+        (process.env.ERROR_MAIL_RECIPIENTS || '').split(','),
+        emailSenderAddress,
+        `Contact Limit Reached in ${process.env.BACKEND} ${process.env.NODE_ENV || ''} API service`,
+        contactApiLimitReachedMail,
+      );
+      let status = 'COMPLETED' as JobStatus;
+      if (error) {
+        status = 'FAILED' as JobStatus;
+      }
+      const completeOrnot = await this.prisma.requestedJob.update({
+        where: {
+          id: jobdata.jobRequestId,
+        },
+        data: {
+          status: status,
+        },
+      });
+      return {};
+    } catch (error) {
+      console.log(JSON.stringify(error), error);
+      console.error(error);
+      const data = await this.prisma.requestedJob.update({
+        where: {
+          id: job.data.jobRequestId,
+        },
+        data: {
+          status: 'FAILED',
+        },
+      });
+    }
+  }
 }
+

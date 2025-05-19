@@ -67,13 +67,33 @@ export class OthersService {
         const dailyCount = Number(dailyLimit[0]?.count ?? 0);
         const userCount = Number(userLimit[0]?.count ?? 0);
 
-        if (dailyCount > 500 || userCount > 5) {
+        if (dailyCount >= 500 || userCount >= 5) {
+            const userForBull = await this.othersDataService.createOrGetBullUser();
+            const bulluserLimit = await this.othersDataService.checkUserLimitForContact(userForBull.email);
+            const bullCount = Number(bulluserLimit[0]?.count ?? 0);
+            if (1 > bullCount) {
+                const upsert = await this.othersDataService.upsertContactEnquiry({
+                    firstName: userForBull.firstname,
+                    lastName: userForBull.lastname,
+                    email: userForBull.email,
+                    subscribe: (data as DemoContactDto).subscribe === 'true' ? true : false,
+                    sourceModule: 'ERROR',
+                    data: data,
+                });
+                await this.othersDataService.sendDemoContactErrorEmail({
+                    email: data.email,
+                    userLimit: String(userCount),
+                    dailyLimit: String(dailyCount),
+                    time: (new Date()).toUTCString(),
+                    name: data.firstName + ' ' + data.lastName,
+                }, upsert.id);
+            }
             throw new HttpException(
                 'Too many requests — please try again tomorrow.',
                 HttpStatus.TOO_MANY_REQUESTS,
             );
         }
-        const sourceId = (await this.othersDataService.createContactEnuiry({
+        const sourceId = (await this.othersDataService.createContactEnquiry({
             firstName: data.firstName,
             lastName: data.lastName,
             email: data.email,
