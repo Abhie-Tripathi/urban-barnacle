@@ -71,7 +71,7 @@ export class OthersService {
             const userForBull = await this.othersDataService.createOrGetBullUser();
             const bulluserLimit = await this.othersDataService.checkUserLimitForContact(userForBull.email);
             const bullCount = Number(bulluserLimit[0]?.count ?? 0);
-            if (1 > bullCount) {
+            if (1 > bullCount && dailyCount >= 500) {
                 const upsert = await this.othersDataService.upsertContactEnquiry({
                     firstName: userForBull.firstname,
                     lastName: userForBull.lastname,
