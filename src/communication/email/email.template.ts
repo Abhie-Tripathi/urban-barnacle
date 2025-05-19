@@ -1353,7 +1353,7 @@ export const contactApiLimitReachedTemplate: string = `
           </tr>
         <tr>
             <td><strong>User Email:</strong></td>
-            <td>{email}td>
+            <td>{email}<td>
           </tr>
           <tr>
             <td><strong>User Submissions Today:</strong></td>
