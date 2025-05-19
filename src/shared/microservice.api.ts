@@ -16,7 +16,7 @@ export const microServiceApis = {
   userpoc: process.env.MICROSERVICE_URL + '/users/:userId/pocs',
   userbyId: process.env.MICROSERVICE_URL + '/users/:userId',
   locationSuggestions: process.env.MICROSERVICE_URL + '/locations',
-  
+
 };
 
 export async function fetchDatafromMicroService(
@@ -24,7 +24,10 @@ export async function fetchDatafromMicroService(
   query: any,
 ) {
   try {
-    const { companyId, userId, ...rest } = query;
+    let { userType, companyId, userId, ...rest } = query;
+    if (userType && userType === 'visitor,speaker' && userType === 'speaker,visitor') {
+      userType = 'all';
+    }
     const queryString = new URLSearchParams(rest).toString();
     const url = `${microServiceApis[`${apiToFetch}`].replace(':companyId', companyId || '').replace(':userId', userId || '')}${queryString ? `?${queryString}` : ''}`;
     console.log(url);
