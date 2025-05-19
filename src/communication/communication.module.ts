@@ -32,11 +32,18 @@ import { InvitationWorkerClass } from './bull-service/bull-invitation.service';
     BullModule.registerQueue({
       name: 'intendProcessor',
     }),
-    BullModule.registerQueue({
-      name: 'demoContactProcessor',
-    }),
+    // BullModule.registerQueue({
+    //   name: 'demoContactProcessor',
+    // }),
     BullModule.registerQueue({
       name: 'errorProcessor',
+    }),
+    BullModule.registerQueue({
+      name: 'contactProcessor',
+      defaultJobOptions: {
+        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
+        removeOnFail: false,
+      },
     }),
   ],
   providers: [

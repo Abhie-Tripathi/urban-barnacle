@@ -1200,3 +1200,127 @@ export const inviteUserEmailTemplate = `<!DOCTYPE html>
 </body>
 </html>
 `
+
+
+export const demoContactEmailTemplate:string=` <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>Contact Form - whr.ai</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f4;
+                padding: 20px;
+              }
+              .container {
+                max-width: 500px;
+                margin: 0 auto;
+                background: #fff;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+              }
+              h2 {
+                text-align: center;
+                color: #333;
+              }
+              .field {
+                margin-bottom: 15px;
+              }
+              .label {
+                font-weight: bold;
+              }
+              .value {
+                margin-left: 5px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h2>Demo Form Submission</h2>
+              <div class="field">
+                <span class="label">First Name:</span>
+                <span class="value">{firstName}</span>
+              </div>
+              <div class="field">
+                <span class="label">Last Name:</span>
+                <span class="value">{lastName}</span>
+              </div>
+              <div class="field">
+                <span class="label">Email:</span>
+                <span class="value">{email}</span>
+              </div>
+              <div class="field">
+                <span class="label">Company Name:</span>
+                <span class="value">{companyName}</span>
+              </div>
+              <div class="field">
+                <span class="label">Job Title</span>
+                <span class="value">{jobTitle}</span>
+              </div>
+              <div class="field">
+                <span class="label">Phone Number</span>
+                <span class="value">{phoneNumber}</span>
+              </div>
+            </div>
+          </body>
+        </html>`
+
+export const contactUsEmailTemplate:string=`<!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>Contact Form - whr.ai</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f4;
+                padding: 20px;
+              }
+              .container {
+                max-width: 500px;
+                margin: 0 auto;
+                background: #fff;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+              }
+              h2 {
+                text-align: center;
+                color: #333;
+              }
+              .field {
+                margin-bottom: 15px;
+              }
+              .label {
+                font-weight: bold;
+              }
+              .value {
+                margin-left: 5px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h2>Demo Form Submission</h2>
+              <div class="field">
+                <span class="label">First Name:</span>
+                <span class="value">{firstName}</span>
+              </div>
+              <div class="field">
+                <span class="label">Last Name:</span>
+                <span class="value">{lastName}</span>
+              </div>
+              <div class="field">
+                <span class="label">Email:</span>
+                <span class="value">{email}</span>
+              </div>
+              <div class="field">
+                <span class="label">Message:</span>
+                <span class="value">{message}</span>
+              </div>
+          </body>
+        </html>`

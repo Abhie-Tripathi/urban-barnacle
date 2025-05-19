@@ -92,9 +92,23 @@ export const errorMailSchema = z.object({
 })
 
 export const demoContactSchema = z.object({
-  body: z.string(),
-  subject: z.string()
+  firstName: z.string(),
+  lastName: z.string(),
+  email: z.string(),
+  companyName: z.string(),
+  jobTitle: z.string(),
+  phoneNumber: z.string(),
+  sourceId: z.string(),
 })
+export class DemoContactDto extends createZodDto(demoContactSchema) { }
+export const contactUsSchema = z.object({
+  firstName: z.string(),
+  lastName: z.string(),
+  email: z.string(),
+  message: z.string(),
+  sourceId: z.string(),
+})
+export class ContactUsDto extends createZodDto(contactUsSchema) { }
 const userInviteSchema = z.object({
   referredByUserName: z.string(),
   invitedUserEmail: z.string(),
@@ -111,5 +125,6 @@ export const PayloadDTO = z.union([
   InviteEmailDataSchema,
   errorMailSchema,
   demoContactSchema,
-  userInviteSchema
+  userInviteSchema,
+  contactUsSchema
 ]);

@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { OthersDataService } from './others.data.service';
-import { DemoDto, PresetDto } from './dto';
+import { ContactUsDto, DemoContactDto, PresetDto } from './dto';
 
 @Injectable()
 export class OthersService {
@@ -58,7 +58,29 @@ export class OthersService {
             throw new HttpException('Something went wrong', HttpStatus.BAD_REQUEST);
         }
     }
-    async sendDemoContactEmail(data: DemoDto) {
-        return await this.othersDataService.sendDemoContactEmail(data);
+    async sendDemoContactEmail(source: 'demoContact' | 'contactUs', data: DemoContactDto |
+        ContactUsDto) {
+        const [dailyLimit, userLimit] = await Promise.all([
+            this.othersDataService.checkDailyLimitForContact(),
+            this.othersDataService.checkUserLimitForContact(data.email),
+        ]);
+        const dailyCount = Number(dailyLimit[0]?.count ?? 0);
+        const userCount = Number(userLimit[0]?.count ?? 0);
+
+        if (dailyCount > 500 || userCount > 5) {
+            throw new HttpException(
+                'Too many requests — please try again tomorrow.',
+                HttpStatus.TOO_MANY_REQUESTS,
+            );
+        }
+        const sourceId = (await this.othersDataService.createContactEnuiry({
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
+            subscribe: (data as DemoContactDto).subscribe === 'true' ? true : false,
+            sourceModule: source === 'contactUs' ? 'CONTACT_US' : 'DEMO',
+            data: data,
+        })).id
+        return await this.othersDataService.sendDemoContactEmail(source, data, sourceId);
     }
 }

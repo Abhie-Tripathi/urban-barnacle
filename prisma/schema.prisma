@@ -19,6 +19,8 @@ enum UserSource {
   PROMOTE_EVENT_INVITE
   ACCESS_INVITE
   SCRIPT
+  IMPORT_10T
+  IMPORT_9T
 }
 
 model User {
@@ -703,6 +705,8 @@ enum JobSource {
   SEND_INTEND_UPDATE
   SEND_ERROR_MAIL
   SEND_DEMO_CONTACT_MAIL
+  SEND_TRACKER_EXPORT_MAIL
+  SEND_CONTACT_US_EMAIL
 }
 
 enum JobStatus {
@@ -786,4 +790,22 @@ enum FileType {
   PDF
   CSV
   JSON
+  EXCEL
+}
+
+enum ContactEnquirySourceModule {
+  DEMO
+  CONTACT_US
+}
+
+model ContactEnquiry {
+  id           String                     @id @default(uuid()) @db.Uuid
+  firstName    String
+  lastName     String
+  email        String
+  subscribe    Boolean                    @default(false)
+  sourceModule ContactEnquirySourceModule
+  data         Json
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
 }

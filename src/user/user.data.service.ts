@@ -13,7 +13,7 @@ export class UserDataService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly fileService: FileCreationService,
-  ) {}
+  ) { }
 
   async createUser(data: CreateUserDto) {
     const { accountId, primaryCompanyId, ...rest } = data;
@@ -25,21 +25,21 @@ export class UserDataService {
     }
     const account: object = accountId
       ? {
-          accounts: {
-            connect: {
-              id: data.accountId,
-            },
+        accounts: {
+          connect: {
+            id: data.accountId,
           },
-        }
+        },
+      }
       : {};
     const company = primaryCompanyId
       ? {
-          company: {
-            connect: {
-              id: data.primaryCompanyId,
-            },
+        company: {
+          connect: {
+            id: data.primaryCompanyId,
           },
-        }
+        },
+      }
       : {};
     const user = await this.prisma.user.create({
       data: {
@@ -210,5 +210,22 @@ export class UserDataService {
       ...data.data,
       id: encrypt(data.id + process.env.TEN_TIMES_ID_ENCRYPT_KEY),
     };
+  }
+  async createOrGetBullUser(email: string = "bull-admin@10times.com") {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email: email
+      }
+    });
+    if (!user) {
+      return await this.prisma.user.create({
+        data: {
+          email: email,
+          firstname: 'bull',
+          lastname: 'admin',
+        }
+      })
+    }
+    return user;
   }
 }

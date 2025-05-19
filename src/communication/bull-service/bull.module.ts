@@ -4,8 +4,8 @@ import { AccessEmailWorkerClass } from './bull-access.service';
 import { EventWorkerClass } from './bull-event.service';
 import { IntendWorkerClass } from './bull-intend.service';
 import { InvitationWorkerClass } from './bull-invitation.service';
-import { DemoContactWorkerClass } from './bull-demoContact.service';
 import { ErrorWorkerClass } from './bull-errorMessage.service';
+import { ContactWorkerClass } from './bull-contact.service';
 @Global()
 @Module({
   exports: [
@@ -14,8 +14,8 @@ import { ErrorWorkerClass } from './bull-errorMessage.service';
     EventWorkerClass,
     IntendWorkerClass,
     InvitationWorkerClass,
-    DemoContactWorkerClass,
-    ErrorWorkerClass
+    ErrorWorkerClass,
+    ContactWorkerClass
   ],
   providers: [
     OtpEmailWorkerClass,
@@ -23,8 +23,8 @@ import { ErrorWorkerClass } from './bull-errorMessage.service';
     EventWorkerClass,
     IntendWorkerClass,
     InvitationWorkerClass,
-    DemoContactWorkerClass,
-    ErrorWorkerClass
+    ErrorWorkerClass,
+    ContactWorkerClass
   ],
 })
 export class BullQueueModule { }
