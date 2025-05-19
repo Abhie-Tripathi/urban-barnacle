@@ -5,6 +5,7 @@ import {
   defaultEventTypes,
   EventStatus,
   EventTypeGroup,
+  ValidEventTypes,
   VisitorRangeTag,
 } from 'src/utils/types';
 import { LimitSchema, LimitSchemaWithoutDefault } from 'src/global_dto';
@@ -210,13 +211,13 @@ export const QueryFilter = z.object({
     .superRefine((values, ctx) => {
       if (values.length === 0) return;
 
-      const backend = process.env.BACKEND as keyof typeof defaultEventTypes;
+      const backend = process.env.BACKEND as keyof typeof ValidEventTypes;
 
-      if (!backend || !(backend in defaultEventTypes)) {
+      if (!backend || !(backend in ValidEventTypes)) {
         return;
       }
 
-      const allowedEventTypes = Object.keys(defaultEventTypes[backend]);
+      const allowedEventTypes = ValidEventTypes[backend];
 
       const invalidTypes = values.filter(
         (value) => !allowedEventTypes.includes(value),

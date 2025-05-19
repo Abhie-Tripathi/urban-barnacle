@@ -130,6 +130,22 @@ export const defaultEventTypes = {
   },
 };
 
+export const ValidEventTypes = {
+  geo: [
+    'festival',
+    'sport',
+    'concert',
+    'performing-arts',
+    'community',
+    'tradeshows',
+    'conferences',
+    'workshops',
+    'holiday',
+    'alert',
+  ],
+  gtm: ['tradeshows', 'conferences', 'workshops'],
+};
+
 export const SubIndustries = {
   Retail: 'Retail',
   Quick_Commerce: 'Quick_Commerce',
