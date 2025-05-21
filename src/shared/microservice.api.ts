@@ -27,7 +27,7 @@ export async function fetchDatafromMicroService(
     let { userType, companyId, userId, ...rest } = query;
     if (userType && userType === 'visitor,speaker' && userType === 'speaker,visitor') {
       rest['userType'] = 'all';
-    } else {
+    } else if(userType) {
       rest['userType'] = userType;
     }
     const queryString = new URLSearchParams(rest).toString();
