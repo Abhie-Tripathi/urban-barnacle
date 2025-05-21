@@ -86,19 +86,17 @@ export class EventsDataService {
       this.configService.get('MICROSERVICE_URL') +
       microserviceEndpoints.events.events;
     console.log(url);
-    let req: any = {}
+    let req: any = {};
     if (JSON.stringify(params).length > 500) {
       req = {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify(this.convertArrayValuesToStrings(params)),
         headers: {
-          "Content-Type": "application/json"
-          ,
-        }
-      }
+          'Content-Type': 'application/json',
+        },
+      };
     } else {
-      url += '?' +
-        queryParams.toString();
+      url += '?' + queryParams.toString();
     }
     const response = await fetch(url, req);
     const result = await response.json();
@@ -142,19 +140,17 @@ export class EventsDataService {
       this.configService.get('MICROSERVICE_URL') +
       microserviceEndpoints.events.count;
     console.log(url);
-    let req: any = {}
+    let req: any = {};
     if (JSON.stringify(params).length > 500) {
       req = {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify(this.convertArrayValuesToStrings(params)),
         headers: {
-          "Content-Type": "application/json"
-          ,
-        }
-      }
+          'Content-Type': 'application/json',
+        },
+      };
     } else {
-      url += '?' +
-        queryParams.toString();
+      url += '?' + queryParams.toString();
     }
     const response = await fetch(url, req);
     try {
@@ -171,10 +167,9 @@ export class EventsDataService {
       // const text = await response.text();
       throw new HttpException(
         `Invalid JSON: ${error['message']}, response body: $}`,
-        HttpStatus.BAD_REQUEST
+        HttpStatus.BAD_REQUEST,
       );
     }
-
   }
 
   async getEventPocs(eventId: string, sortBy: string) {
@@ -370,11 +365,7 @@ export class EventsDataService {
           user,
         ),
       ]);
-    console.log(
-      peopleAllTrackData,
-      keywordAllTrackData,
-      competitorAllTrackData,
-    );
+
     const requestBody: {
       speakerBody?: { speakerNames: string; speakerCompanyName: string };
       peopleBody?: { peopleNames: string; peopleCompanyName: string };
@@ -560,8 +551,8 @@ export class EventsDataService {
   }
   async getPromotedEventById(eventId: string) {
     const eventData = await this.prisma.event.findUnique({
-      where: { id: eventId }
+      where: { id: eventId },
     });
-    return eventData
+    return eventData;
   }
 }
