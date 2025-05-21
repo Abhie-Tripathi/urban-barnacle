@@ -7,6 +7,7 @@ import {
   GetTrackerCommentDto,
   GetTrackerEventsCountDto,
   GetTrackerEventsDto,
+  GetTrackerIntelScoreDto,
   GetTrackersHttpDto,
   GetTrackerUsersDto,
   UpdateTrackerHttpDto,
@@ -1144,5 +1145,12 @@ export class TrackerService {
       throw new HttpException('Invalid date range', HttpStatus.BAD_REQUEST);
     }
     return { startDate, endDate };
+  }
+  async getTrackerIntelScore(
+    user: TCachedUser,
+    id: string,
+    query: GetTrackerIntelScoreDto,
+  ) {
+    return { trackerEventsIntelScore: [] }
   }
 }

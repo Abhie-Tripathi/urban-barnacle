@@ -17,6 +17,7 @@ import {
   GetTrackerByIdDto,
   GetTrackerEventsCountDto,
   GetTrackerEventsDto,
+  GetTrackerIntelScoreDto,
   GetTrackerUsersDto,
   UpdateTrackerDto,
   UpdateTrackerHttpDto,
@@ -202,7 +203,24 @@ export class TrackerController {
       return { error: error };
     }
   }
-
+  @UseGuards(AuthGuard)
+  @Get(':id/intelScore')
+  async getTrackerIntelScore(
+    @Param('id') id: string,
+    @GetUser() user: TCachedUser,
+    @Query() query: GetTrackerIntelScoreDto,
+  ) {
+    try {
+      const events = await this.trackerService.getTrackerIntelScore(
+        user,
+        id,
+        query,
+      );
+      return { data: events };
+    } catch (error) {
+      return { error: error };
+    }
+  }
   @UseGuards(AuthGuard)
   @Get(':id/saved-events')
   async getTrackerSavedEvents(

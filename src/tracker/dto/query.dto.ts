@@ -25,16 +25,16 @@ const GetTrackersHttpSchema = LimitSchema.extend({
   groupBy: z.enum(['trackerType']).optional(),
 });
 
-export class GetTrackersHttpDto extends createZodDto(GetTrackersHttpSchema) {}
+export class GetTrackersHttpDto extends createZodDto(GetTrackersHttpSchema) { }
 
 const GetTrackersSchema = GetTrackersHttpSchema.extend({
   ids: z.array(z.string().uuid()).optional(),
   accountId: z.string().uuid().optional(),
 });
 
-export class GetTrackersDto extends createZodDto(GetTrackersSchema) {}
+export class GetTrackersDto extends createZodDto(GetTrackersSchema) { }
 
-export class GetTrackersCountDto extends createZodDto(GetTrackersSchema) {}
+export class GetTrackersCountDto extends createZodDto(GetTrackersSchema) { }
 
 const GetTrackerEventsSchema = TrackerEventSearchSchema.extend({
   type: z
@@ -90,7 +90,7 @@ const GetTrackerEventsSchema = TrackerEventSearchSchema.extend({
     return data;
   });
 
-export class GetTrackerEventsDto extends createZodDto(GetTrackerEventsSchema) {}
+export class GetTrackerEventsDto extends createZodDto(GetTrackerEventsSchema) { }
 
 const GetTrackerEventsCountSchema = CountQuerySchema.innerType()
   .extend({
@@ -126,13 +126,13 @@ const GetTrackerEventsCountSchema = CountQuerySchema.innerType()
 
 export class GetTrackerEventsCountDto extends createZodDto(
   GetTrackerEventsCountSchema,
-) {}
+) { }
 
 const GetTrackerCommentsSchema = LimitSchema.extend({});
 
 export class GetTrackerCommentDto extends createZodDto(
   GetTrackerCommentsSchema,
-) {}
+) { }
 
 export const GetTrackerByIdSchema = z.object({
   refresh: z
@@ -141,8 +141,13 @@ export const GetTrackerByIdSchema = z.object({
     .transform((val) => val === 'true')
     .optional(),
 });
-export class GetTrackerByIdDto extends createZodDto(GetTrackerByIdSchema) {}
+export class GetTrackerByIdDto extends createZodDto(GetTrackerByIdSchema) { }
 
 const GetTrackerUsersSchema = LimitSchema.extend({});
 
-export class GetTrackerUsersDto extends createZodDto(GetTrackerUsersSchema) {}
+export class GetTrackerUsersDto extends createZodDto(GetTrackerUsersSchema) { }
+
+export const GetTrackerIntelScoreSchema = LimitSchema.extend({
+  eventIds: z.string(),
+});
+export class GetTrackerIntelScoreDto extends createZodDto(GetTrackerIntelScoreSchema) { }
