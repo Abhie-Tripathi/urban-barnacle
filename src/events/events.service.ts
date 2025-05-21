@@ -6,6 +6,7 @@ import {
   PocsUnmaskDto,
   QueryDto,
   Show,
+  SimilarEventsDto,
   SortingDto,
   View,
 } from './dto';
@@ -25,7 +26,7 @@ export class EventsService {
     private readonly eventsDataService: EventsDataService,
     private readonly sharedService: SharedService,
     private readonly intentDataService: IntentDataService,
-  ) {}
+  ) { }
 
   async createLogForEncryptedQuery(query: QueryDto, user: TCachedUser) {
     const { save, requestSource, ...rest } = query;
@@ -87,7 +88,7 @@ export class EventsService {
       nonEmptyParams,
       validateIds,
     );
-
+    console.log({ convertedParams }, { nonEmptyParams });
     const fetchedEvents =
       await this.eventsDataService.getEvents(convertedParams);
     // console.log({ convertedParams }, { nonEmptyParams });
@@ -124,8 +125,8 @@ export class EventsService {
             Object.keys(userInterests).length > 0
               ? userInterests[event.basic.id]
               : !query.eventTypes ||
-                  (query.eventTypes.length > 0 &&
-                    !query.eventTypes.includes('alert'))
+                (query.eventTypes.length > 0 &&
+                  !query.eventTypes.includes('alert'))
                 ? []
                 : undefined,
         };
@@ -326,5 +327,22 @@ export class EventsService {
     }
 
     return await this.eventsDataService.getEventsTrends(convertedParams);
+  }
+  async getSimilarEvents(query: SimilarEventsDto) {
+    const nonEmptyParams = getNonEmptyParams(query);
+    const convertedParams = await this.sharedService.convertSlugParamsToIds(
+      nonEmptyParams,
+      true,
+    );
+    if (
+      !nonEmptyParams.eventTypes ||
+      (nonEmptyParams.eventTypes && nonEmptyParams.eventTypes.length === 0)
+    ) {
+      const backend = process.env.BACKEND;
+      if (backend && backend in defaultEventTypes) {
+        convertedParams.eventTypes = Object.values(defaultEventTypes[backend]);
+      }
+    }
+    return await this.eventsDataService.getSimilarEvents(convertedParams);
   }
 }

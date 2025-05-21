@@ -9,6 +9,7 @@ import {
   GetTrackerEventsDto,
   GetTrackersHttpDto,
   GetTrackerUsersDto,
+  SimilarTrackerEventDto,
   UpdateTrackerHttpDto,
 } from './dto';
 import { AccessService } from 'src/access/access.service';
@@ -46,11 +47,29 @@ export class TrackerService {
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const nonEmptyParams = getNonEmptyParams(data.filterValues);
-    const convertedParams = await this.sharedService.convertSlugParamsToIds(
-      nonEmptyParams,
-      true,
-      false,
-    );
+    let convertedParams = {};
+    let eventInfo: { count: number, events: { basic: object }[] } = { count: 0, events: [] };
+    if (!data.filterValues.eventIds) {
+      convertedParams = await this.sharedService.convertSlugParamsToIds(
+        nonEmptyParams,
+        true,
+        false,
+      );
+    } else if (data.filterValues.eventIds && data.filterValues.eventIds.length > 0) {
+      [convertedParams, eventInfo] = await Promise.all([this.sharedService.convertSlugParamsToIds(
+        nonEmptyParams,
+        true,
+        false,
+      ), this.eventService.getAllEvents({
+        eventIds: data.filterValues.eventIds,
+        view: View.list, limit: data.filterValues.eventIds.length, offset: 0, showValues: 'basic'
+      }) as unknown as { count: number, events: { basic: object }[] }]);
+      convertedParams['eventIdsFilter'] = eventInfo.events.map(val => {
+        return {
+          [val.basic['id']]: val
+        };
+      });
+    }
     const tracker = await this.trackerDataService.createTracker(user, {
       ...data,
       filterValues: convertedParams,
@@ -1144,5 +1163,142 @@ export class TrackerService {
       throw new HttpException('Invalid date range', HttpStatus.BAD_REQUEST);
     }
     return { startDate, endDate };
+  }
+  async getTrackerSimilarEvents(
+    user: TCachedUser,
+    trackerId: string,
+    params: SimilarTrackerEventDto,
+    showValues: string,
+  ) {
+    try {
+      const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
+        'ADMIN',
+        'SUPER_ADMIN',
+        'USER',
+      ]);
+      const newParams = getNonEmptyParams(params);
+      const convertedParams = await this.sharedService.convertSlugParamsToIds(
+        newParams,
+        true,
+        false,
+      );
+      const { startDate, endDate } = this.getValidDateRange(
+        tracker.filterValues as unknown as GetTrackerEventsDto,
+        newParams as GetTrackerEventsDto,
+      );
+      convertedParams['active_gte'] = startDate;
+      convertedParams['active_lte'] = endDate;
+      if (params.trackerEventStatus && params.trackerEventStatus === 'new') {
+        const lastActive = await this.lastActive(
+          user,
+          tracker.id,
+          tracker.createdAt,
+        );
+        convertedParams['createdAt'] = lastActive.last_active_gte;
+      }
+
+      const searchByEntity = ['T_COMPETITOR', 'T_CUSTOMER_ICP'].includes(
+        tracker.type,
+      )
+        ? 'company'
+        : tracker.type === 'T_PEOPLE_FINDER'
+          ? 'user'
+          : tracker.type === 'T_SPEAKING_OPPORTUNITY'
+            ? 'speaker'
+            : tracker.type === 'T_RECRUITMENT'
+              ? 'recruitment'
+              : tracker.type === 'T_PRODUCT_KEYWORDS'
+                ? 'keywords'
+                : undefined;
+      if (tracker.filterValues && tracker.filterValues['viewBound']) {
+        tracker.filterValues['viewBound'] = tracker.filterValues['viewBound'];
+      }
+      const eventParams = {
+        ...(tracker.filterValues as Object),
+        ...convertedParams,
+        ...(!params.groupBy ? {
+          limit: params.limit,
+          offset: params.offset,
+          view: View.tracker,
+          trackerId: trackerId,
+          showValues: showValues,
+        } : {})
+      };
+      if (searchByEntity) {
+        eventParams['searchByEntity'] = searchByEntity;
+      }
+      const events = await this.eventService.getSimilarEvents(
+        eventParams
+      );
+      return events;
+    } catch (error) {
+      if (
+        error instanceof HttpException &&
+        error.getStatus() === 400 &&
+        error.getResponse() === 'Invalid date range'
+      ) {
+        if (params.view === 'calendar') {
+          return {
+            count: 0,
+            events: {},
+            countByMonth: params.calendar_type === 'month' ? {} : undefined,
+            countByYear: params.calendar_type === 'year' ? {} : undefined,
+          };
+        }
+        if (params.groupBy) {
+          if (
+            params.groupBy &&
+            [CountGroup.month, CountGroup.year, CountGroup.day].includes(
+              params.groupBy[0],
+            )
+          ) {
+            return {
+              count: 0,
+              events: {},
+              countByMonth:
+                params.groupBy[0] === CountGroup.month ? {} : undefined,
+              countByYear: params.groupBy[0] === CountGroup.year ? {} : undefined,
+            };
+          } else if (
+            params.groupBy &&
+            ['city', 'state', 'country'].includes(params.groupBy[0])
+          ) {
+            return [];
+          } else if (params.groupBy && params.groupBy[0] === CountGroup.status) {
+            return {
+              past: 0,
+              active: 0,
+              new: 0,
+            };
+          } else if (
+            params.groupBy &&
+            params.groupBy[0] === CountGroup.eventTypeGroup
+          ) {
+            return [
+              {
+                group_name: 'business',
+                count: 0,
+              },
+              {
+                group_name: 'social',
+                count: 0,
+              },
+              {
+                group_name: 'unattended',
+                count: 0,
+              },
+            ];
+          }
+          return {
+            count: 0,
+          };
+        }
+        return {
+          count: 0,
+          events: [],
+        };
+      }
+      throw error;
+    }
   }
 }

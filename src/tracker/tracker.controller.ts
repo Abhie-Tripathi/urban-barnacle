@@ -18,6 +18,7 @@ import {
   GetTrackerEventsCountDto,
   GetTrackerEventsDto,
   GetTrackerUsersDto,
+  SimilarTrackerEventDto,
   UpdateTrackerDto,
   UpdateTrackerHttpDto,
 } from './dto';
@@ -196,6 +197,28 @@ export class TrackerController {
         user,
         id,
         query,
+      );
+      return { data: events };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+
+
+  @UseGuards(AuthGuard)
+  @Get(':id/events/similar')
+  async getTrackerSimilarEvents(
+    @Param('id') id: string,
+    @GetUser() user: TCachedUser,
+    @Query() query: SimilarTrackerEventDto,
+  ) {
+    try {
+      const showValues = 'basic,advance,insights,audience';
+      const events = await this.trackerService.getTrackerSimilarEvents(
+        user,
+        id,
+        query,
+        showValues,
       );
       return { data: events };
     } catch (error) {

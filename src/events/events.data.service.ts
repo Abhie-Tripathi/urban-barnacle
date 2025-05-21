@@ -8,6 +8,7 @@ import {
   EventDataDto,
   Show,
   View,
+  SimilarEventsDto,
 } from './dto';
 import {
   Export,
@@ -76,18 +77,18 @@ export class EventsDataService {
     const queryParams = new URLSearchParams(
       params as unknown as Record<string, any>,
     );
-    if (params.limit) {
-      queryParams.append('take', String(params.limit));
-    }
-    if (params.offset) {
-      queryParams.append('skip', String(params.offset));
-    }
+    // if (params.limit) {
+    //   queryParams.append('take', String(params.limit));
+    // }
+    // if (params.offset) {
+    //   queryParams.append('skip', String(params.offset));
+    // }
     let url =
       this.configService.get('MICROSERVICE_URL') +
       microserviceEndpoints.events.events;
     console.log(url);
     let req: any = {}
-    if (JSON.stringify(params).length > 500) {
+    if (JSON.stringify(params).length > 1000) {
       req = {
         method: "POST",
         body: JSON.stringify(this.convertArrayValuesToStrings(params)),
@@ -552,5 +553,37 @@ export class EventsDataService {
       where: { id: eventId }
     });
     return eventData
+  }
+  async getSimilarEvents(query: SimilarEventsDto) {
+    const queryParams = new URLSearchParams({
+      ...query as unknown as object
+    });
+    let url =
+      this.configService.get('MICROSERVICE_URL') +
+      microserviceEndpoints.events.similarEvents;
+    let req: any = {};
+    console.log({ lenght: JSON.stringify(query).length > 10, val: JSON.stringify(query), que: queryParams.toString() });
+
+    if (JSON.stringify(query).length > 1000) {
+      req = {
+        method: "POST",
+        body: JSON.stringify(this.convertArrayValuesToStrings(query)),
+        headers: {
+          "Content-Type": "application/json"
+          ,
+        }
+      }
+    } else {
+      url += '?' +
+        queryParams.toString();
+    }
+    const response = await fetch(url, req);
+    const { data, error } = await response.json();
+    if (!data || error) {
+      console.log(JSON.stringify(error));
+
+      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+    }
+    return data;
   }
 }
