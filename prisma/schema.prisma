@@ -19,6 +19,8 @@ enum UserSource {
   PROMOTE_EVENT_INVITE
   ACCESS_INVITE
   SCRIPT
+  IMPORT_10T
+  IMPORT_9T
 }
 
 model User {
@@ -156,7 +158,7 @@ model Attachment {
   fileSize        Float // kb
   createdAt       DateTime               @default(now())
   updatedAt       DateTime               @updatedAt
-  createdByUser   User                   @relation(fields: [createdByUserId], references: [id])
+  createdByUser   User                   @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
   createdByUserId String                 @db.Uuid
   deleted         Boolean                @default(false)
   sourceModule    AttachmentSourceModule
@@ -367,7 +369,7 @@ model ApiLogs {
 model Verification {
   passkey   String
   userId    String   @id @unique @db.Uuid
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   expiresAt DateTime
@@ -420,6 +422,7 @@ model Tracker {
   name           String?     @db.VarChar(200)
   filterValues   Json
   attachmentId   String?
+  source         String?
   type           TrackerType @default(T_CUSTOM)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
@@ -554,29 +557,36 @@ enum EventType {
   CHILD
 }
 
+enum EventSourceModule {
+  PROMOTE
+  COORDINATE
+}
+
 // EVENT GENI
 model Event {
-  id            String      @id @default(uuid()) @db.Uuid
+  id            String            @id @default(uuid()) @db.Uuid
   name          String
   data          Json
-  deleted       Boolean     @default(false)
-  attachmentId  String?     @db.Uuid
-  type          EventType   @default(PARENT)
-  createdAt     DateTime    @default(now())
-  updateAt      DateTime    @updatedAt
-  createdBy     String      @db.Uuid
-  approval      Boolean     @default(true)
-  capacity      Int         @default(0)
-  registration  Boolean     @default(true)
-  waitlisting   Boolean     @default(false)
-  Attachment    Attachment? @relation(fields: [attachmentId], references: [id])
-  account       Account     @relation(fields: [accountId], references: [id])
-  accountId     String      @db.Uuid
-  User          User        @relation(fields: [createdBy], references: [id])
-  parentEventId String?     @db.Uuid
-  parentEvent   Event?      @relation(name: "parentEvent", fields: [parentEventId], references: [id])
-  subEvents     Event[]     @relation("parentEvent")
-  WidgetEvents  Widget[]    @relation("EventToWidget")
+  referenceId   String?
+  sourceModule  EventSourceModule @default(PROMOTE)
+  deleted       Boolean           @default(false)
+  attachmentId  String?           @db.Uuid
+  type          EventType         @default(PARENT)
+  createdAt     DateTime          @default(now())
+  updateAt      DateTime          @updatedAt
+  createdBy     String            @db.Uuid
+  approval      Boolean           @default(true)
+  capacity      Int               @default(0)
+  registration  Boolean           @default(true)
+  waitlisting   Boolean           @default(false)
+  Attachment    Attachment?       @relation(fields: [attachmentId], references: [id])
+  account       Account           @relation(fields: [accountId], references: [id])
+  accountId     String            @db.Uuid
+  User          User              @relation(fields: [createdBy], references: [id])
+  parentEventId String?           @db.Uuid
+  parentEvent   Event?            @relation(name: "parentEvent", fields: [parentEventId], references: [id])
+  subEvents     Event[]           @relation("parentEvent")
+  WidgetEvents  Widget[]          @relation("EventToWidget")
   // Widget        Widget?     @relation(fields: [widgetId], references: [id])
   // widgetId      String?     @db.Uuid
 }
@@ -682,7 +692,7 @@ enum WidgetStatus {
 model RequestedJob {
   id        String    @id @default(uuid()) @db.Uuid
   userId    String    @db.Uuid
-  user      User      @relation(fields: [userId], references: [id])
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   source    JobSource
   sourceId  String
   processId Int?
@@ -723,6 +733,8 @@ model Preset {
   trackerType   TrackerType[]
   deleted       Boolean       @default(false)
   filterValue   Json
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now()) @updatedAt
 }
 
 enum EnquiryStatus {

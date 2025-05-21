@@ -85,6 +85,8 @@ const CreateTrackerSchema = z.object({
   name: z.string(),
   filterValues: ParamsSchema.strict(),
   type: z.nativeEnum(TrackerType),
+  cachingFlag: z.boolean().default(true),
+  source: z.string().optional(),
 });
 
 export class CreateTrackerDto extends createZodDto(CreateTrackerSchema) {}

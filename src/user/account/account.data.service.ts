@@ -185,31 +185,7 @@ export class AccountDataService {
     return configuration.config;
   }
 
-  async getAccountMemberShipStatus(subscriptionId: string) {
-    const membership = await this.prisma.subscription.findFirst({
-      where: {
-        id: subscriptionId,
-      },
-      select: {
-        plan: true,
-        planEndDate: true,
-      },
-    });
-    if (!membership) {
-      throw new HttpException('membership not found', HttpStatus.NOT_FOUND);
-    }
-    const membershipMap: Record<SubscriptionPlan, number> = {
-      BASIC: 0,
-      ESSENTIAL: 10,
-      SCALE: 20,
-      ADVANCE: 30,
-      ENTERPRISE: 40,
-    };
-    return {
-      membership: membershipMap[membership.plan],
-      endDate: membership.planEndDate,
-    };
-  }
+
   async createMembershipToken(user: TCachedUser) {
     const passkey: string = createHash('sha256')
       .update(randomUUID(), 'hex')
