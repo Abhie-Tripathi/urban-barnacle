@@ -8,7 +8,9 @@ import { TCachedUser, TrackerTypes } from 'src/utils/types';
 
 @Injectable()
 export class TrackerDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) { }
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const tracker = await this.prisma.tracker.create({
@@ -215,5 +217,22 @@ export class TrackerDataService {
       },
     });
     return tracker;
+  }
+  async getTrackerIntelScoreFromApi(params: any) {
+    const queryParams = new URLSearchParams(
+      params as unknown as Record<string, any>,
+    );
+    const url =
+      this.configService.get('MICROSERVICE_URL') +
+      microserviceEndpoints.events.trackerIntelScore +
+      '?' +
+      queryParams.toString();
+    const response = await fetch(url);
+    const data = await response.json();
+    console.dir(data, { depth: null });
+    if (data['error']) {
+      throw new HttpException(data['error'], HttpStatus.BAD_REQUEST);
+    }
+    return data;
   }
 }

@@ -40,7 +40,6 @@ import { OthersModule } from './others/others.module';
 import { DemoContactWorkerClass } from './communication/bull-service/bull-demoContact.service';
 import { ErrorWorkerClass } from './communication/bull-service/bull-errorMessage.service';
 import { GlobalResponseInterceptor } from './global-response.interceptor';
-import { CommunicationService } from './communication/communication.service';
 
 @Module({
   imports: [
@@ -63,7 +62,7 @@ import { CommunicationService } from './communication/communication.service';
     CacheModule.register({
       store: redisStore,
       socket: {
-        host: '0.0.0.0',
+        host: process.env.REDIS_HOST||'0.0.0.0',
         port: process.env.REDIS_PORT,
       },
       isGlobal: true,
@@ -93,7 +92,7 @@ import { CommunicationService } from './communication/communication.service';
     CommunicationModule,
     IntendModule,
     PublicApiModule,
-    OthersModule
+    OthersModule,
   ],
   controllers: [AppController],
   providers: [

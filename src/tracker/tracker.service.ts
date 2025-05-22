@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { TrackerDataService } from './tracker.data.service';
-import { blackListDomain, LastActive, TCachedUser } from 'src/utils/types';
+import { blackListDomain, defaultEventTypes, LastActive, TCachedUser } from 'src/utils/types';
 import {
   CreateTrackerDto,
   GetTrackerByIdDto,
@@ -29,6 +29,7 @@ import { CommentsResponseSchema } from 'src/comment/dto/response';
 import { ConfigService } from '@nestjs/config';
 import { QueryFilter, QueryFilterDto } from 'src/events/dto/query.dto';
 import { AccountDataService } from 'src/user/account/account.data.service';
+import { microserviceEndpoints } from 'src/utils/endpoints';
 @Injectable()
 export class TrackerService {
   constructor(
@@ -1148,9 +1149,235 @@ export class TrackerService {
   }
   async getTrackerIntelScore(
     user: TCachedUser,
-    id: string,
+    trackerId: string,
     query: GetTrackerIntelScoreDto,
   ) {
-    return { trackerEventsIntelScore: [] }
+    const MAX_FILTER_ITEMS = 100;
+
+    const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
+      'ADMIN',
+      'SUPER_ADMIN',
+      'USER',
+    ]);
+    const trackerFilterValuesJson: Object = { ...tracker.filterValues as unknown as object };
+    const errorFunction = () => {
+      throw new HttpException(
+        "Unable to process the request: Too many filter items",
+        HttpStatus.EXPECTATION_FAILED
+      );
+    };
+    if (tracker.type === 'T_COMPETITOR') {
+      let length: number = 0;
+      if (trackerFilterValuesJson['orgName']) {
+        length += (trackerFilterValuesJson['orgName'] as string).split(',').length;
+      }
+      if (trackerFilterValuesJson['orgWebsite']) {
+        length += (trackerFilterValuesJson['orgWebsite'] as string).split(',').length;
+      }
+      if (length > MAX_FILTER_ITEMS) {
+        errorFunction();
+      }
+    }
+    if (tracker.type === 'T_PRODUCT_KEYWORDS') {
+      let length: number = 0;
+      if (trackerFilterValuesJson['includeKeywords']) {
+        length += (trackerFilterValuesJson['includeKeywords'] as string[]).length;
+      }
+      if (trackerFilterValuesJson['excludeKeywords']) {
+        length += (trackerFilterValuesJson['excludeKeywords'] as string[]).length;
+      }
+      if (length > MAX_FILTER_ITEMS) {
+        errorFunction();
+      }
+    }
+    if (tracker.type === 'T_SPEAKING_OPPORTUNITY' || tracker.type === 'T_PEOPLE_FINDER') {
+      let length: number = 0;
+      if (trackerFilterValuesJson['userName']) {
+        length += (trackerFilterValuesJson['userName'] as string).split(',').length;
+      }
+      if (length > MAX_FILTER_ITEMS) {
+        errorFunction();
+      }
+    }
+    let trackerEventsIntelScore: object[] = [];
+    const queryForPayload = await this.createQueryForIntelScore(query, tracker, trackerId, user);
+    const [getJsonForTrackerType, jobsForIntelScore] = await Promise.all([this.cacheManager.get(`${trackerId}-IntelScore`),
+    this.cacheManager.get(`${trackerId}-IntelScore-Job`)
+    ]);
+    console.log({ getJsonForTrackerType });
+
+    if (!getJsonForTrackerType || Object.keys(getJsonForTrackerType).length === 0) {
+      let jobExist: TrackerIntelScoreJson | null | undefined = jobsForIntelScore as any;
+      if (!jobExist) {
+        jobExist = {
+          trackerId,
+          keywords: '<100',
+          createdAt: (new Date()).toISOString(), status: 'pending', user: user
+        };
+        const createTemplate = await Promise.all([this.cacheManager.set(`${trackerId}-IntelScore-Job`,
+          jobExist,60 * 60 * 24 * 7 )]);
+        console.log({ getJsonForTrackerType, sadas: "SAdfsa" });
+        this.fetchTrackerIntelScoreForCache(tracker, trackerId, user, jobExist);
+      }
+      const dataOfINtelScore = await this.trackerDataService.getTrackerIntelScoreFromApi(queryForPayload);
+      console.log({ dataOfINtelScore });
+
+      for (const eventId of query.eventIds.split(',')) {
+        trackerEventsIntelScore.push(dataOfINtelScore[eventId]);
+      }
+    } else {
+      const jsonTrackerType = getJsonForTrackerType;
+      for (const eventId of query.eventIds.split(',')) {
+        console.log({ eventId });
+
+        trackerEventsIntelScore.push(jsonTrackerType[query.trackerEventStatus || 'active'][eventId]);
+      }
+    }
+    trackerEventsIntelScore = trackerEventsIntelScore.filter(val => val);
+    return { trackerEventsIntelScore }
   }
+  async createQueryForIntelScore(query: any, tracker: any, trackerId: string, user: TCachedUser, validateIds: boolean = false) {
+    const newParams = getNonEmptyParams(query);
+    const convertedParams = await this.sharedService.convertSlugParamsToIds(
+      newParams,
+      true,
+      false,
+    );
+    if (
+      !newParams.eventTypes ||
+      (newParams.eventTypes && newParams.eventTypes.length === 0)
+    ) {
+      const backend = process.env.BACKEND;
+      if (backend && backend in defaultEventTypes) {
+        if (validateIds) {
+          newParams.eventTypes = Object.keys(defaultEventTypes[backend]);
+        } else {
+          newParams.eventTypes = Object.values(defaultEventTypes[backend]);
+        }
+      }
+    }
+    console.log(newParams);
+    const { startDate, endDate } = this.getValidDateRange(
+      tracker.filterValues as unknown as GetTrackerEventsDto,
+      newParams as GetTrackerEventsDto,
+    );
+    convertedParams['active_gte'] = startDate;
+    convertedParams['active_lte'] = endDate;
+    if (query.trackerEventStatus && query.trackerEventStatus === 'new') {
+      const lastActive = await this.lastActive(
+        user,
+        tracker.id,
+        tracker.createdAt,
+      );
+      convertedParams['createdAt'] = lastActive.last_active_gte.split('T')[0];
+    }
+
+    const searchByEntity = ['T_COMPETITOR', 'T_CUSTOMER_ICP'].includes(
+      tracker.type,
+    )
+      ? 'company'
+      : tracker.type === 'T_PEOPLE_FINDER'
+        ? 'user'
+        : tracker.type === 'T_SPEAKING_OPPORTUNITY'
+          ? 'speaker'
+          : tracker.type === 'T_RECRUITMENT'
+            ? 'recruitment'
+            : tracker.type === 'T_PRODUCT_KEYWORDS'
+              ? 'keywords'
+              : undefined;
+    const showValues = 'basic,advance,insights,audience';
+    const eventParams = {
+      ...(tracker.filterValues as Object),
+      view: View.tracker,
+      ...convertedParams,
+      trackerId: trackerId,
+      showValues: showValues,
+    } as QueryDto;
+    if (searchByEntity) {
+      eventParams['searchByEntity'] = searchByEntity;
+    }
+    const cleanEventParams = Object.fromEntries(
+      Object.entries(eventParams).filter(([_, value]) => value !== undefined)
+    );
+    delete cleanEventParams['type'];
+    console.log(cleanEventParams);
+
+    return cleanEventParams;
+  }
+  async fetchTrackerIntelScoreForCache(tracker: any, trackerId: string, user: TCachedUser, job: TrackerIntelScoreJson) {
+    try {
+      job.status = 'processing';
+      this.cacheManager.set(`${trackerId}-IntelScore-Job`,
+        job, 60 * 60 * 24 * 7)
+
+      const [active, newScore, past] = await Promise.all([
+        this.fetchTrackerIntelScoreForActiveCache(tracker, trackerId, user),
+        this.fetchTrackerIntelScoreForNewCache(tracker, trackerId, user),
+        this.fetchTrackerIntelScoreForPastCache(tracker, trackerId, user),
+      ]);
+
+      const steCache = await this.cacheManager.set(`${trackerId}-IntelScore`,
+        {
+          past,
+          active,
+          new: newScore
+        }, 60 * 60 * 24 * 7);
+      console.dir({
+        ...past,
+        active,
+        new: newScore,
+        steCache
+      }, { depth: null });
+
+      let completedJobs: any[] | undefined = await this.cacheManager.get(`tracker-IntelScore-JobsComplete`);
+      console.log({ completedJobs });
+
+      if (!completedJobs) {
+        completedJobs = [];
+        await this.cacheManager.set(`tracker-IntelScore-JobsComplete`, [], 60 * 60 * 24 * 7);
+      }
+      job.status = 'complete';
+      if (completedJobs.length > 100)
+        completedJobs = completedJobs.slice(-50)
+      completedJobs.push(job);
+      await Promise.all([this.cacheManager.set(`tracker-IntelScore-JobsComplete`, completedJobs, 60 * 60 * 24 * 7),
+      this.cacheManager.del(`${trackerId}-IntelScore-Job`)])
+    } catch (error) {
+      await this.cacheManager.del(`${trackerId}-IntelScore-Job`);
+      await this.cacheManager.del(`${trackerId}-IntelScore`);
+      let failedJobs: any[] | undefined = await this.cacheManager.get(`tracker-IntelScore-JobsFailed`);
+      if (!failedJobs) {
+        failedJobs = [];
+        await this.cacheManager.set(`tracker-IntelScore-JobsFailed`, [], 60 * 60 * 24 * 7);
+      }
+      job.status = 'failed';
+      if (failedJobs.length > 100)
+        failedJobs = failedJobs.slice(-50)
+      failedJobs.push(job);
+      await this.cacheManager.set(`tracker-IntelScore-JobsFailed`, failedJobs, 60 * 60 * 24 * 7);
+    }
+  }
+  async fetchTrackerIntelScoreForActiveCache(tracker: any, trackerId: string, user: TCachedUser) {
+    const queryForPayload = await this.createQueryForIntelScore({ type: 'active', }, tracker, trackerId, user);
+    const dataOfINtelScore = await this.trackerDataService.getTrackerIntelScoreFromApi(queryForPayload);
+    return dataOfINtelScore;
+  }
+  async fetchTrackerIntelScoreForNewCache(tracker: any, trackerId: string, user: TCachedUser) {
+    const queryForPayload = await this.createQueryForIntelScore({ type: 'new', }, tracker, trackerId, user);
+    const dataOfINtelScore = await this.trackerDataService.getTrackerIntelScoreFromApi(queryForPayload);
+    return dataOfINtelScore;
+  }
+  async fetchTrackerIntelScoreForPastCache(tracker: any, trackerId: string, user: TCachedUser) {
+    const queryForPayload = await this.createQueryForIntelScore({ type: 'past', }, tracker, trackerId, user);
+    const dataOfINtelScore = await this.trackerDataService.getTrackerIntelScoreFromApi(queryForPayload);
+    return dataOfINtelScore;
+  }
+}
+
+
+interface TrackerIntelScoreJson {
+  trackerId: string
+  keywords: '<100' | '>100',
+  createdAt: string, status: 'pending' | 'processing' | 'failed' | 'complete'
+  , user: any
 }

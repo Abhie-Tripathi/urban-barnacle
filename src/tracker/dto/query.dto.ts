@@ -149,5 +149,34 @@ export class GetTrackerUsersDto extends createZodDto(GetTrackerUsersSchema) { }
 
 export const GetTrackerIntelScoreSchema = LimitSchema.extend({
   eventIds: z.string(),
-});
+  eventTypeGroup: z.string().optional(),
+  type: z
+    .string()
+    .refine((val) => val in EventTabs)
+    .transform((val) => val as keyof typeof EventTabs)
+    .optional(),
+  trackerEventStatus: z
+    .string()
+    .refine((val) => val in TrackerEventStatus)
+    .transform((val) => val as keyof typeof TrackerEventStatus)
+    .optional(),
+})
+  .transform((data) => {
+    if (data.type && ['business', 'social', 'unattended'].includes(data.type)) {
+      data.eventTypeGroup = data.type;
+      delete data.type;
+    } else if (data.type && ['past', 'active', 'new'].includes(data.type)) {
+      data.trackerEventStatus = data.type as keyof typeof TrackerEventStatus;
+      delete data.type;
+    }
+
+    // if (!data.eventTypes || (data.eventTypes && data.eventTypes.length === 0)) {
+    //   const backend = process.env.BACKEND;
+    //   if (backend && backend in defaultEventTypes) {
+    //     data.eventTypes = defaultEventTypes[backend];
+    //   }
+    // }
+
+    return data;
+  });
 export class GetTrackerIntelScoreDto extends createZodDto(GetTrackerIntelScoreSchema) { }
