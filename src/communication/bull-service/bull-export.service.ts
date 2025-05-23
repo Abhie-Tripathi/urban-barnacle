@@ -47,7 +47,8 @@ export class ExportWorkerClass {
     @Process('exportTrackerEventData')
     async handleEmailJob(job: Job<JobDataForExport>) {
         const jobData = job.data;
-        const bulkUpdateExport: { id?: string; status: JobStatus; outputResponse?: object; fileUrl?: string, fileSize?: Number }[] = []
+        const bulkUpdateExport: { id?: string; status: JobStatus; outputResponse?: object; fileUrl?: string, fileSize?: Number, attachment?: any }[] = [];
+        let attachments: any[] | null = null;
         try {
             jobData['email'] = jobData.userData.email;
             const eventTypeData: string = jobData['type']
@@ -111,7 +112,8 @@ export class ExportWorkerClass {
                             status: 'COMPLETED',
                             outputResponse: { ...past },
                             fileUrl: past.fileUrl,
-                            fileSize: past.fileSize
+                            fileSize: Number(past.fileSize),
+                            attachment: past.attachment,
                         })
                     }
                     if (active.status === "error") {
@@ -127,7 +129,8 @@ export class ExportWorkerClass {
                             status: 'COMPLETED',
                             outputResponse: { ...active },
                             fileUrl: active.fileUrl,
-                            fileSize: active.fileSize
+                            fileSize: Number(active.fileSize),
+                            attachment: active.attachment,
                         })
                     }
                     if (newEvents.status === "error") {
@@ -143,7 +146,8 @@ export class ExportWorkerClass {
                             status: 'COMPLETED',
                             outputResponse: { ...newEvents },
                             fileUrl: newEvents.fileUrl,
-                            fileSize: newEvents.fileSize
+                            fileSize: Number(newEvents.fileSize),
+                            attachment: newEvents.attachment,
                         })
                     }
                 }
@@ -166,7 +170,8 @@ export class ExportWorkerClass {
                             status: 'COMPLETED',
                             outputResponse: { ...past },
                             fileUrl: past.fileUrl,
-                            fileSize: Number(past.fileSize)
+                            fileSize: Number(past.fileSize),
+                            attachment: past.attachment,
                         })
                     }
                 }
@@ -187,7 +192,8 @@ export class ExportWorkerClass {
                             status: 'COMPLETED',
                             outputResponse: { ...active },
                             fileUrl: active.fileUrl,
-                            fileSize: active.fileSize
+                            fileSize: Number(active.fileSize),
+                            attachment: active.attachment,
                         })
                     }
 
@@ -208,17 +214,23 @@ export class ExportWorkerClass {
                             status: 'COMPLETED',
                             outputResponse: { ...newEvents },
                             fileUrl: newEvents.fileUrl,
-                            fileSize: newEvents.fileSize
+                            fileSize: Number(newEvents.fileSize),
+                            attachment: newEvents.attachment,
                         })
                     }
                 }
                 // console.log({ bulkUpdateExport });
                 await Promise.all(
-                    bulkUpdateExport.map(({ id, status, fileUrl, outputResponse }) =>
-                        this.prisma.export.update({
+                    bulkUpdateExport.map(({ id, status, fileUrl, outputResponse, attachment, fileSize }) => {
+                        if (!attachments) {
+                            attachments = [];
+                        }
+                        attachments.push(attachment);
+                        return this.prisma.export.update({
                             where: { id },
-                            data: { status, fileUrl, outputData: outputResponse },
+                            data: { status, fileSize, fileUrl, outputData: outputResponse },
                         })
+                    }
                     )
                 );
             } else if (process.env.BACKEND === 'geo') {
@@ -243,7 +255,8 @@ export class ExportWorkerClass {
                             status: 'COMPLETED',
                             outputResponse: { ...business },
                             fileUrl: business.fileUrl,
-                            fileSize: business.fileSize
+                            fileSize: Number(business.fileSize),
+                            attachment: business.attachment
                         })
                     }
                     if (social.error) {
@@ -259,7 +272,8 @@ export class ExportWorkerClass {
                             status: 'COMPLETED',
                             outputResponse: { ...social },
                             fileUrl: social.fileUrl,
-                            fileSize: business.fileSize
+                            fileSize: Number(social.fileSize),
+                            attachment: social.attachment
                         })
                     }
                     if (unattended.error) {
@@ -275,7 +289,8 @@ export class ExportWorkerClass {
                             status: 'COMPLETED',
                             outputResponse: { ...unattended },
                             fileUrl: unattended.fileUrl,
-                            fileSize: business.fileSize
+                            fileSize: Number(unattended.fileSize),
+                            attachment: unattended.attachment
                         })
                     }
                 }
@@ -298,7 +313,8 @@ export class ExportWorkerClass {
                             status: 'COMPLETED',
                             outputResponse: { ...business },
                             fileUrl: business.fileUrl,
-                            fileSize: business.fileSize
+                            fileSize: Number(business.fileSize),
+                            attachment: business.attachment
                         })
                     }
                 }
@@ -319,7 +335,8 @@ export class ExportWorkerClass {
                             status: 'COMPLETED',
                             outputResponse: { ...social },
                             fileUrl: social.fileUrl,
-                            fileSize: social.fileSize
+                            fileSize: Number(social.fileSize),
+                            attachment: social.attachment
                         })
                     }
                 }
@@ -339,16 +356,22 @@ export class ExportWorkerClass {
                             status: 'COMPLETED',
                             outputResponse: { ...unattended },
                             fileUrl: unattended.fileUrl,
-                            fileSize: unattended.fileSize
+                            fileSize: Number(unattended.fileSize),
+                            attachment: unattended.attachment
                         })
                     }
                 }
                 await Promise.all(
-                    bulkUpdateExport.map(({ id, status, fileUrl, outputResponse }) =>
-                        this.prisma.export.update({
+                    bulkUpdateExport.map(({ id, status, fileUrl, outputResponse, attachment, fileSize }) => {
+                        if (!attachments) {
+                            attachments = [];
+                        }
+                        attachments.push(attachment);
+                        return this.prisma.export.update({
                             where: { id },
-                            data: { status, fileUrl, outputData: outputResponse },
+                            data: { status, fileUrl, fileSize, outputData: outputResponse },
                         })
+                    }
                     )
                 );
             }
@@ -385,6 +408,7 @@ export class ExportWorkerClass {
                     emailSenderAddress,
                     'Export Event Data Request Failed',
                     exportFailMail,
+                    attachments
                 );
                 let status = 'COMPLETED' as JobStatus;
                 if (error) {
@@ -599,7 +623,17 @@ export class ExportWorkerClass {
                     fileSize: true,
                 },
             });
+            const fileData = fs.readFileSync(excelFilePath);
+            const base64File = fileData.toString('base64');
+            const attachment =
+            {
+                content: base64File,
+                filename: 'report.xlsx',
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                disposition: 'attachment',
+            };
             return {
+                attachments,
                 status: "done",
                 fileSizeInKB,
                 fileSizeInMB,

@@ -21,12 +21,13 @@ export class EmailService {
       return { error: JSON.stringify(error) };
     }
   }
-  async mailSender(to: string, from: string, subject: string, html: any) {
+  async mailSender(to: string, from: string, subject: string, html: any, attachments: any[] | null) {
     return await this.mailSending({
       to: to,
       from: from,
       subject: subject,
       html: html,
+      ...(attachments ? { attachments } : {})
     });
   }
   private async multiMailSending(msg: {
@@ -49,12 +50,14 @@ export class EmailService {
     from: string,
     subject: string,
     html: any,
+    attachments: any[] | null = null
   ) {
     return await this.multiMailSending({
       to: to,
       from: from,
       subject: subject,
       html: html,
+      ...(attachments ? { attachments } : {})
     });
   }
 }
