@@ -21,13 +21,15 @@ export class EmailService {
       return { error: JSON.stringify(error) };
     }
   }
-  async mailSender(to: string, from: string, subject: string, html: any, attachments: any[] | null) {
+  async mailSender(to: string, from: string, subject: string, html: any, attachments: any[] | null = null) {
+    console.log({ attachments });
+
     return await this.mailSending({
       to: to,
       from: from,
       subject: subject,
       html: html,
-      ...(attachments ? { attachments } : {})
+      ...(attachments && attachments.length > 0 ? { attachments } : {})
     });
   }
   private async multiMailSending(msg: {

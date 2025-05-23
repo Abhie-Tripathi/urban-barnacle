@@ -47,8 +47,8 @@ export class ExportWorkerClass {
     @Process('exportTrackerEventData')
     async handleEmailJob(job: Job<JobDataForExport>) {
         const jobData = job.data;
-        const bulkUpdateExport: { id?: string; status: JobStatus; outputResponse?: object; fileUrl?: string, fileSize?: Number, attachment?: any }[] = [];
-        let attachments: any[] | null = null;
+        const bulkUpdateExport: { id?: string; status: JobStatus; outputResponse?: object; fileUrl?: string, fileSize?: number, attachment?: any }[] = [];
+        let attachments: any[] = [];
         try {
             jobData['email'] = jobData.userData.email;
             const eventTypeData: string = jobData['type']
@@ -222,9 +222,6 @@ export class ExportWorkerClass {
                 // console.log({ bulkUpdateExport });
                 await Promise.all(
                     bulkUpdateExport.map(({ id, status, fileUrl, outputResponse, attachment, fileSize }) => {
-                        if (!attachments) {
-                            attachments = [];
-                        }
                         attachments.push(attachment);
                         return this.prisma.export.update({
                             where: { id },
@@ -363,9 +360,6 @@ export class ExportWorkerClass {
                 }
                 await Promise.all(
                     bulkUpdateExport.map(({ id, status, fileUrl, outputResponse, attachment, fileSize }) => {
-                        if (!attachments) {
-                            attachments = [];
-                        }
                         attachments.push(attachment);
                         return this.prisma.export.update({
                             where: { id },
@@ -393,6 +387,7 @@ export class ExportWorkerClass {
                     emailSenderAddress,
                     'Export Event Data Request Completed',
                     exportCompletMail,
+                    attachments,
                 );
                 let status = 'COMPLETED' as JobStatus;
                 if (error) {
@@ -402,6 +397,7 @@ export class ExportWorkerClass {
                 const exportFailMail: string = exportFailMailTemplate
                     .replaceAll('{firstName}', jobData.userData.firstname || '')
                     .replaceAll('{lastName}', jobData.userData.lastname || '');
+                console.log({ attachments: Array.isArray(attachments) ? (attachments as any[]).length : 0 });
 
                 const { data, error } = await this.email.mailSender(
                     jobData.userData.email,
@@ -628,12 +624,12 @@ export class ExportWorkerClass {
             const attachment =
             {
                 content: base64File,
-                filename: 'report.xlsx',
+                filename: fileName,
                 type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 disposition: 'attachment',
             };
             return {
-                attachments,
+                attachment,
                 status: "done",
                 fileSizeInKB,
                 fileSizeInMB,
