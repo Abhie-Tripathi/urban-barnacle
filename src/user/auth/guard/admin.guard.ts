@@ -48,7 +48,7 @@ export class AdminGuard implements CanActivate {
     if (!requestToken) {
       return null;
     }
-    const user: TCachedUser | undefined =
+    const user: TCachedUser | null =
       await this.cacheManager.get(requestToken);
     if (!user) {
       return null;

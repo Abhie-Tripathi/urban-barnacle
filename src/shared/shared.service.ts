@@ -35,6 +35,7 @@ import {
   fetchDatafromMicroService,
   microServiceApis,
 } from './microservice.api';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class SharedService {
@@ -42,11 +43,12 @@ export class SharedService {
     private readonly prisma: PrismaService,
     private readonly suggestionService: SuggestionService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    private readonly redisService: RedisService,
   ) { }
 
   async signToken(user: SelectedUserDetails, token: string) {
     const tokenData: TCachedUser = { ...user, token };
-    await this.cacheManager.set(token, tokenData, 1000 * 60 * 60 * 24 * 365);
+    await this.redisService.set(token, JSON.stringify(tokenData), 1000 * 60 * 60 * 24 * 365);
     return token;
   }
 

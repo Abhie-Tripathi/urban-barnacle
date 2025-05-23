@@ -14,7 +14,7 @@ import {
 } from './dto';
 import { AccessService } from 'src/access/access.service';
 import { AccessDataService } from 'src/access/access.data.service';
-import { getNameFromEmail, getNonEmptyParams } from 'src/utils';
+import { getNameFromEmail, getNonEmptyParams, TrackerIntelScoreJson } from 'src/utils';
 import { SharedService } from 'src/shared/shared.service';
 import { EventsService } from 'src/events/events.service';
 import { CountGroup, CountQueryDto, QueryDto, View } from 'src/events/dto';
@@ -30,6 +30,7 @@ import { ConfigService } from '@nestjs/config';
 import { QueryFilter, QueryFilterDto } from 'src/events/dto/query.dto';
 import { AccountDataService } from 'src/user/account/account.data.service';
 import { microserviceEndpoints } from 'src/utils/endpoints';
+import { RedisService } from 'src/redis/redis.service';
 @Injectable()
 export class TrackerService {
   constructor(
@@ -44,6 +45,7 @@ export class TrackerService {
     private readonly configService: ConfigService,
     private readonly accountDataService: AccountDataService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    private readonly redisService: RedisService,
   ) { }
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
@@ -127,13 +129,24 @@ export class TrackerService {
         : this.configService.get('BACKEND') === 'geo'
           ? CountGroup.eventTypeGroup
           : undefined;
-    let cachedValues = (await this.cacheManager.get(
+    let cachedValues: string | null = (await this.redisService.get(
       `tracker-${tracker.id}`,
-    )) as {
-      groupedEventsCount: object;
-      filterValues: object;
-    };
-    let { groupedEventsCount, filterValues } = cachedValues ?? {};
+    ));
+    let groupedEventsCount: object = {};
+    let filterValues: object = {};
+
+    if (cachedValues) {
+      try {
+        const parsed = JSON.parse(cachedValues) as {
+          groupedEventsCount: object;
+          filterValues: object;
+        };
+        groupedEventsCount = parsed.groupedEventsCount;
+        filterValues = parsed.filterValues;
+      } catch (err) {
+        console.error('Failed to parse cached tracker data:', err);
+      }
+    }
     if (
       (!groupedEventsCount && !tracker.type.startsWith('TR_')) ||
       !filterValues ||
@@ -157,9 +170,9 @@ export class TrackerService {
       filterValues = await this.sharedService.convertIdParamsToSlug(
         tracker.filterValues,
       );
-      await this.cacheManager.set(
+      await this.redisService.set(
         `tracker-${tracker.id}`,
-        { groupedEventsCount, filterValues: tracker.filterValues },
+        JSON.stringify({ groupedEventsCount, filterValues: tracker.filterValues }),
         82800000,
       );
     }
@@ -1201,12 +1214,14 @@ export class TrackerService {
     }
     let trackerEventsIntelScore: object[] = [];
     const queryForPayload = await this.createQueryForIntelScore(query, tracker, trackerId, user);
-    const [getJsonForTrackerType, jobsForIntelScore] = await Promise.all([this.cacheManager.get(`${trackerId}-IntelScore`),
-    this.cacheManager.get(`${trackerId}-IntelScore-Job`)
+    let [getJsonForTrackerType, jobsForIntelScore] = await Promise.all([this.redisService.jsonGet(`${trackerId}-IntelScore`, `$.${query.trackerEventStatus}`),
+    this.redisService.jsonGet(`${trackerId}-IntelScore-Job`)
     ]);
-    console.log({ getJsonForTrackerType });
+    getJsonForTrackerType = (getJsonForTrackerType) ? JSON.parse((getJsonForTrackerType.toString()))[0] : getJsonForTrackerType;
+    console.log({ getJsonForTrackerType: getJsonForTrackerType }, { jobsForIntelScore }, { data: (await this.redisService.get(`${trackerId}-IntelScore-Job`)) });
 
     if (!getJsonForTrackerType || Object.keys(getJsonForTrackerType).length === 0) {
+      jobsForIntelScore = (jobsForIntelScore) ? JSON.parse((jobsForIntelScore.toString()))[0] : jobsForIntelScore;
       let jobExist: TrackerIntelScoreJson | null | undefined = jobsForIntelScore as any;
       if (!jobExist) {
         jobExist = {
@@ -1214,8 +1229,8 @@ export class TrackerService {
           keywords: '<100',
           createdAt: (new Date()).toISOString(), status: 'pending', user: user
         };
-        const createTemplate = await Promise.all([this.cacheManager.set(`${trackerId}-IntelScore-Job`,
-          jobExist,60 * 60 * 24 * 7 )]);
+        const createTemplate = await Promise.all([this.redisService.jsonSet(`${trackerId}-IntelScore-Job`, "$",
+          jobExist)]);
         console.log({ getJsonForTrackerType, sadas: "SAdfsa" });
         this.fetchTrackerIntelScoreForCache(tracker, trackerId, user, jobExist);
       }
@@ -1226,11 +1241,11 @@ export class TrackerService {
         trackerEventsIntelScore.push(dataOfINtelScore[eventId]);
       }
     } else {
-      const jsonTrackerType = getJsonForTrackerType;
+      const jsonTrackerType = getJsonForTrackerType[0];
       for (const eventId of query.eventIds.split(',')) {
         console.log({ eventId });
 
-        trackerEventsIntelScore.push(jsonTrackerType[query.trackerEventStatus || 'active'][eventId]);
+        trackerEventsIntelScore.push(jsonTrackerType[eventId]);
       }
     }
     trackerEventsIntelScore = trackerEventsIntelScore.filter(val => val);
@@ -1307,8 +1322,8 @@ export class TrackerService {
   async fetchTrackerIntelScoreForCache(tracker: any, trackerId: string, user: TCachedUser, job: TrackerIntelScoreJson) {
     try {
       job.status = 'processing';
-      this.cacheManager.set(`${trackerId}-IntelScore-Job`,
-        job, 60 * 60 * 24 * 7)
+      this.redisService.jsonSet(`${trackerId}-IntelScore-Job`, "$",
+        job)
 
       const [active, newScore, past] = await Promise.all([
         this.fetchTrackerIntelScoreForActiveCache(tracker, trackerId, user),
@@ -1316,45 +1331,53 @@ export class TrackerService {
         this.fetchTrackerIntelScoreForPastCache(tracker, trackerId, user),
       ]);
 
-      const steCache = await this.cacheManager.set(`${trackerId}-IntelScore`,
+      const steCache = await this.redisService.jsonSet(`${trackerId}-IntelScore`, "$",
         {
           past,
           active,
           new: newScore
-        }, 60 * 60 * 24 * 7);
+        });
       console.dir({
-        ...past,
+        past,
         active,
         new: newScore,
         steCache
       }, { depth: null });
 
-      let completedJobs: any[] | undefined = await this.cacheManager.get(`tracker-IntelScore-JobsComplete`);
+      let completedJobs: any | null = await this.redisService.get(`tracker-IntelScore-JobsComplete`);
       console.log({ completedJobs });
 
       if (!completedJobs) {
         completedJobs = [];
-        await this.cacheManager.set(`tracker-IntelScore-JobsComplete`, [], 60 * 60 * 24 * 7);
+        await this.redisService.set(`tracker-IntelScore-JobsComplete`, JSON.stringify([]), 60 * 60 * 24 * 7);
       }
       job.status = 'complete';
-      if (completedJobs.length > 100)
-        completedJobs = completedJobs.slice(-50)
-      completedJobs.push(job);
-      await Promise.all([this.cacheManager.set(`tracker-IntelScore-JobsComplete`, completedJobs, 60 * 60 * 24 * 7),
-      this.cacheManager.del(`${trackerId}-IntelScore-Job`)])
+      if (completedJobs && !Array.isArray(completedJobs) && JSON.parse(completedJobs).length > 100) {
+        completedJobs = !Array.isArray(completedJobs) ? JSON.parse(completedJobs).slice(-50) : completedJobs;
+      }
+      completedJobs = !Array.isArray(completedJobs) ? JSON.parse(completedJobs).slice(-50) : completedJobs;
+      (completedJobs).push(job);
+      await Promise.all([this.redisService.set(`tracker-IntelScore-JobsComplete`, JSON.stringify(completedJobs), 60 * 60 * 24 * 7),
+      this.redisService.del(`${trackerId}-IntelScore-Job`)])
     } catch (error) {
-      await this.cacheManager.del(`${trackerId}-IntelScore-Job`);
-      await this.cacheManager.del(`${trackerId}-IntelScore`);
-      let failedJobs: any[] | undefined = await this.cacheManager.get(`tracker-IntelScore-JobsFailed`);
+      console.log(error);
+      console.error(error);
+      await this.redisService.del(`${trackerId}-IntelScore-Job`);
+      await this.redisService.del(`${trackerId}-IntelScore`);
+      await this.redisService.del(`tracker-IntelScore-JobsFailed`);
+      let failedJobs: any | null = await this.redisService.get(`tracker-IntelScore-JobsFailed`);
+      console.log({ failedJobs });
+
       if (!failedJobs) {
         failedJobs = [];
-        await this.cacheManager.set(`tracker-IntelScore-JobsFailed`, [], 60 * 60 * 24 * 7);
+        await this.redisService.set(`tracker-IntelScore-JobsFailed`, JSON.stringify([]), 60 * 60 * 24 * 7);
       }
       job.status = 'failed';
-      if (failedJobs.length > 100)
-        failedJobs = failedJobs.slice(-50)
-      failedJobs.push(job);
-      await this.cacheManager.set(`tracker-IntelScore-JobsFailed`, failedJobs, 60 * 60 * 24 * 7);
+      if (failedJobs && !Array.isArray(failedJobs) && JSON.parse(failedJobs).length > 100)
+        failedJobs = JSON.parse(failedJobs).slice(-50)
+      failedJobs = !Array.isArray(failedJobs) ? JSON.parse(failedJobs) : failedJobs;
+      (failedJobs).push(job);
+      await this.redisService.set(`tracker-IntelScore-JobsFailed`, JSON.stringify(failedJobs), 60 * 60 * 24 * 7);
     }
   }
   async fetchTrackerIntelScoreForActiveCache(tracker: any, trackerId: string, user: TCachedUser) {
@@ -1372,12 +1395,4 @@ export class TrackerService {
     const dataOfINtelScore = await this.trackerDataService.getTrackerIntelScoreFromApi(queryForPayload);
     return dataOfINtelScore;
   }
-}
-
-
-interface TrackerIntelScoreJson {
-  trackerId: string
-  keywords: '<100' | '>100',
-  createdAt: string, status: 'pending' | 'processing' | 'failed' | 'complete'
-  , user: any
 }

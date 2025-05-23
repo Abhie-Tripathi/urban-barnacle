@@ -40,7 +40,8 @@ import { OthersModule } from './others/others.module';
 import { DemoContactWorkerClass } from './communication/bull-service/bull-demoContact.service';
 import { ErrorWorkerClass } from './communication/bull-service/bull-errorMessage.service';
 import { GlobalResponseInterceptor } from './global-response.interceptor';
-
+import { CommunicationService } from './communication/communication.service';
+import { RedisModule } from './redis/redis.module';
 @Module({
   imports: [
     // ConfigModule to manage environment variables
@@ -57,17 +58,20 @@ import { GlobalResponseInterceptor } from './global-response.interceptor';
 
     // PrismaModule for database handling
     PrismaModule,
-
+    RedisModule,
     // CacheModule for Redis-based caching
-    CacheModule.register({
-      store: redisStore,
-      socket: {
-        host: process.env.REDIS_HOST||'0.0.0.0',
-        port: process.env.REDIS_PORT,
-      },
+    CacheModule.registerAsync({
       isGlobal: true,
-      password: process.env.REDIS_PASSWORD,
-      no_ready_check: false,
+      useFactory: async () => ({
+        store: await redisStore({
+          socket: {
+            host: process.env.REDIS_HOST || '0.0.0.0',
+            port: parseInt(process.env.REDIS_PORT || '6379'),
+          },
+          password: process.env.REDIS_PASSWORD,
+        }),
+        ttl: 300,
+      }),
     }),
 
     // Other application modules
@@ -93,6 +97,7 @@ import { GlobalResponseInterceptor } from './global-response.interceptor';
     IntendModule,
     PublicApiModule,
     OthersModule,
+    RedisModule
   ],
   controllers: [AppController],
   providers: [
