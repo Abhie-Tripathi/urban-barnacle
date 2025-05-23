@@ -1,0 +1,85 @@
+// src/redis/redis.service.ts
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import Redis, { Command } from 'ioredis';
+
+@Injectable()
+export class RedisService implements OnModuleInit, OnModuleDestroy {
+    private client: Redis;
+
+    constructor(private configService: ConfigService) { }
+
+    onModuleInit() { 
+        const host = process.env.REDIS_HOST||'0.0.0.0';
+        const port = Number(process.env.REDIS_PORT|| 63790);
+        const password = this.configService.get('REDIS_PASSWORD', '');
+
+        this.client = new Redis({
+            host,
+            port,
+            password,
+        });
+
+        this.client.on('connect', () => console.log('Redis connected'));
+        this.client.on('error', (err) => console.error('Redis error:', err));
+    }
+
+    onModuleDestroy() {
+        this.client.quit();
+    }
+
+    // -------- Standard Redis Functions --------
+    async set(key: string, value: string, ttlSeconds?: number) {
+        if (ttlSeconds) {
+            await this.client.set(key, value, 'EX', ttlSeconds);
+        } else {
+            await this.client.set(key, value);
+        }
+    }
+
+    async get(key: string) {
+        return await this.client.get(key);
+    }
+
+    async del(key: string) {
+        return await this.client.del(key);
+    }
+
+    async exists(key: string) {
+        return await this.client.exists(key);
+    }
+
+    async incr(key: string) {
+        return await this.client.incr(key);
+    }
+
+    async expire(key: string, seconds: number) {
+        return await this.client.expire(key, seconds);
+    }
+
+    // -------- RedisJSON Functions (Redis Stack) --------
+    async jsonSet(key: string, path: string, json: any): Promise<string> {
+        const command = new Command('JSON.SET', [key, path, JSON.stringify(json)]);
+        return await this.client.sendCommand(command) as Promise<string>;
+    }
+
+    async jsonGet(key: string, path = '$'): Promise<any | null> {
+        const command = new Command('JSON.GET', [key, path]);
+        return await this.client.sendCommand(command);
+    }
+
+    async jsonDel(key: string, path = '$') {
+        const command = new Command('JSON.DEL', [key, path]);
+        const result = await this.client.sendCommand(command);
+        return Number(result);
+    }
+
+
+    //   async jsonMget(path = '.', ...keys: string[]): Promise<(string | null)[]> {
+    //     return this.client.sendCommand(['JSON.MGET', ...keys, path]);
+    //   }
+
+    async flushAll(): Promise<string> {
+        return this.client.flushall();
+    }
+}
