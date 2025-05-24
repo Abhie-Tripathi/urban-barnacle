@@ -210,7 +210,7 @@ export class TrackerController {
   async getTrackerSimilarEvents(
     @Param('id') id: string,
     @GetUser() user: TCachedUser,
-    @Query() query: SimilarTrackerEventDto,
+    @Query() query: GetTrackerEventsDto,
   ) {
     try {
       const showValues = 'basic,advance,insights,audience';
@@ -219,6 +219,24 @@ export class TrackerController {
         id,
         query,
         showValues,
+      );
+      return { data: events };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+  @UseGuards(AuthGuard)
+  @Get(':id/events/similar/count')
+  async getTrackerSimilarEventsCount(
+    @Param('id') id: string,
+    @GetUser() user: TCachedUser,
+    @Query() query: GetTrackerEventsCountDto,
+  ) {
+    try {
+      const events = await this.trackerService.getTrackerSimilarEventsCount(
+        user,
+        id,
+        query,
       );
       return { data: events };
     } catch (error) {

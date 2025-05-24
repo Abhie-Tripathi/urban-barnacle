@@ -701,6 +701,10 @@ export const CountQuerySchema = QueryFilter.extend({
     })
     .transform((val) => val.split(',') as CountGroup[])
     .optional(),
+  trackerId: z.string().optional(),
+  eventSourceIds: z
+    .string()
+    .optional(),
 }).transform((data) => {
   // const intersectedKeys = Object.keys(data).filter((key) =>
   //   FilterNames.includes(key),
@@ -750,6 +754,8 @@ const similarEventsSchema = QuerySchema.omit({ showValues: true }).extend({
     })
     .transform((val) => val.split(',') as CountGroup[])
     .optional(),
+  searchByEntity: z.string().optional(),
+  eventSourceIds: z.string().optional(),
 }).transform((data) => {
   if (!data.status || (data.status && data.status.length === 0)) {
     data.status = [

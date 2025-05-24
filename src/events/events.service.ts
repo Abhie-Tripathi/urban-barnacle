@@ -328,7 +328,7 @@ export class EventsService {
 
     return await this.eventsDataService.getEventsTrends(convertedParams);
   }
-  async getSimilarEvents(query: SimilarEventsDto) {
+  async getSimilarEvents(query: QueryDto) {
     const nonEmptyParams = getNonEmptyParams(query);
     const convertedParams = await this.sharedService.convertSlugParamsToIds(
       nonEmptyParams,
@@ -344,5 +344,27 @@ export class EventsService {
       }
     }
     return await this.eventsDataService.getSimilarEvents(convertedParams);
+  }
+  async getSimilarEventsCount(query: CountQueryDto, validateIds: boolean = true) {
+    const nonEmptyParams = getNonEmptyParams(query);
+    if (
+      !nonEmptyParams.eventTypes ||
+      (nonEmptyParams.eventTypes && nonEmptyParams.eventTypes.length === 0)
+    ) {
+      const backend = process.env.BACKEND;
+      if (backend && backend in defaultEventTypes) {
+        if (validateIds) {
+          nonEmptyParams.eventTypes = Object.keys(defaultEventTypes[backend]);
+        } else {
+          nonEmptyParams.eventTypes = Object.values(defaultEventTypes[backend]);
+        }
+      }
+    }
+    const convertedParams = await this.sharedService.convertSlugParamsToIds(
+      nonEmptyParams,
+      validateIds,
+    );
+    const count = await this.eventsDataService.getSimilarEvents(convertedParams);
+    return count;
   }
 }

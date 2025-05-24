@@ -554,7 +554,7 @@ export class EventsDataService {
     });
     return eventData
   }
-  async getSimilarEvents(query: SimilarEventsDto) {
+  async getSimilarEvents(query: QueryDto) {
     const queryParams = new URLSearchParams({
       ...query as unknown as object
     });

@@ -19,7 +19,7 @@ import { SharedService } from 'src/shared/shared.service';
 import { EventsService } from 'src/events/events.service';
 import { CountGroup, CountQueryDto, QueryDto, View } from 'src/events/dto';
 import { IntentDataService } from 'src/intent/intent.data.service';
-import { AccessType, Prisma, Tracker, User } from '@prisma/client';
+import { AccessType, Prisma, Tracker, TrackerTypeTag, User } from '@prisma/client';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { UserDataService } from 'src/user/user.data.service';
 import { CommentService } from 'src/comment/comment.service';
@@ -83,7 +83,7 @@ export class TrackerService {
       sourceEntityId: tracker.id,
       flagForEmail: true
     });
-    console.log("data.cachingFlag==> ", data.cachingFlag);
+    // console.log("data.cachingFlag==> ", data.cachingFlag);
 
     if (data.cachingFlag) {
       this.getTrackerResponse(
@@ -112,7 +112,6 @@ export class TrackerService {
       ...(tracker['filterValue'] as object),
       ...lastActive,
     };
-
     const searchByEntity = ['T_COMPETITOR', 'T_CUSTOMER_ICP'].includes(
       tracker.type,
     )
@@ -121,7 +120,17 @@ export class TrackerService {
         ? 'user'
         : tracker.type === 'T_SPEAKING_OPPORTUNITY'
           ? 'speaker'
-          : undefined;
+          : tracker.type === 'T_RECRUITMENT'
+            ? 'recruitment'
+            : tracker.type === 'T_PRODUCT_KEYWORDS'
+              ? 'keywords' :
+              tracker.type === 'T_EVENT_PARTICIPATION'
+                ? 'event'
+                : undefined;
+    if (searchByEntity && searchByEntity === 'event') {
+      // tracker.filterValues['eventIds'] = [];
+      await this.trackerDataService.bulkDeleteToSimilarTrackerEvent(tracker.id)
+    }
     tracker.filterValues = tracker.filterValues
       ? {
         ...(tracker.filterValues as Record<string, any>),
@@ -160,12 +169,80 @@ export class TrackerService {
         try {
           groupedEventsCount = await this.getGroupedEventsCount(
             {
+              searchByEntity,
+              trackerId: tracker.id,
               ...tracker.filterValues,
               createdAt: lastActive.last_active_gte,
             } as CountQueryDto,
             groupBy ? groupBy : undefined,
             // groupBy,
           );
+          // console.log({ asdasdasdasdasd: groupedEventsCount });
+          const similarEventCache = { ...groupedEventsCount['similarEventCache'] }
+          delete groupedEventsCount['similarEventCache'];
+          groupedEventsCount = groupedEventsCount['count']
+          if (searchByEntity && searchByEntity === 'event') {
+            const trackerSimilarEventPauload: {
+              trackerId: string, eventId: string, count: number;
+              tag: TrackerTypeTag, sourceId: number; score: number
+            }[] = [];
+
+            if (groupedEventsCount['past_ids']) {
+              const pastData = (groupedEventsCount['past_ids'] as string).split(',');
+              const pastCount: number = pastData.length;
+              for (const eachPastData of pastData) {
+                const eventIds: string[] = eachPastData.split('#');
+                // console.log({ similarEventCache: similarEventCache[(eventIds[1])], eventIds: eventIds[1] });
+
+                trackerSimilarEventPauload.push({
+                  trackerId: tracker.id,
+                  count: pastCount,
+                  eventId: eventIds[0],
+                  sourceId: Number(eventIds[1]),
+                  tag: 'PAST',
+                  score: similarEventCache[(eventIds[1])] || 0
+                  ,
+                })
+              }
+            }
+            delete groupedEventsCount['past_ids'];
+            if (groupedEventsCount['active_ids']) {
+              const activeData = (groupedEventsCount['active_ids'] as string).split(',');
+              const activeCount: number = activeData.length;
+              for (const eachActiveData of activeData) {
+                const eventIds: string[] = eachActiveData.split('#');
+                trackerSimilarEventPauload.push({
+                  trackerId: tracker.id,
+                  count: activeCount,
+                  eventId: eventIds[0],
+                  sourceId: Number(eventIds[1]),
+                  tag: 'ACTIVE',
+                  score: similarEventCache[(eventIds[1])] || 0
+                  ,
+                })
+              }
+            }
+            delete groupedEventsCount['active_ids'];
+            if (groupedEventsCount['new_ids']) {
+              const newData = (groupedEventsCount['new_ids'] as string).split(',');
+              const newCount: number = newData.length;
+              for (const eachNewData of newData) {
+                const eventIds: string[] = eachNewData.split('#');
+                trackerSimilarEventPauload.push({
+                  trackerId: tracker.id,
+                  count: newCount,
+                  eventId: eventIds[0],
+                  sourceId: Number(eventIds[1]),
+                  tag: 'NEW',
+                  score: similarEventCache[(eventIds[1])] || 0
+                  ,
+                })
+              }
+            }
+            delete groupedEventsCount['new_ids'];
+            if (trackerSimilarEventPauload.length > 0)
+              await this.trackerDataService.bulkInsertToSimilarTrackerEvent(trackerSimilarEventPauload);
+          }
         } catch (error) {
 
         }
@@ -320,10 +397,13 @@ export class TrackerService {
   }
 
   async getGroupedEventsCount(params: CountQueryDto, groupBy?: CountGroup) {
+    // console.log({ params });
     if (groupBy === CountGroup.status) {
       params['groupBy'] = ['status'] as CountGroup[];
       const data = await this.eventService.getEventsCount(params, false);
-      return data.count;
+      // console.log({ getGroupedEventsCount121: data });
+
+      return data;
     }
     if (groupBy === CountGroup.eventTypeGroup) {
       const [social, business, unattended] = await Promise.all([
@@ -367,8 +447,13 @@ export class TrackerService {
         },
       };
     }
+    if (params['searchByEntity'] && params['searchByEntity'] === 'event' && params.trackerId) {
+      // params['eventIds'] = [];
+      params['eventSourceIds'] = '-1';
+      await this.trackerDataService.bulkDeleteToSimilarTrackerEvent(params.trackerId)
+    }
     const data = await this.eventService.getEventsCount(params, false);
-    return data.count;
+    return data;
   }
 
   async updateTracker(
@@ -463,9 +548,14 @@ export class TrackerService {
             : tracker.type === 'T_RECRUITMENT'
               ? 'recruitment'
               : tracker.type === 'T_PRODUCT_KEYWORDS'
-                ? 'keywords'
-                : undefined;
-
+                ? 'keywords' :
+                tracker.type === 'T_EVENT_PARTICIPATION'
+                  ? 'event'
+                  : undefined;
+      if (searchByEntity && searchByEntity === 'event' && tracker.filterValues && tracker.filterValues['eventIds']) {
+        tracker.filterValues['eventIds'] = [];
+        tracker.filterValues['eventSourceIds'] = [-1];
+      }
       const eventParams = {
         ...(tracker.filterValues as Object),
         limit: params.limit,
@@ -642,7 +732,14 @@ export class TrackerService {
             ? 'speaker'
             : tracker.type === 'T_RECRUITMENT'
               ? 'recruitment'
-              : undefined;
+              : tracker.type === 'T_PRODUCT_KEYWORDS'
+                ? 'keywords' :
+                tracker.type === 'T_EVENT_PARTICIPATION'
+                  ? 'event'
+                  : undefined;
+      if (searchByEntity && searchByEntity === 'event' && tracker.filterValues && tracker.filterValues['eventIds']) {
+        tracker.filterValues['eventIds'] = [];
+      }
       if (tracker.filterValues && tracker.filterValues['viewBound']) {
         tracker.filterValues['viewBound'] = tracker.filterValues['viewBound'];
       }
@@ -1167,10 +1264,12 @@ export class TrackerService {
   async getTrackerSimilarEvents(
     user: TCachedUser,
     trackerId: string,
-    params: SimilarTrackerEventDto,
+    params: GetTrackerEventsDto,
     showValues: string,
   ) {
     try {
+      console.log(params);
+
       const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
         'ADMIN',
         'SUPER_ADMIN',
@@ -1208,22 +1307,48 @@ export class TrackerService {
             : tracker.type === 'T_RECRUITMENT'
               ? 'recruitment'
               : tracker.type === 'T_PRODUCT_KEYWORDS'
-                ? 'keywords'
-                : undefined;
-      if (tracker.filterValues && tracker.filterValues['viewBound']) {
-        tracker.filterValues['viewBound'] = tracker.filterValues['viewBound'];
+                ? 'keywords' :
+                tracker.type === 'T_EVENT_PARTICIPATION'
+                  ? 'event'
+                  : undefined;
+      if (tracker.type !== 'T_EVENT_PARTICIPATION') {
+        throw new HttpException(
+          'Invalid tracker type',
+          HttpStatus.BAD_REQUEST
+        );
       }
-      const eventParams = {
+      let eventParams = {
         ...(tracker.filterValues as Object),
         ...convertedParams,
-        ...(!params.groupBy ? {
-          limit: params.limit,
-          offset: params.offset,
-          view: View.tracker,
-          trackerId: trackerId,
-          showValues: showValues,
-        } : {})
+        limit: params.limit,
+        offset: params.offset,
+        view: params.view || View.tracker,
+        trackerId: trackerId,
+        showValues: showValues,
       };
+      const dataFromDB = await this.trackerDataService.getSimilarTrackerEvent(trackerId, eventParams['trackerEventStatus']?.toUpperCase() as TrackerTypeTag || 'NEW', params.limit || 10, params.offset || 0)
+      console.log({ dataFromDB: dataFromDB });
+
+      if (dataFromDB.length > 0) {
+        let count: number = dataFromDB[0].count;
+        const cache: Object = {};
+        eventParams['eventSourceIds'] = dataFromDB.map(val => {
+          cache[val.eventId] = val.score;
+          return val.sourceId
+        }).join(',');
+        eventParams['eventIds'] = [];
+        eventParams['cache'] = JSON.stringify(cache)
+        if (searchByEntity) {
+          eventParams['searchByEntity'] = searchByEntity;
+        }
+        const events = await this.eventService.getSimilarEvents(
+          eventParams
+        );
+        console.log(events);
+
+        return { events: events['events'], count: count };
+      }
+
       if (searchByEntity) {
         eventParams['searchByEntity'] = searchByEntity;
       }
@@ -1245,57 +1370,152 @@ export class TrackerService {
             countByYear: params.calendar_type === 'year' ? {} : undefined,
           };
         }
-        if (params.groupBy) {
-          if (
-            params.groupBy &&
-            [CountGroup.month, CountGroup.year, CountGroup.day].includes(
-              params.groupBy[0],
-            )
-          ) {
-            return {
-              count: 0,
-              events: {},
-              countByMonth:
-                params.groupBy[0] === CountGroup.month ? {} : undefined,
-              countByYear: params.groupBy[0] === CountGroup.year ? {} : undefined,
-            };
-          } else if (
-            params.groupBy &&
-            ['city', 'state', 'country'].includes(params.groupBy[0])
-          ) {
-            return [];
-          } else if (params.groupBy && params.groupBy[0] === CountGroup.status) {
-            return {
-              past: 0,
-              active: 0,
-              new: 0,
-            };
-          } else if (
-            params.groupBy &&
-            params.groupBy[0] === CountGroup.eventTypeGroup
-          ) {
-            return [
-              {
-                group_name: 'business',
-                count: 0,
-              },
-              {
-                group_name: 'social',
-                count: 0,
-              },
-              {
-                group_name: 'unattended',
-                count: 0,
-              },
-            ];
-          }
-          return {
-            count: 0,
-          };
-        }
         return {
           count: 0,
           events: [],
+        };
+      }
+      throw error;
+    }
+  }
+
+  async getTrackerSimilarEventsCount(
+    user: TCachedUser,
+    trackerId: string,
+    params: GetTrackerEventsCountDto,
+  ) {
+    try {
+      console.log(params);
+
+      const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
+        'ADMIN',
+        'SUPER_ADMIN',
+        'USER',
+      ]);
+      const newParams = getNonEmptyParams(params);
+      const convertedParams = await this.sharedService.convertSlugParamsToIds(
+        newParams,
+        true,
+        false,
+      );
+      const { startDate, endDate } = this.getValidDateRange(
+        tracker.filterValues as unknown as GetTrackerEventsDto,
+        newParams as GetTrackerEventsDto,
+      );
+      convertedParams['active_gte'] = startDate;
+      convertedParams['active_lte'] = endDate;
+      if (params.trackerEventStatus && params.trackerEventStatus === 'new') {
+        const lastActive = await this.lastActive(
+          user,
+          tracker.id,
+          tracker.createdAt,
+        );
+        convertedParams['createdAt'] = lastActive.last_active_gte;
+      }
+
+      const searchByEntity = ['T_COMPETITOR', 'T_CUSTOMER_ICP'].includes(
+        tracker.type,
+      )
+        ? 'company'
+        : tracker.type === 'T_PEOPLE_FINDER'
+          ? 'user'
+          : tracker.type === 'T_SPEAKING_OPPORTUNITY'
+            ? 'speaker'
+            : tracker.type === 'T_RECRUITMENT'
+              ? 'recruitment'
+              : tracker.type === 'T_PRODUCT_KEYWORDS'
+                ? 'keywords' :
+                tracker.type === 'T_EVENT_PARTICIPATION'
+                  ? 'event'
+                  : undefined;
+      if (tracker.type !== 'T_EVENT_PARTICIPATION') {
+        throw new HttpException(
+          'Invalid tracker type',
+          HttpStatus.BAD_REQUEST
+        );
+      }
+      let eventParams = {
+        ...(tracker.filterValues as Object),
+        ...convertedParams,
+        trackerId: trackerId,
+      } as CountQueryDto;
+      const dataFromDB = await this.trackerDataService.getSimilarTrackerEvent(trackerId, eventParams['trackerEventStatus']?.toUpperCase() as TrackerTypeTag || 'NEW', 1000, 0)
+      console.log({ dataFromDB: dataFromDB });
+
+
+      if (searchByEntity) {
+        eventParams['searchByEntity'] = searchByEntity;
+      }
+      if (dataFromDB.length > 0) {
+        let count: number = dataFromDB[0].count;
+        const cache: Object = {};
+        eventParams['eventSourceIds'] = dataFromDB.map(val => {
+          cache[val.eventId] = val.score;
+          return val.sourceId
+        }).join(',');
+        eventParams['eventIds'] = [];
+        const events = await this.eventService.getSimilarEventsCount(
+          eventParams
+        );
+        console.log({ output: events });
+
+        return { data: events };
+      }
+      const events = await this.eventService.getSimilarEventsCount(
+        eventParams
+      );
+      return events;
+    } catch (error) {
+      if (
+        error instanceof HttpException &&
+        error.getStatus() === 400 &&
+        error.getResponse() === 'Invalid date range'
+      ) {
+        if (
+          params.groupBy &&
+          [CountGroup.month, CountGroup.year, CountGroup.day].includes(
+            params.groupBy[0],
+          )
+        ) {
+          return {
+            count: 0,
+            events: {},
+            countByMonth:
+              params.groupBy[0] === CountGroup.month ? {} : undefined,
+            countByYear: params.groupBy[0] === CountGroup.year ? {} : undefined,
+          };
+        } else if (
+          params.groupBy &&
+          ['city', 'state', 'country'].includes(params.groupBy[0])
+        ) {
+          return [];
+        } else if (params.groupBy && params.groupBy[0] === CountGroup.status) {
+          return {
+            past: 0,
+            active: 0,
+            new: 0,
+          };
+        } else if (
+          params.groupBy &&
+          params.groupBy[0] === CountGroup.eventTypeGroup
+        ) {
+          return [
+            {
+              group_name: 'business',
+              count: 0,
+            },
+            {
+              group_name: 'social',
+              count: 0,
+            },
+            {
+              group_name: 'unattended',
+              count: 0,
+            },
+          ];
+        }
+        return {
+          count: 0,
         };
       }
       throw error;
