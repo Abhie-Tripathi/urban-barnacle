@@ -1321,7 +1321,7 @@ export class TrackerService {
         ...(tracker.filterValues as Object),
         ...convertedParams,
         limit: params.limit,
-        offset: params.offset,
+        offset: 0,
         view: params.view || View.tracker,
         trackerId: trackerId,
         showValues: showValues,
@@ -1344,9 +1344,16 @@ export class TrackerService {
         const events = await this.eventService.getSimilarEvents(
           eventParams
         );
+        const dataForResponse: object[] = [];
+        dataFromDB.map(val => {
+          const findEVent = events.events.find(value => value.basic.id === val.eventId);
+          dataForResponse.push(findEVent)
+        })
+        console.log({ output: events });
+
         console.log(events);
 
-        return { events: events['events'], count: count };
+        return { events: dataForResponse, count: count };
       }
 
       if (searchByEntity) {
@@ -1457,7 +1464,6 @@ export class TrackerService {
         const events = await this.eventService.getSimilarEventsCount(
           eventParams
         );
-        console.log({ output: events });
 
         return { data: events };
       }
