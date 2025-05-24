@@ -1173,12 +1173,34 @@ export class TrackerService {
       'USER',
     ]);
     const trackerFilterValuesJson: Object = { ...tracker.filterValues as unknown as object };
-    const errorFunction = () => {
+    const errorFunction = async () => {
+      const jobExist = {
+        trackerId,
+        keywords: '>100',
+        createdAt: (new Date()).toISOString(), status: 'pending', user: user
+      };
+      let queueJobs: any | null = await this.redisService.get(`IntelScore-JobQueue`);
+      console.log({ queueJobs });
+      if (!queueJobs) {
+        queueJobs = [];
+        await this.redisService.set(`IntelScore-JobQueue`, JSON.stringify([]), 60 * 60 * 24 * 7);
+      }
+      if (queueJobs && !Array.isArray(queueJobs) && JSON.parse(queueJobs).length > 100)
+        queueJobs = JSON.parse(queueJobs);
+      queueJobs = !Array.isArray(queueJobs) ? JSON.parse(queueJobs) : queueJobs;
+      (queueJobs).push(jobExist);
+      await this.redisService.set(`IntelScore-JobQueue`, JSON.stringify(queueJobs), 60 * 60 * 24 * 7);
       throw new HttpException(
         "Unable to process the request: Too many filter items",
         HttpStatus.EXPECTATION_FAILED
       );
     };
+    if (tracker.type === 'T_EVENT_PARTICIPATION') {
+      let length: number = 10000;
+      if (length > MAX_FILTER_ITEMS) {
+        errorFunction();
+      }
+    }
     if (tracker.type === 'T_COMPETITOR') {
       let length: number = 0;
       if (trackerFilterValuesJson['orgName']) {
@@ -1242,14 +1264,32 @@ export class TrackerService {
       }
     } else {
       const jsonTrackerType = getJsonForTrackerType[0];
-      for (const eventId of query.eventIds.split(',')) {
-        console.log({ eventId });
+      const eventIds = query.eventIds.split(',');
+      const keys = eventIds.map(id => `${trackerId}-IntelScore`);
 
-        trackerEventsIntelScore.push(jsonTrackerType[eventId]);
-      }
+      const results = await this.redisService.jsonMget(`$.${query.trackerEventStatus}`, ...keys);
+      // console.log(());
+
+      trackerEventsIntelScore = results
+        .map(res => res ? JSON.parse(res)[0] : null) // Get the root object from each Redis result
+        .filter(Boolean)                             // Remove nulls
+        .flatMap(obj =>                              // Flatten the nested eventId objects
+          Object.entries(obj).map(([uuid, data]) => (data))
+        ) as Object[];
+      // for (const eventId of query.eventIds.split(',')) {
+      //   console.log({ eventId });
+      //   const intelscore: any | null | undefined = await this.redisService.jsonGet(`${trackerId}-IntelScore`, `$.${query.trackerEventStatus + '.' + eventId}`);
+      //   console.log(({ outpppuy: JSON.parse(intelscore)[0] }));
+
+      //   if (intelscore)
+      //     trackerEventsIntelScore.push(JSON.parse(intelscore)[0]);
+      // }
     }
-    trackerEventsIntelScore = trackerEventsIntelScore.filter(val => val);
-    return { trackerEventsIntelScore }
+    trackerEventsIntelScore = trackerEventsIntelScore.filter(val => val && Object.keys(val).length > 0);
+    const unique = trackerEventsIntelScore.filter((item, index, array) =>
+      array.findIndex(i => JSON.stringify(i) === JSON.stringify(item)) === index
+    );
+    return { trackerEventsIntelScore: unique }
   }
   async createQueryForIntelScore(query: any, tracker: any, trackerId: string, user: TCachedUser, validateIds: boolean = false) {
     const newParams = getNonEmptyParams(query);
@@ -1383,16 +1423,25 @@ export class TrackerService {
   async fetchTrackerIntelScoreForActiveCache(tracker: any, trackerId: string, user: TCachedUser) {
     const queryForPayload = await this.createQueryForIntelScore({ type: 'active', }, tracker, trackerId, user);
     const dataOfINtelScore = await this.trackerDataService.getTrackerIntelScoreFromApi(queryForPayload);
+    if (dataOfINtelScore['error'] || dataOfINtelScore['statusCode']) {
+      return {};
+    }
     return dataOfINtelScore;
   }
   async fetchTrackerIntelScoreForNewCache(tracker: any, trackerId: string, user: TCachedUser) {
     const queryForPayload = await this.createQueryForIntelScore({ type: 'new', }, tracker, trackerId, user);
     const dataOfINtelScore = await this.trackerDataService.getTrackerIntelScoreFromApi(queryForPayload);
+    if (dataOfINtelScore['error'] || dataOfINtelScore['statusCode']) {
+      return {};
+    }
     return dataOfINtelScore;
   }
   async fetchTrackerIntelScoreForPastCache(tracker: any, trackerId: string, user: TCachedUser) {
     const queryForPayload = await this.createQueryForIntelScore({ type: 'past', }, tracker, trackerId, user);
     const dataOfINtelScore = await this.trackerDataService.getTrackerIntelScoreFromApi(queryForPayload);
+    if (dataOfINtelScore['error'] || dataOfINtelScore['statusCode']) {
+      return {};
+    }
     return dataOfINtelScore;
   }
 }

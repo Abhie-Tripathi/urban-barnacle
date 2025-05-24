@@ -9,9 +9,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     constructor(private configService: ConfigService) { }
 
-    onModuleInit() { 
-        const host = process.env.REDIS_HOST||'0.0.0.0';
-        const port = Number(process.env.REDIS_PORT|| 63790);
+    onModuleInit() {
+        const host = process.env.REDIS_HOST || '0.0.0.0';
+        const port = Number(process.env.REDIS_PORT || 63790);
         const password = this.configService.get('REDIS_PASSWORD', '');
 
         this.client = new Redis({
@@ -75,9 +75,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
 
 
-    //   async jsonMget(path = '.', ...keys: string[]): Promise<(string | null)[]> {
-    //     return this.client.sendCommand(['JSON.MGET', ...keys, path]);
-    //   }
+    async jsonMget(path = '.', ...keys: string[]): Promise<(any | null)[]> {
+        const args = ['JSON.MGET', ...keys, path];
+        const command = new Command(args[0], args.slice(1));
+        const result: any = await this.client.sendCommand(command);
+        return result;
+    }
 
     async flushAll(): Promise<string> {
         return this.client.flushall();

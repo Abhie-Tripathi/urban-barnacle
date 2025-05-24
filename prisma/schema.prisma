@@ -436,6 +436,7 @@ model Tracker {
 }
 
 enum TrackerType {
+  T_EVENT_PARTICIPATION
   T_PEOPLE_FINDER
   T_COMPETITOR
   T_SPEAKING_OPPORTUNITY
@@ -798,4 +799,5 @@ enum FileType {
   PDF
   CSV
   JSON
+  EXCEL
 }

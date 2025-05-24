@@ -229,7 +229,7 @@ export class TrackerDataService {
       queryParams.toString();
     const response = await fetch(url);
     const data = await response.json();
-    console.dir(data, { depth: null });
+    // console.dir(data, { depth: null });
     if (data['error']) {
       throw new HttpException(data['error'], HttpStatus.BAD_REQUEST);
     }
