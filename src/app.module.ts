@@ -67,8 +67,16 @@ import { RedisModule } from './redis/redis.module';
           socket: {
             host: process.env.REDIS_HOST || '0.0.0.0',
             port: parseInt(process.env.REDIS_PORT || '6379'),
-            tls: true,
+            tls:
+              process.env.NODE_ENV &&
+              process.env.NODE_ENV.toLowerCase() === 'production'
+                ? true
+                : false,
           },
+          ...(process.env.NODE_ENV &&
+          process.env.NODE_ENV.toLowerCase() !== 'production'
+            ? { password: process.env.REDIS_PASSWORD }
+            : {}),
         }),
       }),
     }),

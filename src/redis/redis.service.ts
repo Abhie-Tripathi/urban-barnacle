@@ -11,15 +11,23 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     const host = process.env.REDIS_HOST || '0.0.0.0';
-    const port = Number(process.env.REDIS_PORT || 63790);
-    // const password = this.configService.get('REDIS_PASSWORD', '');
+    const port = Number(process.env.REDIS_PORT || 6379);
+    const password = this.configService.get('REDIS_PASSWORD', '');
 
     this.client = new Redis({
-      tls: {
-        host,
-        port,
-      },
-      // password,
+      ...(process.env.NODE_ENV &&
+      process.env.NODE_ENV.toLowerCase() !== 'production'
+        ? {
+            host,
+            port,
+            password,
+          }
+        : {
+            tls: {
+              host,
+              port,
+            },
+          }),
     });
 
     this.client.on('connect', () => console.log('Redis connected'));
@@ -42,6 +50,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   async get(key: string) {
     key = this.addBackendEnv(key);
+    console.log({ key });
     return await this.client.get(key);
   }
 
