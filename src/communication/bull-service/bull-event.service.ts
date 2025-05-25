@@ -17,9 +17,9 @@ interface EventCancelData {
   userId: string;
   userEmail: string;
   jobRequestId: string;
-  sourceId: string
+  sourceId: string;
 }
-@Processor({ name: 'eventProcessor', scope: Scope.REQUEST })
+@Processor({ name: '{eventProcessor}', scope: Scope.REQUEST })
 export class EventWorkerClass {
   constructor(
     private email: EmailService,
@@ -80,7 +80,7 @@ export class EventWorkerClass {
             source: 'EVENT_CANCEl',
             status: 'PROCESSING',
             user: { connect: { id: jobdata.userId } },
-            sourceId: jobdata.sourceId
+            sourceId: jobdata.sourceId,
           },
         });
         const eventCancelEmailTemplate = eventCancelMailToUsersHtml

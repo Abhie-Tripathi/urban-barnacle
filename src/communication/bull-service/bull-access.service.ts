@@ -21,7 +21,7 @@ interface UserMetaData {
   givenToUserName: string;
   givenByUserName: string;
 }
-@Processor({ name: 'accessProcessor', scope: Scope.REQUEST })
+@Processor({ name: '{accessProcessor}', scope: Scope.REQUEST })
 export class AccessEmailWorkerClass {
   constructor(
     private email: EmailService,

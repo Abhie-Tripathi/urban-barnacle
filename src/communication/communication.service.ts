@@ -11,14 +11,14 @@ import { z } from 'zod';
 export class CommunicationService {
   constructor(
     private readonly prisma: PrismaService,
-    @InjectQueue('eventProcessor') private readonly eventCanelQueue: Queue,
-    @InjectQueue('inviteProcessor') private readonly inviteQueue: Queue,
-    @InjectQueue('accessProcessor') private readonly accessQueue: Queue,
-    @InjectQueue('otpProcessor') private readonly otpQueue: Queue,
-    @InjectQueue('intendProcessor') private readonly intendQueue: Queue,
-    @InjectQueue('demoContactProcessor')
+    @InjectQueue('{eventProcessor}') private readonly eventCanelQueue: Queue,
+    @InjectQueue('{inviteProcessor}') private readonly inviteQueue: Queue,
+    @InjectQueue('{accessProcessor}') private readonly accessQueue: Queue,
+    @InjectQueue('{otpProcessor}') private readonly otpQueue: Queue,
+    @InjectQueue('{intendProcessor}') private readonly intendQueue: Queue,
+    @InjectQueue('{demoContactProcessor}')
     private readonly demoContactQueue: Queue,
-    @InjectQueue('errorProcessor') private readonly errorQueue: Queue,
+    @InjectQueue('{errorProcessor}') private readonly errorQueue: Queue,
   ) {}
   async createJobForBull(
     processAction: QueueActionOptions,

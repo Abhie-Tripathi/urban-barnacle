@@ -1,6 +1,6 @@
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Inject, Logger, Scope } from '@nestjs/common';
-import {  JobStatus, User } from '@prisma/client';
+import { JobStatus, User } from '@prisma/client';
 import { Job } from 'bull';
 import { Processor, Process, JOB_REF } from '@nestjs/bull';
 import { EmailService } from '../email/email.service';
@@ -39,7 +39,7 @@ interface intendUpdateData {
   jobRequestId: string;
   sourceId: string;
 }
-@Processor({ name: 'intendProcessor', scope: Scope.REQUEST })
+@Processor({ name: '{intendProcessor}', scope: Scope.REQUEST })
 export class IntendWorkerClass {
   constructor(
     private email: EmailService,

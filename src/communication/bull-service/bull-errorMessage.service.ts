@@ -6,7 +6,7 @@ import { Job } from 'bull';
 import { JobStatus } from '@prisma/client';
 import { emailSenderAddress, errorTemplate } from '../email/email.template';
 
-@Processor({ name: 'errorProcessor', scope: Scope.REQUEST })
+@Processor({ name: '{errorProcessor}', scope: Scope.REQUEST })
 export class ErrorWorkerClass {
   constructor(
     private email: EmailService,

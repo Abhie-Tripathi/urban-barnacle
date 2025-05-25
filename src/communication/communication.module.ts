@@ -22,49 +22,49 @@ import { InvitationWorkerClass } from './bull-service/bull-invitation.service';
       },
     }),
     BullModule.registerQueue({
-      name: 'accessProcessor',
+      name: '{accessProcessor}',
       defaultJobOptions: {
         removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
         removeOnFail: false,
       },
     }),
     BullModule.registerQueue({
-      name: 'inviteProcessor',
+      name: '{inviteProcessor}',
       defaultJobOptions: {
         removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
         removeOnFail: false,
       },
     }),
     BullModule.registerQueue({
-      name: 'eventProcessor',
+      name: '{eventProcessor}',
       defaultJobOptions: {
         removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
         removeOnFail: false,
       },
     }),
     BullModule.registerQueue({
-      name: 'otpProcessor',
+      name: '{otpProcessor}',
       defaultJobOptions: {
         removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
         removeOnFail: false,
       },
     }),
     BullModule.registerQueue({
-      name: 'intendProcessor',
+      name: '{intendProcessor}',
       defaultJobOptions: {
         removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 1000),
         removeOnFail: false,
       },
     }),
     BullModule.registerQueue({
-      name: 'demoContactProcessor',
+      name: '{demoContactProcessor}',
       defaultJobOptions: {
         removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
         removeOnFail: false,
       },
     }),
     BullModule.registerQueue({
-      name: 'errorProcessor',
+      name: '{errorProcessor}',
       defaultJobOptions: {
         removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
         removeOnFail: false,

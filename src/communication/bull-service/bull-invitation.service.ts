@@ -24,7 +24,7 @@ interface InviteData {
   encryptNo: string;
   sourceId: string;
 }
-@Processor({ name: 'inviteProcessor', scope: Scope.REQUEST })
+@Processor({ name: '{inviteProcessor}', scope: Scope.REQUEST })
 export class InvitationWorkerClass {
   constructor(
     private email: EmailService,
@@ -96,12 +96,14 @@ export class InvitationWorkerClass {
     }
   }
   @Process('inviteUserMail')
-  async handleInviteEmailJob(job: Job<{
-    jobRequestId: string,
-    invitedUserName: string,
-    referredByUserName: string,
-    invitedUserEmail: string,
-  }>) {
+  async handleInviteEmailJob(
+    job: Job<{
+      jobRequestId: string;
+      invitedUserName: string;
+      referredByUserName: string;
+      invitedUserEmail: string;
+    }>,
+  ) {
     try {
       const jobdata = job.data;
 
@@ -115,7 +117,7 @@ export class InvitationWorkerClass {
       });
       const inviteEmailToEventTemplate = inviteUserEmailTemplate
         .replaceAll('{invitedUserName}', jobdata.invitedUserName)
-        .replaceAll('{referredByUserName}', jobdata.referredByUserName)
+        .replaceAll('{referredByUserName}', jobdata.referredByUserName);
       console.log(inviteEmailToEventTemplate);
       const { data, error } = await this.email.mailSender(
         jobdata.invitedUserEmail,
