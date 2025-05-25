@@ -180,24 +180,14 @@ export class TrackerService {
         : this.configService.get('BACKEND') === 'geo'
           ? CountGroup.eventTypeGroup
           : undefined;
-    let cachedValues: string | null = await this.redisService.get(
+    let cachedValuesString: string | null = await this.redisService.get(
       `tracker-${tracker.id}`,
     );
-    let groupedEventsCount: object = {};
-    let filterValues: object = {};
-
-    if (cachedValues) {
-      try {
-        const parsed = JSON.parse(cachedValues) as {
-          groupedEventsCount: object;
-          filterValues: object;
-        };
-        groupedEventsCount = parsed.groupedEventsCount;
-        filterValues = parsed.filterValues;
-      } catch (err) {
-        console.error('Failed to parse cached tracker data:', err);
-      }
-    }
+    let cachedValues: {
+      groupedEventsCount: object;
+      filterValues: object;
+    } | null = cachedValuesString ? JSON.parse(cachedValuesString) : null;
+    let { groupedEventsCount, filterValues } = cachedValues ?? {};
     if (
       (!groupedEventsCount && !tracker.type.startsWith('TR_')) ||
       !filterValues ||
@@ -217,10 +207,10 @@ export class TrackerService {
           );
           // console.log({ asdasdasdasdasd: groupedEventsCount });
           const similarEventCache = {
-            ...groupedEventsCount['similarEventCache'],
+            ...groupedEventsCount!['similarEventCache'],
           };
-          delete groupedEventsCount['similarEventCache'];
-          groupedEventsCount = groupedEventsCount['count'];
+          delete groupedEventsCount!['similarEventCache'];
+          groupedEventsCount = groupedEventsCount!['count'];
           if (searchByEntity && searchByEntity === 'event') {
             const trackerSimilarEventPauload: {
               trackerId: string;
@@ -231,10 +221,10 @@ export class TrackerService {
               score: number;
             }[] = [];
 
-            if (groupedEventsCount['past_ids']) {
-              const pastData = (groupedEventsCount['past_ids'] as string).split(
-                ',',
-              );
+            if (groupedEventsCount!['past_ids']) {
+              const pastData = (
+                groupedEventsCount!['past_ids'] as string
+              ).split(',');
               const pastCount: number = pastData.length;
               for (const eachPastData of pastData) {
                 const eventIds: string[] = eachPastData.split('#');
@@ -250,10 +240,10 @@ export class TrackerService {
                 });
               }
             }
-            delete groupedEventsCount['past_ids'];
-            if (groupedEventsCount['active_ids']) {
+            delete groupedEventsCount!['past_ids'];
+            if (groupedEventsCount!['active_ids']) {
               const activeData = (
-                groupedEventsCount['active_ids'] as string
+                groupedEventsCount!['active_ids'] as string
               ).split(',');
               const activeCount: number = activeData.length;
               for (const eachActiveData of activeData) {
@@ -268,9 +258,9 @@ export class TrackerService {
                 });
               }
             }
-            delete groupedEventsCount['active_ids'];
-            if (groupedEventsCount['new_ids']) {
-              const newData = (groupedEventsCount['new_ids'] as string).split(
+            delete groupedEventsCount!['active_ids'];
+            if (groupedEventsCount!['new_ids']) {
+              const newData = (groupedEventsCount!['new_ids'] as string).split(
                 ',',
               );
               const newCount: number = newData.length;
@@ -286,7 +276,7 @@ export class TrackerService {
                 });
               }
             }
-            delete groupedEventsCount['new_ids'];
+            delete groupedEventsCount!['new_ids'];
             if (trackerSimilarEventPauload.length > 0)
               await this.trackerDataService.bulkInsertToSimilarTrackerEvent(
                 trackerSimilarEventPauload,
