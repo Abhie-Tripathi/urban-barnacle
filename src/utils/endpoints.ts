@@ -23,6 +23,7 @@ export const microserviceEndpoints = {
     createExport: '/events/export',
     trends: '/events/trends',
     eventPocsUnlocked: '/users/:userId?unlock={unlock}',
+    similarEvents: '/events/similar'
   },
   company: {
     search: '/companies',
