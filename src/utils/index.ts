@@ -55,3 +55,10 @@ export function decrypt(encryptedText: string, key: string = KEY): string {
   decrypted += decipher.final('utf-8');
   return decrypted;
 }
+
+export interface TrackerIntelScoreJson {
+  trackerId: string
+  keywords: '<100' | '>100',
+  createdAt: string, status: 'pending' | 'processing' | 'failed' | 'complete'
+  , user: any
+}

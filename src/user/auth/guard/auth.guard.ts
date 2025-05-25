@@ -54,7 +54,7 @@ export class AuthGuard implements CanActivate {
       return null;
     }
     const user: TCachedUser | undefined =
-      await this.cacheManager.get(requestToken);
+      await this.cacheManager.get(`user-${requestToken}`);
     if (!user) {
       return null;
     }

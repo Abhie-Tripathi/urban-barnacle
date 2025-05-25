@@ -1,14 +1,23 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTrackerDto, GetTrackersDto, UpdateTrackerDto } from './dto';
-import { Prisma, PrismaClient, Tracker, TrackerType, TrackerTypeTag } from '@prisma/client';
+import {
+  Prisma,
+  PrismaClient,
+  Tracker,
+  TrackerType,
+  TrackerTypeTag,
+} from '@prisma/client';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { ConfigService } from '@nestjs/config';
 import { TCachedUser, TrackerTypes } from 'src/utils/types';
 
 @Injectable()
 export class TrackerDataService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const tracker = await this.prisma.tracker.create({
@@ -216,25 +225,60 @@ export class TrackerDataService {
     });
     return tracker;
   }
-  async bulkInsertToSimilarTrackerEvent(data: {
-    trackerId: string, eventId: string, count: number;
-    tag: TrackerTypeTag, sourceId: number; score: number
-  }[]) {
-    return await this.prisma.similarEventsToTracker.createMany({ data: data })
+  async getTrackerIntelScoreFromApi(params: any) {
+    const queryParams = new URLSearchParams(
+      params as unknown as Record<string, any>,
+    );
+    const url =
+      this.configService.get('MICROSERVICE_URL') +
+      microserviceEndpoints.events.trackerIntelScore +
+      '?' +
+      queryParams.toString();
+    const response = await fetch(url);
+    const data = await response.json();
+    // console.dir(data, { depth: null });
+    if (data['error']) {
+      throw new HttpException(data['error'], HttpStatus.BAD_REQUEST);
+    }
+    return data;
+  }
+  async bulkInsertToSimilarTrackerEvent(
+    data: {
+      trackerId: string;
+      eventId: string;
+      count: number;
+      tag: TrackerTypeTag;
+      sourceId: number;
+      score: number;
+    }[],
+  ) {
+    return await this.prisma.similarEventsToTracker.createMany({ data: data });
   }
   async bulkDeleteToSimilarTrackerEvent(trackerId: string) {
-    console.log({ sadaD: "asdasd" });
+    console.log({ sadaD: 'asdasd' });
 
-    return await this.prisma.$executeRaw(Prisma.raw(`DELETE FROM "SimilarEventsToTracker" where id in (SELECT id FROM "SimilarEventsToTracker" where "trackerId"='${trackerId}');`))
+    return await this.prisma.$executeRaw(
+      Prisma.raw(
+        `DELETE FROM "SimilarEventsToTracker" where id in (SELECT id FROM "SimilarEventsToTracker" where "trackerId"='${trackerId}');`,
+      ),
+    );
   }
-  async getSimilarTrackerEvent(trackerId: string, tag: TrackerTypeTag, limit: number, offset: number) {
-    return await this.prisma.$queryRaw<{
-      sourceId: string;
-      count: number;
-      tag: string;
-      score: number;
-      eventId: string;
-    }[]>(Prisma.raw(`
+  async getSimilarTrackerEvent(
+    trackerId: string,
+    tag: TrackerTypeTag,
+    limit: number,
+    offset: number,
+  ) {
+    return await this.prisma.$queryRaw<
+      {
+        sourceId: string;
+        count: number;
+        tag: string;
+        score: number;
+        eventId: string;
+      }[]
+    >(
+      Prisma.raw(`
   SELECT "sourceId", count, tag, score,"eventId"
 FROM "SimilarEventsToTracker"
 where
@@ -242,6 +286,7 @@ where
     and tag = '${tag}'
     and "createdAt"::DATE = now()::DATE
     ORDER BY score desc
-    limit ${limit} Offset ${offset};`))
+    limit ${limit} Offset ${offset};`),
+    );
   }
 }

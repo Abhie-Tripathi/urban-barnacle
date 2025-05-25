@@ -9,7 +9,12 @@ import {
   TrackerEventStatus,
   TrackerParamsSchema,
 } from './create.dto';
-import { CountGroup, CountQuerySchema, QuerySchema, Show } from 'src/events/dto';
+import {
+  CountGroup,
+  CountQuerySchema,
+  QuerySchema,
+  Show,
+} from 'src/events/dto';
 import { defaultEventTypes } from 'src/utils/types';
 
 const GetTrackersHttpSchema = LimitSchema.extend({
@@ -25,16 +30,16 @@ const GetTrackersHttpSchema = LimitSchema.extend({
   groupBy: z.enum(['trackerType']).optional(),
 });
 
-export class GetTrackersHttpDto extends createZodDto(GetTrackersHttpSchema) { }
+export class GetTrackersHttpDto extends createZodDto(GetTrackersHttpSchema) {}
 
 const GetTrackersSchema = GetTrackersHttpSchema.extend({
   ids: z.array(z.string().uuid()).optional(),
   accountId: z.string().uuid().optional(),
 });
 
-export class GetTrackersDto extends createZodDto(GetTrackersSchema) { }
+export class GetTrackersDto extends createZodDto(GetTrackersSchema) {}
 
-export class GetTrackersCountDto extends createZodDto(GetTrackersSchema) { }
+export class GetTrackersCountDto extends createZodDto(GetTrackersSchema) {}
 
 const GetTrackerEventsSchema = TrackerEventSearchSchema.extend({
   type: z
@@ -90,7 +95,7 @@ const GetTrackerEventsSchema = TrackerEventSearchSchema.extend({
     return data;
   });
 
-export class GetTrackerEventsDto extends createZodDto(GetTrackerEventsSchema) { }
+export class GetTrackerEventsDto extends createZodDto(GetTrackerEventsSchema) {}
 
 const GetTrackerEventsCountSchema = CountQuerySchema.innerType()
   .extend({
@@ -126,7 +131,7 @@ const GetTrackerEventsCountSchema = CountQuerySchema.innerType()
 
 export class GetTrackerEventsCountDto extends createZodDto(
   GetTrackerEventsCountSchema,
-) { }
+) {}
 const SimilarTrackerEventSchema = TrackerEventSearchSchema.extend({
   groupBy: z
     .string()
@@ -195,12 +200,12 @@ const SimilarTrackerEventSchema = TrackerEventSearchSchema.extend({
   });
 export class SimilarTrackerEventDto extends createZodDto(
   SimilarTrackerEventSchema,
-) { }
+) {}
 const GetTrackerCommentsSchema = LimitSchema.extend({});
 
 export class GetTrackerCommentDto extends createZodDto(
   GetTrackerCommentsSchema,
-) { }
+) {}
 
 export const GetTrackerByIdSchema = z.object({
   refresh: z
@@ -209,8 +214,43 @@ export const GetTrackerByIdSchema = z.object({
     .transform((val) => val === 'true')
     .optional(),
 });
-export class GetTrackerByIdDto extends createZodDto(GetTrackerByIdSchema) { }
+export class GetTrackerByIdDto extends createZodDto(GetTrackerByIdSchema) {}
 
 const GetTrackerUsersSchema = LimitSchema.extend({});
 
-export class GetTrackerUsersDto extends createZodDto(GetTrackerUsersSchema) { }
+export class GetTrackerUsersDto extends createZodDto(GetTrackerUsersSchema) {}
+
+export const GetTrackerIntelScoreSchema = LimitSchema.extend({
+  eventIds: z.string(),
+  eventTypeGroup: z.string().optional(),
+  type: z
+    .string()
+    .refine((val) => val in EventTabs)
+    .transform((val) => val as keyof typeof EventTabs)
+    .optional(),
+  trackerEventStatus: z
+    .string()
+    .refine((val) => val in TrackerEventStatus)
+    .transform((val) => val as keyof typeof TrackerEventStatus)
+    .optional(),
+}).transform((data) => {
+  if (data.type && ['business', 'social', 'unattended'].includes(data.type)) {
+    data.eventTypeGroup = data.type;
+    delete data.type;
+  } else if (data.type && ['past', 'active', 'new'].includes(data.type)) {
+    data.trackerEventStatus = data.type as keyof typeof TrackerEventStatus;
+    delete data.type;
+  }
+
+  // if (!data.eventTypes || (data.eventTypes && data.eventTypes.length === 0)) {
+  //   const backend = process.env.BACKEND;
+  //   if (backend && backend in defaultEventTypes) {
+  //     data.eventTypes = defaultEventTypes[backend];
+  //   }
+  // }
+
+  return data;
+});
+export class GetTrackerIntelScoreDto extends createZodDto(
+  GetTrackerIntelScoreSchema,
+) {}
