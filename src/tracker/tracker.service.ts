@@ -1377,6 +1377,7 @@ export class TrackerService {
           active,
           new: newScore
         });
+      await this.redisService.expire(`${trackerId}-IntelScore`, 86400);
       console.dir({
         past,
         active,
