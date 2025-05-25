@@ -50,7 +50,6 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   async get(key: string) {
     key = this.addBackendEnv(key);
-    console.log({ key });
     return await this.client.get(key);
   }
 
