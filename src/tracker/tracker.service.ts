@@ -1354,6 +1354,8 @@ export class TrackerService {
         console.log(events);
 
         return { events: dataForResponse, count: count };
+      } else {
+        await this.trackerDataService.bulkDeleteToSimilarTrackerEvent(tracker.id);
       }
 
       if (searchByEntity) {
@@ -1466,6 +1468,8 @@ export class TrackerService {
         );
 
         return { data: events };
+      } else {
+        await this.trackerDataService.bulkDeleteToSimilarTrackerEvent(tracker.id);
       }
       const events = await this.eventService.getSimilarEventsCount(
         eventParams
