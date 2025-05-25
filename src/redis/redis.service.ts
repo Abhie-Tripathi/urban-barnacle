@@ -93,6 +93,6 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return result;
   }
   private addBackendEnv(key: String) {
-    return (process.env.BACKEND || 'gtm') + key;
+    return (process.env.BACKEND || 'gtm') + '-' + key;
   }
 }

@@ -60,7 +60,7 @@ import { RedisModule } from './redis/redis.module';
     PrismaModule,
     RedisModule,
     // CacheModule for Redis-based caching
-    CacheModule.registerAsync({
+    CacheModule.register({
       isGlobal: true,
       useFactory: async () => ({
         store: await redisStore({
