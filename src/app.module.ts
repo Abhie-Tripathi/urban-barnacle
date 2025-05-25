@@ -67,10 +67,9 @@ import { RedisModule } from './redis/redis.module';
           socket: {
             host: process.env.REDIS_HOST || '0.0.0.0',
             port: parseInt(process.env.REDIS_PORT || '6379'),
+            tls: true,
           },
-          password: process.env.REDIS_PASSWORD,
         }),
-        ttl: 300,
       }),
     }),
 
@@ -97,7 +96,7 @@ import { RedisModule } from './redis/redis.module';
     IntendModule,
     PublicApiModule,
     OthersModule,
-    RedisModule
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [
