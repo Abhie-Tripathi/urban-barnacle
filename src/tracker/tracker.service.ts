@@ -1356,6 +1356,13 @@ export class TrackerService {
         return { events: dataForResponse, count: count };
       } else {
         await this.trackerDataService.bulkDeleteToSimilarTrackerEvent(tracker.id);
+        this.getTrackerResponse(
+          user,
+          tracker as Tracker & { createdByUser: User; modifiedByUser: User },
+          {
+            refresh: true,
+          },
+        );
       }
 
       if (searchByEntity) {
@@ -1470,6 +1477,13 @@ export class TrackerService {
         return { data: events };
       } else {
         await this.trackerDataService.bulkDeleteToSimilarTrackerEvent(tracker.id);
+        this.getTrackerResponse(
+          user,
+          tracker as Tracker & { createdByUser: User; modifiedByUser: User },
+          {
+            refresh: true,
+          },
+        );
       }
       const events = await this.eventService.getSimilarEventsCount(
         eventParams
