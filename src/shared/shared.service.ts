@@ -48,7 +48,7 @@ export class SharedService {
 
   async signToken(user: SelectedUserDetails, token: string) {
     const tokenData: TCachedUser = { ...user, token };
-    await this.redisService.set(token, JSON.stringify(tokenData), 1000 * 60 * 60 * 24 * 365);
+    await this.redisService.set(`user-${token}`, JSON.stringify(tokenData), 1000 * 60 * 60 * 24 * 365);
     return token;
   }
 
