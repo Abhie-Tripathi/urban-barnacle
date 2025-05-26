@@ -6,7 +6,7 @@ import { Job } from 'bull';
 import { emailSenderAddress } from '../email/email.template';
 import { JobStatus } from '@prisma/client';
 
-@Processor({ name: '{demoContactProcessor}', scope: Scope.REQUEST })
+@Processor({ name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}demoContactProcessor}`, scope: Scope.REQUEST })
 export class DemoContactWorkerClass {
   constructor(
     private email: EmailService,
