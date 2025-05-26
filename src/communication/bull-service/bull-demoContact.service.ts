@@ -16,7 +16,7 @@ export class DemoContactWorkerClass {
     console.log(JSON.stringify(jobRef));
   }
   private readonly logger = new Logger(DemoContactWorkerClass.name);
-  @Process('demoContactMail')
+  @Process(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}demoContactProcessor}`)
   async handleEmailJob(
     job: Job<{ body: string; subject: string; jobRequestId: string }>,
   ) {

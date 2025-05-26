@@ -14,7 +14,7 @@ interface OtpEmailData {
   jobRequestId: string;
   sourceId: string;
 }
-@Processor({ name: '{otpProcessor}', scope: Scope.REQUEST })
+@Processor({ name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}otpProcessor}`, scope: Scope.REQUEST })
 export class OtpEmailWorkerClass {
   constructor(
     private email: EmailService,

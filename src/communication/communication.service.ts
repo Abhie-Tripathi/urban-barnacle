@@ -11,15 +11,15 @@ import { z } from 'zod';
 export class CommunicationService {
   constructor(
     private readonly prisma: PrismaService,
-    @InjectQueue('{eventProcessor}') private readonly eventCanelQueue: Queue,
-    @InjectQueue('{inviteProcessor}') private readonly inviteQueue: Queue,
-    @InjectQueue('{accessProcessor}') private readonly accessQueue: Queue,
-    @InjectQueue('{otpProcessor}') private readonly otpQueue: Queue,
-    @InjectQueue('{intendProcessor}') private readonly intendQueue: Queue,
-    @InjectQueue('{demoContactProcessor}')
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}eventProcessor}`) private readonly eventCanelQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}inviteProcessor}`) private readonly inviteQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}accessProcessor}`) private readonly accessQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}otpProcessor}`) private readonly otpQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}intendProcessor}`) private readonly intendQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}demoContactProcessor}`)
     private readonly demoContactQueue: Queue,
-    @InjectQueue('{errorProcessor}') private readonly errorQueue: Queue,
-  ) {}
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}errorProcessor}`) private readonly errorQueue: Queue,
+  ) { }
   async createJobForBull(
     processAction: QueueActionOptions,
     payload: unknown,
@@ -94,7 +94,7 @@ export class CommunicationService {
         process === 'signUp/InEmail' && jobRequestPayload.process === 'sign-up'
           ? 'SEND_SIGNUP_OTP'
           : process === 'signUp/InEmail' &&
-              jobRequestPayload.process === 'sign-in'
+            jobRequestPayload.process === 'sign-in'
             ? 'SEND_SIGNUP_OTP'
             : '';
       for (const key in jobSource) {
