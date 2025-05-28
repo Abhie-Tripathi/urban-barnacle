@@ -11,7 +11,7 @@ import { GetCommentCountDto, GetCommentsDto } from 'src/comment/dto';
 
 @Injectable()
 export class EnquiryDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async createEnquiry(data: CreateEnquiryDto) {
     const enquiry = await this.prisma.enquiry.create({
@@ -98,6 +98,7 @@ export class EnquiryDataService {
           some: {
             activityType: 'UPVOTE',
             userId: userId,
+            deleted: false,
           },
         };
       } else if (upvotedBy.length === 2) {
@@ -126,7 +127,14 @@ export class EnquiryDataService {
     //   };
     // }
     const enquiries = await this.prisma.enquiry.findMany({
-      where: params,
+      where:
+        // {activities:{
+        //   some:{
+        //     deleted:false
+        //   }
+        // }}, 
+
+        params,
       include: {
         owner: true,
       },
