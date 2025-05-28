@@ -111,6 +111,7 @@ export class EnquiryDataService {
         params['activities'] = {
           some: {
             activityType: 'UPVOTE',
+            deleted: false,
           },
         };
       }
