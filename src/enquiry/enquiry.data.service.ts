@@ -92,8 +92,14 @@ export class EnquiryDataService {
       if (upvotedBy.length === 1) {
         const userId =
           upvotedBy[0] === 'me'
-            ? { equals: data.userId }
-            : { not: data.userId };
+            ? {
+              equals: data.userId,
+              deleted: false,
+            }
+            : {
+              not: data.userId,
+              deleted: false,
+            };
         params['activities'] = {
           some: {
             activityType: 'UPVOTE',
