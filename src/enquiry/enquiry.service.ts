@@ -387,6 +387,7 @@ export class EnquiryService {
         profileImage: user.imageUrl,
         designation: user.designation,
         department: user.department,
+        followerIntendId: follower.id,
       };
     });
     return {
