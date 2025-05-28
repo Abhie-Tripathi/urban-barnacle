@@ -56,7 +56,7 @@ export class AuthService {
     private readonly accessService: AccessService,
     private readonly brandKitService: KitService,
     private readonly savedLocationsService: SavedLocationService,
-  ) {}
+  ) { }
 
   async signUp(data: SignUpDto) {
     const domain = data.email.split('@')[1];
@@ -73,16 +73,16 @@ export class AuthService {
       blackListDomain.includes(domain)
         ? null
         : await this.companyDataService.getCompany({
-            domain: domain,
-          }),
+          domain: domain,
+        }),
     ]);
     let user = users && users.length > 0 ? users[0] : null;
     let account = company
       ? {
-          id: company.accountId,
-          currentSubscriptionId: company.accounts.currentSubscriptionId,
-          configurationId: company.accounts.configurationId,
-        }
+        id: company.accountId,
+        currentSubscriptionId: company.accounts.currentSubscriptionId,
+        configurationId: company.accounts.configurationId,
+      }
       : null;
     if (
       user &&
@@ -136,9 +136,9 @@ export class AuthService {
           await Promise.all([
             company
               ? this.userDataService.updateUser({
-                  id: user.id,
-                  companyId: company.id,
-                })
+                id: user.id,
+                companyId: company.id,
+              })
               : null,
             this.accountDataService.addAccountUser(account.id, user.id),
           ]);
@@ -431,21 +431,21 @@ export class AuthService {
           currentOnboardingState: OnboardingState.COMPLETED,
           ...(['google', 'linkedin'].includes(source.source)
             ? {
-                socialIds: {
-                  google:
-                    source.source === 'google' && response.socialId
-                      ? response.socialId['userId']
-                      : user?.socialIds
-                        ? (user?.socialIds as any)['google']
-                        : undefined,
-                  linkedin:
-                    source.source === 'linkedin' && response.socialId
-                      ? response.socialId['userId']
-                      : user?.socialIds
-                        ? (user?.socialIds as any)['linkedin']
-                        : undefined,
-                },
-              }
+              socialIds: {
+                google:
+                  source.source === 'google' && response.socialId
+                    ? response.socialId['userId']
+                    : user?.socialIds
+                      ? (user?.socialIds as any)['google']
+                      : undefined,
+                linkedin:
+                  source.source === 'linkedin' && response.socialId
+                    ? response.socialId['userId']
+                    : user?.socialIds
+                      ? (user?.socialIds as any)['linkedin']
+                      : undefined,
+              },
+            }
             : {}),
         });
         userDetail = updatedUser;
@@ -479,16 +479,16 @@ export class AuthService {
         blackListDomain.includes(domain)
           ? null
           : await this.companyDataService.getCompany({
-              domain: domain,
-            }),
+            domain: domain,
+          }),
       ]);
       let user = users && users.length > 0 ? users[0] : null;
       let account = company
         ? {
-            id: company.accountId,
-            currentSubscriptionId: company.accounts.currentSubscriptionId,
-            configurationId: company.accounts.configurationId,
-          }
+          id: company.accountId,
+          currentSubscriptionId: company.accounts.currentSubscriptionId,
+          configurationId: company.accounts.configurationId,
+        }
         : null;
       if (!company) {
         const accountDefault = {};
@@ -525,9 +525,9 @@ export class AuthService {
           await Promise.all([
             company
               ? this.userDataService.updateUser({
-                  id: user.id,
-                  companyId: company.id,
-                })
+                id: user.id,
+                companyId: company.id,
+              })
               : null,
             this.accountDataService.addAccountUser(account.id, user.id),
           ]);
@@ -552,8 +552,8 @@ export class AuthService {
               ? data.name.split(' ')[0]
               : data.name || '',
           ...(source.source !== '10times' &&
-          data.name &&
-          data.name.split(' ').length > 1
+            data.name &&
+            data.name.split(' ').length > 1
             ? { lastname: data.name.substring(data.name.indexOf(' ') + 1) }
             : {}),
           email: data.email,
@@ -591,7 +591,7 @@ export class AuthService {
                   displayName: string;
                 }[];
               };
-            } = await fetchDatafromMicroService('locationSuggestions', {
+            } = await fetchDatafromMicroService('locationSuggestionApi', {
               id_10x: locationIdsRaw,
             });
             const data = await this.savedLocationsService.saveLocations(
@@ -750,16 +750,16 @@ export class AuthService {
       blackListDomain.includes(domain)
         ? null
         : await this.companyDataService.getCompany({
-            domain: domain,
-          }),
+          domain: domain,
+        }),
     ]);
     let user = users && users.length > 0 ? users[0] : null;
     let account = company
       ? {
-          id: company.accountId,
-          currentSubscriptionId: company.accounts.currentSubscriptionId,
-          configurationId: company.accounts.configurationId,
-        }
+        id: company.accountId,
+        currentSubscriptionId: company.accounts.currentSubscriptionId,
+        configurationId: company.accounts.configurationId,
+      }
       : null;
     if (
       user &&
@@ -818,9 +818,9 @@ export class AuthService {
           await Promise.all([
             company
               ? this.userDataService.updateUser({
-                  id: user.id,
-                  companyId: company.id,
-                })
+                id: user.id,
+                companyId: company.id,
+              })
               : null,
             this.accountDataService.addAccountUser(account.id, user.id),
           ]);
