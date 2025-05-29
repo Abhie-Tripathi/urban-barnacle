@@ -5,6 +5,7 @@ import {
   defaultEventTypes,
   EventStatus,
   EventTypeGroup,
+  ValidEventTypes,
   VisitorRangeTag,
 } from 'src/utils/types';
 import { LimitSchema, LimitSchemaWithoutDefault } from 'src/global_dto';
@@ -127,7 +128,7 @@ export enum AudienceZone {
 export const viewBound = z
   .object({
     boundType: z.nativeEnum(BoundType),
-    coordinates: geoCoordinatesSchema,
+    coordinates: z.union([geoCoordinatesSchema, z.array(z.number())]),
     properties: z.record(z.string(), z.string()).optional(),
   })
   .transform((data) => {
@@ -206,6 +207,29 @@ export const QueryFilter = z.object({
     .transform((data) => {
       if (!data) return [];
       return data?.split(',').map((item) => item.trim());
+    })
+    .superRefine((values, ctx) => {
+      if (values.length === 0) return;
+
+      const backend = process.env.BACKEND as keyof typeof ValidEventTypes;
+
+      if (!backend || !(backend in ValidEventTypes)) {
+        return;
+      }
+
+      const allowedEventTypes = ValidEventTypes[backend];
+
+      const invalidTypes = values.filter(
+        (value) => !allowedEventTypes.includes(value),
+      );
+
+      if (invalidTypes.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Invalid event types : ${invalidTypes.join(', ')}. Allowed types are: ${allowedEventTypes.join(', ')}`,
+          path: [],
+        });
+      }
     })
     .optional(),
   categories: z
@@ -401,7 +425,7 @@ export const QueryFilter = z.object({
     .transform((val) =>
       val
         .split(',')
-        .map((item) => (item.trim() === 'in_person' ? 'offline' : item.trim())),
+        .map((item) => (item.trim() === 'offline' ? 'in_person' : item.trim())),
     )
     .optional(),
   entryType: z
@@ -633,7 +657,11 @@ export class QueryHttpDto extends createZodDto(
   QueryHttpSchema.refine(
     (val) => {
       console.log({ val });
-      if ((val && val.limit && val.limit <= 100) || val.view === 'map') {
+      if (
+        (val && !val.limit) ||
+        (val && val.limit && val.limit <= 100) ||
+        val.view === 'map'
+      ) {
         return true;
       }
       return false;
@@ -673,6 +701,8 @@ export const CountQuerySchema = QueryFilter.extend({
     })
     .transform((val) => val.split(',') as CountGroup[])
     .optional(),
+  trackerId: z.string().optional(),
+  eventSourceIds: z.string().optional(),
 }).transform((data) => {
   // const intersectedKeys = Object.keys(data).filter((key) =>
   //   FilterNames.includes(key),
@@ -712,6 +742,31 @@ export const CountQuerySchema = QueryFilter.extend({
 });
 
 export class CountQueryDto extends createZodDto(CountQuerySchema) {}
+const similarEventsSchema = QuerySchema.omit({ showValues: true })
+  .extend({
+    showValues: z.string().default('basic,advance,insights,audience'),
+    groupBy: z
+      .string()
+      .refine((val) => val.split(',').every((item) => item in CountGroup), {
+        message: 'Invalid groupBy option',
+        params: { validOptions: Object.keys(CountGroup).join(', ') },
+      })
+      .transform((val) => val.split(',') as CountGroup[])
+      .optional(),
+    searchByEntity: z.string().optional(),
+    eventSourceIds: z.string().optional(),
+  })
+  .transform((data) => {
+    if (!data.status || (data.status && data.status.length === 0)) {
+      data.status = [
+        EventStatus.ACTIVE,
+        EventStatus.CANCELLED,
+        EventStatus.POSTPONED,
+      ];
+    }
+    return data;
+  });
+export class SimilarEventsDto extends createZodDto(similarEventsSchema) {}
 
 const groupByOptions = {
   date: 'date',
@@ -734,6 +789,10 @@ const columns = {
 };
 
 export const EventsTrendsSchema = QueryFilter.extend({
+  source: z
+    .string()
+    .refine((val) => val in ['geo', 'gtm'])
+    .optional(),
   groupBy: z.string().refine((val) => val in groupByOptions, {
     message: 'Invalid groupBy option',
     params: { validOptions: Object.keys(groupByOptions).join(', ') },

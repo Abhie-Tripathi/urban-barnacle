@@ -472,6 +472,11 @@ export class ExportWorkerClass {
                 { header: 'Tags', key: 'keywords', width: 30 },
                 { header: 'Organizer', key: 'organizer', width: 30 },
                 { header: 'Global Rank', key: 'rank', width: 15 },
+                { header: 'Rating', key: 'rating', width: 20 },
+                { header: 'Impact Score', key: 'impactScore', width: 20 },
+                { header: 'International Score', key: 'internationalScore', width: 20 },
+                { header: 'Inbound Score', key: 'inboundScore', width: 20 },
+                { header: 'Audience Zone', key: 'audienceZone', width: 30 },
                 { header: 'Trust Score', key: 'trust', width: 20 },
                 { header: 'Interests Growth (%)', key: 'growth', width: 20 },
                 { header: 'Repeat Sentiment (%)', key: 'repeat', width: 20 },
@@ -516,7 +521,7 @@ export class ExportWorkerClass {
                 const response = await this.trackerService.getTrackerEvents(jobData['userData'], jobData['trackerId'],
                     {
                         limit, offset, view: View.tracker, trackerEventStatus: type as keyof typeof TrackerEventStatus
-                        , sortBy: ['score', 'title'], show: [
+                        , sortBy: ['-score', 'title'], show: [
                             'branded',
                             'series',
                             'forecasted',
@@ -539,6 +544,7 @@ export class ExportWorkerClass {
                             advance: Record<string, any>;
                             insights: Record<string, any>;
                             trackerMatchInfo?: Record<string, any>;
+                            audience: Record<string, any>;
                         }[];
                     };
                 // console.log(response);
@@ -548,6 +554,10 @@ export class ExportWorkerClass {
 
                 for (const data of events) {
                     if (linesWrittern === totalCount) break;
+                    let eventTYpes: string = (data.basic.eventTypes?.map(val => val.name).join(',')) || '';
+                    if (eventTYpes.toLowerCase().includes('workshop') && eventTYpes.split(',').length > 1) {
+                        eventTYpes = eventTYpes.replaceAll('Workshop', '');
+                    }
                     const locationPayload = data.basic.eventLocation?.locationType ? this.devLocationTranformation(data) : this.prodLocationTranformation(data);
                     worksheet.addRow({
                         id: data.basic.id,
@@ -558,16 +568,21 @@ export class ExportWorkerClass {
                         endDate: data.basic.endDateTime,
                         frequency: data.advance?.frequency || '',
                         editions: data?.advance?.editions || '',
-                        format: data.basic.format,
+                        format: (data.basic.format as string).replaceAll('in_person', 'In Person'),
                         series: (data?.advance?.isSeries ? `TRUE` : 'FALSE') + '',
-                        eventType: data.basic.eventTypes?.map(val => val.name).join(','),
+                        eventType: eventTYpes,
                         categories: data.basic.categories?.map((item) => item.name).join(','),
                         keywords: data.basic.tags?.map((item) => item.name.trim()).join(','),
                         organizer: data.basic.organizer?.name || '',
+                        rating: data.basic.rating || "",
                         rank: data.insights?.rankings?.rank || '',
                         trust: data.insights?.trustScore + '',
                         growth: data.insights?.yoyGrowth || '',
                         repeat: data.insights?.reputationChangePercentage || '',
+                        impactScore: data.insights?.scores?.impactScore || '',
+                        internationalScore: data.insights?.scores?.internationalScore || '',
+                        inboundScore: data.insights?.scores?.inboundScore || '',
+                        audienceZone: data.audience?.audienceZone || '',
                         size: data.insights?.estimatedAttendance || '',
                         exhibitor: data.insights?.estimatedExhibitors || '',
                         international: data['internationalScore'] || '',

@@ -14,7 +14,7 @@ interface OtpEmailData {
   jobRequestId: string;
   sourceId: string;
 }
-@Processor({ name: 'otpProcessor', scope: Scope.REQUEST })
+@Processor({ name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}otpProcessor}`, scope: Scope.REQUEST })
 export class OtpEmailWorkerClass {
   constructor(
     private email: EmailService,
@@ -50,7 +50,7 @@ export class OtpEmailWorkerClass {
       const { data, error } = await this.email.mailSender(
         userData.email,
         emailSenderAddress,
-        'OTP',
+        'WHR OTP - ' + jobdata.otp,
         signUpEmailTemplate,
       );
       let status = 'COMPLETED' as JobStatus;
@@ -68,7 +68,7 @@ export class OtpEmailWorkerClass {
       return {};
     } catch (error) {
       console.log(JSON.stringify(error));
-      console.error((error));
+      console.error(error);
       const data = await this.prisma.requestedJob.update({
         where: {
           id: job.data.jobRequestId,

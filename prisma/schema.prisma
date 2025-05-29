@@ -462,6 +462,7 @@ model Tracker {
 }
 
 enum TrackerType {
+  T_EVENT_PARTICIPATION
   T_PEOPLE_FINDER
   T_COMPETITOR
   T_SPEAKING_OPPORTUNITY
@@ -760,6 +761,8 @@ model Preset {
   trackerType   TrackerType[]
   deleted       Boolean       @default(false)
   filterValue   Json
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now()) @updatedAt
 }
 
 enum EnquiryStatus {
@@ -824,4 +827,22 @@ enum FileType {
   CSV
   JSON
   EXCEL
+}
+
+enum TrackerTypeTag {
+  ACTIVE
+  PAST
+  NEW
+}
+
+model SimilarEventsToTracker {
+  id        String         @id @default(uuid())
+  trackerId String
+  eventId   String
+  tag       TrackerTypeTag
+  sourceId  Int
+  score     Float
+  count     Int            @db.Integer
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 }

@@ -27,7 +27,7 @@ export class MeService {
     private readonly savedLocationService: SavedLocationService,
     private readonly exportDataService: ExportDataService,
     private readonly sharedService: SharedService,
-  ) { }
+  ) {}
   async getMe(userId: string) {
     const user = await this.userDataService.getUsers({
       id: [userId as unknown as any],
@@ -39,10 +39,14 @@ export class MeService {
   async updateMe(user: TCachedUser, params: UpdateMeDto, file?: File) {
     const { token, ...userData } = user;
     const { removePicture, ...rest } = params;
-    const updatedUser = await this.userDataService.updateUser({
-      ...rest,
-      id: user.id,
-    }, file, removePicture === 'true' ? true : false);
+    const updatedUser = await this.userDataService.updateUser(
+      {
+        ...rest,
+        id: user.id,
+      },
+      file,
+      removePicture === 'true' ? true : false,
+    );
     const userResponse = await this.sharedService.UserResponse(
       {
         ...userData,
@@ -63,11 +67,12 @@ export class MeService {
 
     return { count: trackerCount, trackers };
   }
-  async getMyTrackersCount(
-    user: TCachedUser,
-    query: GetTrackersHttpDto,
-  ) {
-    return await this.trackerService.getTrackersCount(user, { limit: 10, offset: 0 }, query.groupBy);
+  async getMyTrackersCount(user: TCachedUser, query: GetTrackersHttpDto) {
+    return await this.trackerService.getTrackersCount(
+      user,
+      { limit: 10, offset: 0 },
+      query.groupBy,
+    );
   }
   async getMyRecentSearches(
     user: TCachedUser,
@@ -77,7 +82,20 @@ export class MeService {
       user,
       params,
     );
-    return recentSearches;
+    const transformedRecentSearches = recentSearches.map((search) => {
+      return {
+        ...search,
+        filterValues: {
+          ...search.filterValues,
+          eventFormats: search.filterValues.eventFormats
+            ? search.filterValues.eventFormats.map((format) =>
+                format === 'offline' ? 'in_person' : format,
+              )
+            : undefined,
+        },
+      };
+    });
+    return transformedRecentSearches;
   }
 
   async getMySavedLocations(

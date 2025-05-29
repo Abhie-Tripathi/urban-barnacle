@@ -11,6 +11,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Cache } from 'cache-manager';
 import { FastifyRequest } from 'fastify';
+import { RedisService } from 'src/redis/redis.service';
 import { TCachedUser } from 'src/utils/types';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class AuthGuard implements CanActivate {
   cookiePrefix: string | undefined;
   constructor(
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    @Inject() private readonly redisService: RedisService,
     private configService: ConfigService,
   ) {
     this.cookiePrefix = process.env.COOKIE_PREFIX;
@@ -53,8 +55,10 @@ export class AuthGuard implements CanActivate {
     if (!requestToken) {
       return null;
     }
-    const user: TCachedUser | undefined =
-      await this.cacheManager.get(requestToken);
+    const userString = await this.redisService.get(`user-${requestToken}`);
+    const user: TCachedUser | undefined = userString
+      ? JSON.parse(userString)
+      : undefined;
     if (!user) {
       return null;
     }

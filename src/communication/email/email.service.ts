@@ -13,7 +13,9 @@ export class EmailService {
     html: any;
   }) {
     try {
-      await sgMail.send(msg);
+      const mail = await sgMail.send(msg);
+      console.log(mail);
+      console.dir(mail, { depth: null });
       console.log('Email sent successfully');
       return { data: { message: 'OTP send' } };
     } catch (error) {
