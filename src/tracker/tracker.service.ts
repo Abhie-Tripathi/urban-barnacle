@@ -288,7 +288,7 @@ export class TrackerService {
                 );
             }
           }
-        } catch (error) {}
+        } catch (error) { }
       }
 
       filterValues = await this.sharedService.convertIdParamsToSlug(
@@ -1388,7 +1388,7 @@ export class TrackerService {
       const dataFromDB = await this.trackerDataService.getSimilarTrackerEvent(
         trackerId,
         (eventParams['trackerEventStatus']?.toUpperCase() as TrackerTypeTag) ||
-          'NEW',
+        'NEW',
         params.limit || 10,
         params.offset || 0,
       );
@@ -1522,7 +1522,7 @@ export class TrackerService {
       const dataFromDB = await this.trackerDataService.getSimilarTrackerEvent(
         trackerId,
         (eventParams['trackerEventStatus']?.toUpperCase() as TrackerTypeTag) ||
-          'NEW',
+        'NEW',
         1000,
         0,
       );
@@ -2090,7 +2090,7 @@ export class TrackerService {
           const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
           const result = await this.trackerDataService.createExport({
             exportOf,
-            inputData: payload,
+            inputData: { ...payload, trackerData: trackerData },
             trackerId: trackerData.id
           }, user);
           payload[key] = result.id;
@@ -2101,7 +2101,7 @@ export class TrackerService {
           const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
           const result = await this.trackerDataService.createExport({
             exportOf,
-            inputData: payload,
+            inputData: { ...payload, trackerData: trackerData },
             trackerId: trackerData.id
           }, user);
           payload[key] = result.id;
