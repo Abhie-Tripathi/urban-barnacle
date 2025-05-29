@@ -36,7 +36,7 @@ export class TrackerController {
   constructor(
     private readonly trackerService: TrackerService,
     private readonly sharedService: SharedService,
-  ) {}
+  ) { }
 
   @UseGuards(AuthGuard)
   @Post()
@@ -164,7 +164,7 @@ export class TrackerController {
       // }
       if (
         membershipLimit[membershipStatus.membership] -
-          ((query.limit || 10) + (query.offset || 0)) <
+        ((query.limit || 10) + (query.offset || 0)) <
         0
       ) {
         throw new HttpException(
@@ -345,7 +345,28 @@ export class TrackerController {
       return { error: error };
     }
   }
-
+  @UseGuards(AuthGuard)
+  @Get(':id/intelScore/:passKey/cron')
+  async getTrackerIntelScoreForCron(
+    @Param('id') id: string,
+    @Param('passKey') passKey: string,
+    @GetUser() user: TCachedUser,
+    @Query() query: GetTrackerIntelScoreDto,
+  ) {
+    try {
+      if (process.env.CRON_PASSKEY !== passKey) {
+        throw new HttpException('Not Allowed', HttpStatus.FORBIDDEN);
+      }
+      const events = await this.trackerService.getTrackerIntelScoreForCron(
+        user,
+        id,
+        query,
+      );
+      return { data: events };
+    } catch (error) {
+      return { error: error };
+    }
+  }
   @UseGuards(AuthGuard)
   @Get(':id')
   async getTracker(
