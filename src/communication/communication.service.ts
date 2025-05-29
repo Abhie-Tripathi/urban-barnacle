@@ -19,8 +19,8 @@ export class CommunicationService {
     @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}demoContactProcessor}`)
     private readonly demoContactQueue: Queue,
     @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}errorProcessor}`) private readonly errorQueue: Queue,
-     @InjectQueue('exportProcessor') private readonly exportQueue: Queue,
-  ) {  }
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`) private readonly exportQueue: Queue,
+  ) { }
   async createJobForBull(
     processAction: QueueActionOptions,
     payload: unknown,

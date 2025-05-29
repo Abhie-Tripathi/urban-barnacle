@@ -77,7 +77,7 @@ import { InvitationWorkerClass } from './bull-service/bull-invitation.service';
       },
     }),
     BullModule.registerQueue({
-      name: 'exportProcessor',
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`,
       defaultJobOptions: {
         removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
         removeOnFail: false

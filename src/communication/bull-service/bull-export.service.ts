@@ -29,7 +29,7 @@ interface JobDataForExport {
     type: 'all' | 'past' | 'active' | 'new' | 'business' | 'social' | 'unattended',
     source: 'TRACKER'
 }
-@Processor({ name: 'exportProcessor', scope: Scope.REQUEST })
+@Processor({ name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`, scope: Scope.REQUEST })
 export class ExportWorkerClass {
     constructor(
         private email: EmailService,
