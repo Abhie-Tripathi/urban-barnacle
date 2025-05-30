@@ -483,16 +483,9 @@ export class ExportWorkerClass {
                 { header: 'Estimated Audience', key: 'size', width: 15 },
                 { header: 'Estimated Exhibitors', key: 'exhibitor', width: 20 },
                 { header: 'International Audience (%)', key: 'international', width: 20 },
-                { header: 'Matched Keywords', key: 'matched', width: 30 },
-                { header: 'Match Score (%)', key: 'matchScore', width: 20 },
+                { header: 'Matched', key: 'matched', width: 30 },
+                { header: 'Relevance Score', key: 'matchScore', width: 20 },
             ];
-            if (jobData['searchByEntity']) {
-                columns = columns.concat([
-                    { header: 'Association', key: 'association', width: 30 },
-                    { header: 'Association Match (%)', key: 'associationPercentage', width: 25 },
-                    { header: 'Competitor Association', key: 'competitorAssociation', width: 30 },
-                ]);
-            }
             worksheet.columns = columns;
             let offset = 0;
             const limit = 30;
@@ -547,17 +540,60 @@ export class ExportWorkerClass {
                             audience: Record<string, any>;
                         }[];
                     };
+
                 // console.log(response);
                 const events = response?.events || [];
                 totalCount = flagforCount ? (response?.count || 0) : totalCount;
                 if (events.length === 0 || linesWrittern === totalCount) break;
-
+                const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: events.map(val => val.basic.id).join(','), limit: events.length, offset: 0, type: type as keyof typeof EventTabs });
                 for (const data of events) {
                     if (linesWrittern === totalCount) break;
                     let eventTYpes: string = (data.basic.eventTypes?.map(val => val.name).join(',')) || '';
                     if (eventTYpes.toLowerCase().includes('workshop') && eventTYpes.split(',').length > 1) {
                         eventTYpes = eventTYpes.replaceAll('Workshop', '');
                     }
+                    let matched: string = data.basic?.matchedKeywords?.join(',') || '';
+                    let matchScore: string = data.basic?.matchedKeywordsPercentage || '';
+                    if (jobData?.searchByEntity === 'company' && data.trackerMatchInfo) {
+                        matched = (data.trackerMatchInfo['competitorDomainOrName'] as string[]).map(val => {
+                            const temp: string[] = val.split('_');
+                            return `${temp[1]} (${temp[0]})`;
+
+                        }).join("\n");
+                        const score = trackerEventsIntelScore.find(val => val['event'] === data.basic.id);
+                        if (score) {
+                            matchScore = score['alltrackers_score'];
+                        }
+                    }
+                    if (jobData?.searchByEntity === 'user' && data.trackerMatchInfo) {
+                        matched = (data.trackerMatchInfo['peopleFinderPersonAssociation'] as string[]).map(val => {
+                            const temp: string[] = val.split('_');
+                            return `${temp[1]} ${temp[2]} (${temp[0]})`;
+
+                        }).join("\n");
+                        const score = trackerEventsIntelScore.find(val => val['event'] === data.basic.id);
+                        if (score) {
+                            matchScore = score['alltrackers_score'];
+                        }
+                    }
+                    if (jobData?.searchByEntity === 'speaker' && data.trackerMatchInfo) {
+                        matched = (data.trackerMatchInfo['speakerPersonAssociation'] as string[]).map(val => {
+                            const temp: string[] = val.split('_');
+                            return `${temp[0]} ${temp[1]} (speaker)`;
+
+                        }).join("\n");
+                        const score = trackerEventsIntelScore.find(val => val['event'] === data.basic.id);
+                        if (score) {
+                            matchScore = score['alltrackers_score'];
+                        }
+                    }
+                    (data.trackerMatchInfo ? {
+                        association: (jobData?.searchByEntity === 'company' ? data.trackerMatchInfo['competitorDomainOrName']
+                            : jobData?.searchByEntity === 'user' ? data.trackerMatchInfo['peopleFinderPersonAssociation'] : data.trackerMatchInfo['speakerPersonAssociation']).join(','),
+                        associationPercentage: (jobData?.searchByEntity === 'company' ? data.trackerMatchInfo['competitorPercentage']
+                            : jobData?.searchByEntity === 'user' ? data.trackerMatchInfo['peopleFinderPersonAssociationPercentage'] : data.trackerMatchInfo['speakerPersonAssociationPercentage']),
+                        ...(jobData?.searchByEntity === 'company' ? { competitorAssociation: data.trackerMatchInfo['competitorAssociation'] } : {})
+                    } : {})
                     const locationPayload = data.basic.eventLocation?.locationType ? this.devLocationTranformation(data) : this.prodLocationTranformation(data);
                     worksheet.addRow({
                         id: data.basic.id,
@@ -586,16 +622,9 @@ export class ExportWorkerClass {
                         size: data.insights?.estimatedAttendance || '',
                         exhibitor: data.insights?.estimatedExhibitors || '',
                         international: data['internationalScore'] || '',
-                        matched: data.basic?.matchedKeywords?.join(',') || '',
+                        matched: matched,
                         ...locationPayload,
-                        matchScore: data.basic?.matchedKeywordsPercentage || '',
-                        ...(data.trackerMatchInfo ? {
-                            association: (jobData?.searchByEntity === 'company' ? data.trackerMatchInfo['competitorDomainOrName']
-                                : jobData?.searchByEntity === 'user' ? data.trackerMatchInfo['peopleFinderPersonAssociation'] : data.trackerMatchInfo['speakerPersonAssociation']).join(','),
-                            associationPercentage: (jobData?.searchByEntity === 'company' ? data.trackerMatchInfo['competitorPercentage']
-                                : jobData?.searchByEntity === 'user' ? data.trackerMatchInfo['peopleFinderPersonAssociationPercentage'] : data.trackerMatchInfo['speakerPersonAssociationPercentage']),
-                            ...(jobData?.searchByEntity === 'company' ? { competitorAssociation: data.trackerMatchInfo['competitorAssociation'] } : {})
-                        } : {})
+                        matchScore: matchScore,
                     });
 
                     linesWrittern++;
