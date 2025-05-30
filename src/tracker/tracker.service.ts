@@ -531,6 +531,11 @@ export class TrackerService {
       user,
       updateParams,
     );
+    try {
+      this.getIntelScoreForUpdate(trackerId, user);
+    } catch (error) {
+
+    }
     this.getTrackerResponse(
       user,
       updatedTracker as Tracker & { createdByUser: User; modifiedByUser: User },
@@ -1693,7 +1698,7 @@ export class TrackerService {
       // try {
       throw new HttpException(
         'Unable to process the request right now,but request is raised',
-        HttpStatus.EXPECTATION_FAILED,
+        HttpStatus.ACCEPTED,
       );
       // } catch (error) {
       //   return error;
@@ -1833,9 +1838,9 @@ export class TrackerService {
       //     trackerEventsIntelScore.push(JSON.parse(intelscore)[0]);
       // }
     }
-    // trackerEventsIntelScore = trackerEventsIntelScore.filter(
-    //   (val) => val && Object.keys(val).length > 0,
-    // );
+    trackerEventsIntelScore = trackerEventsIntelScore.filter(
+      (val) => val && Object.keys(val).length > 0,
+    );
     // const unique = trackerEventsIntelScore.filter(
     //   (item, index, array) =>
     //     array.findIndex((i) => JSON.stringify(i) === JSON.stringify(item)) ===
@@ -2215,5 +2220,138 @@ export class TrackerService {
       return {};
     }
     return dataOfINtelScore;
+  }
+  async getIntelScoreForUpdate(trackerId: string, user: TCachedUser) {
+    const MAX_FILTER_ITEMS = 100;
+
+    const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
+      'ADMIN',
+      'SUPER_ADMIN',
+      'USER',
+    ]);
+    const trackerFilterValuesJson: Object = {
+      ...(tracker.filterValues as unknown as object),
+    };
+    // const queryForPayload = await this.createQueryForIntelScore(
+    //   tracker,
+    //   trackerId,
+    //   user,
+    // );
+    let [getJsonForTrackerType, jobsForIntelScore] = await Promise.all([
+      this.redisService.jsonGet(
+        `${trackerId}-IntelScore`,
+        `$.${'acitve'}`,
+      ),
+      this.redisService.jsonGet(`${trackerId}-IntelScore-Job`),
+    ]);
+    const errorFunction = async () => {
+      if (tracker.type !== 'T_EVENT_PARTICIPATION') {
+        const jobExist = trackerId;
+        let queueJobs: any | null =
+          await this.redisService.get(`IntelScore-JobQueue`);
+        console.log({ queueJobs });
+        if (!queueJobs) {
+          queueJobs = [];
+          await this.redisService.set(
+            `IntelScore-JobQueue`,
+            JSON.stringify([]),
+            60 * 60 * 24 * 7,
+          );
+        }
+        if (
+          queueJobs &&
+          !Array.isArray(queueJobs)
+        )
+          queueJobs = JSON.parse(queueJobs);
+        queueJobs = !Array.isArray(queueJobs) ? JSON.parse(queueJobs) : queueJobs;
+        queueJobs.push(jobExist);
+        await this.redisService.set(
+          `IntelScore-JobQueue`,
+          JSON.stringify([...(new Set(queueJobs))]),
+          60 * 60 * 24 * 7,
+        );
+      }
+      // try {
+      throw new HttpException(
+        'Unable to process the request right now,but request is raised',
+        HttpStatus.ACCEPTED,
+      );
+      // } catch (error) {
+      //   return error;
+      // }
+    };
+    if (tracker.type === 'T_EVENT_PARTICIPATION' && !getJsonForTrackerType) {
+      let length: number = 10000;
+      if (length > MAX_FILTER_ITEMS) {
+        return errorFunction();
+      }
+    }
+    if (tracker.type === 'T_COMPETITOR' && !getJsonForTrackerType) {
+      let length: number = 0;
+      if (trackerFilterValuesJson['orgName']) {
+        length += (trackerFilterValuesJson['orgName'] as string).split(
+          ',',
+        ).length;
+      }
+      if (trackerFilterValuesJson['orgWebsite']) {
+        length += (trackerFilterValuesJson['orgWebsite'] as string).split(
+          ',',
+        ).length;
+      }
+      if (length > MAX_FILTER_ITEMS) {
+        return errorFunction();
+      }
+    }
+    if (tracker.type === 'T_PRODUCT_KEYWORDS' && !getJsonForTrackerType) {
+      let length: number = 0;
+      if (trackerFilterValuesJson['includeKeywords']) {
+        length += (trackerFilterValuesJson['includeKeywords'] as string[])
+          .length;
+      }
+      if (trackerFilterValuesJson['excludeKeywords']) {
+        length += (trackerFilterValuesJson['excludeKeywords'] as string[])
+          .length;
+      }
+      if (length > MAX_FILTER_ITEMS) {
+        return errorFunction();
+      }
+    }
+    if (
+      (tracker.type === 'T_SPEAKING_OPPORTUNITY' ||
+        tracker.type === 'T_PEOPLE_FINDER') && !getJsonForTrackerType
+    ) {
+      let length: number = 0;
+      if (trackerFilterValuesJson['userName']) {
+        length += (trackerFilterValuesJson['userName'] as string).split(
+          ',',
+        ).length;
+      }
+      if (length > MAX_FILTER_ITEMS) {
+        return errorFunction();
+      }
+    }
+    jobsForIntelScore = jobsForIntelScore
+      ? JSON.parse(jobsForIntelScore.toString())[0]
+      : jobsForIntelScore;
+    let jobExist: TrackerIntelScoreJson | null | undefined =
+      jobsForIntelScore as any;
+    if (!jobExist) {
+      jobExist = {
+        trackerId,
+        keywords: '<100',
+        createdAt: new Date().toISOString(),
+        status: 'pending',
+        user: user,
+      };
+      const createTemplate = await Promise.all([
+        this.redisService.jsonSet(
+          `${trackerId}-IntelScore-Job`,
+          '$',
+          jobExist,
+        ),
+      ]);
+      console.log({ getJsonForTrackerType, sadas: 'SAdfsa' });
+      await this.fetchTrackerIntelScoreForCache(tracker, trackerId, user, jobExist);
+    }
   }
 }
