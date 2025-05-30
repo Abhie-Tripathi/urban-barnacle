@@ -1665,14 +1665,7 @@ export class TrackerService {
     ]);
     const errorFunction = async () => {
       if (tracker.type !== 'T_EVENT_PARTICIPATION') {
-        const jobExist = {
-          trackerId,
-          keywords: '>100',
-          createdAt: new Date().toISOString(),
-          status: 'pending',
-          user: user,
-          email: user.email,
-        };
+        const jobExist = trackerId;
         let queueJobs: any | null =
           await this.redisService.get(`IntelScore-JobQueue`);
         console.log({ queueJobs });
@@ -1686,8 +1679,7 @@ export class TrackerService {
         }
         if (
           queueJobs &&
-          !Array.isArray(queueJobs) &&
-          JSON.parse(queueJobs).length > 100
+          !Array.isArray(queueJobs)
         )
           queueJobs = JSON.parse(queueJobs);
         queueJobs = !Array.isArray(queueJobs) ? JSON.parse(queueJobs) : queueJobs;
@@ -1698,15 +1690,19 @@ export class TrackerService {
           60 * 60 * 24 * 7,
         );
       }
+      // try {
       throw new HttpException(
         'Unable to process the request right now,but request is raised',
         HttpStatus.EXPECTATION_FAILED,
       );
+      // } catch (error) {
+      //   return error;
+      // }
     };
     if (tracker.type === 'T_EVENT_PARTICIPATION' && errorPass && !getJsonForTrackerType) {
       let length: number = 10000;
       if (length > MAX_FILTER_ITEMS) {
-        errorFunction();
+        return errorFunction();
       }
     }
     if (tracker.type === 'T_COMPETITOR' && errorPass && !getJsonForTrackerType) {
@@ -1722,7 +1718,7 @@ export class TrackerService {
         ).length;
       }
       if (length > MAX_FILTER_ITEMS) {
-        errorFunction();
+        return errorFunction();
       }
     }
     if (tracker.type === 'T_PRODUCT_KEYWORDS' && errorPass && !getJsonForTrackerType) {
@@ -1736,7 +1732,7 @@ export class TrackerService {
           .length;
       }
       if (length > MAX_FILTER_ITEMS) {
-        errorFunction();
+        return errorFunction();
       }
     }
     if (
@@ -1750,7 +1746,7 @@ export class TrackerService {
         ).length;
       }
       if (length > MAX_FILTER_ITEMS) {
-        errorFunction();
+        return errorFunction();
       }
     }
     let trackerEventsIntelScore: object[] = [];
@@ -1760,7 +1756,7 @@ export class TrackerService {
     console.log(
       { getJsonForTrackerType: getJsonForTrackerType },
       { jobsForIntelScore },
-      { data: await this.redisService.get(`${trackerId}-IntelScore-Job`) },
+      // { data: await this.redisService.get(`${trackerId}-IntelScore-Job`) },
     );
 
     if (
@@ -1802,22 +1798,32 @@ export class TrackerService {
     } else {
       const jsonTrackerType = getJsonForTrackerType[0];
       const eventIds = query.eventIds.split(',');
-      const keys = eventIds.map((id) => `${trackerId}-IntelScore`);
+      for (const eventId of eventIds) {
+        const data = await this.redisService.jsonGet(
+          `${trackerId}-IntelScore`,
+          `$.${query.trackerEventStatus}.${eventId}`
+        );
+        if (!data) {
+          continue;
+        }
+        trackerEventsIntelScore.push(JSON.parse(data)[0] as any)
+      }
+      // const keys = eventIds.map((id) => `${trackerId}-IntelScore`);
 
-      const results = await this.redisService.jsonMget(
-        `$.${query.trackerEventStatus}`,
-        ...keys,
-      );
-      // console.log(());
+      // const results = await this.redisService.jsonMget(
+      //   `$.${query.trackerEventStatus}[${eventIds.join("\",\"")}]`,
+      //   ...keys,
+      // );
+      // console.log((JSON.parse((results as string[])?.join('') || '{}')));
 
-      trackerEventsIntelScore = results
-        .map((res) => (res ? JSON.parse(res)[0] : null)) // Get the root object from each Redis result
-        .filter(Boolean) // Remove nulls
-        .flatMap(
-          (
-            obj, // Flatten the nested eventId objects
-          ) => Object.entries(obj).map(([uuid, data]) => data),
-        ) as Object[];
+      // trackerEventsIntelScore = results
+      //   .map((res) => (res ? JSON.parse(res)[0] : null)) // Get the root object from each Redis result
+      //   .filter(Boolean) // Remove nulls
+      //   .flatMap(
+      //     (
+      //       obj, // Flatten the nested eventId objects
+      //     ) => Object.entries(obj).map(([uuid, data]) => data),
+      //   ) as Object[];
       // for (const eventId of query.eventIds.split(',')) {
       //   console.log({ eventId });
       //   const intelscore: any | null | undefined = await this.redisService.jsonGet(`${trackerId}-IntelScore`, `$.${query.trackerEventStatus + '.' + eventId}`);
@@ -1827,15 +1833,15 @@ export class TrackerService {
       //     trackerEventsIntelScore.push(JSON.parse(intelscore)[0]);
       // }
     }
-    trackerEventsIntelScore = trackerEventsIntelScore.filter(
-      (val) => val && Object.keys(val).length > 0,
-    );
-    const unique = trackerEventsIntelScore.filter(
-      (item, index, array) =>
-        array.findIndex((i) => JSON.stringify(i) === JSON.stringify(item)) ===
-        index,
-    );
-    return { trackerEventsIntelScore: unique };
+    // trackerEventsIntelScore = trackerEventsIntelScore.filter(
+    //   (val) => val && Object.keys(val).length > 0,
+    // );
+    // const unique = trackerEventsIntelScore.filter(
+    //   (item, index, array) =>
+    //     array.findIndex((i) => JSON.stringify(i) === JSON.stringify(item)) ===
+    //     index,
+    // );
+    return { trackerEventsIntelScore };
   }
   async getTrackerIntelScoreForCron(
     user: TCachedUser,
@@ -2058,11 +2064,12 @@ export class TrackerService {
 
       let completedJobs: any | null = null;
       let addJobs: any | null = null;
-      await Promise.all([completedJobs = this.redisService.get(
-        `tracker-IntelScore-JobsComplete`),
-      addJobs = this.redisService.get(
-        `tracker-IntelScore-Jobs24`
-      )]);
+
+      [completedJobs, addJobs] = await Promise.all([
+        this.redisService.get('tracker-IntelScore-JobsComplete'),
+        this.redisService.get('tracker-IntelScore-Jobs24'),
+      ]);
+
       console.log({ completedJobs });
 
       if (!completedJobs) {
