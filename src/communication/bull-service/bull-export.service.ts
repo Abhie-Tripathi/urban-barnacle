@@ -387,7 +387,7 @@ export class ExportWorkerClass {
                     emailSenderAddress,
                     'Export Event Data Request Completed',
                     exportCompletMail,
-                    attachments,
+                    attachments.filter(val => val),
                 );
                 let status = 'COMPLETED' as JobStatus;
                 if (error) {
@@ -445,7 +445,7 @@ export class ExportWorkerClass {
     async createTraclerExportForEventData(jobData: any, fileName: string, email: string, type: string, userId: string, sourceId: string, sourceModule: AttachmentSourceModule) {
         try {
             const dir = './public/export';
-            fileName = fileName.replace(/\.csv$/, '.xlsx').replaceAll(' ', '-').replace(")", `)${Math.random()}`).toLowerCase();
+            fileName = fileName.replace(/\.csv$/, '.xlsx').replaceAll(' ', '-').replace(")", `)(${(new Date()).toISOString()})`).replace(")", `)${Math.random()}`).toLowerCase();
             const excelFilePath = `${dir}/${fileName.replace(/\.csv$/, '.xlsx').replaceAll(' ', '-')}`;
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet('Events');
@@ -462,6 +462,7 @@ export class ExportWorkerClass {
                 { header: 'Country', key: 'country', width: 20 },
                 { header: 'Region', key: 'region', width: 30 },
                 { header: 'Start Date', key: 'startDate', width: 20 },
+                { header: 'Future Start Date', key: 'futureExpectedStartDate', width: 20 },
                 { header: 'End Date', key: 'endDate', width: 20 },
                 { header: 'Frequency', key: 'frequency', width: 15 },
                 { header: 'Total Editions', key: 'editions', width: 20 },
@@ -506,7 +507,7 @@ export class ExportWorkerClass {
             //     fullAccessUsers,
             //     limitedAccessUsers
             // }, email);
-
+            // const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: '', limit: 0, offset: 0, type: type as keyof typeof EventTabs });
             let linesWrittern: number = 0;
             while (offset < totalCount) {
                 console.log(`Processing ${offset} to ${offset + limit} records`);
@@ -545,66 +546,64 @@ export class ExportWorkerClass {
                 const events = response?.events || [];
                 totalCount = flagforCount ? (response?.count || 0) : totalCount;
                 if (events.length === 0 || linesWrittern === totalCount) break;
-                const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: events.map(val => val.basic.id).join(','), limit: events.length, offset: 0, type: type as keyof typeof EventTabs });
+                // const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: events.map(val => val.basic.id).join(','), limit: events.length, offset: 0, type: type as keyof typeof EventTabs });
                 for (const data of events) {
                     if (linesWrittern === totalCount) break;
+                    // const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: events.map(val => val.basic.id).join(','), limit: events.length, offset: 0, type: type as keyof typeof EventTabs });
                     let eventTYpes: string = (data.basic.eventTypes?.map(val => val.name).join(',')) || '';
                     if (eventTYpes.toLowerCase().includes('workshop') && eventTYpes.split(',').length > 1) {
                         eventTYpes = eventTYpes.replaceAll('Workshop', '');
                     }
                     let matched: string = data.basic?.matchedKeywords?.join(',') || '';
                     let matchScore: string = data.basic?.matchedKeywordsPercentage || '';
+                    const score = 0;// / trackerEventsIntelScore.find(val => val['event'] === data.basic.id);
+                    if (score) {
+                        matchScore = score['alltrackers_score'];
+                    }
                     if (jobData?.searchByEntity === 'company' && data.trackerMatchInfo) {
                         matched = (data.trackerMatchInfo['competitorDomainOrName'] as string[]).map(val => {
                             const temp: string[] = val.split('_');
                             return `${temp[1]} (${temp[0]})`;
 
                         }).join("\n");
-                        const score = trackerEventsIntelScore.find(val => val['event'] === data.basic.id);
-                        if (score) {
-                            matchScore = score['alltrackers_score'];
-                        }
-                    }
-                    if (jobData?.searchByEntity === 'user' && data.trackerMatchInfo) {
+
+                    } else if (jobData?.searchByEntity === 'user' && data.trackerMatchInfo) {
                         matched = (data.trackerMatchInfo['peopleFinderPersonAssociation'] as string[]).map(val => {
                             const temp: string[] = val.split('_');
                             return `${temp[1]} ${temp[2]} (${temp[0]})`;
 
                         }).join("\n");
-                        const score = trackerEventsIntelScore.find(val => val['event'] === data.basic.id);
-                        if (score) {
-                            matchScore = score['alltrackers_score'];
-                        }
-                    }
-                    if (jobData?.searchByEntity === 'speaker' && data.trackerMatchInfo) {
+                    } else if (jobData?.searchByEntity === 'speaker' && data.trackerMatchInfo) {
                         matched = (data.trackerMatchInfo['speakerPersonAssociation'] as string[]).map(val => {
                             const temp: string[] = val.split('_');
                             return `${temp[0]} ${temp[1]} (speaker)`;
 
                         }).join("\n");
-                        const score = trackerEventsIntelScore.find(val => val['event'] === data.basic.id);
-                        if (score) {
-                            matchScore = score['alltrackers_score'];
-                        }
                     }
-                    (data.trackerMatchInfo ? {
-                        association: (jobData?.searchByEntity === 'company' ? data.trackerMatchInfo['competitorDomainOrName']
-                            : jobData?.searchByEntity === 'user' ? data.trackerMatchInfo['peopleFinderPersonAssociation'] : data.trackerMatchInfo['speakerPersonAssociation']).join(','),
-                        associationPercentage: (jobData?.searchByEntity === 'company' ? data.trackerMatchInfo['competitorPercentage']
-                            : jobData?.searchByEntity === 'user' ? data.trackerMatchInfo['peopleFinderPersonAssociationPercentage'] : data.trackerMatchInfo['speakerPersonAssociationPercentage']),
-                        ...(jobData?.searchByEntity === 'company' ? { competitorAssociation: data.trackerMatchInfo['competitorAssociation'] } : {})
-                    } : {})
+                    // (data.trackerMatchInfo ? {
+                    //     association: (jobData?.searchByEntity === 'company' ? data.trackerMatchInfo['competitorDomainOrName']
+                    //         : jobData?.searchByEntity === 'user' ? data.trackerMatchInfo['peopleFinderPersonAssociation'] : data.trackerMatchInfo['speakerPersonAssociation']).join(','),
+                    //     associationPercentage: (jobData?.searchByEntity === 'company' ? data.trackerMatchInfo['competitorPercentage']
+                    //         : jobData?.searchByEntity === 'user' ? data.trackerMatchInfo['peopleFinderPersonAssociationPercentage'] : data.trackerMatchInfo['speakerPersonAssociationPercentage']),
+                    //     ...(jobData?.searchByEntity === 'company' ? { competitorAssociation: data.trackerMatchInfo['competitorAssociation'] } : {})
+                    // } : {})
                     const locationPayload = data.basic.eventLocation?.locationType ? this.devLocationTranformation(data) : this.prodLocationTranformation(data);
+                    const eventFormat = {
+                        in_person: 'In Person',
+                        online: 'Online',
+                        hybrid: "Hybrid"
+                    }
                     worksheet.addRow({
                         id: data.basic.id,
                         name: data.basic.name,
                         page: 'https://10times.com/' + data.basic['10timesEventPageUrl'],
                         website: data.basic.website,
                         startDate: data.basic.startDateTime,
+                        futureExpectedStartDate: data.basic.futureExpectedStartDate || '',
                         endDate: data.basic.endDateTime,
                         frequency: data.advance?.frequency || '',
                         editions: data?.advance?.editions || '',
-                        format: (data.basic.format as string).replaceAll('in_person', 'In Person'),
+                        format: eventFormat[(data.basic.format as string)],
                         series: (data?.advance?.isSeries ? `TRUE` : 'FALSE') + '',
                         eventType: eventTYpes,
                         categories: data.basic.categories?.map((item) => item.name).join(','),

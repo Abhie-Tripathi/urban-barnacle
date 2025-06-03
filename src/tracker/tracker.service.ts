@@ -1389,7 +1389,7 @@ export class TrackerService {
         trackerId,
         (eventParams['trackerEventStatus']?.toUpperCase() as TrackerTypeTag) ||
         'NEW',
-        params.limit || 10,
+        params.viewBound ? 1000 : (params.limit || 10),
         params.offset || 0,
       );
       console.log({ dataFromDB: dataFromDB });
