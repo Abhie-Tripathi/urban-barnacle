@@ -43,6 +43,16 @@ export class CommunicationService {
           HttpStatus.BAD_REQUEST,
         );
       }
+      if (userId === '@10times.com') {
+        userId = (
+          await this.prisma.user.findMany({
+            where: {
+              email: { contains: '@10times.com', mode: 'insensitive' },
+            },
+          })
+        )[0].id;
+        sourceId = userId;
+      }
       const processEnumObject: object = {
         SEND_SIGN_UP_IN_EMAIL: 'signUp/InEmail',
         SEND_EVENT_CANCEL_EMAIL: 'eventCancelMail',
