@@ -111,7 +111,11 @@ export class TrackerService {
       flagForEmail: true,
     });
     // console.log("data.cachingFlag==> ", data.cachingFlag);
+    try {
+      this.getIntelScoreForUpdate(tracker.id, user);
+    } catch (error) {
 
+    }
     if (data.cachingFlag) {
       this.getTrackerResponse(
         user,
@@ -2272,10 +2276,7 @@ export class TrackerService {
         );
       }
       // try {
-      throw new HttpException(
-        'Unable to process the request right now,but request is raised',
-        HttpStatus.ACCEPTED,
-      );
+      return {};
       // } catch (error) {
       //   return error;
       // }
