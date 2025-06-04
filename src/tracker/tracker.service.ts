@@ -49,7 +49,7 @@ import { AccountDataService } from 'src/user/account/account.data.service';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { RedisService } from 'src/redis/redis.service';
 import { trackerExportDto } from 'src/communication/bull.dto';
-import { log } from 'console';
+// import { log } from 'console';
 import { LimitDto } from 'src/global_dto';
 @Injectable()
 export class TrackerService {
@@ -1330,7 +1330,7 @@ export class TrackerService {
     showValues: string,
   ) {
     try {
-      console.log(params);
+      // console.log(params);
 
       const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
         'ADMIN',
@@ -1392,7 +1392,7 @@ export class TrackerService {
         1000,
         params.offset || 0,
       );
-      console.log({ dataFromDB: dataFromDB });
+      // console.log({ dataFromDB: dataFromDB });
 
       if (dataFromDB.length > 0) {
         let count: number = dataFromDB[0].count;
@@ -1410,7 +1410,7 @@ export class TrackerService {
         }
         const events = await this.eventService.getSimilarEvents(eventParams);
 
-        console.dir(events, { depth: null });
+        // console.dir(events, { depth: null });
         if (params.view === View.calendar || params.view === View.map) {
           return events;
         }
@@ -1422,7 +1422,7 @@ export class TrackerService {
           dataForResponse.push(findEVent);
         });
         dataForResponse = dataForResponse.filter(val => val);
-        console.log(events);
+        // console.log(events);
 
         return { events: dataForResponse, count: events['count'] || 0 };
       } else {
@@ -1472,7 +1472,7 @@ export class TrackerService {
     params: GetTrackerEventsCountDto,
   ) {
     try {
-      console.log(params);
+      // console.log(params);
 
       const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
         'ADMIN',
@@ -1530,7 +1530,7 @@ export class TrackerService {
         1000,
         0,
       );
-      console.log({ dataFromDB: dataFromDB });
+      // console.log({ dataFromDB: dataFromDB });
 
       if (searchByEntity) {
         eventParams['searchByEntity'] = searchByEntity;
@@ -1644,7 +1644,7 @@ export class TrackerService {
       };
       let queueJobs: any | null =
         await this.redisService.get(`IntelScore-JobQueue`);
-      console.log({ queueJobs });
+      // console.log({ queueJobs });
       if (!queueJobs) {
         queueJobs = [];
         await this.redisService.set(
@@ -1738,11 +1738,11 @@ export class TrackerService {
     getJsonForTrackerType = getJsonForTrackerType
       ? JSON.parse(getJsonForTrackerType.toString())[0]
       : getJsonForTrackerType;
-    console.log(
-      { getJsonForTrackerType: getJsonForTrackerType },
-      { jobsForIntelScore },
-      { data: await this.redisService.get(`${trackerId}-IntelScore-Job`) },
-    );
+    // console.log(
+    //   { getJsonForTrackerType: getJsonForTrackerType },
+    //   { jobsForIntelScore },
+    //   { data: await this.redisService.get(`${trackerId}-IntelScore-Job`) },
+    // );
 
     if (
       !getJsonForTrackerType ||
@@ -1768,14 +1768,14 @@ export class TrackerService {
             jobExist,
           ),
         ]);
-        console.log({ getJsonForTrackerType, sadas: 'SAdfsa' });
+        // console.log({ getJsonForTrackerType, sadas: 'SAdfsa' });
         this.fetchTrackerIntelScoreForCache(tracker, trackerId, user, jobExist);
       }
       const dataOfINtelScore =
         await this.trackerDataService.getTrackerIntelScoreFromApi(
           queryForPayload,
         );
-      console.log({ dataOfINtelScore });
+      // console.log({ dataOfINtelScore });
 
       for (const eventId of query.eventIds.split(',')) {
         trackerEventsIntelScore.push(dataOfINtelScore[eventId]);
@@ -1844,7 +1844,7 @@ export class TrackerService {
         }
       }
     }
-    console.log(newParams);
+    // console.log(newParams);
     const { startDate, endDate } = this.getValidDateRange(
       tracker.filterValues as unknown as GetTrackerEventsDto,
       newParams as GetTrackerEventsDto,
@@ -1888,7 +1888,7 @@ export class TrackerService {
       Object.entries(eventParams).filter(([_, value]) => value !== undefined),
     );
     delete cleanEventParams['type'];
-    console.log(cleanEventParams);
+    // console.log(cleanEventParams);
 
     return cleanEventParams;
   }
@@ -1918,20 +1918,20 @@ export class TrackerService {
         },
       );
       await this.redisService.expire(`${trackerId}-IntelScore`, 86400);
-      console.dir(
-        {
-          past,
-          active,
-          new: newScore,
-          steCache,
-        },
-        { depth: null },
-      );
+      // console.dir(
+      //   {
+      //     past,
+      //     active,
+      //     new: newScore,
+      //     steCache,
+      //   },
+      //   { depth: null },
+      // );
 
       let completedJobs: any | null = await this.redisService.get(
         `tracker-IntelScore-JobsComplete`,
       );
-      console.log({ completedJobs });
+      // console.log({ completedJobs });
 
       if (!completedJobs) {
         completedJobs = [];
@@ -1972,7 +1972,7 @@ export class TrackerService {
       let failedJobs: any | null = await this.redisService.get(
         `tracker-IntelScore-JobsFailed`,
       );
-      console.log({ failedJobs });
+      // console.log({ failedJobs });
 
       if (!failedJobs) {
         failedJobs = [];
