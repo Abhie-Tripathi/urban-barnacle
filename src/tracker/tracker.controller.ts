@@ -166,7 +166,7 @@ export class TrackerController {
       // }
       if (
         membershipLimit[membershipStatus.membership] -
-          ((query.limit || 10) + (query.offset || 0)) <
+        ((query.limit || 10) + (query.offset || 0)) <
         0
       ) {
         throw new HttpException(
@@ -268,7 +268,7 @@ export class TrackerController {
         id,
         query,
       );
-      return { data: events };
+      return { data: events['data'] };
     } catch (error) {
       return { error: error };
     }

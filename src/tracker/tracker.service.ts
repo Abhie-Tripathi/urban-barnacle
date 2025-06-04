@@ -1389,7 +1389,7 @@ export class TrackerService {
         trackerId,
         (eventParams['trackerEventStatus']?.toUpperCase() as TrackerTypeTag) ||
         'NEW',
-        params.viewBound ? 1000 : (params.limit || 10),
+        1000,
         params.offset || 0,
       );
       console.log({ dataFromDB: dataFromDB });
@@ -1409,18 +1409,22 @@ export class TrackerService {
           eventParams['searchByEntity'] = searchByEntity;
         }
         const events = await this.eventService.getSimilarEvents(eventParams);
-        const dataForResponse: object[] = [];
+
+        console.dir(events, { depth: null });
+        if (params.view === View.calendar || params.view === View.map) {
+          return events;
+        }
+        let dataForResponse: object[] = [];
         dataFromDB.map((val) => {
           const findEVent = events.events.find(
             (value) => value.basic.id === val.eventId,
           );
           dataForResponse.push(findEVent);
         });
-        console.log({ output: events });
-
+        dataForResponse = dataForResponse.filter(val => val);
         console.log(events);
 
-        return { events: dataForResponse, count: count };
+        return { events: dataForResponse, count: events['count'] || 0 };
       } else {
         await this.trackerDataService.bulkDeleteToSimilarTrackerEvent(
           tracker.id,
