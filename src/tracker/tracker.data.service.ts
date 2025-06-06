@@ -1,7 +1,8 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTrackerDto, GetTrackersDto, UpdateTrackerDto } from './dto';
-import { ExportSubSource,
+import {
+  ExportSubSource,
   Prisma,
   PrismaClient,
   Tracker,
@@ -20,7 +21,7 @@ export class TrackerDataService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly communicationService: CommunicationService
-  ,
+    ,
     private readonly configService: ConfigService,
   ) { }
 
@@ -274,7 +275,7 @@ export class TrackerDataService {
     limit: number,
     offset: number,
   ) {
-    return await this.prisma.$queryRaw<
+    return await Promise.all([this.prisma.$queryRaw<
       {
         sourceId: string;
         count: number;
@@ -292,7 +293,18 @@ where
     and "createdAt"::DATE = now()::DATE
     ORDER BY score desc
     limit ${limit} Offset ${offset};`),
-    );
+    ), this.prisma.$queryRaw<
+      {
+        count: number;
+      }[]
+    >(
+      Prisma.raw(`
+  SELECT count(*)
+FROM "SimilarEventsToTracker"
+where
+    "trackerId" = '${trackerId}'
+    and "createdAt"::DATE = now()::DATE;`),
+    )]);
   }
   async createExport(data: {
     exportOf: ExportSubSource;

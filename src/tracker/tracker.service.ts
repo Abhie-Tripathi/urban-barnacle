@@ -1385,17 +1385,18 @@ export class TrackerService {
         trackerId: trackerId,
         showValues: showValues,
       };
-      const dataFromDB = await this.trackerDataService.getSimilarTrackerEvent(
+      const [dataFromDB, countFromDB] = await this.trackerDataService.getSimilarTrackerEvent(
         trackerId,
         (eventParams['trackerEventStatus']?.toUpperCase() as TrackerTypeTag) ||
         'NEW',
         1000,
         params.offset || 0,
       );
-      // console.log({ dataFromDB: dataFromDB });
+      const countSimilarEventFromDB = Number(countFromDB[0].count)
+      console.log({ dataFromDB: countSimilarEventFromDB });
 
-      if (dataFromDB.length > 0) {
-        let count: number = dataFromDB[0].count;
+      if (countSimilarEventFromDB > 0) {
+        // let count: number = dataFromDB[0]?.count||0;
         const cache: Object = {};
         eventParams['eventSourceIds'] = dataFromDB
           .map((val) => {
@@ -1403,6 +1404,9 @@ export class TrackerService {
             return val.sourceId;
           })
           .join(',');
+        if ((eventParams['eventSourceIds'] as string).length < 5) {
+          eventParams['eventSourceIds'] = '-1'
+        }
         eventParams['eventIds'] = [];
         eventParams['cache'] = JSON.stringify(cache);
         if (searchByEntity) {
@@ -1523,20 +1527,21 @@ export class TrackerService {
         ...convertedParams,
         trackerId: trackerId,
       } as CountQueryDto;
-      const dataFromDB = await this.trackerDataService.getSimilarTrackerEvent(
+      const [dataFromDB, countFromDB] = await this.trackerDataService.getSimilarTrackerEvent(
         trackerId,
         (eventParams['trackerEventStatus']?.toUpperCase() as TrackerTypeTag) ||
         'NEW',
         1000,
         0,
       );
-      // console.log({ dataFromDB: dataFromDB });
+      const countSimilarEventFromDB = Number(countFromDB[0].count)
+      console.log({ dataFromDB: countSimilarEventFromDB }, countSimilarEventFromDB);
 
       if (searchByEntity) {
         eventParams['searchByEntity'] = searchByEntity;
       }
-      if (dataFromDB.length > 0) {
-        let count: number = dataFromDB[0].count;
+      if (countSimilarEventFromDB > 0) {
+        // let count: number = dataFromDB[0]?.count||0;
         const cache: Object = {};
         eventParams['eventSourceIds'] = dataFromDB
           .map((val) => {
@@ -1545,6 +1550,9 @@ export class TrackerService {
           })
           .join(',');
         eventParams['eventIds'] = [];
+        if ((eventParams['eventSourceIds'] as string).length < 5) {
+          eventParams['eventSourceIds'] = '-1'
+        }
         const events =
           await this.eventService.getSimilarEventsCount(eventParams);
 
