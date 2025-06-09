@@ -594,7 +594,7 @@ export const QueryFilter = z.object({
 
 export const FilterNames = Object.keys(QueryFilter.shape);
 
-export class QueryFilterDto extends createZodDto(QueryFilter) {}
+export class QueryFilterDto extends createZodDto(QueryFilter) { }
 
 export const QueryHttpSchema = LimitSchemaWithoutDefault.extend(
   QueryFilter.shape,
@@ -671,13 +671,13 @@ export class QueryHttpDto extends createZodDto(
       path: ['limit'],
     },
   ),
-) {}
+) { }
 
 export const QuerySchema = QueryHttpSchema.innerType().extend({
   showValues: z.string(),
 });
 
-export class QueryDto extends createZodDto(QuerySchema) {}
+export class QueryDto extends createZodDto(QuerySchema) { }
 
 export enum CountGroup {
   'year' = 'year',
@@ -690,6 +690,7 @@ export enum CountGroup {
   'status' = 'status',
   'alertType' = 'alertType',
   'eventTypeGroup' = 'eventTypeGroup',
+  'category' = 'category'
 }
 
 export const CountQuerySchema = QueryFilter.extend({
@@ -741,7 +742,7 @@ export const CountQuerySchema = QueryFilter.extend({
   return data;
 });
 
-export class CountQueryDto extends createZodDto(CountQuerySchema) {}
+export class CountQueryDto extends createZodDto(CountQuerySchema) { }
 const similarEventsSchema = QuerySchema.omit({ showValues: true })
   .extend({
     showValues: z.string().default('basic,advance,insights,audience'),
@@ -766,7 +767,7 @@ const similarEventsSchema = QuerySchema.omit({ showValues: true })
     }
     return data;
   });
-export class SimilarEventsDto extends createZodDto(similarEventsSchema) {}
+export class SimilarEventsDto extends createZodDto(similarEventsSchema) { }
 
 const groupByOptions = {
   date: 'date',
@@ -810,10 +811,10 @@ export const EventsTrendsSchema = QueryFilter.extend({
   }),
 });
 
-export class EventsTrendsDto extends createZodDto(EventsTrendsSchema) {}
+export class EventsTrendsDto extends createZodDto(EventsTrendsSchema) { }
 
 const sortSchema = LimitSchemaWithoutDefault.extend({
   sortBy: z.string().optional(),
 });
 
-export class SortingDto extends createZodDto(sortSchema) {}
+export class SortingDto extends createZodDto(sortSchema) { }
