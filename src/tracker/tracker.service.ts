@@ -1994,7 +1994,7 @@ export class TrackerService {
     );
     convertedParams['active_gte'] = startDate;
     convertedParams['active_lte'] = endDate;
-    if (query.trackerEventStatus && query.trackerEventStatus === 'new') {
+    if ((query.trackerEventStatus && query.trackerEventStatus === 'new') || (query['type'] && query['type'] === 'new')) {
       const lastActive = await this.lastActive(
         user,
         tracker.id,
@@ -2023,6 +2023,7 @@ export class TrackerService {
       ...convertedParams,
       trackerId: trackerId,
       showValues: showValues,
+      trackerEventStatus: query['type'] || 'new'
     } as QueryDto;
     if (searchByEntity) {
       eventParams['searchByEntity'] = searchByEntity;
