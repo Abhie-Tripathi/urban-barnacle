@@ -374,9 +374,9 @@ export class ExportWorkerClass {
             } else {
                 status = 'FAILED' as JobStatus;
             }
-            if (jobData['email'] === 'vipul.gupta@10times.com') {
-                jobData.userData.email = 'piyush@10times.com';
-            }
+            // if (jobData['email'] === 'vipul.gupta@10times.com') {
+            //     jobData.userData.email = 'piyush@10times.com';
+            // }
             if (status === 'COMPLETED') {
                 const exportCompletMail: string = exportCompleteMailTemplate
                     .replaceAll('{firstName}', jobData.userData.firstname || '')
