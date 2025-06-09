@@ -725,7 +725,7 @@ export class ExportWorkerClass {
             geo: `Latitude:${lat}, Longitude:${lon}`,
             city: data.basic.eventLocation.locationType === 'CITY' ? data.basic.eventLocation?.name || '' : data.basic.eventLocation?.cityName || '',
             country: data.basic.eventLocation?.countryName || '',
-            region: data.basic.eventLocation?.country?.regions?.join(', ') || '',
+            region: ((data.basic.eventLocation?.region?.join(', ') || '') as string).replaceAll(',None', '').replaceAll('None,', ''),
 
         }
     }
@@ -738,7 +738,7 @@ export class ExportWorkerClass {
             geo: `Latitude:${lat}, Longitude:${lon}`,
             city: data.basic.eventLocation?.city?.name || '',
             country: data.basic.eventLocation?.country?.name || '',
-            region: data.basic.eventLocation?.country?.regions?.join(', ') || '',
+            region: ((data.basic.eventLocation?.region?.join(', ') || '') as string).replaceAll(',None', '').replaceAll('None,', ''),
 
         }
     }
