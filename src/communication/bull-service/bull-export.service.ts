@@ -517,7 +517,7 @@ export class ExportWorkerClass {
                 const showValues = 'basic,advance,insights,audience';
                 const response = await this.trackerService.getTrackerEvents(jobData['userData'], jobData['trackerId'],
                     {
-                        limit, offset, view: View.tracker, trackerEventStatus: type as keyof typeof TrackerEventStatus
+                        limit, offset, view: View.tracker, ...(process.env.BACKEND === 'gtm' ? { trackerEventStatus: type as keyof typeof TrackerEventStatus } : { eventTypeGroup: type })
                         , sortBy: ['-score', 'title'], show: [
                             'branded',
                             'series',
@@ -549,22 +549,22 @@ export class ExportWorkerClass {
                 const events = response?.events || [];
                 totalCount = flagforCount ? (response?.count || 0) : totalCount;
                 if (events.length === 0 || linesWrittern === totalCount) break;
-                const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: events.map(val => val.basic.id).join(','), limit: events.length, offset: 0, type: type as keyof typeof EventTabs, trackerEventStatus: type as any });
+                // const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: events.map(val => val.basic.id).join(','), limit: events.length, offset: 0, type: type as keyof typeof EventTabs, trackerEventStatus: type as any });
                 for (const data of events) {
                     if (linesWrittern === totalCount) break;
-                    const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: events.map(val => val.basic.id).join(','), limit: events.length, offset: 0, type: type as keyof typeof EventTabs, trackerEventStatus: type as any });
+                    // const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: events.map(val => val.basic.id).join(','), limit: events.length, offset: 0, type: type as keyof typeof EventTabs, trackerEventStatus: type as any });
                     let eventTYpes: string = (data.basic.eventTypes?.map(val => val.name).join(',')) || '';
                     if (eventTYpes.toLowerCase().includes('workshop') && eventTYpes.split(',').length > 1) {
-                        eventTYpes = eventTYpes.replaceAll('Workshop', '');
+                        eventTYpes = eventTYpes.replaceAll(',Workshop', '').replaceAll('Workshop,', '');
                     }
                     let matched: string = data.basic?.matchedKeywords?.join(',') || '';
                     let matchScore: string = data.basic?.matchedKeywordsPercentage || '';
-                    const score = (trackerEventsIntelScore.find(val => val['event'] === data.basic.id));
-                    if (score) {
-                        matchScore = score['alltrackers_score'];
-                    } else {
-                        matchScore = '';
-                    }
+                    // const score = (trackerEventsIntelScore.find(val => val['event'] === data.basic.id));
+                    // if (score) {
+                    // matchScore = score['alltrackers_score'];
+                    // } else {
+                    matchScore = '';
+                    // }
                     if (jobData?.searchByEntity === 'company' && data.trackerMatchInfo) {
                         matched = (data.trackerMatchInfo['competitorDomainOrName'] as string[]).map(val => {
                             const temp: string[] = val.split('_');
