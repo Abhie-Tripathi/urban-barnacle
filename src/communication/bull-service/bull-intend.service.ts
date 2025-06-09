@@ -39,7 +39,7 @@ interface intendUpdateData {
   jobRequestId: string;
   sourceId: string;
 }
-@Processor({ name: '{intendProcessor}', scope: Scope.REQUEST })
+@Processor({ name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}intendProcessor}`, scope: Scope.REQUEST })
 export class IntendWorkerClass {
   constructor(
     private email: EmailService,

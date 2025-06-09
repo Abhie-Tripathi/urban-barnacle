@@ -41,6 +41,7 @@ import { DemoContactWorkerClass } from './communication/bull-service/bull-demoCo
 import { ErrorWorkerClass } from './communication/bull-service/bull-errorMessage.service';
 import { GlobalResponseInterceptor } from './global-response.interceptor';
 import { CommunicationService } from './communication/communication.service';
+import { ExportWorkerClass } from './communication/bull-service/bull-export.service';
 import { RedisModule } from './redis/redis.module';
 @Module({
   imports: [
@@ -119,6 +120,7 @@ import { RedisModule } from './redis/redis.module';
     AfterResponseInterceptor,
     DemoContactWorkerClass,
     ErrorWorkerClass,
+    ExportWorkerClass
     // CommunicationService,
   ],
 })

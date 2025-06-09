@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTrackerDto, GetTrackersDto, UpdateTrackerDto } from './dto';
-import {
+import { ExportSubSource,
   Prisma,
   PrismaClient,
   Tracker,
@@ -10,14 +10,19 @@ import {
 } from '@prisma/client';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { ConfigService } from '@nestjs/config';
-import { TCachedUser, TrackerTypes } from 'src/utils/types';
+import { QueueActionOptions, TCachedUser, TrackerTypes } from 'src/utils/types';
+import { CommunicationService } from '../communication/communication.service';
+import { trackerExportDto } from 'src/communication/bull.dto';
+import { LimitDto } from 'src/global_dto';
 
 @Injectable()
 export class TrackerDataService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly communicationService: CommunicationService
+  ,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const tracker = await this.prisma.tracker.create({
@@ -288,5 +293,81 @@ where
     ORDER BY score desc
     limit ${limit} Offset ${offset};`),
     );
+  }
+  async createExport(data: {
+    exportOf: ExportSubSource;
+    inputData: any;
+    trackerId: string;
+  }, user: TCachedUser) {
+    return await this.prisma.export.create({
+      data: {
+        userId: user.id,
+        accountId: user.accountId,
+        exportFileType: 'EXCEL',
+        exportOf: data.exportOf,
+        inputData: data.inputData,
+        source: 'TRACKER',
+        sourceId: data.trackerId,
+        status: 'PENDING',
+      },
+      select: {
+        id: true
+      }
+    })
+  }
+  async getTrackerExport(trackerId: string, user: TCachedUser, query: LimitDto) {
+    return {
+      trackerExports: await this.prisma.export.findMany({
+        where: {
+          source: 'TRACKER',
+          sourceId: trackerId,
+          deleted: false
+        }, select: {
+          id: true,
+          fileSize: true,
+          fileUrl: true,
+          exportOf: true,
+          createdAt: true,
+          status: true,
+          source: true,
+          sourceId: true,
+          user: {
+            select: {
+              firstname: true,
+              lastname: true,
+            }
+          }
+        },
+        take: query.limit,
+        skip: query.offset,
+        orderBy: { createdAt: 'desc' }
+      })
+    }
+  }
+  async getTrackerExportCount(trackerId: string, user: TCachedUser, query: LimitDto) {
+    return {
+      count: await this.prisma.export.count({
+        where: {
+          source: 'TRACKER',
+          sourceId: trackerId,
+          deleted: false
+        },
+      })
+    }
+  }
+  async createTrackerExportJob(
+    body: trackerExportDto, userId: string
+  ) {
+    return await this.communicationService.createJobForBull(QueueActionOptions.SEND_TRACKER_EXPORT_MAIL, body, userId);
+  }
+  async deleteTrackerExport(exportId: string) {
+    return await this.prisma.export.update({
+      where: {
+        id: exportId
+      },
+      data: {
+        deleted: true
+      }
+    })
   }
 }

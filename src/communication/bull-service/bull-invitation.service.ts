@@ -24,7 +24,7 @@ interface InviteData {
   encryptNo: string;
   sourceId: string;
 }
-@Processor({ name: '{inviteProcessor}', scope: Scope.REQUEST })
+@Processor({ name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}inviteProcessor}`, scope: Scope.REQUEST })
 export class InvitationWorkerClass {
   constructor(
     private email: EmailService,

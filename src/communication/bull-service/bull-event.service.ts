@@ -19,7 +19,7 @@ interface EventCancelData {
   jobRequestId: string;
   sourceId: string;
 }
-@Processor({ name: '{eventProcessor}', scope: Scope.REQUEST })
+@Processor({ name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}eventProcessor}`, scope: Scope.REQUEST })
 export class EventWorkerClass {
   constructor(
     private email: EmailService,

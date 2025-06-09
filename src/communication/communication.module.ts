@@ -13,73 +13,80 @@ import { InvitationWorkerClass } from './bull-service/bull-invitation.service';
     BullModule.forRoot({
       redis: {
         ...(process.env.NODE_ENV &&
-        process.env.NODE_ENV.toLowerCase() !== 'production'
+          process.env.NODE_ENV.toLowerCase() !== 'production'
           ? {
+            host: process.env.REDIS_HOST || '0.0.0.0',
+            port: Number(process.env.REDIS_PORT) || 6379,
+            password: process.env.REDIS_PASSWORD,
+          }
+          : {
+            tls: {
               host: process.env.REDIS_HOST || '0.0.0.0',
               port: Number(process.env.REDIS_PORT) || 6379,
-              password: process.env.REDIS_PASSWORD,
-            }
-          : {
-              tls: {
-                host: process.env.REDIS_HOST || '0.0.0.0',
-                port: Number(process.env.REDIS_PORT) || 6379,
-              },
-            }),
+            },
+          }),
       },
     }),
     BullModule.registerQueue({
-      name: '{accessProcessor}',
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}accessProcessor}`,
       defaultJobOptions: {
         removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
         removeOnFail: false,
       },
     }),
     BullModule.registerQueue({
-      name: '{inviteProcessor}',
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}inviteProcessor}`,
       defaultJobOptions: {
         removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
         removeOnFail: false,
       },
     }),
     BullModule.registerQueue({
-      name: '{eventProcessor}',
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}eventProcessor}`,
       defaultJobOptions: {
         removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
         removeOnFail: false,
       },
     }),
     BullModule.registerQueue({
-      name: '{otpProcessor}',
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}otpProcessor}`,
       defaultJobOptions: {
         removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
         removeOnFail: false,
       },
     }),
     BullModule.registerQueue({
-      name: '{intendProcessor}',
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}intendProcessor}`,
       defaultJobOptions: {
         removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 1000),
         removeOnFail: false,
       },
     }),
     BullModule.registerQueue({
-      name: '{demoContactProcessor}',
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}demoContactProcessor}`,
       defaultJobOptions: {
         removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
         removeOnFail: false,
       },
     }),
     BullModule.registerQueue({
-      name: '{errorProcessor}',
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}errorProcessor}`,
       defaultJobOptions: {
         removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
         removeOnFail: false,
       },
     }),
+    BullModule.registerQueue({
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`,
+      defaultJobOptions: {
+        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
+        removeOnFail: false
+      }
+    }),
   ],
   providers: [
     CommunicationService,
-    // OtpEmailWorkerClass,
+    // OtpEmailWorkerClass, ExportWorkerClass
     // AccessEmailWorkerClass,
     // EventWorkerClass,
     // IntendWorkerClass,
@@ -87,4 +94,4 @@ import { InvitationWorkerClass } from './bull-service/bull-invitation.service';
   ],
   exports: [CommunicationService],
 })
-export class CommunicationModule {}
+export class CommunicationModule { }

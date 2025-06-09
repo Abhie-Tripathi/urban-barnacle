@@ -6,7 +6,7 @@ import { Job } from 'bull';
 import { emailSenderAddress } from '../email/email.template';
 import { JobStatus } from '@prisma/client';
 
-@Processor({ name: '{demoContactProcessor}', scope: Scope.REQUEST })
+@Processor({ name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}demoContactProcessor}`, scope: Scope.REQUEST })
 export class DemoContactWorkerClass {
   constructor(
     private email: EmailService,
@@ -16,7 +16,7 @@ export class DemoContactWorkerClass {
     console.log(JSON.stringify(jobRef));
   }
   private readonly logger = new Logger(DemoContactWorkerClass.name);
-  @Process('demoContactMail')
+  @Process(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}demoContactProcessor}`)
   async handleEmailJob(
     job: Job<{ body: string; subject: string; jobRequestId: string }>,
   ) {

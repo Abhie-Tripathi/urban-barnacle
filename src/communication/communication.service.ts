@@ -11,15 +11,16 @@ import { z } from 'zod';
 export class CommunicationService {
   constructor(
     private readonly prisma: PrismaService,
-    @InjectQueue('{eventProcessor}') private readonly eventCanelQueue: Queue,
-    @InjectQueue('{inviteProcessor}') private readonly inviteQueue: Queue,
-    @InjectQueue('{accessProcessor}') private readonly accessQueue: Queue,
-    @InjectQueue('{otpProcessor}') private readonly otpQueue: Queue,
-    @InjectQueue('{intendProcessor}') private readonly intendQueue: Queue,
-    @InjectQueue('{demoContactProcessor}')
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}eventProcessor}`) private readonly eventCanelQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}inviteProcessor}`) private readonly inviteQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}accessProcessor}`) private readonly accessQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}otpProcessor}`) private readonly otpQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}intendProcessor}`) private readonly intendQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}demoContactProcessor}`)
     private readonly demoContactQueue: Queue,
-    @InjectQueue('{errorProcessor}') private readonly errorQueue: Queue,
-  ) {}
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}errorProcessor}`) private readonly errorQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`) private readonly exportQueue: Queue,
+  ) { }
   async createJobForBull(
     processAction: QueueActionOptions,
     payload: unknown,
@@ -62,6 +63,9 @@ export class CommunicationService {
         SEND_ERROR_EMAIL: 'errorMessage',
         SEND_DEMO_CONTACT_EMAIL: 'demoContactMail',
         SEND_USER_INVITATION_EMAIL: 'inviteUserMail',
+        SEND_TRACKER_EXPORT_MAIL: 'exportTrackerEventData',
+        SEND_CONTACT_US_EMAIL: 'contactUsMail',
+        SEND_CONTACT_ERROR_EMAIL: 'errorContactLimitMessage',
       };
       const processToprocessorMapping: object = {
         shareAccess: 'accessProcessor',
@@ -72,7 +76,10 @@ export class CommunicationService {
         intendRecevied: 'intendProcessor',
         intendUpdate: 'intendProcessor',
         errorMessage: 'errorProcessor',
-        demoContactMail: 'demoContactProcessor',
+        demoContactMail: 'contactProcessor',
+        contactUsMail: 'contactProcessor',
+        exportTrackerEventData: 'exportProcessor',
+        errorContactLimitMessage: 'errorProcessor',
       };
       const jobSource: object = {
         // SEND_SIGNIN_OTP: 'signUp/InEmail',
@@ -85,16 +92,19 @@ export class CommunicationService {
         SEND_INTEND_UPDATE: 'intendUpdate',
         SEND_ERROR_MAIL: 'errorMessage',
         SEND_DEMO_CONTACT_MAIL: 'demoContactMail',
+        SEND_TRACKER_EXPORT_MAIL: 'exportTrackerEventData',
+        SEND_CONTACT_US_EMAIL: 'contactUsMail',
+        SEND_CONTACT_ERROR_EMAIL: 'errorContactLimitMessage',
       };
       const process: string = processEnumObject[processAction];
       const processor: string = processToprocessorMapping[process];
-      console.log(process, processor);
+      console.log(process, processor, jobSource);
 
       let jobSourceType: string =
         process === 'signUp/InEmail' && jobRequestPayload.process === 'sign-up'
           ? 'SEND_SIGNUP_OTP'
           : process === 'signUp/InEmail' &&
-              jobRequestPayload.process === 'sign-in'
+            jobRequestPayload.process === 'sign-in'
             ? 'SEND_SIGNUP_OTP'
             : '';
       for (const key in jobSource) {
@@ -240,22 +250,9 @@ export class CommunicationService {
               priority: priority,
             },
           );
-          console.log('Call intendProcessor');
+          console.log('Call contactProcessor');
           break;
-        case 'errorMessage':
-          jobAdded = await this.errorQueue.add(
-            process,
-            {
-              ...validatedPayload,
-              ...requestId,
-            },
-            {
-              priority: priority,
-            },
-          );
-          console.log('Call intendProcessor');
-          break;
-        case 'demoContactMail':
+        case 'contactUsMail':
           jobAdded = await this.demoContactQueue.add(
             process,
             {
@@ -266,7 +263,20 @@ export class CommunicationService {
               priority: priority,
             },
           );
-          console.log('Call intendProcessor');
+          console.log('Call contactProcessor');
+          break;
+        case 'exportTrackerEventData':
+          jobAdded = await this.exportQueue.add(
+            process,
+            {
+              ...validatedPayload,
+              ...requestId,
+            },
+            {
+              priority: priority,
+            },
+          );
+          console.log('Call exportProcessor');
           break;
         case 'errorMessage':
           jobAdded = await this.errorQueue.add(
@@ -279,22 +289,9 @@ export class CommunicationService {
               priority: priority,
             },
           );
-          console.log('Call intendProcessor');
+          console.log('Call errorProcessor');
           break;
-        case 'demoContactMail':
-          jobAdded = await this.demoContactQueue.add(
-            process,
-            {
-              ...validatedPayload,
-              ...requestId,
-            },
-            {
-              priority: priority,
-            },
-          );
-          console.log('Call intendProcessor');
-          break;
-        case 'errorMessage':
+        case 'errorContactLimitMessage':
           jobAdded = await this.errorQueue.add(
             process,
             {
@@ -305,7 +302,7 @@ export class CommunicationService {
               priority: priority,
             },
           );
-          console.log('Call intendProcessor');
+          console.log('Call errorProcessor');
           break;
         default:
           console.log('Unknown action');

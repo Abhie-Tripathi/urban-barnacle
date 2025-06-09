@@ -6,7 +6,7 @@ import { Job } from 'bull';
 import { JobStatus } from '@prisma/client';
 import { emailSenderAddress, errorTemplate } from '../email/email.template';
 
-@Processor({ name: '{errorProcessor}', scope: Scope.REQUEST })
+@Processor({ name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}errorProcessor}`, scope: Scope.REQUEST })
 export class ErrorWorkerClass {
   constructor(
     private email: EmailService,
@@ -16,7 +16,7 @@ export class ErrorWorkerClass {
     console.log(JSON.stringify(jobRef));
   }
   private readonly logger = new Logger(ErrorWorkerClass.name);
-  @Process('errorMessage')
+  @Process(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}errorProcessor}`)
   async handleEmailJob(job: Job<{ data: object; jobRequestId: string }>) {
     try {
       const jobdata = job.data;
