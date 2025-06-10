@@ -6,6 +6,7 @@ import { AccessEmailWorkerClass } from './bull-service/bull-access.service';
 import { EventWorkerClass } from './bull-service/bull-event.service';
 import { IntendWorkerClass } from './bull-service/bull-intend.service';
 import { InvitationWorkerClass } from './bull-service/bull-invitation.service';
+import { EmailService } from './email/email.service';
 
 @Global()
 @Module({
@@ -91,6 +92,7 @@ import { InvitationWorkerClass } from './bull-service/bull-invitation.service';
     // EventWorkerClass,
     // IntendWorkerClass,
     // InvitationWorkerClass,
+    EmailService
   ],
   exports: [CommunicationService],
 })
