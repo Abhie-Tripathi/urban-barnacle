@@ -210,6 +210,8 @@ export class CommunicationService {
           try {
             console.log("in sugn in try emaial job");
             console.log('🔍 Redis status:', this.otpQueue.client.status);
+            const counts = await this.otpQueue.getJobCounts();
+            console.log('📊 Queue counts:', counts);
 
             jobAdded = await this.otpQueue.add(
               'signUp/InEmail',
