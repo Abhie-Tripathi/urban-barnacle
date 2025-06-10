@@ -209,6 +209,8 @@ export class CommunicationService {
           console.log("in sugn in emaial job");
           try {
             console.log("in sugn in try emaial job");
+            console.log('🔍 Redis status:', this.otpQueue.client.status);
+
             jobAdded = await this.otpQueue.add(
               'signUp/InEmail',
               {
@@ -223,7 +225,7 @@ export class CommunicationService {
             console.log(error);
 
           }
-          console.log('Call otpProcessor', jobAdded);
+          console.log('Call otpProcessor');
           break;
         case 'intendRecevied':
           jobAdded = await this.intendQueue.add(
@@ -320,9 +322,9 @@ export class CommunicationService {
         default:
           console.log('Unknown action');
       }
-      console.log((JSON.stringify(jobAdded)));
+      // console.log((JSON.stringify(jobAdded)));
 
-      dir(jobAdded, { depth: null })
+      // dir(jobAdded, { depth: null })
       if (jobAdded && jobAdded.id) {
         this.updateJobInDatabase(jobAdded.id, String(requestId.jobRequestId));
       }
