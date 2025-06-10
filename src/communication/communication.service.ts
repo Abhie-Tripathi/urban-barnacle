@@ -7,6 +7,7 @@ import { QueueActionOptions, SelectedUserDetails } from 'src/utils/types';
 import { PayloadDTO } from './bull.dto';
 import { z } from 'zod';
 import { RedisService } from 'src/redis/redis.service';
+import { dir } from 'console';
 
 @Injectable()
 export class CommunicationService {
@@ -213,7 +214,7 @@ export class CommunicationService {
               priority: priority,
             },
           );
-          console.log('Call otpProcessor');
+          console.log('Call otpProcessor', jobAdded);
           break;
         case 'intendRecevied':
           jobAdded = await this.intendQueue.add(
@@ -310,6 +311,9 @@ export class CommunicationService {
         default:
           console.log('Unknown action');
       }
+      console.log((JSON.stringify(jobAdded)));
+
+      dir(jobAdded, { depth: null })
       if (jobAdded && jobAdded.id) {
         this.updateJobInDatabase(jobAdded.id, String(requestId.jobRequestId));
       }
