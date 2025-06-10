@@ -218,7 +218,7 @@ export class AuthService {
     }
     const user = users[0];
     if (emailFlag)
-      await this.authDataService.createVerificationToken(user, 'sign-in');
+      this.authDataService.createVerificationToken(user, 'sign-in');
     return {
       message: 'otp sent successfully',
     };
