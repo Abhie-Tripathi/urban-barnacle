@@ -6,6 +6,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { QueueActionOptions, SelectedUserDetails } from 'src/utils/types';
 import { PayloadDTO } from './bull.dto';
 import { z } from 'zod';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class CommunicationService {
@@ -20,6 +21,7 @@ export class CommunicationService {
     private readonly demoContactQueue: Queue,
     @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}errorProcessor}`) private readonly errorQueue: Queue,
     @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`) private readonly exportQueue: Queue,
+    private readonly redisService: RedisService
   ) { }
   async createJobForBull(
     processAction: QueueActionOptions,
@@ -53,6 +55,7 @@ export class CommunicationService {
         )[0].id;
         sourceId = userId;
       }
+      await this.redisService.set("testing", (new Date()).toISOString());
       const processEnumObject: object = {
         SEND_SIGN_UP_IN_EMAIL: 'signUp/InEmail',
         SEND_EVENT_CANCEL_EMAIL: 'eventCancelMail',
