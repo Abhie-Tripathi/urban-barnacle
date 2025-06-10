@@ -210,7 +210,7 @@ export class CommunicationService {
           try {
             console.log("in sugn in try emaial job");
             jobAdded = await this.otpQueue.add(
-              process,
+              'signUp/InEmail',
               {
                 ...validatedPayload,
                 ...requestId,
