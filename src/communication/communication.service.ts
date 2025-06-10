@@ -124,6 +124,8 @@ export class CommunicationService {
         sourceId,
       );
       let jobAdded: any = {};
+      console.log({ process });
+
       switch (process) {
         case 'shareAccess':
           jobAdded = await this.accessQueue.add(
@@ -204,16 +206,23 @@ export class CommunicationService {
           console.log('Call inviteProcessor');
           break;
         case 'signUp/InEmail':
-          jobAdded = await this.otpQueue.add(
-            process,
-            {
-              ...validatedPayload,
-              ...requestId,
-            },
-            {
-              priority: priority,
-            },
-          );
+          console.log("in sugn in emaial job");
+          try {
+            console.log("in sugn in try emaial job");
+            jobAdded = await this.otpQueue.add(
+              process,
+              {
+                ...validatedPayload,
+                ...requestId,
+              },
+              {
+                priority: priority,
+              },
+            );
+          } catch (error) {
+            console.log(error);
+
+          }
           console.log('Call otpProcessor', jobAdded);
           break;
         case 'intendRecevied':
