@@ -320,7 +320,7 @@ export class CommunicationService {
             },
           );
           console.log('Call errorProcessor');
-          this.errorQueue.client.disconnect();
+         await this.errorQueue.client.disconnect();
           break;
         default:
           console.log('Unknown action');
