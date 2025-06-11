@@ -15,9 +15,9 @@ export class ExportDataService {
     private readonly configService: ConfigService,
     private readonly sharedService: SharedService,
     private readonly eventDataService: EventsDataService,
-  ) {}
+  ) { }
 
-  async createExport(dto: CreateExportDto, user: TCachedUser) {
+  async createExport(dto: any, user: TCachedUser) {
     const queryDto = dto.parameters;
     const nonEmptyParams = Object.keys(queryDto).reduce(
       (acc, key) => {

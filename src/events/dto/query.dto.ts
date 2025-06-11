@@ -128,7 +128,7 @@ export enum AudienceZone {
 export const viewBound = z
   .object({
     boundType: z.nativeEnum(BoundType),
-    coordinates: geoCoordinatesSchema,
+    coordinates: z.union([geoCoordinatesSchema, z.array(z.number())]),
     properties: z.record(z.string(), z.string()).optional(),
   })
   .transform((data) => {
@@ -594,7 +594,7 @@ export const QueryFilter = z.object({
 
 export const FilterNames = Object.keys(QueryFilter.shape);
 
-export class QueryFilterDto extends createZodDto(QueryFilter) { }
+export class QueryFilterDto extends createZodDto(QueryFilter) {}
 
 export const QueryHttpSchema = LimitSchemaWithoutDefault.extend(
   QueryFilter.shape,
@@ -671,13 +671,13 @@ export class QueryHttpDto extends createZodDto(
       path: ['limit'],
     },
   ),
-) { }
+) {}
 
 export const QuerySchema = QueryHttpSchema.innerType().extend({
   showValues: z.string(),
 });
 
-export class QueryDto extends createZodDto(QuerySchema) { }
+export class QueryDto extends createZodDto(QuerySchema) {}
 
 export enum CountGroup {
   'year' = 'year',
@@ -702,9 +702,7 @@ export const CountQuerySchema = QueryFilter.extend({
     .transform((val) => val.split(',') as CountGroup[])
     .optional(),
   trackerId: z.string().optional(),
-  eventSourceIds: z
-    .string()
-    .optional(),
+  eventSourceIds: z.string().optional(),
 }).transform((data) => {
   // const intersectedKeys = Object.keys(data).filter((key) =>
   //   FilterNames.includes(key),
@@ -743,30 +741,32 @@ export const CountQuerySchema = QueryFilter.extend({
   return data;
 });
 
-export class CountQueryDto extends createZodDto(CountQuerySchema) { }
-const similarEventsSchema = QuerySchema.omit({ showValues: true }).extend({
-  showValues: z.string().default('basic,advance,insights,audience'),
-  groupBy: z
-    .string()
-    .refine((val) => val.split(',').every((item) => item in CountGroup), {
-      message: 'Invalid groupBy option',
-      params: { validOptions: Object.keys(CountGroup).join(', ') },
-    })
-    .transform((val) => val.split(',') as CountGroup[])
-    .optional(),
-  searchByEntity: z.string().optional(),
-  eventSourceIds: z.string().optional(),
-}).transform((data) => {
-  if (!data.status || (data.status && data.status.length === 0)) {
-    data.status = [
-      EventStatus.ACTIVE,
-      EventStatus.CANCELLED,
-      EventStatus.POSTPONED,
-    ];
-  }
-  return data;
-})
-export class SimilarEventsDto extends createZodDto(similarEventsSchema) { }
+export class CountQueryDto extends createZodDto(CountQuerySchema) {}
+const similarEventsSchema = QuerySchema.omit({ showValues: true })
+  .extend({
+    showValues: z.string().default('basic,advance,insights,audience'),
+    groupBy: z
+      .string()
+      .refine((val) => val.split(',').every((item) => item in CountGroup), {
+        message: 'Invalid groupBy option',
+        params: { validOptions: Object.keys(CountGroup).join(', ') },
+      })
+      .transform((val) => val.split(',') as CountGroup[])
+      .optional(),
+    searchByEntity: z.string().optional(),
+    eventSourceIds: z.string().optional(),
+  })
+  .transform((data) => {
+    if (!data.status || (data.status && data.status.length === 0)) {
+      data.status = [
+        EventStatus.ACTIVE,
+        EventStatus.CANCELLED,
+        EventStatus.POSTPONED,
+      ];
+    }
+    return data;
+  });
+export class SimilarEventsDto extends createZodDto(similarEventsSchema) {}
 
 const groupByOptions = {
   date: 'date',
@@ -810,10 +810,10 @@ export const EventsTrendsSchema = QueryFilter.extend({
   }),
 });
 
-export class EventsTrendsDto extends createZodDto(EventsTrendsSchema) { }
+export class EventsTrendsDto extends createZodDto(EventsTrendsSchema) {}
 
 const sortSchema = LimitSchemaWithoutDefault.extend({
   sortBy: z.string().optional(),
 });
 
-export class SortingDto extends createZodDto(sortSchema) { }
+export class SortingDto extends createZodDto(sortSchema) {}

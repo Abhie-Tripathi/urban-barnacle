@@ -4,7 +4,7 @@ import { Industries, SubIndustries } from '../../../utils/types';
 import { AccessSourceEntity, UserSource } from '@prisma/client';
 
 const SignInSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().transform(val => val.toLowerCase()),
 });
 
 export class SignInDto extends createZodDto(SignInSchema) { }
@@ -29,7 +29,7 @@ export const SignUpSchema = z.strictObject({
     })
     .optional(),
   category: z.string().optional(),
-  email: z.string().email(),
+  email: z.string().email().transform(val => val.toLowerCase()),
 });
 
 export class SignUpDto extends createZodDto(SignUpSchema) { }
@@ -54,7 +54,7 @@ export const SignUpTempSchema = z.strictObject({
     .optional(),
   category: z.string().optional(),
   source: z.nativeEnum(UserSource).optional(),
-  email: z.string().email(),
+  email: z.string().email().transform(val => val.toLowerCase()),
   firstname: z.string(),
   lastname: z.string().optional(),
   department: z.string().optional(),
@@ -66,7 +66,7 @@ export const SignUpTempSchema = z.strictObject({
 
 export class SignUpTempDto extends createZodDto(SignUpTempSchema) { }
 const VerifyOtpSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().transform(val => val.toLowerCase()),
   otp: z.string(),
 });
 

@@ -6,6 +6,7 @@ import { AccessEmailWorkerClass } from './bull-service/bull-access.service';
 import { EventWorkerClass } from './bull-service/bull-event.service';
 import { IntendWorkerClass } from './bull-service/bull-intend.service';
 import { InvitationWorkerClass } from './bull-service/bull-invitation.service';
+import { EmailService } from './email/email.service';
 
 @Global()
 @Module({
@@ -76,14 +77,22 @@ import { InvitationWorkerClass } from './bull-service/bull-invitation.service';
         removeOnFail: false,
       },
     }),
+    BullModule.registerQueue({
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`,
+      defaultJobOptions: {
+        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
+        removeOnFail: false
+      }
+    }),
   ],
   providers: [
     CommunicationService,
-    // OtpEmailWorkerClass,
+    // OtpEmailWorkerClass, ExportWorkerClass
     // AccessEmailWorkerClass,
     // EventWorkerClass,
     // IntendWorkerClass,
     // InvitationWorkerClass,
+    EmailService
   ],
   exports: [CommunicationService],
 })
