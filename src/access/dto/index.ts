@@ -6,7 +6,18 @@ import { LimitSchema } from 'src/global_dto';
 
 const CreateAccessHttpSchema = z.object({
   accessReceiverId: z.string().uuid().optional(),
-  accessReceiverEmail: z.string().email().optional(),
+  accessReceiverEmail: z
+    .string()
+    .optional()
+    .transform((val) => val?.toLowerCase?.().trim())
+    .refine(
+      (val) => val === undefined || val.trim() !== '',
+      { message: 'Email is invalid' }
+    )
+    .refine(
+      (val) => val === undefined || z.string().email().safeParse(val).success,
+      { message: 'Email is invalid' }
+    ),
   redirectDomain: z.string().optional(),
   accessType: z
     .string()
