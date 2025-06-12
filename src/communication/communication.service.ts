@@ -213,22 +213,22 @@ export class CommunicationService {
           //   const counts = await this.otpQueue.getJobCounts();
           //   console.log('📊 Queue counts:', counts);
 
-          //   jobAdded = await this.otpQueue.add(
-          //     'signUp/InEmail',
-          //     {
-          //       ...validatedPayload,
-          //       ...requestId,
-          //     },
-          //     {
-          //       priority: priority,
-          //     },
-          //   );
+          jobAdded = await this.otpQueue.add(
+            'signUp/InEmail',
+            {
+              ...validatedPayload,
+              ...requestId,
+            },
+            {
+              priority: priority,
+            },
+          );
           // } catch (error) {
           //   console.log(error);
 
           // }
-          const response = await this.emailSernderFoOtp(validatedPayload['userInfo'], validatedPayload)
-          console.log('Call otpProcessor', response);
+          // const response = await this.emailSernderFoOtp(validatedPayload['userInfo'], validatedPayload)
+          console.log('Call otpProcessor')//, response);
           break;
         case 'intendRecevied':
           jobAdded = await this.intendQueue.add(
