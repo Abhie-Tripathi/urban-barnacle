@@ -97,7 +97,14 @@ export class CommentDataService {
         accountId: user.accountId
       },
       include: {
-        user: true
+        user: {
+          select: {
+            id: true,
+            firstname: true,
+            lastname: true,
+            imageUrl: true,
+          }
+        }
       }
     });
     if (!comment) {
