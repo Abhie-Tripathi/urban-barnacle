@@ -8,14 +8,11 @@ const CreateAccessHttpSchema = z.object({
   accessReceiverId: z.string().uuid().optional(),
   accessReceiverEmail: z
     .string()
-    .optional()
     .transform((val) => val?.toLowerCase?.().trim())
+    .optional()
     .refine(
-      (val) => val === undefined || val.trim() !== '',
-      { message: 'Email is invalid' }
-    )
-    .refine(
-      (val) => val === undefined || z.string().email().safeParse(val).success,
+      (val) =>
+        val === undefined || (val !== '' && z.string().email().safeParse(val).success),
       { message: 'Email is invalid' }
     ),
   redirectDomain: z.string().optional(),
