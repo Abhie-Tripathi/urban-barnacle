@@ -235,12 +235,23 @@ export class TrackerDataService {
     const queryParams = new URLSearchParams(
       params as unknown as Record<string, any>,
     );
-    const url =
+    let url =
       this.configService.get('MICROSERVICE_URL') +
-      microserviceEndpoints.events.trackerIntelScore +
-      '?' +
-      queryParams.toString();
-    const response = await fetch(url);
+      microserviceEndpoints.events.trackerIntelScore;
+    console.log(url);
+    let req: any = {};
+    if (JSON.stringify(params).length > 500) {
+      req = {
+        method: 'POST',
+        body: JSON.stringify(this.convertArrayValuesToStrings(params)),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      };
+    } else {
+      url += '?' + queryParams.toString();
+    }
+    const response = await fetch(url,req);
     const data = await response.json();
     // console.dir(data, { depth: null });
     if (data['error']) {
@@ -381,5 +392,20 @@ where
         deleted: true
       }
     })
+  }
+  convertArrayValuesToStrings(obj) {
+    const result = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (Array.isArray(value)) {
+        // if (key === 'eventTypes') {
+
+        //     result[key] = value.map(id => eventTypeDataIdToSlug[id].slug).join(',');
+        // } else
+        result[key] = value.join(',');
+      } else {
+        result[key] = value + '';
+      }
+    }
+    return result;
   }
 }
