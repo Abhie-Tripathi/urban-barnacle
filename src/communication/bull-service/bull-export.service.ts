@@ -374,9 +374,9 @@ export class ExportWorkerClass {
             } else {
                 status = 'FAILED' as JobStatus;
             }
-            if (jobData['email'] === 'vipul.gupta@10times.com') {
-                jobData.userData.email = 'piyush@10times.com';
-            }
+            // if (jobData['email'] === 'vipul.gupta@10times.com') {
+            //     jobData.userData.email = 'piyush@10times.com';
+            // }
             if (status === 'COMPLETED') {
                 const exportCompletMail: string = exportCompleteMailTemplate
                     .replaceAll('{firstName}', jobData.userData.firstname || '')
@@ -404,7 +404,7 @@ export class ExportWorkerClass {
                     emailSenderAddress,
                     'Export Event Data Request Failed',
                     exportFailMail,
-                    attachments
+                    attachments.filter(val => val),
                 );
                 let status = 'COMPLETED' as JobStatus;
                 if (error) {
@@ -462,8 +462,9 @@ export class ExportWorkerClass {
                 { header: 'Country', key: 'country', width: 20 },
                 { header: 'Region', key: 'region', width: 30 },
                 { header: 'Start Date', key: 'startDate', width: 20 },
-                { header: 'Future Start Date', key: 'futureExpectedStartDate', width: 20 },
                 { header: 'End Date', key: 'endDate', width: 20 },
+                { header: 'Future Start Date', key: 'futureExpectedStartDate', width: 20 },
+                { header: 'Future End Date', key: 'futureExpectedEndDate', width: 20 },
                 { header: 'Frequency', key: 'frequency', width: 15 },
                 { header: 'Total Editions', key: 'editions', width: 20 },
                 { header: 'Event Format', key: 'format', width: 20 },
@@ -483,10 +484,12 @@ export class ExportWorkerClass {
                 { header: 'Repeat Sentiment (%)', key: 'repeat', width: 20 },
                 { header: 'Estimated Audience', key: 'size', width: 15 },
                 { header: 'Estimated Exhibitors', key: 'exhibitor', width: 20 },
-                { header: 'International Audience (%)', key: 'international', width: 20 },
-                { header: 'Matched', key: 'matched', width: 30 },
-                { header: 'Relevance Score', key: 'matchScore', width: 20 },
             ];
+            if (jobData?.searchByEntity) {
+                columns.push(...[
+                    { header: 'Matched', key: 'matched', width: 30 },
+                    { header: 'Relevance Score', key: 'matchScore', width: 20 },])
+            }
             worksheet.columns = columns;
             let offset = 0;
             const limit = 30;
@@ -514,7 +517,7 @@ export class ExportWorkerClass {
                 const showValues = 'basic,advance,insights,audience';
                 const response = await this.trackerService.getTrackerEvents(jobData['userData'], jobData['trackerId'],
                     {
-                        limit, offset, view: View.tracker, trackerEventStatus: type as keyof typeof TrackerEventStatus
+                        limit, offset, view: View.tracker, ...(process.env.BACKEND === 'gtm' ? { trackerEventStatus: type as keyof typeof TrackerEventStatus } : { eventTypeGroup: type })
                         , sortBy: ['-score', 'title'], show: [
                             'branded',
                             'series',
@@ -546,20 +549,22 @@ export class ExportWorkerClass {
                 const events = response?.events || [];
                 totalCount = flagforCount ? (response?.count || 0) : totalCount;
                 if (events.length === 0 || linesWrittern === totalCount) break;
-                // const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: events.map(val => val.basic.id).join(','), limit: events.length, offset: 0, type: type as keyof typeof EventTabs });
+                // const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: events.map(val => val.basic.id).join(','), limit: events.length, offset: 0, type: type as keyof typeof EventTabs, trackerEventStatus: type as any });
                 for (const data of events) {
                     if (linesWrittern === totalCount) break;
-                    // const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: events.map(val => val.basic.id).join(','), limit: events.length, offset: 0, type: type as keyof typeof EventTabs });
+                    // const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: events.map(val => val.basic.id).join(','), limit: events.length, offset: 0, type: type as keyof typeof EventTabs, trackerEventStatus: type as any });
                     let eventTYpes: string = (data.basic.eventTypes?.map(val => val.name).join(',')) || '';
                     if (eventTYpes.toLowerCase().includes('workshop') && eventTYpes.split(',').length > 1) {
-                        eventTYpes = eventTYpes.replaceAll('Workshop', '');
+                        eventTYpes = eventTYpes.replaceAll(',Workshop', '').replaceAll('Workshop,', '');
                     }
                     let matched: string = data.basic?.matchedKeywords?.join(',') || '';
                     let matchScore: string = data.basic?.matchedKeywordsPercentage || '';
-                    const score = 0;// / trackerEventsIntelScore.find(val => val['event'] === data.basic.id);
-                    if (score) {
-                        matchScore = score['alltrackers_score'];
-                    }
+                    // const score = (trackerEventsIntelScore.find(val => val['event'] === data.basic.id));
+                    // if (score) {
+                    // matchScore = score['alltrackers_score'];
+                    // } else {
+                    matchScore = '';
+                    // }
                     if (jobData?.searchByEntity === 'company' && data.trackerMatchInfo) {
                         matched = (data.trackerMatchInfo['competitorDomainOrName'] as string[]).map(val => {
                             const temp: string[] = val.split('_');
@@ -600,6 +605,7 @@ export class ExportWorkerClass {
                         website: data.basic.website,
                         startDate: data.basic.startDateTime,
                         futureExpectedStartDate: data.basic.futureExpectedStartDate || '',
+                        futureExpectedEndDate: data.basic.futureExpectedEndDate || '',
                         endDate: data.basic.endDateTime,
                         frequency: data.advance?.frequency || '',
                         editions: data?.advance?.editions || '',

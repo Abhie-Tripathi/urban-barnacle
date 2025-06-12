@@ -6,25 +6,17 @@ import { AccessEmailWorkerClass } from './bull-service/bull-access.service';
 import { EventWorkerClass } from './bull-service/bull-event.service';
 import { IntendWorkerClass } from './bull-service/bull-intend.service';
 import { InvitationWorkerClass } from './bull-service/bull-invitation.service';
+import { EmailService } from './email/email.service';
 
 @Global()
 @Module({
   imports: [
     BullModule.forRoot({
       redis: {
-        ...(process.env.NODE_ENV &&
-          process.env.NODE_ENV.toLowerCase() !== 'production'
-          ? {
-            host: process.env.REDIS_HOST || '0.0.0.0',
-            port: Number(process.env.REDIS_PORT) || 6379,
-            password: process.env.REDIS_PASSWORD,
-          }
-          : {
-            tls: {
-              host: process.env.REDIS_HOST || '0.0.0.0',
-              port: Number(process.env.REDIS_PORT) || 6379,
-            },
-          }),
+        host: process.env.REDIS_HOST_BULL || '0.0.0.0',
+        port: Number(process.env.REDIS_PORT_BULL) || 6379,
+        password: process.env.REDIS_PASSWORD_BULL,
+
       },
     }),
     BullModule.registerQueue({
@@ -91,6 +83,7 @@ import { InvitationWorkerClass } from './bull-service/bull-invitation.service';
     // EventWorkerClass,
     // IntendWorkerClass,
     // InvitationWorkerClass,
+    EmailService
   ],
   exports: [CommunicationService],
 })
