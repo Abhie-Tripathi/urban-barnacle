@@ -32,7 +32,8 @@ import { CountGroup, CountQueryDto, QueryDto, View } from 'src/events/dto';
 import { IntentDataService } from 'src/intent/intent.data.service';
 import {
   AccessType,
-  ExportSubSource, Prisma,
+  ExportSubSource,
+  Prisma,
   Tracker,
   TrackerTypeTag,
   User,
@@ -66,7 +67,7 @@ export class TrackerService {
     private readonly accountDataService: AccountDataService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly redisService: RedisService,
-  ) { }
+  ) {}
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const nonEmptyParams = getNonEmptyParams(data.filterValues);
@@ -168,9 +169,9 @@ export class TrackerService {
     }
     tracker.filterValues = tracker.filterValues
       ? {
-        ...(tracker.filterValues as Record<string, any>),
-        searchByEntity,
-      }
+          ...(tracker.filterValues as Record<string, any>),
+          searchByEntity,
+        }
       : { searchByEntity };
 
     const savedEventsCount =
@@ -292,7 +293,7 @@ export class TrackerService {
                 );
             }
           }
-        } catch (error) { }
+        } catch (error) {}
       }
 
       filterValues = await this.sharedService.convertIdParamsToSlug(
@@ -327,15 +328,15 @@ export class TrackerService {
       lastModifiedBy:
         tracker.modifiedByUser && tracker.modifiedByUser.id
           ? {
-            id: tracker.modifiedByUser.id,
-            name: getNameFromEmail(
-              tracker.modifiedByUser.email,
-              tracker.modifiedByUser.firstname,
-              tracker.modifiedByUser.lastname,
-            ),
-            email: tracker.modifiedByUser.email,
-            imageUrl: tracker.modifiedByUser.imageUrl,
-          }
+              id: tracker.modifiedByUser.id,
+              name: getNameFromEmail(
+                tracker.modifiedByUser.email,
+                tracker.modifiedByUser.firstname,
+                tracker.modifiedByUser.lastname,
+              ),
+              email: tracker.modifiedByUser.email,
+              imageUrl: tracker.modifiedByUser.imageUrl,
+            }
           : null,
     };
     return {
@@ -645,6 +646,19 @@ export class TrackerService {
         tracker.filterValues['eventIds'] = [];
         tracker.filterValues['eventSourceIds'] = [-1];
       }
+      if (
+        tracker.filterValues &&
+        tracker.filterValues['viewBound'] &&
+        params.viewBound
+      ) {
+        const viewBounds = [
+          JSON.stringify(tracker.filterValues['viewBound']),
+          JSON.stringify(convertedParams.viewBound),
+        ];
+        convertedParams['viewBounds'] = viewBounds.join('<sep>');
+        delete tracker.filterValues['viewBound'];
+        delete convertedParams['viewBound'];
+      }
       const eventParams = {
         ...(tracker.filterValues as Object),
         limit: params.limit,
@@ -735,6 +749,19 @@ export class TrackerService {
       );
       convertedParams['active_gte'] = startDate;
       convertedParams['active_lte'] = endDate;
+      if (
+        tracker.filterValues &&
+        tracker.filterValues['viewBound'] &&
+        params.viewBound
+      ) {
+        const viewBounds = [
+          JSON.stringify(tracker.filterValues['viewBound']),
+          JSON.stringify(convertedParams.viewBound),
+        ];
+        convertedParams['viewBounds'] = viewBounds.join('<sep>');
+        delete tracker.filterValues['viewBound'];
+        delete convertedParams['viewBound'];
+      }
       if (params.trackerEventStatus && params.trackerEventStatus === 'new') {
         const lastActive = await this.lastActive(
           user,
@@ -803,6 +830,19 @@ export class TrackerService {
       );
       convertedParams['active_gte'] = startDate;
       convertedParams['active_lte'] = endDate;
+      if (
+        tracker.filterValues &&
+        tracker.filterValues['viewBound'] &&
+        params.viewBound
+      ) {
+        const viewBounds = [
+          JSON.stringify(tracker.filterValues['viewBound']),
+          JSON.stringify(convertedParams.viewBound),
+        ];
+        convertedParams['viewBounds'] = viewBounds.join('<sep>');
+        delete tracker.filterValues['viewBound'];
+        delete convertedParams['viewBound'];
+      }
       if (params.trackerEventStatus && params.trackerEventStatus === 'new') {
         const lastActive = await this.lastActive(
           user,
@@ -941,6 +981,19 @@ export class TrackerService {
       );
       convertedParams['active_gte'] = startDate;
       convertedParams['active_lte'] = endDate;
+      if (
+        tracker.filterValues &&
+        tracker.filterValues['viewBound'] &&
+        params.viewBound
+      ) {
+        const viewBounds = [
+          JSON.stringify(tracker.filterValues['viewBound']),
+          JSON.stringify(convertedParams.viewBound),
+        ];
+        convertedParams['viewBounds'] = viewBounds.join('<sep>');
+        delete tracker.filterValues['viewBound'];
+        delete convertedParams['viewBound'];
+      }
       if (params.trackerEventStatus && params.trackerEventStatus === 'new') {
         const lastActive = await this.lastActive(
           user,
@@ -1420,7 +1473,7 @@ export class TrackerService {
       const [dataFromDB, countFromDB] = await this.trackerDataService.getSimilarTrackerEvent(
         trackerId,
         (eventParams['trackerEventStatus']?.toUpperCase() as TrackerTypeTag) ||
-        'NEW',
+          'NEW',
         1000,
         params.offset || 0,
       );
@@ -1562,7 +1615,7 @@ export class TrackerService {
       const [dataFromDB, countFromDB] = await this.trackerDataService.getSimilarTrackerEvent(
         trackerId,
         (eventParams['trackerEventStatus']?.toUpperCase() as TrackerTypeTag) ||
-        'NEW',
+          'NEW',
         1000,
         0,
       );
@@ -2378,71 +2431,113 @@ export class TrackerService {
     body: CreateTrackerExportsDto,
   ) {
     const trackerData = await this.getTracker(user, trackerId, {});
-    const allowerUserForExport: string[] = [...(JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || '')), ...(JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || ''))];
+    const allowerUserForExport: string[] = [
+      ...JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || ''),
+      ...JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || ''),
+    ];
     if (!allowerUserForExport.includes(user.email)) {
-      throw new HttpException('Invalid export request by user', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Invalid export request by user',
+        HttpStatus.FORBIDDEN,
+      );
     }
     const trackerEventTypeMappingObj: object = {
-      'new': 'exportIdNew',
-      'active': 'exportIdActive',
-      'past': 'exportIdPast',
-      'business': 'exportIdBusiness',
-      'social': 'exportIdSocial',
-      'unattended': 'exportIdUnattended',
+      new: 'exportIdNew',
+      active: 'exportIdActive',
+      past: 'exportIdPast',
+      business: 'exportIdBusiness',
+      social: 'exportIdSocial',
+      unattended: 'exportIdUnattended',
       exportIdNew: 'TRACKER_NEW_EVENT',
       exportIdPast: 'TRACKER_PAST_EVENT',
       exportIdActive: 'TRACKER_ACTIVE_EVENT',
       exportIdBusiness: 'TRACKER_BUSINESS_EVENT',
       exportIdSocial: 'TRACKER_SOCIAL_EVENT',
       exportIdUnattended: 'TRACKER_UNATTENDED_EVENT',
-    }
-    const trackerTypeGTM: string[] = ['past', 'active', 'new',]
+    };
+    const trackerTypeGTM: string[] = ['past', 'active', 'new'];
     const trackerTypeGEO: string[] = ['business', 'social', 'unattended'];
-    const payload: trackerExportDto = { userData: user, type: body.type, source: 'TRACKER', sourceId: trackerId, trackerId: trackerData.id, redirectUrl: body.redirectUrl + `&targetId=${trackerData.id}&target=tracker` };
+    const payload: trackerExportDto = {
+      userData: user,
+      type: body.type,
+      source: 'TRACKER',
+      sourceId: trackerId,
+      trackerId: trackerData.id,
+      redirectUrl:
+        body.redirectUrl + `&targetId=${trackerData.id}&target=tracker`,
+    };
     if (body.type === 'all') {
       if (process.env.BACKEND === 'gtm') {
         for (const val of trackerTypeGTM) {
           const key = trackerEventTypeMappingObj[val];
           const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
-          const result = await this.trackerDataService.createExport({
-            exportOf,
-            inputData: { ...payload, trackerData: trackerData },
-            trackerId: trackerData.id
-          }, user);
+          const result = await this.trackerDataService.createExport(
+            {
+              exportOf,
+              inputData: { ...payload, trackerData: trackerData },
+              trackerId: trackerData.id,
+            },
+            user,
+          );
           payload[key] = result.id;
         }
       } else {
         for (const val of trackerTypeGEO) {
           const key = trackerEventTypeMappingObj[val];
           const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
-          const result = await this.trackerDataService.createExport({
-            exportOf,
-            inputData: { ...payload, trackerData: trackerData },
-            trackerId: trackerData.id
-          }, user);
+          const result = await this.trackerDataService.createExport(
+            {
+              exportOf,
+              inputData: { ...payload, trackerData: trackerData },
+              trackerId: trackerData.id,
+            },
+            user,
+          );
           payload[key] = result.id;
         }
       }
     } else {
-      payload[trackerEventTypeMappingObj[body.type]] = (await this.trackerDataService.createExport({ exportOf: trackerEventTypeMappingObj[trackerEventTypeMappingObj[body.type]] as ExportSubSource, inputData: payload, trackerId: trackerData.id }, user)).id;
+      payload[trackerEventTypeMappingObj[body.type]] = (
+        await this.trackerDataService.createExport(
+          {
+            exportOf: trackerEventTypeMappingObj[
+              trackerEventTypeMappingObj[body.type]
+            ] as ExportSubSource,
+            inputData: payload,
+            trackerId: trackerData.id,
+          },
+          user,
+        )
+      ).id;
     }
     // console.log(payload);
 
     await this.trackerDataService.createTrackerExportJob(payload, user.id);
-    return { data: { message: "Export initiated successfully" } };
+    return { data: { message: 'Export initiated successfully' } };
   }
-  async getTrackerEventDataExported(trackerId: string,
-    user: TCachedUser, query: LimitDto) {
+  async getTrackerEventDataExported(
+    trackerId: string,
+    user: TCachedUser,
+    query: LimitDto,
+  ) {
     const trackerData = await this.getTracker(user, trackerId, {});
-    const allowerUserForExport: string[] = [...(JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || '')), ...(JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || ''))];
+    const allowerUserForExport: string[] = [
+      ...JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || ''),
+      ...JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || ''),
+    ];
     if (!allowerUserForExport.includes(user.email)) {
-      throw new HttpException('Invalid export request by user', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Invalid export request by user',
+        HttpStatus.FORBIDDEN,
+      );
     }
-    const [trackerExports,
-      count] = await Promise.all([this.trackerDataService.getTrackerExport(trackerId, user, query), this.trackerDataService.getTrackerExportCount(trackerId, user, query)]);
+    const [trackerExports, count] = await Promise.all([
+      this.trackerDataService.getTrackerExport(trackerId, user, query),
+      this.trackerDataService.getTrackerExportCount(trackerId, user, query),
+    ]);
     return {
       trackerExports: trackerExports.trackerExports,
-      count: count.count
+      count: count.count,
     };
   }
   async deleteTrackerEventDataExported(
@@ -2451,12 +2546,18 @@ export class TrackerService {
     user: TCachedUser,
   ) {
     const trackerData = await this.getTracker(user, trackerId, {});
-    const allowerUserForExport: string[] = [...(JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || '')), ...(JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || ''))];
+    const allowerUserForExport: string[] = [
+      ...JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || ''),
+      ...JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || ''),
+    ];
     if (!allowerUserForExport.includes(user.email)) {
-      throw new HttpException('Invalid export request by user', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Invalid export request by user',
+        HttpStatus.FORBIDDEN,
+      );
     }
     await this.trackerDataService.deleteTrackerExport(exportId);
-    return { message: "export deleted successfully" };
+    return { message: 'export deleted successfully' };
   }
 }
 // getTrackerEventDataExported
