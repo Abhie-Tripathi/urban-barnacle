@@ -105,7 +105,7 @@ export class CommentDataService {
             imageUrl: true,
           }
         }
-      }
+    }
     });
     if (!comment) {
       throw new HttpException("Comment not found", HttpStatus.NOT_FOUND);
