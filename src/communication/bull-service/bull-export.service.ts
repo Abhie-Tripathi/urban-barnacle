@@ -517,7 +517,7 @@ export class ExportWorkerClass {
                 const showValues = 'basic,advance,insights,audience';
                 const response = await this.trackerService.getTrackerEvents(jobData['userData'], jobData['trackerId'],
                     {
-                        limit, offset, view: View.tracker, ...(process.env.BACKEND === 'gtm' ? { trackerEventStatus: type as keyof typeof TrackerEventStatus, type: type as any } : { eventTypeGroup: type })
+                        limit, offset, view: View.tracker, ...(process.env.BACKEND === 'gtm' ? { trackerEventStatus: type as keyof typeof TrackerEventStatus } : { eventTypeGroup: type })
                         , sortBy: ['-score', 'title'], show: [
                             'branded',
                             'series',
