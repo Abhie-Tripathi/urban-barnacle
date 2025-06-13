@@ -94,11 +94,9 @@ export class EnquiryDataService {
           upvotedBy[0] === 'me'
             ? {
               equals: data.userId,
-              deleted: false,
             }
             : {
               not: data.userId,
-              deleted: false,
             };
         params['activities'] = {
           some: {
