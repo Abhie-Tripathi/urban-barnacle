@@ -675,6 +675,7 @@ export class QueryHttpDto extends createZodDto(
 
 export const QuerySchema = QueryHttpSchema.innerType().extend({
   showValues: z.string(),
+  viewBounds: z.string().optional(),
 });
 
 export class QueryDto extends createZodDto(QuerySchema) {}
