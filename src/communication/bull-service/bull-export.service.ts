@@ -3,10 +3,10 @@ import { HttpException, HttpStatus, Inject, Logger, Scope } from '@nestjs/common
 import { AttachmentSourceModule, JobStatus, User } from '@prisma/client';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
-import { Job } from 'bull';
-import { Processor, Process, JOB_REF } from '@nestjs/bull';
+import { Job } from 'bullmq';
+import { Processor, JOB_REF, WorkerHost } from '@nestjs/bullmq';
 import { EmailService } from '../email/email.service';
-import { emailSenderAddress, exportCompleteMailTemplate, trackerAccessHtml, exportFailMailTemplate } from '../email/email.template';
+import { emailSenderAddress, exportCompleteMailTemplate, exportFailMailTemplate } from '../email/email.template';
 import * as fs from 'fs';
 import * as ExcelJS from 'exceljs';
 import { TrackerService } from 'src/tracker/tracker.service';
@@ -29,8 +29,8 @@ interface JobDataForExport {
     type: 'all' | 'past' | 'active' | 'new' | 'business' | 'social' | 'unattended',
     source: 'TRACKER'
 }
-@Processor({ name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`, scope: Scope.REQUEST })
-export class ExportWorkerClass {
+@Processor(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`)
+export class ExportWorkerClass extends WorkerHost {
     constructor(
         private email: EmailService,
         private prisma: PrismaService,
@@ -40,11 +40,26 @@ export class ExportWorkerClass {
         private configService: ConfigService,
         private readonly trackerService: TrackerService
     ) {
+        super();
         console.log(JSON.stringify(jobRef));
     }
     private readonly logger = new Logger(ExportWorkerClass.name);
-
-    @Process('exportTrackerEventData')
+    async process(job: Job<any>): Promise<any> {
+        await job.log(`Started processing job: ${job.name}`);
+        await job.log(`Job data: ${JSON.stringify(job.data)}`);
+        switch (job.name) {
+            case 'exportTrackerEventData': {
+                const { done } = await this.handleEmailJob(job);
+                await job.log(`Finished processing job: ${job.name}`);
+                return { done };
+            }
+            default: {
+                await job.log(` Not Finished processing job(NOT FOUND): ${job.name}`);
+            }
+        }
+        return { done: false };
+    }
+    // @Process('exportTrackerEventData')
     async handleEmailJob(job: Job<JobDataForExport>) {
         const jobData = job.data;
         const bulkUpdateExport: { id?: string; status: JobStatus; outputResponse?: object; fileUrl?: string, fileSize?: number, attachment?: any }[] = [];
@@ -420,7 +435,7 @@ export class ExportWorkerClass {
                     status: status,
                 },
             });
-            return {}
+            return { done: true };
         } catch (error) {
             console.log(JSON.stringify(error));
             console.log((error));
@@ -440,6 +455,7 @@ export class ExportWorkerClass {
                     status: 'FAILED',
                 },
             });
+            return { done: false };
         }
     }
     async createTraclerExportForEventData(jobData: any, fileName: string, email: string, type: string, userId: string, sourceId: string, sourceModule: AttachmentSourceModule) {

@@ -21,8 +21,6 @@ import { Interest, Prisma } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { PosterService } from './poster.service';
 import { FileCreationService } from 'src/shared/file-creation.service';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
 import { PromotedEventsDataService } from './promoted-even.data.service';
 import { fetchDatafromMicroService, postDatafromMicroService } from 'src/shared/microservice.api';
 import { unknown } from 'zod';

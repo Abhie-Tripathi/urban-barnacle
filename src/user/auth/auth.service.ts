@@ -17,8 +17,6 @@ import {
 } from 'src/utils/types';
 import { randomInt, randomUUID } from 'crypto';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
 import { SharedService } from 'src/shared/shared.service';
 import { UserDataService } from '../user.data.service';
 import { AccountDataService } from '../account/account.data.service';
