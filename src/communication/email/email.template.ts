@@ -1238,7 +1238,7 @@ export const demoContactEmailTemplate: string = ` <!DOCTYPE html>
           </head>
           <body>
             <div class="container">
-              <h2>Demo Form Submission</h2>
+              <h2>Demo Form Submission For {Source}</h2>
               <div class="field">
                 <span class="label">First Name:</span>
                 <span class="value">{firstName}</span>
@@ -1262,6 +1262,11 @@ export const demoContactEmailTemplate: string = ` <!DOCTYPE html>
               <div class="field">
                 <span class="label">Phone Number</span>
                 <span class="value">{phoneNumber}</span>
+              </div>
+              </div>
+                <div class="field">
+                <span class="label">Source:</span>
+                <span class="value">{Source}</span>
               </div>
             </div>
           </body>
@@ -1304,7 +1309,7 @@ export const contactUsEmailTemplate: string = `<!DOCTYPE html>
           </head>
           <body>
             <div class="container">
-              <h2>Demo Form Submission</h2>
+              <h2>Demo Form Submission For {Source}</h2>
               <div class="field">
                 <span class="label">First Name:</span>
                 <span class="value">{firstName}</span>
@@ -1320,6 +1325,10 @@ export const contactUsEmailTemplate: string = `<!DOCTYPE html>
               <div class="field">
                 <span class="label">Message:</span>
                 <span class="value">{message}</span>
+              </div>
+                <div class="field">
+                <span class="label">Source:</span>
+                <span class="value">{Source}</span>
               </div>
           </body>
         </html>`

@@ -78,7 +78,8 @@ export class ContactWorkerClass extends WorkerHost {
                 .replaceAll('{email}', jobdata.email)
                 .replaceAll('{companyName}', jobdata.companyName)
                 .replaceAll('{jobTitle}', jobdata.jobTitle)
-                .replaceAll('{phoneNumber}', jobdata.phoneNumber);
+                .replaceAll('{phoneNumber}', jobdata.phoneNumber)
+                .replaceAll('{Source}', jobdata.source);
             // console.log({
             //     email: (process.env.DEMO_MAIL_RECIPIENTS || '').split(','),
             //     emailSenderAddress: emailSenderAddress,
@@ -134,7 +135,8 @@ export class ContactWorkerClass extends WorkerHost {
                 .replaceAll('{firstName}', jobdata.firstName)
                 .replaceAll('{lastName}', jobdata.lastName)
                 .replaceAll('{email}', jobdata.email)
-                .replaceAll('{message}', jobdata.message);
+                .replaceAll('{message}', jobdata.message)
+                .replaceAll('{Source}', jobdata.source);;
 
             const { data, error } = await this.email.multiMailSender(
                 (process.env.DEMO_MAIL_RECIPIENTS || '').split(','),
