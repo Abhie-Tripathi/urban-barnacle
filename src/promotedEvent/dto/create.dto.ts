@@ -9,7 +9,7 @@ export const eventDto = z.strictObject({
   // interest: z.string().optional(),
   // sourceId: z.string().optional(),
   referenceId: z.string().optional(),
-  sourceModule: z.nativeEnum(EventSourceModule),
+  sourceModule: z.nativeEnum(EventSourceModule).default('PROMOTE'),
   note: z.string().optional(),
   type: z.nativeEnum(EventType).default('PARENT'),
   widgetId: z.string().optional(),

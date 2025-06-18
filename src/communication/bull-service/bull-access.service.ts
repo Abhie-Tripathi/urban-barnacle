@@ -3,8 +3,8 @@ import { Inject, Logger, Scope } from '@nestjs/common';
 import { JobStatus, User } from '@prisma/client';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
-import { Job } from 'bull';
-import { Processor, Process, JOB_REF } from '@nestjs/bull';
+import { Job } from 'bullmq';
+import { Processor, JOB_REF, WorkerHost } from '@nestjs/bullmq';
 import { EmailService } from '../email/email.service';
 import { emailSenderAddress, trackerAccessHtml } from '../email/email.template';
 interface AccessEmailData {
@@ -21,8 +21,8 @@ interface UserMetaData {
   givenToUserName: string;
   givenByUserName: string;
 }
-@Processor({ name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}accessProcessor}`, scope: Scope.REQUEST })
-export class AccessEmailWorkerClass {
+@Processor(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}accessProcessor}`)
+export class AccessEmailWorkerClass extends WorkerHost {
   constructor(
     private email: EmailService,
     private prisma: PrismaService,
@@ -31,10 +31,25 @@ export class AccessEmailWorkerClass {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private configService: ConfigService,
   ) {
+    super();
     console.log(JSON.stringify(jobRef));
   }
   private readonly logger = new Logger(AccessEmailWorkerClass.name);
-  @Process('shareAccess')
+  async process(job: Job<any>): Promise<any> {
+    await job.log(`Started processing job: ${job.name}`);
+    await job.log(`Job data: ${JSON.stringify(job.data)}`);
+    switch (job.name) {
+      case 'shareAccess': {
+        const { done } = await this.handleEmailJob(job);
+        await job.log(`Finished processing job: ${job.name}`);
+        return { done };
+      }
+      default: {
+        await job.log(` Not Finished processing job(NOT FOUND): ${job.name}`);
+      }
+    }
+    return { done: false };
+  }
   async handleEmailJob(job: Job<AccessEmailData>) {
     try {
       const jobdata = job.data;
@@ -73,7 +88,7 @@ export class AccessEmailWorkerClass {
           status: status,
         },
       });
-      return {};
+      return { done: true };
     } catch (error) {
       console.log(JSON.stringify(error));
       const data = await this.prisma.requestedJob.update({
@@ -84,6 +99,7 @@ export class AccessEmailWorkerClass {
           status: 'FAILED',
         },
       });
+      return { done: false };
     }
   }
 }
