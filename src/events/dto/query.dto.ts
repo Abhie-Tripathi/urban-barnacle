@@ -810,7 +810,19 @@ export const EventsTrendsSchema = QueryFilter.extend({
     message: 'Invalid dateView option',
     params: { validOptions: Object.keys(dateViewOptions).join(', ') },
   }),
-});
+  compare_to: z.string().refine(
+    (date) =>
+      date &&
+      new Date(date).toISOString().split('T')[0] === date.split('T')[0],
+  )
+    .transform((date) => new Date(date).toISOString().split('T')[0]).optional(),
+  compare_from: z.string().refine(
+    (date) =>
+      date &&
+      new Date(date).toISOString().split('T')[0] === date.split('T')[0],
+  )
+    .transform((date) => new Date(date).toISOString().split('T')[0]).optional(),
+})
 
 export class EventsTrendsDto extends createZodDto(EventsTrendsSchema) { }
 
