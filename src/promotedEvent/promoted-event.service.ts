@@ -1560,7 +1560,7 @@ FROM (
       return { error };
     }
   }
-  async deletePromotedEvent(eventId: string, user: SelectedUserDetails) {
+  async deletePromotedEvent(eventId: string, user: TCachedUser) {
     try {
       const deletePromotedEvent =
         await this.eventDataService.updatePromotedEvent(
@@ -1572,7 +1572,7 @@ FROM (
       const jobPayLoad: any = {
         email: (
           await this.eventDataService.getUserRegisteredForPromotedEvent(
-            '9c47b7cc-ff9d-4c36-ab4e-25b39966cb5e',// user.accountId,
+            user.accountId,
             eventId,
           )
         ).map((interest) => interest.interestedUser.email),
