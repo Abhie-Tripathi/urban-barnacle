@@ -13,6 +13,11 @@ const createInternd = z.strictObject({
   sourceId: z.string().optional(),
   redirectUrl: z.string(),
   status: z.string().optional(),
-  source: z.nativeEnum(UserSource).default('PROMOTE_EVENT')
+  source: z.string().transform(val => {
+    if (val === 'eventgeni') {
+      return UserSource.PROMOTE_EVENT;
+    }
+    return val as UserSource;
+  })
 });
 export class CreateIntendDto extends createZodDto(createInternd) { }
