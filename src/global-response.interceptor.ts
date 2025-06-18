@@ -14,8 +14,6 @@ import {
   PrismaClientKnownRequestError,
   PrismaClientValidationError,
 } from '@prisma/client/runtime/library';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
 import { CommunicationService } from './communication/communication.service';
 import {
   QueueActionOptions,

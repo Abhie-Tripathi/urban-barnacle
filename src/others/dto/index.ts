@@ -6,7 +6,7 @@ import { z } from "zod";
 const presetSchema = LimitSchema.extend({
   countryIds: z.string().optional().transform(val => val ? val.split(",") : undefined),
   categorySlugs: z.string().optional().transform(val => val ? val.split(",") : undefined),
-  deleted: z.string().optional(),
+  deleted: z.string().optional().default('false'),
   keywords: z.string().optional(),
   totalEvent: z.string().optional().transform(val => {
     if (!val) return undefined;
@@ -44,6 +44,7 @@ export const demoContactSchema = z.strictObject({
   companyName: z.string(),
   jobTitle: z.string(),
   phoneNumber: z.string(),
+  source: z.string(),
   subscribe: z.enum(['true', 'false']).default('false')
 })
 export class DemoContactDto extends createZodDto(demoContactSchema) { }

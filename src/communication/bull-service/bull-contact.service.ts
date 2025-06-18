@@ -3,8 +3,8 @@ import { Inject, Logger, Scope } from '@nestjs/common';
 import { JobStatus, User } from '@prisma/client';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
-import { Job } from 'bull';
-import { Processor, Process, JOB_REF } from '@nestjs/bull';
+import { Job } from 'bullmq';
+import { Processor, JOB_REF, WorkerHost } from '@nestjs/bullmq';
 import { EmailService } from '../email/email.service';
 import { contactUsEmailTemplate, demoContactEmailTemplate, emailSenderAddress, trackerAccessHtml } from '../email/email.template';
 interface DemoContactJob {
@@ -14,6 +14,7 @@ interface DemoContactJob {
     companyName: string;
     jobTitle: string;
     phoneNumber: string;
+    source: string;
     jobRequestId: string;
 }
 interface ContactUsJob {
@@ -21,10 +22,12 @@ interface ContactUsJob {
     lastName: string;
     email: string;
     message: string;
+    source: string;
     jobRequestId: string;
 }
-@Processor({ name: 'contactProcessor', scope: Scope.REQUEST })
-export class ContactWorkerClass {
+
+@Processor(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}contactProcessor}`)
+export class ContactWorkerClass extends WorkerHost {
     constructor(
         private email: EmailService,
         private prisma: PrismaService,
@@ -33,10 +36,31 @@ export class ContactWorkerClass {
         @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
         private configService: ConfigService,
     ) {
+        super();
         console.log(JSON.stringify(jobRef));
     }
     private readonly logger = new Logger(ContactWorkerClass.name);
-    @Process('demoContactMail')
+    async process(job: Job<any>): Promise<any> {
+        await job.log(`Started processing job: ${job.name}`);
+        await job.log(`Job data: ${JSON.stringify(job.data)}`);
+        switch (job.name) {
+            case 'demoContactMail': {
+                const { done } = await this.demoContactHandleEmailJob(job);
+                await job.log(`Finished processing job: ${job.name}`);
+                return { done };
+            }
+            case 'contactUsMail': {
+                const { done } = await this.contactUsHandleEmailJob(job);
+                await job.log(`Finished processing job: ${job.name}`);
+                return { done };
+            }
+            default: {
+                await job.log(` Not Finished processing job(NOT FOUND): ${job.name}`);
+            }
+        }
+        return { done: false };
+    }
+    // @Process('demoContactMail')
     async demoContactHandleEmailJob(job: Job<DemoContactJob>) {
         try {
             const jobdata = job.data;
@@ -80,7 +104,7 @@ export class ContactWorkerClass {
                     status: status,
                 },
             });
-            return {};
+            return { done: true };
         } catch (error) {
             console.log(JSON.stringify(error));
             const data = await this.prisma.requestedJob.update({
@@ -91,9 +115,10 @@ export class ContactWorkerClass {
                     status: 'FAILED',
                 },
             });
+            return { done: false };
         }
     }
-    @Process('contactUsMail')
+    // @Process('contactUsMail')
     async contactUsHandleEmailJob(job: Job<ContactUsJob>) {
         try {
             const jobdata = job.data;
@@ -129,7 +154,7 @@ export class ContactWorkerClass {
                     status: status,
                 },
             });
-            return {};
+            return { done: true };
         } catch (error) {
             console.log(JSON.stringify(error));
             const data = await this.prisma.requestedJob.update({
@@ -140,6 +165,7 @@ export class ContactWorkerClass {
                     status: 'FAILED',
                 },
             });
+            return { done: false };
         }
     }
 }

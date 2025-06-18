@@ -184,7 +184,7 @@ export class KitService {
     accountId: string;
     id: string;
   }) {
-    await this.widgetDataService.createKit({
+    await this.widgetDataService.createKit(user.accountId, {
       account: { connect: { id: user.accountId } },
       logoUrl: defaultKitOptions.logoUrl,
       color: defaultKitOptions.color,
@@ -225,7 +225,7 @@ export class KitService {
       // console.table(check3);
 
       if (!check3) {
-        await this.widgetDataService.createKit({
+        await this.widgetDataService.createKit(user.accountId, {
           account: { connect: { id: user.accountId } },
           logoUrl: logoData,
           data: {

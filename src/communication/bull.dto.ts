@@ -124,6 +124,24 @@ const userInviteSchema = z.object({
   sourceId: z.string(),
 })
 export class UserInviteDto extends createZodDto(userInviteSchema) { }
+
+const trackerExportInputSchema = z.object({
+  userData: z.any(),
+  sourceId: z.string(),
+  trackerId: z.string(),
+  searchByEntity: z.string().optional(),
+  redirectUrl: z.string(),
+  exportIdNew: z.string().optional(),
+  exportIdActive: z.string().optional(),
+  exportIdPast: z.string().optional(),
+  exportIdBusiness: z.string().optional(),
+  exportIdSocial: z.string().optional(),
+  exportIdUnattended: z.string().optional(),
+  type: z.enum(['all', 'past', 'active', 'new', 'business', 'social', 'unattended']),
+  source: z.literal('TRACKER').default('TRACKER'),
+});
+
+export class trackerExportDto extends createZodDto(trackerExportInputSchema) { }
 // Union of all DTO schemas
 export const PayloadDTO = z.union([
   AccessEmailDataSchema,
@@ -137,4 +155,5 @@ export const PayloadDTO = z.union([
   userInviteSchema,
   contactUsSchema,
   ErrorContactSchema,
+  trackerExportInputSchema
 ]);

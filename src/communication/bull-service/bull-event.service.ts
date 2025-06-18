@@ -1,10 +1,10 @@
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Inject, Logger, Scope } from '@nestjs/common';
-import { JobStatus, User } from '@prisma/client';
+import { JobStatus } from '@prisma/client';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
-import { Job } from 'bull';
-import { Processor, Process, JOB_REF } from '@nestjs/bull';
+import { Job } from 'bullmq';
+import { Processor, JOB_REF, WorkerHost } from '@nestjs/bullmq';
 import { EmailService } from '../email/email.service';
 import {
   emailSenderAddress,
@@ -17,10 +17,10 @@ interface EventCancelData {
   userId: string;
   userEmail: string;
   jobRequestId: string;
-  sourceId: string
+  sourceId: string;
 }
-@Processor({ name: 'eventProcessor', scope: Scope.REQUEST })
-export class EventWorkerClass {
+@Processor(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}eventProcessor}`)
+export class EventWorkerClass extends WorkerHost {
   constructor(
     private email: EmailService,
     private prisma: PrismaService,
@@ -29,10 +29,26 @@ export class EventWorkerClass {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private configService: ConfigService,
   ) {
+    super();
     console.log(JSON.stringify(jobRef));
   }
   private readonly logger = new Logger(EventWorkerClass.name);
-  @Process('eventCancelMail')
+  async process(job: Job<any>): Promise<any> {
+    await job.log(`Started processing job: ${job.name}`);
+    await job.log(`Job data: ${JSON.stringify(job.data)}`);
+    switch (job.name) {
+      case 'eventCancelMail': {
+        const { done } = await this.handleEmailJob(job);
+        await job.log(`Finished processing job: ${job.name}`);
+        return { done };
+      }
+      default: {
+        await job.log(` Not Finished processing job(NOT FOUND): ${job.name}`);
+      }
+    }
+    return { done: false };
+  }
+  // @Process('eventCancelMail')
   async handleEmailJob(job: Job<EventCancelData>) {
     try {
       const jobdata = job.data;
@@ -80,7 +96,7 @@ export class EventWorkerClass {
             source: 'EVENT_CANCEl',
             status: 'PROCESSING',
             user: { connect: { id: jobdata.userId } },
-            sourceId: jobdata.sourceId
+            sourceId: jobdata.sourceId,
           },
         });
         const eventCancelEmailTemplate = eventCancelMailToUsersHtml
@@ -106,7 +122,7 @@ export class EventWorkerClass {
         });
       }
 
-      return {};
+      return { done: true };
     } catch (error) {
       console.log(JSON.stringify(error));
       const data = await this.prisma.requestedJob.update({
@@ -117,6 +133,7 @@ export class EventWorkerClass {
           status: 'FAILED',
         },
       });
+      return { done: false };
     }
   }
 }

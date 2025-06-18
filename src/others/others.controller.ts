@@ -1,11 +1,13 @@
-import { BadRequestException, Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { OthersService } from './others.service';
 import { ContactUsDto, contactUsSchema, DemoContactDto, demoContactSchema, PresetDto } from './dto';
 import { ZodError } from 'zod';
+import { AuthGuard } from 'src/user/auth/guard';
 
 @Controller('others')
 export class OthersController {
   constructor(private readonly othersService: OthersService) { }
+  @UseGuards(AuthGuard)
   @Get('preset')
   async getPresetData(@Query() query: PresetDto) {
     try {

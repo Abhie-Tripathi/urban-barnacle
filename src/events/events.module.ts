@@ -7,7 +7,8 @@ import { TrackerDataService } from 'src/tracker/tracker.data.service';
 
 @Module({
   controllers: [EventsController],
-  providers: [EventsService, EventsDataService, IntentDataService, TrackerDataService],
+  providers: [EventsService, EventsDataService, IntentDataService, TrackerDataService
+  ],
   exports: [EventsService, EventsDataService],
 })
 export class EventsModule { }

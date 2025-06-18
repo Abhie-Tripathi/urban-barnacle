@@ -1,24 +1,28 @@
-import { InjectQueue } from '@nestjs/bull';
+import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
 import { JobSource } from '@prisma/client';
-import { Job, Queue } from 'bull';
+import { Job, Queue } from 'bullmq';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { QueueActionOptions, SelectedUserDetails } from 'src/utils/types';
 import { PayloadDTO } from './bull.dto';
 import { z } from 'zod';
+import { emailSenderAddress, signUpINEmailHtml } from './email/email.template';
+import { EmailService } from './email/email.service';
 
 @Injectable()
 export class CommunicationService {
   constructor(
     private readonly prisma: PrismaService,
-    @InjectQueue('eventProcessor') private readonly eventCanelQueue: Queue,
-    @InjectQueue('inviteProcessor') private readonly inviteQueue: Queue,
-    @InjectQueue('accessProcessor') private readonly accessQueue: Queue,
-    @InjectQueue('otpProcessor') private readonly otpQueue: Queue,
-    @InjectQueue('intendProcessor') private readonly intendQueue: Queue,
-    @InjectQueue('contactProcessor')
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}eventProcessor}`) private readonly eventCanelQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}inviteProcessor}`) private readonly inviteQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}accessProcessor}`) private readonly accessQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}otpProcessor}`) private readonly otpQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}intendProcessor}`) private readonly intendQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}demoContactProcessor}`)
     private readonly demoContactQueue: Queue,
-    @InjectQueue('errorProcessor') private readonly errorQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}errorProcessor}`) private readonly errorQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`) private readonly exportQueue: Queue,
+    private email: EmailService,
   ) { }
   async createJobForBull(
     processAction: QueueActionOptions,
@@ -42,6 +46,17 @@ export class CommunicationService {
           HttpStatus.BAD_REQUEST,
         );
       }
+      if (userId === '@10times.com') {
+        userId = (
+          await this.prisma.user.findMany({
+            where: {
+              email: { contains: '@10times.com', mode: 'insensitive' },
+            },
+          })
+        )[0].id;
+        sourceId = userId;
+      }
+      // await this.redisService.set("testing", (new Date()).toISOString());
       const processEnumObject: object = {
         SEND_SIGN_UP_IN_EMAIL: 'signUp/InEmail',
         SEND_EVENT_CANCEL_EMAIL: 'eventCancelMail',
@@ -54,6 +69,7 @@ export class CommunicationService {
         SEND_USER_INVITATION_EMAIL: 'inviteUserMail',
         SEND_CONTACT_US_EMAIL: 'contactUsMail',
         SEND_CONTACT_ERROR_EMAIL: 'errorContactLimitMessage',
+        SEND_TRACKER_EXPORT_MAIL: 'exportTrackerEventData',
       };
       const processToprocessorMapping: object = {
         shareAccess: 'accessProcessor',
@@ -66,6 +82,7 @@ export class CommunicationService {
         errorMessage: 'errorProcessor',
         demoContactMail: 'contactProcessor',
         contactUsMail: 'contactProcessor',
+        exportTrackerEventData: 'exportProcessor',
         errorContactLimitMessage: 'errorProcessor',
       };
       const jobSource: object = {
@@ -79,19 +96,20 @@ export class CommunicationService {
         SEND_INTEND_UPDATE: 'intendUpdate',
         SEND_ERROR_MAIL: 'errorMessage',
         SEND_DEMO_CONTACT_MAIL: 'demoContactMail',
+        SEND_TRACKER_EXPORT_MAIL: 'exportTrackerEventData',
         SEND_CONTACT_US_EMAIL: 'contactUsMail',
         SEND_CONTACT_ERROR_EMAIL: 'errorContactLimitMessage',
       };
       const process: string = processEnumObject[processAction];
       const processor: string = processToprocessorMapping[process];
-      console.log(process, processor);
+      console.log(process, processor, jobSource);
 
       let jobSourceType: string =
         process === 'signUp/InEmail' && jobRequestPayload.process === 'sign-up'
           ? 'SEND_SIGNUP_OTP'
           : process === 'signUp/InEmail' &&
             jobRequestPayload.process === 'sign-in'
-            ? 'SEND_SIGNUP_OTP'
+            ? 'SEND_SIGNIN_OTP'
             : '';
       for (const key in jobSource) {
         if (jobSource[key] === process) {
@@ -106,6 +124,8 @@ export class CommunicationService {
         sourceId,
       );
       let jobAdded: any = {};
+      console.log({ process });
+
       switch (process) {
         case 'shareAccess':
           jobAdded = await this.accessQueue.add(
@@ -186,8 +206,15 @@ export class CommunicationService {
           console.log('Call inviteProcessor');
           break;
         case 'signUp/InEmail':
+          // console.log("in sugn in emaial job");
+          // try {
+          //   console.log("in sugn in try emaial job");
+          //   console.log('🔍 Redis status:', this.otpQueue.client.status);
+          //   const counts = await this.otpQueue.getJobCounts();
+          //   console.log('📊 Queue counts:', counts);
+
           jobAdded = await this.otpQueue.add(
-            process,
+            'signUp/InEmail',
             {
               ...validatedPayload,
               ...requestId,
@@ -196,7 +223,12 @@ export class CommunicationService {
               priority: priority,
             },
           );
-          console.log('Call otpProcessor');
+          // } catch (error) {
+          //   console.log(error);
+
+          // }
+          // const response = await this.emailSernderFoOtp(validatedPayload['userInfo'], validatedPayload)
+          console.log('Call otpProcessor')//, response);
           break;
         case 'intendRecevied':
           jobAdded = await this.intendQueue.add(
@@ -251,6 +283,19 @@ export class CommunicationService {
           );
           console.log('Call contactProcessor');
           break;
+        case 'exportTrackerEventData':
+          jobAdded = await this.exportQueue.add(
+            process,
+            {
+              ...validatedPayload,
+              ...requestId,
+            },
+            {
+              priority: priority,
+            },
+          );
+          console.log('Call exportProcessor');
+          break;
         case 'errorMessage':
           jobAdded = await this.errorQueue.add(
             process,
@@ -276,10 +321,14 @@ export class CommunicationService {
             },
           );
           console.log('Call errorProcessor');
+          // await this.errorQueue.client.disconnect();
           break;
         default:
           console.log('Unknown action');
       }
+      // console.log((JSON.stringify(jobAdded)));
+
+      // dir(jobAdded, { depth: null })
       if (jobAdded && jobAdded.id) {
         this.updateJobInDatabase(jobAdded.id, String(requestId.jobRequestId));
       }
@@ -324,5 +373,21 @@ export class CommunicationService {
       },
     });
     return { jobRequestId: job.id };
+  }
+  async emailSernderFoOtp(userData: any, jobdata: any) {
+    const signUpEmailTemplate = signUpINEmailHtml
+      .replace('{to}', userData.email)
+      .replace('{from}', emailSenderAddress)
+      .replace('{user.firstname}', userData.firstname)
+      .replace('{otp}', jobdata.otp)
+      .replace('{sign}', jobdata.process);
+
+    const { data, error } = await this.email.mailSender(
+      userData.email,
+      emailSenderAddress,
+      'WHR OTP - ' + jobdata.otp,
+      signUpEmailTemplate,
+    );
+    return { data, error };
   }
 }

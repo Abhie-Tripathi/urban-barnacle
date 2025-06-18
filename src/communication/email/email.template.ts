@@ -1201,7 +1201,6 @@ export const inviteUserEmailTemplate = `<!DOCTYPE html>
 </html>
 `
 
-
 export const demoContactEmailTemplate: string = ` <!DOCTYPE html>
         <html lang="en">
           <head>
@@ -1386,3 +1385,51 @@ export const contactApiLimitReachedTemplate: string = `
 </body>
 </html>
 `
+export const exportCompleteMailTemplate: string =
+  `<!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  </head>
+  <body>
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Export Event Data</h2>
+      <p>Dear {firstName} {lastName},</p>
+      <p>Thank you for your request to export event data. Please find the download button below to retrieve your requested data:</p>
+      <p><a href='{redirectLink}' style="display: inline-block; background-color: #007bff; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 5px;">Download Data</a></p>
+      <p>If you have any questions or need further assistance, feel free to contact us.</p>
+      <p>Best regards,<br>
+        Whr.ai<br>
+        help@whr.ai<br>
+        <a href="https://whr.ai/">Whr.ai</a></p>
+        <hr>
+        <p><em>Note:</em> This is an automated email, please do not reply directly to this message.</p>
+    </div>
+  </body>
+  </html>
+  `;
+
+export const exportFailMailTemplate: string =
+  `<!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Export Data Request Failed</h2>
+        <p>Dear {firstName} {lastName},</p>
+        <p>We regret to inform you that your request to export event data has failed. Please try again later. We apologize for any inconvenience this may have caused.</p>
+        <p>If the issue persists or if you need further assistance, please don't hesitate to contact us.</p>
+         <p>Best regards,<br>
+        Whr.ai<br>
+        help@whr.ai<br>
+        <a href="https://whr.ai/">Whr.ai</a></p>
+        <hr>
+        <p><em>Note:</em> This is an automated email, please do not reply directly to this message.</p>
+      </div>
+    </body>
+    </html>
+    `;

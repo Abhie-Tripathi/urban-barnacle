@@ -6,6 +6,7 @@ import { IntendWorkerClass } from './bull-intend.service';
 import { InvitationWorkerClass } from './bull-invitation.service';
 import { ErrorWorkerClass } from './bull-errorMessage.service';
 import { ContactWorkerClass } from './bull-contact.service';
+import { ExportWorkerClass } from './bull-export.service';
 @Global()
 @Module({
   exports: [
@@ -15,7 +16,8 @@ import { ContactWorkerClass } from './bull-contact.service';
     IntendWorkerClass,
     InvitationWorkerClass,
     ErrorWorkerClass,
-    ContactWorkerClass
+    ContactWorkerClass,
+    ExportWorkerClass
   ],
   providers: [
     OtpEmailWorkerClass,
@@ -24,7 +26,8 @@ import { ContactWorkerClass } from './bull-contact.service';
     IntendWorkerClass,
     InvitationWorkerClass,
     ErrorWorkerClass,
-    ContactWorkerClass
+    ContactWorkerClass,
+    ExportWorkerClass
   ],
 })
 export class BullQueueModule { }

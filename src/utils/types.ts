@@ -3,6 +3,7 @@ import {
   LocationType,
   OnboardingState,
   RadiusUnit,
+  SubscriptionPlan,
   User,
   UserRole,
 } from '@prisma/client';
@@ -19,6 +20,7 @@ export const GeoJsonSchema = z.object({
     coordinates: z.array(z.number()).length(2),
   }),
   properties: z.object({
+    locationName: z.string().optional(),
     radius: z.number().positive(),
     radiusUnit: z
       .string()
@@ -128,6 +130,22 @@ export const defaultEventTypes = {
   },
 };
 
+export const ValidEventTypes = {
+  geo: [
+    'festival',
+    'sport',
+    'concert',
+    'performing-arts',
+    'community',
+    'tradeshows',
+    'conferences',
+    'workshops',
+    'holiday',
+    'alert',
+  ],
+  gtm: ['tradeshows', 'conferences', 'workshops'],
+};
+
 export const SubIndustries = {
   Retail: 'Retail',
   Quick_Commerce: 'Quick_Commerce',
@@ -216,6 +234,7 @@ export enum QueueActionOptions {
   SEND_DEMO_CONTACT_EMAIL = 'SEND_DEMO_CONTACT_EMAIL',
   SEND_CONTACT_US_EMAIL = 'SEND_CONTACT_US_EMAIL',
   SEND_CONTACT_ERROR_EMAIL = 'SEND_CONTACT_ERROR_EMAIL',
+  SEND_TRACKER_EXPORT_MAIL = 'SEND_TRACKER_EXPORT_MAIL'
 }
 
 // export type TrackerParams = {
@@ -299,7 +318,20 @@ export const blackListDomain = [
   'web.de',
   'alice.it',
 ];
-
+export const membershipMap: Record<SubscriptionPlan, number> = {
+  BASIC: 0,
+  ESSENTIAL: 10,
+  SCALE: 20,
+  ADVANCE: 30,
+  ENTERPRISE: 40,
+};
+export const membershipLimit: Record<number, number> = {
+  0: 4000,
+  10: 4000,
+  20: 4000,
+  30: 20000,
+  40: 100000,
+};
 // ["a4a3b8d9-e170-4972-8981-0282e58ccb45","e485cdd3-0e61-5f36-b896-aed7ba606697","0ba63d1a-eb97-4587-b1c7-6c79c2948256",1,0]
 
 // SELECT

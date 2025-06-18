@@ -19,6 +19,7 @@ import {
   UserEventInterest,
 } from '@prisma/client';
 import { EventsService } from 'src/events/events.service';
+import { PromotedEventsDataService } from 'src/promotedEvent/promoted-even.data.service';
 
 @Injectable()
 export class IntentService {
@@ -26,7 +27,8 @@ export class IntentService {
     private readonly intentDataService: IntentDataService,
     private readonly enquiryService: EnquiryService,
     private readonly eventService: EventsService,
-  ) {}
+    private readonly promoteEventDataService: PromotedEventsDataService
+  ) { }
 
   async createUserEventInterest(
     user: TCachedUser,
@@ -34,7 +36,7 @@ export class IntentService {
   ) {
     let enquiry: Enquiry | null = null;
     if (
-      data.sourceModule !== 'PROMOTED_EVENT' &&
+      // data.sourceModule !== 'PROMOTED_EVENT' &&
       data.interest !== 'BOOKMARK'
     ) {
       const enquiryParams = {};
@@ -60,11 +62,13 @@ export class IntentService {
         enquiry = enquiries[0];
       }
       if (!data.enquiryId && data.eventId && enquiries.length === 0) {
-        const event = await this.eventService.getEvent(
+        const event = await Promise.all([this.eventService.getEvent(
           data.eventId,
           'suggestion',
-        );
-        if (!event) {
+          undefined,
+          false
+        ), this.promoteEventDataService.getEventForGeni(data.eventId)]);
+        if (!event[0].basic['id'] && !event[1].data) {
           throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
         }
         enquiry = await this.enquiryService.createEnquiry(user, {
@@ -82,7 +86,9 @@ export class IntentService {
       eventId: enquiry ? enquiry.eventId : data.eventId,
       interestedUserId: data.interestedUserId,
     };
-    if (data.sourceModule !== 'PROMOTED_EVENT' && enquiry) {
+    if (
+      // data.sourceModule !== 'PROMOTED_EVENT' &&
+      enquiry) {
       userEventInterestParams['enquiryId'] = enquiry.id;
     }
     if (data.recommendedBy) {
@@ -92,8 +98,9 @@ export class IntentService {
       userEventInterestParams['sourceId'] = data.sourceId;
     }
     if (
-      data.interest !== 'BOOKMARK' &&
-      data.sourceModule !== 'PROMOTED_EVENT'
+      data.interest !== 'BOOKMARK'
+      // &&
+      // data.sourceModule !== 'PROMOTED_EVENT'
     ) {
       const previousInterest =
         await this.intentDataService.getUserEventInterest({
@@ -268,6 +275,12 @@ export class IntentService {
       throw new HttpException(
         'Enquiry activity not found',
         HttpStatus.NOT_FOUND,
+      );
+    }
+    if (enquiryActivity[0].activityType === 'FOLLOW' && user.id !== enquiryActivity[0].userId) {
+      throw new HttpException(
+        'You are not allowed to unfollow',
+        HttpStatus.FORBIDDEN,
       );
     }
     await this.intentDataService.updateEnquiryActivity({
