@@ -67,7 +67,7 @@ export class TrackerService {
     private readonly accountDataService: AccountDataService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly redisService: RedisService,
-  ) {}
+  ) { }
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const nonEmptyParams = getNonEmptyParams(data.filterValues);
@@ -169,9 +169,9 @@ export class TrackerService {
     }
     tracker.filterValues = tracker.filterValues
       ? {
-          ...(tracker.filterValues as Record<string, any>),
-          searchByEntity,
-        }
+        ...(tracker.filterValues as Record<string, any>),
+        searchByEntity,
+      }
       : { searchByEntity };
 
     const savedEventsCount =
@@ -293,7 +293,7 @@ export class TrackerService {
                 );
             }
           }
-        } catch (error) {}
+        } catch (error) { }
       }
 
       filterValues = await this.sharedService.convertIdParamsToSlug(
@@ -328,15 +328,15 @@ export class TrackerService {
       lastModifiedBy:
         tracker.modifiedByUser && tracker.modifiedByUser.id
           ? {
-              id: tracker.modifiedByUser.id,
-              name: getNameFromEmail(
-                tracker.modifiedByUser.email,
-                tracker.modifiedByUser.firstname,
-                tracker.modifiedByUser.lastname,
-              ),
-              email: tracker.modifiedByUser.email,
-              imageUrl: tracker.modifiedByUser.imageUrl,
-            }
+            id: tracker.modifiedByUser.id,
+            name: getNameFromEmail(
+              tracker.modifiedByUser.email,
+              tracker.modifiedByUser.firstname,
+              tracker.modifiedByUser.lastname,
+            ),
+            email: tracker.modifiedByUser.email,
+            imageUrl: tracker.modifiedByUser.imageUrl,
+          }
           : null,
     };
     return {
@@ -560,12 +560,14 @@ export class TrackerService {
       'ADMIN',
       'SUPER_ADMIN',
     ]);
-    let addJobs: any | null = null;
-    await Promise.all([this.redisService.del(
-      `${trackerId}-IntelScore`),
-    addJobs = this.redisService.get(
-      `tracker-IntelScore-Jobs24`
-    )]);
+    let addJobs: any = null;
+
+    await Promise.all([
+      this.redisService.del(`${trackerId}-IntelScore`),
+      (async () => {
+        addJobs = await this.redisService.get(`tracker-IntelScore-Jobs24`);
+      })(),
+    ]);
     if (!addJobs) {
       addJobs = [];
     }
@@ -1473,7 +1475,7 @@ export class TrackerService {
       const [dataFromDB, countFromDB] = await this.trackerDataService.getSimilarTrackerEvent(
         trackerId,
         (eventParams['trackerEventStatus']?.toUpperCase() as TrackerTypeTag) ||
-          'NEW',
+        'NEW',
         1000,
         params.offset || 0,
       );
@@ -1615,7 +1617,7 @@ export class TrackerService {
       const [dataFromDB, countFromDB] = await this.trackerDataService.getSimilarTrackerEvent(
         trackerId,
         (eventParams['trackerEventStatus']?.toUpperCase() as TrackerTypeTag) ||
-          'NEW',
+        'NEW',
         1000,
         0,
       );
