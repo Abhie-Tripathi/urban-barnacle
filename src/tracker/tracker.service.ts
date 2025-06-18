@@ -560,7 +560,7 @@ export class TrackerService {
       'ADMIN',
       'SUPER_ADMIN',
     ]);
-    let addJobs: any[] | null = null;
+    let addJobs: any = null;
 
     await Promise.all([
       this.redisService.del(`${trackerId}-IntelScore`),
