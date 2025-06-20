@@ -41,6 +41,8 @@ export class ContactWorkerClass extends WorkerHost {
     }
     private readonly logger = new Logger(ContactWorkerClass.name);
     async process(job: Job<any>): Promise<any> {
+        console.log("asasdsazsdfdtuhrt");
+        
         await job.log(`Started processing job: ${job.name}`);
         await job.log(`Job data: ${JSON.stringify(job.data)}`);
         switch (job.name) {

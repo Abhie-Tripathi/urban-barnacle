@@ -18,8 +18,7 @@ export class CommunicationService {
     @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}accessProcessor}`) private readonly accessQueue: Queue,
     @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}otpProcessor}`) private readonly otpQueue: Queue,
     @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}intendProcessor}`) private readonly intendQueue: Queue,
-    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}contactProcessor}`)
-    private readonly demoContactQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}contactProcessor}`) private readonly demoContactQueue: Queue,
     @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}errorProcessor}`) private readonly errorQueue: Queue,
     @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`) private readonly exportQueue: Queue,
     private email: EmailService,
@@ -268,7 +267,7 @@ export class CommunicationService {
               priority: priority,
             },
           );
-          console.log('Call contactProcessor');
+          console.log('Call contactProcessor',);
           break;
         case 'contactUsMail':
           jobAdded = await this.demoContactQueue.add(
@@ -281,7 +280,14 @@ export class CommunicationService {
               priority: priority,
             },
           );
-          console.log('Call contactProcessor');
+          console.log('Call contactProcessor', {
+            process,
+
+            ...validatedPayload,
+            ...requestId,
+
+            priority: priority,
+          });
           break;
         case 'exportTrackerEventData':
           jobAdded = await this.exportQueue.add(
