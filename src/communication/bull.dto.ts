@@ -95,6 +95,7 @@ export const demoContactSchema = z.object({
   firstName: z.string(),
   lastName: z.string(),
   email: z.string(),
+  source: z.string(),
   companyName: z.string(),
   jobTitle: z.string(),
   phoneNumber: z.string(),
@@ -106,6 +107,7 @@ export const contactUsSchema = z.object({
   lastName: z.string(),
   email: z.string(),
   message: z.string(),
+  source: z.string(),
   sourceId: z.string(),
 })
 export class ContactUsDto extends createZodDto(contactUsSchema) { }
