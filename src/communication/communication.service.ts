@@ -1,7 +1,7 @@
-import { InjectQueue } from '@nestjs/bull';
+import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
 import { JobSource } from '@prisma/client';
-import { Job, Queue } from 'bull';
+import { Job, Queue } from 'bullmq';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { QueueActionOptions, SelectedUserDetails } from 'src/utils/types';
 import { PayloadDTO } from './bull.dto';
@@ -109,7 +109,7 @@ export class CommunicationService {
           ? 'SEND_SIGNUP_OTP'
           : process === 'signUp/InEmail' &&
             jobRequestPayload.process === 'sign-in'
-            ? 'SEND_SIGNUP_OTP'
+            ? 'SEND_SIGNIN_OTP'
             : '';
       for (const key in jobSource) {
         if (jobSource[key] === process) {
@@ -321,7 +321,7 @@ export class CommunicationService {
             },
           );
           console.log('Call errorProcessor');
-          await this.errorQueue.client.disconnect();
+          // await this.errorQueue.client.disconnect();
           break;
         default:
           console.log('Unknown action');

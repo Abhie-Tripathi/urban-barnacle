@@ -604,12 +604,14 @@ export class TrackerService {
       'ADMIN',
       'SUPER_ADMIN',
     ]);
-    let addJobs: any | null = null;
-    await Promise.all([this.redisService.del(
-      `${trackerId}-IntelScore`),
-    addJobs = this.redisService.get(
-      `tracker-IntelScore-Jobs24`
-    )]);
+    let addJobs: any = null;
+
+    await Promise.all([
+      this.redisService.del(`${trackerId}-IntelScore`),
+      (async () => {
+        addJobs = await this.redisService.get(`tracker-IntelScore-Jobs24`);
+      })(),
+    ]);
     if (!addJobs) {
       addJobs = [];
     }

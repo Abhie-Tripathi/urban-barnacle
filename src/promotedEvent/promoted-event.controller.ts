@@ -121,7 +121,7 @@ export class PromotedEventsController {
   @Delete(':id')
   async deletePromotedEvent(
     @Param('id') eventId,
-    @GetUser() user: SelectedUserDetails,
+    @GetUser() user: TCachedUser,
   ) {
     try {
       const event = await this.eventService.deletePromotedEvent(eventId, user);
