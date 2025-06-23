@@ -566,9 +566,9 @@ export class EventsDataService {
       microserviceEndpoints.events.similarEvents;
     let req: any = {};
     console.log({
-      lenght: JSON.stringify(query).length > 10,
-      val: JSON.stringify(query),
-      que: queryParams.toString(),
+      // lenght: JSON.stringify(query).length > 10,
+      query,
+      // queryParams,
     });
 
     if (JSON.stringify(query).length > 1000) {

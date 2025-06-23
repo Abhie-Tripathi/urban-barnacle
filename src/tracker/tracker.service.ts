@@ -1526,7 +1526,7 @@ export class TrackerService {
         (eventParams['trackerEventStatus']?.toUpperCase() as TrackerTypeTag) ||
         'NEW',
         1000,
-        params.offset || 0,
+        0,
       );
       const countSimilarEventFromDB = Number(countFromDB[0].count)
       // console.log({ dataFromDB: countSimilarEventFromDB });
