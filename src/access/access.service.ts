@@ -147,7 +147,7 @@ export class AccessService {
               '') +
             '/login?' +
             data.redirectQueryParams +
-            `&email=${receiver.email}&otp=${rest.token}`,
+            `&email=${receiver.email}&otp=${rest.token}&trackerType=${sourceMetaData['trackerType']}`,
           trackerName: sourceMetaData['trackerName'] || '',
           sourceId: access.id,
         } as AccessEmailDataDto,
