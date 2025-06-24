@@ -1,7 +1,8 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTrackerDto, GetTrackersDto, UpdateTrackerDto } from './dto';
-import { ExportSubSource,
+import {
+  ExportSubSource,
   Prisma,
   PrismaClient,
   Tracker,
@@ -20,7 +21,7 @@ export class TrackerDataService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly communicationService: CommunicationService
-  ,
+    ,
     private readonly configService: ConfigService,
   ) { }
 
@@ -234,12 +235,23 @@ export class TrackerDataService {
     const queryParams = new URLSearchParams(
       params as unknown as Record<string, any>,
     );
-    const url =
+    let url =
       this.configService.get('MICROSERVICE_URL') +
-      microserviceEndpoints.events.trackerIntelScore +
-      '?' +
-      queryParams.toString();
-    const response = await fetch(url);
+      microserviceEndpoints.events.trackerIntelScore;
+    console.log(url);
+    let req: any = {};
+    if (JSON.stringify(params).length > 500) {
+      req = {
+        method: 'POST',
+        body: JSON.stringify(this.convertArrayValuesToStrings(params)),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      };
+    } else {
+      url += '?' + queryParams.toString();
+    }
+    const response = await fetch(url,req);
     const data = await response.json();
     // console.dir(data, { depth: null });
     if (data['error']) {
@@ -274,7 +286,7 @@ export class TrackerDataService {
     limit: number,
     offset: number,
   ) {
-    return await this.prisma.$queryRaw<
+    return await Promise.all([this.prisma.$queryRaw<
       {
         sourceId: string;
         count: number;
@@ -292,7 +304,18 @@ where
     and "createdAt"::DATE = now()::DATE
     ORDER BY score desc
     limit ${limit} Offset ${offset};`),
-    );
+    ), this.prisma.$queryRaw<
+      {
+        count: number;
+      }[]
+    >(
+      Prisma.raw(`
+  SELECT count(*)
+FROM "SimilarEventsToTracker"
+where
+    "trackerId" = '${trackerId}'
+    and "createdAt"::DATE = now()::DATE;`),
+    )]);
   }
   async createExport(data: {
     exportOf: ExportSubSource;
@@ -369,5 +392,20 @@ where
         deleted: true
       }
     })
+  }
+  convertArrayValuesToStrings(obj) {
+    const result = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (Array.isArray(value)) {
+        // if (key === 'eventTypes') {
+
+        //     result[key] = value.map(id => eventTypeDataIdToSlug[id].slug).join(',');
+        // } else
+        result[key] = value.join(',');
+      } else {
+        result[key] = value + '';
+      }
+    }
+    return result;
   }
 }

@@ -7,7 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 import { SharedModule } from './shared/shared.module';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 import { RequestLoggingMiddleware } from './request-logging.middleware';
 // import { LoggingMiddleware } from './logging.interceptor';
 import { PromotedEventsModule } from './promotedEvent/promoted-event.module';

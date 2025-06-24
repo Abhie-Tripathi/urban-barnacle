@@ -1,22 +1,38 @@
-import { JOB_REF, Process, Processor } from '@nestjs/bull';
+import { JOB_REF, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger, Scope } from '@nestjs/common';
 import { EmailService } from '../email/email.service';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Job } from 'bull';
+import { Job } from 'bullmq';
 import { emailSenderAddress } from '../email/email.template';
 import { JobStatus } from '@prisma/client';
 
-@Processor({ name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}demoContactProcessor}`, scope: Scope.REQUEST })
-export class DemoContactWorkerClass {
+@Processor(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}demoContactProcessor}`)
+export class DemoContactWorkerClass extends WorkerHost {
   constructor(
     private email: EmailService,
     private prisma: PrismaService,
     @Inject(JOB_REF) jobRef: Job,
   ) {
+    super();
     console.log(JSON.stringify(jobRef));
   }
   private readonly logger = new Logger(DemoContactWorkerClass.name);
-  @Process(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}demoContactProcessor}`)
+  async process(job: Job<any>): Promise<any> {
+    await job.log(`Started processing job: ${job.name}`);
+    await job.log(`Job data: ${JSON.stringify(job.data)}`);
+    switch (job.name) {
+      case 'demoContact': {
+        const { done } = await this.handleEmailJob(job);
+        await job.log(`Finished processing job: ${job.name}`);
+        return { done };
+      }
+      default: {
+        await job.log(` Not Finished processing job(NOT FOUND): ${job.name}`);
+      }
+    }
+    return { done: false };
+  }
+  // @Process(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}demoContactProcessor}`)
   async handleEmailJob(
     job: Job<{ body: string; subject: string; jobRequestId: string }>,
   ) {
@@ -49,7 +65,7 @@ export class DemoContactWorkerClass {
           status: status,
         },
       });
-      return {};
+      return { done: true };
     } catch (error) {
       console.log(JSON.stringify(error));
       const data = await this.prisma.requestedJob.update({
@@ -60,6 +76,7 @@ export class DemoContactWorkerClass {
           status: 'FAILED',
         },
       });
+      return { done: false };
     }
   }
 }

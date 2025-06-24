@@ -32,7 +32,7 @@ export class EventsDataService {
     private readonly trackerDataService: TrackerDataService,
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
   async createLogForEncryptedQuery(
     encryption: string,
     user: TCachedUser,

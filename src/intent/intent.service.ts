@@ -277,6 +277,12 @@ export class IntentService {
         HttpStatus.NOT_FOUND,
       );
     }
+    if (enquiryActivity[0].activityType === 'FOLLOW' && user.id !== enquiryActivity[0].userId) {
+      throw new HttpException(
+        'You are not allowed to unfollow',
+        HttpStatus.FORBIDDEN,
+      );
+    }
     await this.intentDataService.updateEnquiryActivity({
       id,
       deleted: true,

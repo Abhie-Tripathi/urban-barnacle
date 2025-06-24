@@ -1,23 +1,23 @@
-import { JOB_REF, Process, Processor } from '@nestjs/bull';
+import { JOB_REF, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger, Scope } from '@nestjs/common';
 import { EmailService } from '../email/email.service';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Job } from 'bull';
+import { Job } from 'bullmq';
 import { JobStatus } from '@prisma/client';
 import { emailSenderAddress, errorTemplate } from '../email/email.template';
 
-@Processor({ name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}errorProcessor}`, scope: Scope.REQUEST })
-export class ErrorWorkerClass {
+@Processor(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}errorProcessor}`)
+export class ErrorWorkerClass extends WorkerHost {
   constructor(
     private email: EmailService,
     private prisma: PrismaService,
     @Inject(JOB_REF) jobRef: Job,
   ) {
+    super();
     console.log(JSON.stringify(jobRef));
   }
   private readonly logger = new Logger(ErrorWorkerClass.name);
-  @Process(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}errorProcessor}`)
-  async handleEmailJob(job: Job<{ data: object; jobRequestId: string }>) {
+  async process(job: Job<any>) {
     try {
       const jobdata = job.data;
       const upadte = await this.prisma.requestedJob.update({
