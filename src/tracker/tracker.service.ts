@@ -317,11 +317,8 @@ export class TrackerService {
       updatedAt: tracker.updatedAt,
       createdBy: {
         id: tracker.createdByUser.id,
-        name: getNameFromEmail(
-          tracker.createdByUser.email,
-          tracker.createdByUser.firstname,
-          tracker.createdByUser.lastname,
-        ),
+        firstname: tracker.createdByUser.firstname,
+        lastname: tracker.createdByUser.lastname,
         email: tracker.createdByUser.email,
         imageUrl: tracker.createdByUser.imageUrl,
       },
@@ -329,11 +326,8 @@ export class TrackerService {
         tracker.modifiedByUser && tracker.modifiedByUser.id
           ? {
             id: tracker.modifiedByUser.id,
-            name: getNameFromEmail(
-              tracker.modifiedByUser.email,
-              tracker.modifiedByUser.firstname,
-              tracker.modifiedByUser.lastname,
-            ),
+            firstname: tracker.createdByUser.firstname,
+            lastname: tracker.createdByUser.lastname,
             email: tracker.modifiedByUser.email,
             imageUrl: tracker.modifiedByUser.imageUrl,
           }
