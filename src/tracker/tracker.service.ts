@@ -1477,17 +1477,15 @@ export class TrackerService {
         trackerId: trackerId,
         showValues: showValues,
       };
-      const [dataFromDB, countFromDB] =
-        await this.trackerDataService.getSimilarTrackerEvent(
-          trackerId,
-          (eventParams[
-            'trackerEventStatus'
-          ]?.toUpperCase() as TrackerTypeTag) || 'NEW',
-          1000,
-          params.offset || 0,
-        );
-      const countSimilarEventFromDB = Number(countFromDB[0].count);
-      console.log({ dataFromDB: countSimilarEventFromDB });
+      const [dataFromDB, countFromDB] = await this.trackerDataService.getSimilarTrackerEvent(
+        trackerId,
+        eventParams['trackerEventStatus'] ? [(eventParams['trackerEventStatus']?.toUpperCase() as TrackerTypeTag)] :
+          ['NEW', 'ACTIVE', 'PAST'],
+        1000,
+        0,
+      );
+      const countSimilarEventFromDB = Number(countFromDB[0].count)
+      // console.log({ dataFromDB: countSimilarEventFromDB });
 
       if (countSimilarEventFromDB > 0) {
         // let count: number = dataFromDB[0]?.count||0;
@@ -1621,20 +1619,15 @@ export class TrackerService {
         ...convertedParams,
         trackerId: trackerId,
       } as CountQueryDto;
-      const [dataFromDB, countFromDB] =
-        await this.trackerDataService.getSimilarTrackerEvent(
-          trackerId,
-          (eventParams[
-            'trackerEventStatus'
-          ]?.toUpperCase() as TrackerTypeTag) || 'NEW',
-          1000,
-          0,
-        );
-      const countSimilarEventFromDB = Number(countFromDB[0].count);
-      console.log(
-        { dataFromDB: countSimilarEventFromDB },
-        countSimilarEventFromDB,
+      const [dataFromDB, countFromDB] = await this.trackerDataService.getSimilarTrackerEvent(
+        trackerId,
+        eventParams['trackerEventStatus'] ? [(eventParams['trackerEventStatus']?.toUpperCase() as TrackerTypeTag)] :
+          ['NEW', 'ACTIVE', 'PAST'],
+        1000,
+        0,
       );
+      const countSimilarEventFromDB = Number(countFromDB[0].count)
+      console.log({ dataFromDB: countSimilarEventFromDB }, countSimilarEventFromDB);
 
       if (searchByEntity) {
         eventParams['searchByEntity'] = searchByEntity;
