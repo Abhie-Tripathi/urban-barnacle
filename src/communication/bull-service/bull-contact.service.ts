@@ -92,7 +92,7 @@ export class ContactWorkerClass extends WorkerHost {
             const { data, error } = await this.email.multiMailSender(
                 (process.env.DEMO_MAIL_RECIPIENTS || '').split(','),
                 emailSenderAddress,
-                'Booking slot for Demo of Whr.ai',
+                `Whr Demo Request by ${jobdata.firstName} ${jobdata.lastName}`,
                 demoContactEmail,
             );
             let status = 'COMPLETED' as JobStatus;
