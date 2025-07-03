@@ -84,7 +84,7 @@ model Subscription {
   planFrequency                    PlanFrequency?
   planEndDate                      DateTime // default 1 year or 3 month
   purchaseValue                    Float            @default(0)
-  currency                         Currency         @default(usd)
+  currency                         Currency         @default(USD)
   pendingRequests                  Int              @default(200)
   pendingPocUnlockRequests         Int              @default(4400)
   pendingCompanySearchRequests     Int              @default(20)
@@ -105,7 +105,6 @@ enum PlanFrequency {
 }
 
 enum Currency {
-  usd
   USD
   INR
 }
