@@ -16,6 +16,7 @@ import { UnlockType, UnlockValue } from '@prisma/client';
 import { decrypt } from 'src/utils';
 import { validate as isUUID } from 'uuid';
 import { CompanyEventDto } from 'src/company/dto';
+import { RedisService } from 'src/redis/redis.service';
 @Injectable()
 export class UserService {
   constructor(
@@ -24,10 +25,11 @@ export class UserService {
     private readonly userDataService: UserDataService,
     private readonly sharedService: SharedService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) {}
+    private readonly redisService: RedisService,
+  ) { }
 
   async signOut(token: string) {
-    await this.cacheManager.del(token);
+    await this.redisService.del(token);
     return {
       message: 'Successfully logged out',
     };

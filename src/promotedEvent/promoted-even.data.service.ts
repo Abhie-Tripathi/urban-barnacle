@@ -42,7 +42,7 @@ export class PromotedEventsDataService {
     console.log({ iddWid });
 
     const widgetData = await this.prisma.widget.findMany({
-      where: { id: { in: iddWid.map((val) => val.id) } },
+      where: { id: { in: iddWid.map((val) => val.id) }, deleted: false },
       select: {
         type: true,
         templatePublicId: true,

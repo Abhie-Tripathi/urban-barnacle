@@ -1200,3 +1200,245 @@ export const inviteUserEmailTemplate = `<!DOCTYPE html>
 </body>
 </html>
 `
+
+export const demoContactEmailTemplate: string = ` <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>Contact Form - whr.ai</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f4;
+                padding: 20px;
+              }
+              .container {
+                max-width: 500px;
+                margin: 0 auto;
+                background: #fff;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+              }
+              h2 {
+                text-align: center;
+                color: #333;
+              }
+              .field {
+                margin-bottom: 15px;
+              }
+              .label {
+                font-weight: bold;
+              }
+              .value {
+                margin-left: 5px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h2>Demo Form Submission For {Source}</h2>
+              <div class="field">
+                <span class="label">First Name:</span>
+                <span class="value">{firstName}</span>
+              </div>
+              <div class="field">
+                <span class="label">Last Name:</span>
+                <span class="value">{lastName}</span>
+              </div>
+              <div class="field">
+                <span class="label">Email:</span>
+                <span class="value">{email}</span>
+              </div>
+              <div class="field">
+                <span class="label">Company Name:</span>
+                <span class="value">{companyName}</span>
+              </div>
+              <div class="field">
+                <span class="label">Job Title</span>
+                <span class="value">{jobTitle}</span>
+              </div>
+              <div class="field">
+                <span class="label">Phone Number</span>
+                <span class="value">{phoneNumber}</span>
+              </div>
+              </div>
+                <div class="field">
+                <span class="label">Source:</span>
+                <span class="value">{Source}</span>
+              </div>
+            </div>
+          </body>
+        </html>`
+
+export const contactUsEmailTemplate: string = `<!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>Contact Form - whr.ai</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f4;
+                padding: 20px;
+              }
+              .container {
+                max-width: 500px;
+                margin: 0 auto;
+                background: #fff;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+              }
+              h2 {
+                text-align: center;
+                color: #333;
+              }
+              .field {
+                margin-bottom: 15px;
+              }
+              .label {
+                font-weight: bold;
+              }
+              .value {
+                margin-left: 5px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h2>Demo Form Submission For {Source}</h2>
+              <div class="field">
+                <span class="label">First Name:</span>
+                <span class="value">{firstName}</span>
+              </div>
+              <div class="field">
+                <span class="label">Last Name:</span>
+                <span class="value">{lastName}</span>
+              </div>
+              <div class="field">
+                <span class="label">Email:</span>
+                <span class="value">{email}</span>
+              </div>
+              <div class="field">
+                <span class="label">Message:</span>
+                <span class="value">{message}</span>
+              </div>
+                <div class="field">
+                <span class="label">Source:</span>
+                <span class="value">{Source}</span>
+              </div>
+          </body>
+        </html>`
+
+
+export const contactApiLimitReachedTemplate: string = `
+        <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Contact Limit Reached - Admin Alert</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f2f2f2; padding: 30px;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 6px; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
+    <tr>
+      <td style="padding: 24px;">
+        <h2 style="color: #d9534f;">⚠️ Contact Limit Reached</h2>
+        <p style="color: #333333; font-size: 15px;">
+          Hello Admin,
+        </p>
+        <p style="color: #333333; font-size: 15px;">
+          A contact submission limit has been reached in the system. Please review the details below:
+        </p>
+
+        <table cellpadding="8" cellspacing="0" width="100%" style="background-color: #f9f9f9; border: 1px solid #ddd; margin: 20px 0; border-radius: 4px;">
+          <tr>
+            <td><strong>User Name:</strong></td>
+            <td>{name}<td>
+          </tr>
+        <tr>
+            <td><strong>User Email:</strong></td>
+            <td>{email}<td>
+          </tr>
+          <tr>
+            <td><strong>User Submissions Today:</strong></td>
+            <td>{userLimit} / 5 allowed</td>
+          </tr>
+          <tr>
+            <td><strong>Global Submissions Today:</strong></td>
+            <td>{dailyLimit} / 500 allowed</td>
+          </tr>
+          <tr>
+            <td><strong>Date:</strong></td>
+            <td>{time}</td>
+          </tr>
+        </table>
+
+        <p style="color: #333333; font-size: 15px;">
+          No further contact submissions will be processed today for this user or globally, depending on the limit hit.
+        </p>
+
+        <p style="color: #333333; font-size: 15px;">
+          You can monitor or adjust limits in the admin panel if necessary.
+        </p>
+
+        <p style="color: #666666; font-size: 13px;">
+          — System Notification
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`
+export const exportCompleteMailTemplate: string =
+  `<!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  </head>
+  <body>
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Export Event Data</h2>
+      <p>Dear {firstName} {lastName},</p>
+      <p>Thank you for your request to export event data. Please find the download button below to retrieve your requested data:</p>
+      <p><a href='{redirectLink}' style="display: inline-block; background-color: #007bff; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 5px;">Download Data</a></p>
+      <p>If you have any questions or need further assistance, feel free to contact us.</p>
+      <p>Best regards,<br>
+        Whr.ai<br>
+        help@whr.ai<br>
+        <a href="https://whr.ai/">Whr.ai</a></p>
+        <hr>
+        <p><em>Note:</em> This is an automated email, please do not reply directly to this message.</p>
+    </div>
+  </body>
+  </html>
+  `;
+
+export const exportFailMailTemplate: string =
+  `<!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Export Data Request Failed</h2>
+        <p>Dear {firstName} {lastName},</p>
+        <p>We regret to inform you that your request to export event data has failed. Please try again later. We apologize for any inconvenience this may have caused.</p>
+        <p>If the issue persists or if you need further assistance, please don't hesitate to contact us.</p>
+         <p>Best regards,<br>
+        Whr.ai<br>
+        help@whr.ai<br>
+        <a href="https://whr.ai/">Whr.ai</a></p>
+        <hr>
+        <p><em>Note:</em> This is an automated email, please do not reply directly to this message.</p>
+      </div>
+    </body>
+    </html>
+    `;

@@ -7,7 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 import { SharedModule } from './shared/shared.module';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 import { RequestLoggingMiddleware } from './request-logging.middleware';
 // import { LoggingMiddleware } from './logging.interceptor';
 import { PromotedEventsModule } from './promotedEvent/promoted-event.module';
@@ -37,11 +37,12 @@ import { AfterResponseInterceptor } from './after-response.interceptor';
 import { PublicApiModule } from './public-api/public-api.module';
 import { CompaniesModule } from './company/company.module';
 import { OthersModule } from './others/others.module';
-import { DemoContactWorkerClass } from './communication/bull-service/bull-demoContact.service';
 import { ErrorWorkerClass } from './communication/bull-service/bull-errorMessage.service';
 import { GlobalResponseInterceptor } from './global-response.interceptor';
 import { CommunicationService } from './communication/communication.service';
-
+import { ContactWorkerClass } from './communication/bull-service/bull-contact.service';
+import { ExportWorkerClass } from './communication/bull-service/bull-export.service';
+import { RedisModule } from './redis/redis.module';
 @Module({
   imports: [
     // ConfigModule to manage environment variables
@@ -58,17 +59,27 @@ import { CommunicationService } from './communication/communication.service';
 
     // PrismaModule for database handling
     PrismaModule,
-
+    RedisModule,
     // CacheModule for Redis-based caching
     CacheModule.register({
-      store: redisStore,
-      socket: {
-        host: '0.0.0.0',
-        port: process.env.REDIS_PORT,
-      },
       isGlobal: true,
-      password: process.env.REDIS_PASSWORD,
-      no_ready_check: false,
+      useFactory: async () => ({
+        store: await redisStore({
+          socket: {
+            host: process.env.REDIS_HOST || '0.0.0.0',
+            port: parseInt(process.env.REDIS_PORT || '6379'),
+            tls:
+              process.env.NODE_ENV &&
+              process.env.NODE_ENV.toLowerCase() === 'production'
+                ? true
+                : false,
+          },
+          ...(process.env.NODE_ENV &&
+          process.env.NODE_ENV.toLowerCase() !== 'production'
+            ? { password: process.env.REDIS_PASSWORD }
+            : {}),
+        }),
+      }),
     }),
 
     // Other application modules
@@ -93,7 +104,8 @@ import { CommunicationService } from './communication/communication.service';
     CommunicationModule,
     IntendModule,
     PublicApiModule,
-    OthersModule
+    OthersModule,
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [
@@ -106,8 +118,9 @@ import { CommunicationService } from './communication/communication.service';
     IntendWorkerClass,
     InvitationWorkerClass,
     AfterResponseInterceptor,
-    DemoContactWorkerClass,
     ErrorWorkerClass,
+    ContactWorkerClass,
+    ExportWorkerClass
     // CommunicationService,
   ],
 })

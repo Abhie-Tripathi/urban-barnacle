@@ -14,6 +14,7 @@ import {
   PocsUnmaskDto,
   QueryDto,
   QueryHttpDto,
+  SimilarEventsDto,
   SortingDto,
   View,
 } from './dto';
@@ -123,7 +124,22 @@ export class EventsController {
       };
     }
   }
-
+  @UseGuards(AuthGuard)
+  @Get('similar')
+  async getSimilarEvents(@Query() query: SimilarEventsDto) {
+    try {
+      let queryDto = {
+        ...(query),
+        showValues: 'basic,advance,insights,audience',
+      } as any;
+      const events = await this.eventsService.getSimilarEvents(queryDto);
+      return { data: events };
+    } catch (error) {
+      return {
+        error,
+      };
+    }
+  }
   @UseGuards(AuthGuard)
   @Get('/trends')
   async getEventsTrends(@Query() query: EventsTrendsDto) {
