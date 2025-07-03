@@ -59,6 +59,7 @@ export function decrypt(encryptedText: string, key: string = KEY): string {
 export interface TrackerIntelScoreJson {
   trackerId: string
   keywords: '<100' | '>100',
-  createdAt: string, status: 'pending' | 'processing' | 'failed' | 'complete'
+  createdAt: string, status: 'pending' | 'processing' | 'failed' | 'complete',
+  updateAt?: string
   , user: any
 }
