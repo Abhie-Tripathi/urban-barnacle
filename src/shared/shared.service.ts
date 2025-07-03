@@ -26,7 +26,7 @@ import {
 
 import * as turf from 'turf';
 import { ProspectSchemaDto } from './shared.dto';
-import { decrypt, encrypt } from 'src/utils';
+import { decrypt, encrypt, REDIS_TTL } from 'src/utils';
 import { PointColumn } from './types';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { EventDataDto } from 'src/events/dto';
@@ -48,7 +48,7 @@ export class SharedService {
 
   async signToken(user: SelectedUserDetails, token: string) {
     const tokenData: TCachedUser = { ...user, token };
-    await this.redisService.set(`user-${token}`, JSON.stringify(tokenData), 1000 * 60 * 60 * 24 * 365);
+    await this.redisService.set(`user-${token}`, JSON.stringify(tokenData), REDIS_TTL);
     return token;
   }
 

@@ -598,8 +598,8 @@ export class AccountService {
 
     return { [key]: configuration ? configuration[key] : [] };
   }
-  async updateAccountMembership(user: TCachedUser, data: MembershipDto) {
-    return await this.accountDataService.updateAccountMembership(user, data);
+  async updateAccountMembership(user: TCachedUser, data: MembershipDto, requestToken: string) {
+    return await this.accountDataService.updateAccountMembership(user, data,requestToken);
   }
   async createMembershipToken(user: TCachedUser) {
     return this.accountDataService.createMembershipToken(user);

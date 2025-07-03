@@ -92,7 +92,6 @@ model Subscription {
   accountId                        String?          @db.Uuid
   createdAt                        DateTime         @default(now())
   updatedAt                        DateTime         @updatedAt
-  currency_enum                    Currency?
   account                          Account?         @relation(fields: [accountId], references: [id])
 }
 

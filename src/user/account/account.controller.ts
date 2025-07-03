@@ -2,11 +2,14 @@ import {
   Body,
   Controller,
   Get,
+  HttpException,
+  HttpStatus,
   Param,
   Patch,
   Post,
   Put,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { AccountService } from './account.service';
@@ -15,6 +18,7 @@ import { GetUser } from '../decorator';
 import { TCachedUser } from 'src/utils/types';
 import { GetEnquiriesDto, GetEnquiriesHttpDto } from 'src/enquiry/dto';
 import { GetUserHttpDto } from '../dto';
+import { FastifyRequest } from 'fastify';
 import {
   AccountConfigDto,
   FilterConfigurationDto,
@@ -60,7 +64,7 @@ export class AccountController {
   ) {
     try {
       const showValues = 'basic,advance,insights,audience';
-      const events = await this.accountService.getSavedEvent(user, query,showValues);
+      const events = await this.accountService.getSavedEvent(user, query, showValues);
       return { data: events };
     } catch (error) {
       return { error: error };
@@ -194,11 +198,23 @@ export class AccountController {
   async updateAccountMembership(
     @GetUser() user: TCachedUser,
     @Body() data: MembershipDto,
+    @Req() req: FastifyRequest
   ) {
     try {
+      const key = (process.env.COOKIE_PREFIX ? `${process.env.COOKIE_PREFIX}-` : '') + 'token';
+      // const requestToken = request.unsignCookie[key];
+      const signedCookie = req.cookies[key];
+      if (!signedCookie) {
+        return null;
+      }
+      const requestToken: string | null = req.unsignCookie(signedCookie).value;
+      if (!requestToken) {
+        throw new HttpException(`cookie not found`, HttpStatus.NOT_FOUND);
+      }
       const configuration = await this.accountService.updateAccountMembership(
         user,
         data,
+        requestToken
       );
       return { data: configuration };
     } catch (error) {

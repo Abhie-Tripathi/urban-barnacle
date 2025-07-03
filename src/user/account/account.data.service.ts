@@ -7,23 +7,25 @@ import {
   UpdateAccountDto,
   UpdateSubscriptionDto,
 } from './dto';
-import { Prisma, SubscriptionPlan } from '@prisma/client';
+import { PlanFrequency, Prisma, SubscriptionPlan } from '@prisma/client';
 import {
   accountConfig,
   AccountConfigDto,
   MembershipDto,
 } from './account.config';
-import { TCachedUser } from 'src/utils/types';
+import { membershipMapForToken, TCachedUser } from 'src/utils/types';
 import { InputJsonObject, JsonArray } from '@prisma/client/runtime/library';
 import { getNameFromEmail } from 'src/utils';
 import { createHash, randomInt, randomUUID } from 'crypto';
 import { EventsService } from 'src/events/events.service';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class AccountDataService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventService: EventsService,
+    private readonly redisService: RedisService,
   ) { }
   async createSubscription(data: CreateSubscriptionDto) {
     const subscription = await this.prisma.subscription.create({
@@ -129,21 +131,31 @@ export class AccountDataService {
     });
     return account;
   }
-  async updateAccountMembership(user: TCachedUser, data: MembershipDto) {
+  async updateAccountMembership(user: TCachedUser, data: MembershipDto, requestToken: string) {
     // return await this.prisma.
-    const checkForToken = await this.prisma.verification.findFirst({
+    const [checkForToken, checkPaymentInfo, checkForDuplicatePaymentId] = await Promise.all([this.prisma.verification.findFirst({
       where: {
         userId: user.id,
       },
       select: {
         passkey: true,
       },
-    });
+    }),
+    this.getPaymentInfoById(data.paymentId),
+    this.prisma.$queryRaw<{ count_record: number }[]>(Prisma.raw(`SELECT count(*) count_record FROM "Subscription"
+WHERE ("planMetaData"->'paymentData'->>'id') = '${data.paymentId || -1}';
+`))]);
+    if (Number(checkForDuplicatePaymentId[0].count_record > 0)) {
+      throw new HttpException(`Invalid payment`, HttpStatus.NOT_FOUND);
+    }
     if (!checkForToken) {
       throw new HttpException(`token not found`, HttpStatus.NOT_FOUND);
     }
     if (data.token !== checkForToken.passkey) {
       throw new HttpException(`Invalid token`, HttpStatus.NOT_FOUND);
+    }
+    if (data.paymentId && !checkPaymentInfo) {
+      throw new HttpException(`Invalid payment`, HttpStatus.NOT_FOUND);
     }
     await this.prisma.verification.update({
       where: {
@@ -153,19 +165,63 @@ export class AccountDataService {
         passkey: '' + Math.random(),
       },
     });
-    return await this.prisma.subscription.update({
-      where: {
-        id: user.currentSubscriptionId,
-      },
+
+    const create = await this.prisma.subscription.create({
       data: {
+        accountId: user.accountId,
         plan: data.plan,
         planStartDate: new Date(data.startDate),
         planEndDate: new Date(data.endDate),
+        planMetaData: { paymentData: checkPaymentInfo, userData: user },
+        currency: data.planPurchaseCurrency,
+        purchaseValue: data.planPurchaseValue,
+        planFrequency: data.planFrequency,
+        planRenewalDate: data.planFrequency ? this.calculateNextDate(data.planFrequency) : undefined,
+        ...membershipMapForToken[data.plan]
       },
       select: {
         plan: true,
+        id: true,
+        planStartDate: true,
+        planEndDate: true,
+        currency: true,
+        purchaseValue: true,
+        planFrequency: true,
+        planRenewalDate: true,
       },
     });
+    const getDataOfcurrentUserFromRedis = await this.redisService.get(`user-${requestToken}`);
+    // console.log(getDataOfcurrentUserFromRedis, requestToken);
+    if (!getDataOfcurrentUserFromRedis) {
+      throw new HttpException(`user not found`, HttpStatus.NOT_FOUND);
+    }
+    const userData: TCachedUser = JSON.parse(getDataOfcurrentUserFromRedis);
+    userData.currentSubscriptionId = create.id;
+    // console.log("newUserCookie", userData);
+    await Promise.all([this.redisService.updatePreservingTTL(`user-${requestToken}`, JSON.stringify(userData)),
+    this.prisma.account.update({
+      where: {
+        id: user.accountId
+      },
+      data: {
+        currentSubscriptionId: create.id
+      }
+    })
+    ]);
+    return create;
+  }
+  calculateNextDate(frequency: PlanFrequency, fromDate = new Date()): Date {
+    const planFrequency: object = {
+      MONTHLY: 1,
+      BIMONTHLY: 2,
+      QUARTERLY: 3,
+      SEMIANNUAL: 6,
+      ANNUALLY: 12
+    }
+    const monthsToAdd = planFrequency[frequency];
+    const newDate = new Date(fromDate);
+    newDate.setMonth(newDate.getMonth() + monthsToAdd);
+    return newDate;
   }
   async addAccountUser(accountId: string, userId: string) {
     const account = await this.prisma.account.update({
@@ -279,5 +335,27 @@ export class AccountDataService {
         },
       }
       : {};
+  }
+  async getPaymentInfoById(paymentId: String | undefined) {
+    if (!paymentId) {
+      return null;
+    }
+    let url =
+      (process.env.PAYMENT_BASE_URL || '') +
+      `v1/payment_intents/${paymentId}`;
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${process.env.PAYMENT_TOKEN}`,
+      },
+    });
+    const data = await response.json();
+    if (data['error']) {
+      // console.log(JSON.stringify(data));
+
+      throw new HttpException('payment not found', HttpStatus.BAD_REQUEST);
+    }
+    // console.log(data);
+    return data;
   }
 }
