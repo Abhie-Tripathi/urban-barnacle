@@ -2,6 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTrackerDto, GetTrackersDto, UpdateTrackerDto } from './dto';
 import {
+  ExportSubSource,
   Prisma,
   PrismaClient,
   Tracker,
@@ -10,14 +11,19 @@ import {
 } from '@prisma/client';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { ConfigService } from '@nestjs/config';
-import { TCachedUser, TrackerTypes } from 'src/utils/types';
+import { QueueActionOptions, TCachedUser, TrackerTypes } from 'src/utils/types';
+import { CommunicationService } from '../communication/communication.service';
+import { trackerExportDto } from 'src/communication/bull.dto';
+import { LimitDto } from 'src/global_dto';
 
 @Injectable()
 export class TrackerDataService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly communicationService: CommunicationService
+    ,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const tracker = await this.prisma.tracker.create({
@@ -229,12 +235,23 @@ export class TrackerDataService {
     const queryParams = new URLSearchParams(
       params as unknown as Record<string, any>,
     );
-    const url =
+    let url =
       this.configService.get('MICROSERVICE_URL') +
-      microserviceEndpoints.events.trackerIntelScore +
-      '?' +
-      queryParams.toString();
-    const response = await fetch(url);
+      microserviceEndpoints.events.trackerIntelScore;
+    console.log(url);
+    let req: any = {};
+    if (JSON.stringify(params).length > 500) {
+      req = {
+        method: 'POST',
+        body: JSON.stringify(this.convertArrayValuesToStrings(params)),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      };
+    } else {
+      url += '?' + queryParams.toString();
+    }
+    const response = await fetch(url,req);
     const data = await response.json();
     // console.dir(data, { depth: null });
     if (data['error']) {
@@ -269,7 +286,7 @@ export class TrackerDataService {
     limit: number,
     offset: number,
   ) {
-    return await this.prisma.$queryRaw<
+    return await Promise.all([this.prisma.$queryRaw<
       {
         sourceId: string;
         count: number;
@@ -287,6 +304,108 @@ where
     and "createdAt"::DATE = now()::DATE
     ORDER BY score desc
     limit ${limit} Offset ${offset};`),
-    );
+    ), this.prisma.$queryRaw<
+      {
+        count: number;
+      }[]
+    >(
+      Prisma.raw(`
+  SELECT count(*)
+FROM "SimilarEventsToTracker"
+where
+    "trackerId" = '${trackerId}'
+    and "createdAt"::DATE = now()::DATE;`),
+    )]);
+  }
+  async createExport(data: {
+    exportOf: ExportSubSource;
+    inputData: any;
+    trackerId: string;
+  }, user: TCachedUser) {
+    return await this.prisma.export.create({
+      data: {
+        userId: user.id,
+        accountId: user.accountId,
+        exportFileType: 'EXCEL',
+        exportOf: data.exportOf,
+        inputData: data.inputData,
+        source: 'TRACKER',
+        sourceId: data.trackerId,
+        status: 'PENDING',
+      },
+      select: {
+        id: true
+      }
+    })
+  }
+  async getTrackerExport(trackerId: string, user: TCachedUser, query: LimitDto) {
+    return {
+      trackerExports: await this.prisma.export.findMany({
+        where: {
+          source: 'TRACKER',
+          sourceId: trackerId,
+          deleted: false
+        }, select: {
+          id: true,
+          fileSize: true,
+          fileUrl: true,
+          exportOf: true,
+          createdAt: true,
+          status: true,
+          source: true,
+          sourceId: true,
+          user: {
+            select: {
+              firstname: true,
+              lastname: true,
+            }
+          }
+        },
+        take: query.limit,
+        skip: query.offset,
+        orderBy: { createdAt: 'desc' }
+      })
+    }
+  }
+  async getTrackerExportCount(trackerId: string, user: TCachedUser, query: LimitDto) {
+    return {
+      count: await this.prisma.export.count({
+        where: {
+          source: 'TRACKER',
+          sourceId: trackerId,
+          deleted: false
+        },
+      })
+    }
+  }
+  async createTrackerExportJob(
+    body: trackerExportDto, userId: string
+  ) {
+    return await this.communicationService.createJobForBull(QueueActionOptions.SEND_TRACKER_EXPORT_MAIL, body, userId);
+  }
+  async deleteTrackerExport(exportId: string) {
+    return await this.prisma.export.update({
+      where: {
+        id: exportId
+      },
+      data: {
+        deleted: true
+      }
+    })
+  }
+  convertArrayValuesToStrings(obj) {
+    const result = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (Array.isArray(value)) {
+        // if (key === 'eventTypes') {
+
+        //     result[key] = value.map(id => eventTypeDataIdToSlug[id].slug).join(',');
+        // } else
+        result[key] = value.join(',');
+      } else {
+        result[key] = value + '';
+      }
+    }
+    return result;
   }
 }
