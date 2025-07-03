@@ -564,6 +564,7 @@ export class AccountService {
         );
       }
       const uniqueStatus = new Set();
+      const uniqueLabel = new Set();
       interestConfig.forEach((item) => {
         if (uniqueStatus.has(item.status)) {
           throw new HttpException(
@@ -571,6 +572,13 @@ export class AccountService {
             HttpStatus.BAD_REQUEST,
           );
         }
+        if (uniqueLabel.has(item.label.toLowerCase())) {
+          throw new HttpException(
+            'Same label must not be repeated',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+        uniqueLabel.add(item.label.toLowerCase());
         uniqueStatus.add(item.status);
       });
       config['interest'] = interestConfig;
@@ -583,6 +591,7 @@ export class AccountService {
         );
       }
       const uniqueStatus = new Set();
+      const uniqueLabel = new Set();
       outreachConfig.forEach((item) => {
         if (uniqueStatus.has(item.status)) {
           throw new HttpException(
@@ -590,6 +599,13 @@ export class AccountService {
             HttpStatus.BAD_REQUEST,
           );
         }
+        if (uniqueLabel.has(item.label.toLowerCase())) {
+          throw new HttpException(
+            'Same label must not be repeated',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+        uniqueLabel.add(item.label.toLowerCase());
         uniqueStatus.add(item.status);
       });
       config['outreach'] = outreachConfig;
