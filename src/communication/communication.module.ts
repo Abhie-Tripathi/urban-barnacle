@@ -41,11 +41,17 @@ import { EmailService } from './email/email.service';
     BullModule.registerQueue({
       name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}demoContactProcessor}`,
     }),
+    // BullModule.registerQueue({
+    //   name: 'demoContactProcessor',
+    // }),
     BullModule.registerQueue({
       name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}errorProcessor}`,
     }),
     BullModule.registerQueue({
       name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`,
+    }),
+    BullModule.registerQueue({
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}contactProcessor}`,
     }),
   ],
   providers: [
