@@ -101,8 +101,8 @@ export class EventsDataService {
     }
     const response = await fetch(url, req);
     const result = await response.json();
-    console.error(result);
-    console.log(result);
+    // console.error(result);
+    // console.log(result);
     if (result.statusCode) {
       throw result;
     }
@@ -566,9 +566,9 @@ export class EventsDataService {
       microserviceEndpoints.events.similarEvents;
     let req: any = {};
     console.log({
-      lenght: JSON.stringify(query).length > 10,
-      val: JSON.stringify(query),
-      que: queryParams.toString(),
+      // lenght: JSON.stringify(query).length > 10,
+      query,
+      // queryParams,
     });
 
     if (JSON.stringify(query).length > 1000) {

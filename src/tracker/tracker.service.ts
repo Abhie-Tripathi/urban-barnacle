@@ -69,6 +69,37 @@ export class TrackerService {
     private readonly redisService: RedisService,
   ) {}
 
+  async filterValueRestriction(filterValue: QueryDto) {
+    if (filterValue.locationIds) {
+      const locationData = await this.sharedService.getLocationData(
+        filterValue.locationIds,
+      );
+      for (const location of locationData['formattedLocations']) {
+        if (location.locationType === 'STATE') {
+          throw new HttpException(
+            'filter not allowed for state',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
+    }
+    // console.log({ filterValue });
+
+    const allowedFilters = [
+      'locationIds',
+      'categories',
+      'active_gte',
+      'active_lte',
+      'eventTypes',
+      'eventIds',
+    ];
+    Object.keys(filterValue).forEach((val) => {
+      if (!allowedFilters.includes(val)) {
+        throw new HttpException('filter not allowed', HttpStatus.BAD_REQUEST);
+      }
+    });
+  }
+
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const nonEmptyParams = getNonEmptyParams(data.filterValues);
     let convertedParams = {};
@@ -86,21 +117,22 @@ export class TrackerService {
       data.filterValues.eventIds &&
       data.filterValues.eventIds.length > 0
     ) {
-      [convertedParams, eventInfo] = await Promise.all([
+      [convertedParams] = await Promise.all([
         this.sharedService.convertSlugParamsToIds(nonEmptyParams, true, false),
-        this.eventService.getAllEvents({
-          eventIds: data.filterValues.eventIds,
-          view: View.list,
-          limit: data.filterValues.eventIds.length,
-          offset: 0,
-          showValues: 'basic',
-        }) as unknown as { count: number; events: { basic: object }[] },
+        // this.eventService.getAllEvents({
+        //   eventIds: data.filterValues.eventIds,
+        //   view: View.list,
+        //   limit: data.filterValues.eventIds.length,
+        //   offset: 0,
+        //   showValues: 'basic',
+        // }) as unknown as { count: number; events: { basic: object }[] },
+        this.filterValueRestriction(nonEmptyParams as any),
       ]);
-      convertedParams['eventIdsFilter'] = eventInfo.events.map((val) => {
-        return {
-          [val.basic['id']]: val,
-        };
-      });
+      // convertedParams['eventIdsFilter'] = eventInfo.events.map((val) => {
+      //   return {
+      //     [val.basic['id']]: val,
+      //   };
+      // });
     }
     const tracker = await this.trackerDataService.createTracker(user, {
       ...data,
@@ -130,12 +162,15 @@ export class TrackerService {
     }
     return tracker;
   }
-
   async getTrackerResponse(
     user: TCachedUser,
     tracker: Tracker & { createdByUser: User; modifiedByUser: User },
     query: GetTrackerByIdDto,
   ) {
+    let eventInfo: { count: number; events: { basic: object }[] } = {
+      count: 0,
+      events: [],
+    };
     const lastActive = await this.lastActive(
       user,
       tracker.id,
@@ -161,17 +196,24 @@ export class TrackerService {
               : tracker.type === 'T_EVENT_PARTICIPATION'
                 ? 'event'
                 : undefined;
-    if (searchByEntity && searchByEntity === 'event') {
-      // tracker.filterValues['eventIds'] = [];
-      await this.trackerDataService.bulkDeleteToSimilarTrackerEvent(tracker.id);
-    }
     tracker.filterValues = tracker.filterValues
       ? {
-        ...(tracker.filterValues as Record<string, any>),
-        searchByEntity,
-      }
+          ...(tracker.filterValues as Record<string, any>),
+          searchByEntity,
+        }
       : { searchByEntity };
-
+    if (searchByEntity && searchByEntity === 'event') {
+      // tracker.filterValues['eventIds'] = [];
+      [eventInfo] = await Promise.all([
+        this.eventService.getAllEvents({
+          eventIds: (tracker.filterValues as any).eventIds,
+          view: View.list,
+          limit: (tracker.filterValues as any).eventIds.length,
+          offset: 0,
+          showValues: 'basic',
+        }) as unknown as { count: number; events: { basic: object }[] },
+      ]);
+    }
     const savedEventsCount =
       await this.intentDataService.getUserEventInterestCount({
         interest: ['BOOKMARK'],
@@ -215,6 +257,12 @@ export class TrackerService {
             this.configService.get('BACKEND') &&
             this.configService.get('BACKEND').toLowerCase() === 'gtm'
           ) {
+            if (searchByEntity && searchByEntity === 'event') {
+              // tracker.filterValues['eventIds'] = [];
+              await this.trackerDataService.bulkDeleteToSimilarTrackerEvent(
+                tracker.id,
+              );
+            }
             const similarEventCache = {
               ...groupedEventsCount!['similarEventCache'],
             };
@@ -305,6 +353,13 @@ export class TrackerService {
         }),
         82800000,
       );
+    }
+    if (eventInfo.events && eventInfo.events.length > 0 && filterValues) {
+      filterValues['eventIdsFilter'] = eventInfo.events.map((val) => {
+        return {
+          [val.basic['id']]: val,
+        };
+      });
     }
     // console.log(tracker.createdByUser);
 
@@ -524,12 +579,18 @@ export class TrackerService {
       );
       updateParams['filterValues'] = convertedParams;
     }
+
+    if (tracker.type === 'T_EVENT_PARTICIPATION') {
+      const [convertedParams] = await Promise.all([
+        this.filterValueRestriction(updateParams['filterValues'] as any),
+      ]);
+    }
     const updatedTracker = await this.trackerDataService.updateTracker(
       user,
       updateParams,
     );
     try {
-      this.getIntelScoreForUpdate(trackerId, user);
+      await this.getIntelScoreForUpdate(trackerId, user);
     } catch (error) {}
     this.getTrackerResponse(
       user,
@@ -560,7 +621,7 @@ export class TrackerService {
     if (addJobs && !Array.isArray(addJobs)) {
       addJobs = !Array.isArray(addJobs) ? JSON.parse(addJobs) : addJobs;
     }
-    addJobs.filter((val) => val !== trackerId);
+    addJobs = addJobs.filter((val) => val !== trackerId);
     await this.redisService.set(
       `tracker-IntelScore-Jobs24`,
       JSON.stringify([...new Set(addJobs)]),
@@ -584,6 +645,7 @@ export class TrackerService {
         'SUPER_ADMIN',
         'USER',
       ]);
+      console.log(tracker);
       const newParams = getNonEmptyParams(params);
       const convertedParams = await this.sharedService.convertSlugParamsToIds(
         newParams,
@@ -620,6 +682,9 @@ export class TrackerService {
                 : tracker.type === 'T_EVENT_PARTICIPATION'
                   ? 'event'
                   : undefined;
+      if (tracker.type === 'T_EVENT_PARTICIPATION') {
+        throw new HttpException('Invalid tracker type', HttpStatus.BAD_REQUEST);
+      }
       if (
         searchByEntity &&
         searchByEntity === 'event' &&
@@ -1419,6 +1484,8 @@ export class TrackerService {
         'SUPER_ADMIN',
         'USER',
       ]);
+      console.log(tracker);
+
       const newParams = getNonEmptyParams(params);
       const convertedParams = await this.sharedService.convertSlugParamsToIds(
         newParams,
@@ -1467,14 +1534,20 @@ export class TrackerService {
         trackerId: trackerId,
         showValues: showValues,
       };
-      const [dataFromDB, countFromDB] = await this.trackerDataService.getSimilarTrackerEvent(
-        trackerId,
-        eventParams['trackerEventStatus'] ? [(eventParams['trackerEventStatus']?.toUpperCase() as TrackerTypeTag)] :
-          ['NEW', 'ACTIVE', 'PAST'],
-        1000,
-        0,
-      );
-      const countSimilarEventFromDB = Number(countFromDB[0].count)
+      const [dataFromDB, countFromDB] =
+        await this.trackerDataService.getSimilarTrackerEvent(
+          trackerId,
+          eventParams['trackerEventStatus']
+            ? [
+                eventParams[
+                  'trackerEventStatus'
+                ]?.toUpperCase() as TrackerTypeTag,
+              ]
+            : ['NEW', 'ACTIVE', 'PAST'],
+          1000,
+          0,
+        );
+      const countSimilarEventFromDB = Number(countFromDB[0].count);
       // console.log({ dataFromDB: countSimilarEventFromDB });
 
       if (countSimilarEventFromDB > 0) {
@@ -1609,15 +1682,24 @@ export class TrackerService {
         ...convertedParams,
         trackerId: trackerId,
       } as CountQueryDto;
-      const [dataFromDB, countFromDB] = await this.trackerDataService.getSimilarTrackerEvent(
-        trackerId,
-        eventParams['trackerEventStatus'] ? [(eventParams['trackerEventStatus']?.toUpperCase() as TrackerTypeTag)] :
-          ['NEW', 'ACTIVE', 'PAST'],
-        1000,
-        0,
+      const [dataFromDB, countFromDB] =
+        await this.trackerDataService.getSimilarTrackerEvent(
+          trackerId,
+          eventParams['trackerEventStatus']
+            ? [
+                eventParams[
+                  'trackerEventStatus'
+                ]?.toUpperCase() as TrackerTypeTag,
+              ]
+            : ['NEW', 'ACTIVE', 'PAST'],
+          1000,
+          0,
+        );
+      const countSimilarEventFromDB = Number(countFromDB[0].count);
+      console.log(
+        { dataFromDB: countSimilarEventFromDB },
+        countSimilarEventFromDB,
       );
-      const countSimilarEventFromDB = Number(countFromDB[0].count)
-      console.log({ dataFromDB: countSimilarEventFromDB }, countSimilarEventFromDB);
 
       if (searchByEntity) {
         eventParams['searchByEntity'] = searchByEntity;
@@ -1743,7 +1825,7 @@ export class TrackerService {
         const jobExist = trackerId;
         let queueJobs: any | null =
           await this.redisService.get(`IntelScore-JobQueue`);
-        console.log({ queueJobs });
+        // console.log({ queueJobs });
         if (!queueJobs) {
           queueJobs = [];
           await this.redisService.set(
@@ -2029,11 +2111,11 @@ export class TrackerService {
     getJsonForTrackerType = getJsonForTrackerType
       ? JSON.parse(getJsonForTrackerType.toString())[0]
       : getJsonForTrackerType;
-    console.log(
-      { getJsonForTrackerType: getJsonForTrackerType },
-      { jobsForIntelScore },
-      { data: await this.redisService.get(`${trackerId}-IntelScore-Job`) },
-    );
+    // console.log(
+    //   { getJsonForTrackerType: getJsonForTrackerType },
+    //   { jobsForIntelScore },
+    //   { data: await this.redisService.get(`${trackerId}-IntelScore-Job`) },
+    // );
 
     let jobExist: TrackerIntelScoreJson = {
       trackerId,
@@ -2045,7 +2127,7 @@ export class TrackerService {
     const createTemplate = await Promise.all([
       this.redisService.jsonSet(`${trackerId}-IntelScore-Job`, '$', jobExist),
     ]);
-    console.log({ getJsonForTrackerType, sadas: 'SAdfsa' });
+    // console.log({ getJsonForTrackerType, sadas: 'SAdfsa' });
     await this.fetchTrackerIntelScoreForCache(
       tracker,
       trackerId,
@@ -2177,7 +2259,7 @@ export class TrackerService {
         this.redisService.get('tracker-IntelScore-Jobs24'),
       ]);
 
-      console.log({ completedJobs });
+      // console.log({ completedJobs });
 
       if (!completedJobs) {
         completedJobs = [];
@@ -2222,7 +2304,7 @@ export class TrackerService {
         this.redisService.del(`${trackerId}-IntelScore-Job`),
       ]);
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       console.error(error);
       await this.redisService.del(`${trackerId}-IntelScore-Job`);
       await this.redisService.del(`${trackerId}-IntelScore`);
@@ -2343,7 +2425,7 @@ export class TrackerService {
         const jobExist = trackerId;
         let queueJobs: any | null =
           await this.redisService.get(`IntelScore-JobQueue`);
-        console.log({ queueJobs });
+        // console.log({ queueJobs });
         if (!queueJobs) {
           queueJobs = [];
           await this.redisService.set(
@@ -2437,7 +2519,7 @@ export class TrackerService {
       const createTemplate = await Promise.all([
         this.redisService.jsonSet(`${trackerId}-IntelScore-Job`, '$', jobExist),
       ]);
-      console.log({ getJsonForTrackerType, sadas: 'SAdfsa' });
+      // console.log({ getJsonForTrackerType, sadas: 'SAdfsa' });
       await this.fetchTrackerIntelScoreForCache(
         tracker,
         trackerId,

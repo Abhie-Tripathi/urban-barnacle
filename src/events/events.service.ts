@@ -91,7 +91,7 @@ export class EventsService {
       nonEmptyParams,
       validateIds,
     );
-    console.log({ convertedParams }, { nonEmptyParams });
+    // console.log({ convertedParams }, { nonEmptyParams });
     const fetchedEvents =
       await this.eventsDataService.getEvents(convertedParams);
     // console.log({ convertedParams }, { nonEmptyParams });
@@ -341,7 +341,7 @@ export class EventsService {
     const nonEmptyParams = getNonEmptyParams(query);
     const convertedParams = await this.sharedService.convertSlugParamsToIds(
       nonEmptyParams,
-      true,
+      false,
     );
     if (
       !nonEmptyParams.eventTypes ||

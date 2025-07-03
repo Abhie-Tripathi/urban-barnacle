@@ -90,7 +90,9 @@ export class SharedService {
     validateIds: boolean = true,
     transformViewBound = true,
   ) {
+     console.log(params);
     if (params.categories && params.categories.length > 0 && validateIds) {
+      console.log(params.categories);
       const categoriesSlug = params.categories as string[];
       const categories = (await this.suggestionService.getSuggestions(
         'categories',
@@ -590,80 +592,16 @@ export class SharedService {
       endDate: membership.planEndDate,
     };
   }
-}
-
-export interface Event {
-  id: string;
-  name: string;
-  status: string;
-  url: string;
-  entryType: string | null;
-  eventWebsite: string;
-  eventZone: string[];
-  audienceSpread: Record<string, unknown>;
-  audienceZone: string;
-  description: string;
-  createdAt: string;
-  location: {
-    cityId: string;
-    cityName: string;
-    countryId: string;
-    cityCordinates: {
-      longitude: string;
-      latitude: string;
-    };
-    countryCode: string;
-    countryName: string;
-    venueName: string;
-    venueAddress: string;
-    geoCordinates: {
-      longitude: string;
-      latitude: string;
-    };
-  };
-  stats: {
-    score: number;
-    eventFollower: number;
-    estimatedVisitor: string;
-  };
-  startDate: string;
-  endDate: string;
-  duration: string;
-  editionCount: number;
-  format: string;
-  type: string[];
-  categories: {
-    id: string;
-    name: string;
-    slug: string;
-    isGroup: boolean;
-  }[];
-  eventKeywords: string[];
-  organizer: {
-    id: string;
-    name: string;
-    website: string;
-    logo: string | null;
-    cityName: string;
-    countryName: string;
-    totalExhibit: number;
-    totalSponsor: number;
-    totalVisitor: number;
-    totalOrganize: number;
-  };
-  trackerIntelScore: number | null;
-  eventRank: number;
-  localRank: number;
-  'trustScore%': number;
-  logoUrl: string;
-  reputationSentiment: number;
-  interestsGrowth: number;
-  eventSize: string;
-  estimatedVisitorRangeTag: string;
-  'internationalAudience%': string;
-  ticketPriceLink: string | null;
-  matchedKeywords: string[];
-  keywordsMatchedScore: number;
+  async getLocationData(locationIds: string[]) {
+    const locations = (await this.suggestionService.getSuggestions(
+      'locations',
+      {
+        ids: locationIds,
+        limit: locationIds.length,
+      } as LocationDto,
+    )) as LocationResponseDto;
+    return locations;
+  }
 }
 
 export interface Country {
