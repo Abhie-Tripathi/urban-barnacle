@@ -58,6 +58,7 @@ export class AuthService {
 
   async signUp(data: SignUpDto) {
     const domain = data.email.split('@')[1];
+    let flag: boolean = false;
     // let nonBusinessFlag: Boolean = false;
     // if (blackListDomain.includes(domain)) {
     //   nonBusinessFlag = true;
@@ -117,6 +118,7 @@ export class AuthService {
             ? InterestDefaultConfigurationsWithIndustry[data.industry]
             : InterestDefaultConfigurations.interests,
         });
+        flag = true;
         const updateSubscription =
           await this.accountDataService.updateSubscription(
             { accountId: account.id },
@@ -128,6 +130,7 @@ export class AuthService {
             domain: domain,
             accountId: account.id,
           });
+          flag = true;
         }
 
         if (user) {
@@ -186,15 +189,13 @@ export class AuthService {
           );
         }
       }
-      this.createDefaultBrandKit(
-        {
+      if (flag)
+        this.createDefaultBrandKit({
           id: user.id,
           accountId: account.id,
           domain: domain,
-        },
-        blackListDomain.includes(domain),
-      );
-      this.authDataService.createVerificationToken(user, 'sign-up');
+        }, blackListDomain.includes(domain));
+      await this.authDataService.createVerificationToken(user, 'sign-up');
       return {
         message: 'otp sent successfully',
       };
