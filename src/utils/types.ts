@@ -332,6 +332,28 @@ export const membershipLimit: Record<number, number> = {
   30: 20000,
   40: 100000,
 };
+export const membershipMapForToken: Record<SubscriptionPlan, { pendingRequests: number, pendingCompanySearchRequests: number }> = {
+  BASIC: {
+    pendingCompanySearchRequests: 20,
+    pendingRequests: 200
+  },
+  ESSENTIAL: {
+    pendingCompanySearchRequests: 200,
+    pendingRequests: 200
+  },
+  SCALE: {
+    pendingCompanySearchRequests: 200,
+    pendingRequests: 200
+  },
+  ADVANCE: {
+    pendingCompanySearchRequests: 1000,
+    pendingRequests: 1000
+  },
+  ENTERPRISE: {
+    pendingCompanySearchRequests: 5000,
+    pendingRequests: 5000
+  },
+};
 // ["a4a3b8d9-e170-4972-8981-0282e58ccb45","e485cdd3-0e61-5f36-b896-aed7ba606697","0ba63d1a-eb97-4587-b1c7-6c79c2948256",1,0]
 
 // SELECT
