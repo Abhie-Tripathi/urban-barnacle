@@ -1346,6 +1346,7 @@ export class TrackerService {
       },
       {
         trackerName: tracker.name,
+        trackerType: tracker.type
       },
     );
 
