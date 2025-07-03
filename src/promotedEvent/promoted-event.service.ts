@@ -21,11 +21,10 @@ import { Interest, Prisma } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { PosterService } from './poster.service';
 import { FileCreationService } from 'src/shared/file-creation.service';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
 import { PromotedEventsDataService } from './promoted-even.data.service';
 import { fetchDatafromMicroService, postDatafromMicroService } from 'src/shared/microservice.api';
 import { unknown } from 'zod';
+import { IntentService } from 'src/intent/intent.service';
 @Injectable()
 export class PromotedEventsService {
   constructor(
@@ -33,6 +32,7 @@ export class PromotedEventsService {
     private configService: ConfigService,
     private readonly posterService: PosterService,
     private readonly fileCreate: FileCreationService,
+    private readonly intentService: IntentService
     // @InjectQueue('eventProcessor') private readonly eventCanelQueue: Queue,
   ) { }
 
@@ -185,7 +185,7 @@ export class PromotedEventsService {
       return word;
     });
     let flagForRule: boolean = true;
-    const whereConditions: string[] = [];
+    const whereConditions: string[] = [` "sourceModule"='COORDINATE' `];
     whereConditions.push(andWhere);
     // HAVING condition
     const havingClause = `   where   
@@ -195,7 +195,7 @@ export class PromotedEventsService {
         `;
     // whereLike = whereLike.replace(/^ OR /, '');
     // whereLikeSn = whereLikeSn.replace(/^ OR /, '');
-    if (flagForRule && content['name'] && content['name'].length > 0 && content['startDate'] && content['startDate'].length > 0) {
+    if (flagForRule && content['name'] && content['name'].length > 0 && !content['venueId'] && content['startDate'] && content['startDate'].length > 0) {
 
 
       whereConditions.push(`
@@ -264,8 +264,9 @@ FROM (
           (value['name']?.toLowerCase() === content.name.toLowerCase()) &&
           !eventRuleArray[value['name']]
         ) {
-          eventRuleArray[value['name']] = 1;
+          eventRuleArray[value['id']] = 1;
         }
+        console.log(eventRuleArray);
       }
 
       blockStatus = -1;
@@ -276,7 +277,7 @@ FROM (
 
 
       whereConditions.push(`
-        (e."name" = '${content.name}')
+        ("name" = '${content.name}')
       `);
 
       whereConditions.push(`(data->>'end_date')::DATE = '${content.endDate}'`);
@@ -342,7 +343,7 @@ FROM (
           (value['name']?.toLowerCase() === content.name.toLowerCase()) &&
           !eventRuleArray[value['name']]
         ) {
-          eventRuleArray[value['name']] = 2;
+          eventRuleArray[value['id']] = 2;
         }
       }
 
@@ -688,15 +689,16 @@ FROM (
     //       blockStatus = -6;
     //       rule = "6";
     //     }
+    console.log('origName=>>>>>>', origName,)
     if (origName && origName.length > 0 && content['venueId'] && content['startDate'] && content['startDate'].length > 0) {
-
+      console.log('origName=>>>>>>', origName,)
       whereConditions.push(`
-        (e."name" = '${content.name}')
+        ("name" = '${content.name}')
       `);
       whereConditions.push(`
-        (data->"venue_id" = '${content.venueId}')
+        (data->>'venue_id' = '${content.venueId}')
       `);
-      whereConditions.push(`data->"start_date"::DATE = '${content.startDate}'`);
+      whereConditions.push(`(data->>'start_date')::DATE = '${content.startDate}'`);
 
       // Exclude condition
       if (content.excludeEventIds) {
@@ -797,8 +799,28 @@ FROM (
       }
     }
     return {
-      blocked: blockedEvent
+      blocked: blockedEvent.length > 0 ? this.transformResult(blockedEvent) : []
     };
+  }
+  private transformResult(data: object[]) {
+    return data.map(val => {
+      const eventData = val['data'];
+      return {
+        id: val['id'],
+        "name": val['name'],
+        "startDate": eventData['start_date'],
+        "endDate": eventData['end_date'],
+        "venueName": eventData['venue_name'] || null,
+        "cityName": eventData['location_city'],
+        "state": eventData['location_state'],
+        "countryId": eventData['location_country_iso_code'],
+        "countryName": eventData['location_country'],
+        "companyName": null,
+        "eventType": eventData['event_type'].split(','),
+        rule: val['rule'],
+        isProductEvent: true
+      }
+    })
   }
   private deg2rad(deg: number): number {
     return deg * (Math.PI / 180);
@@ -842,7 +864,13 @@ FROM (
     return text.split('\n');
   }
   async checkDuplicateEvents(body: EventDuplicate_DTO, user: TCachedUser) {
-    const dataForBloack = await Promise.all([this.processEvent(body, user), postDatafromMicroService('findDuplicateEvent', { ...body, ...(body.excludeEventIds ? { excludeEventIds: body.excludeEventIds.replaceAll("','", ',') } : {}) })]);
+    const dataForBloack = await Promise.all([this.processEvent(body, user),
+    postDatafromMicroService('findDuplicateEvent',
+      {
+        ...body, ...(body.excludeEventIds ?
+          { excludeEventIds: body.excludeEventIds.replaceAll("','", ',') } : {})
+      })
+    ]);
     const localDbEventBlocked: object[] = dataForBloack[0].blocked;
     const duplicateEventFrom10times: {
       "data": {
@@ -850,13 +878,17 @@ FROM (
         "review": object[]
       }
     } = dataForBloack[1];
+    console.log(duplicateEventFrom10times);
     console.log({ localDbEventBlocked, duplicateEventFrom10times });
-    return { data: { blocked: [...localDbEventBlocked, ...duplicateEventFrom10times.data.blocked], review: duplicateEventFrom10times.data.review } }
+    return { data: { blocked: [...localDbEventBlocked, ...duplicateEventFrom10times.data?.blocked], review: duplicateEventFrom10times.data?.review } }
   }
   async getGeniEventById(id: string) {
     try {
       const { data, iddWid, widgetData } =
         await this.eventDataService.getEventForGeni(id);
+      if (!data) {
+        throw new HttpException('event not fount', HttpStatus.NOT_FOUND);
+      }
       const eventData: any = data?.data;
       eventData['customizationData'] = JSON.parse(
         eventData['customizationData'],
@@ -906,7 +938,7 @@ FROM (
   async createEvent(
     body: CreateEventDto,
     file: File,
-    user: SelectedUserDetails,
+    user: TCachedUser,
   ) {
     try {
       // let jsonDta = {};
@@ -989,17 +1021,18 @@ FROM (
         attachmentId: attachment_id,
         createdBy: user.id,
         type: body.type,
+        sourceModule: body.sourceModule,
         ...eventBody,
       });
-      if (data.data) {
-        delete data.data['userInfo'];
-      }
       this.createPoster(
         data.name,
         jsonDta['logoUrl'] as string,
         jsonDta.participationType ?? '',
         data.id,
       );
+      if (body.sourceModule && body.sourceModule === 'COORDINATE' && body.interest) {
+        await this.intentService.createUserEventInterest(user, { eventId: data.id, sourceModule: 'PROMOTED_EVENT', interest: body.interest, accountId: user.accountId, interestedUserId: user.id })
+      }
       return { data: { message: 'event added', data: data } };
     } catch (error) {
       console.error(error);
@@ -1046,7 +1079,7 @@ FROM (
       if (query.views === 'suggestion') {
         return await this.getEventSuggestion(query, user);
       }
-      let where: string = '';
+      let where: string = `  and "sourceModule"= '${query.source}' `;
       if (query.id) {
         where += ` and e.id in ('${query.id.split("','")}') `;
       }
@@ -1056,6 +1089,9 @@ FROM (
         for (const data of redefine) {
           where += ` and lower(e.name) like '%${data.toLowerCase()}%'`;
         }
+      }
+      if (query.eventIds) {
+        where += ` and id in ('${query.eventIds.join("','")}')  `;
       }
       if (query.event_type) {
         where += ` and lower(e.data->>'event_type')
@@ -1114,6 +1150,8 @@ FROM (
           where,
         );
       }
+      console.log(where);
+
       const [count, data] = await Promise.all([
         this.eventDataService.findCountOfPromotedEvents(user.accountId, where),
         this.eventDataService.findManyPromotedEvents(
@@ -1522,7 +1560,7 @@ FROM (
       return { error };
     }
   }
-  async deletePromotedEvent(eventId: string, user: SelectedUserDetails) {
+  async deletePromotedEvent(eventId: string, user: TCachedUser) {
     try {
       const deletePromotedEvent =
         await this.eventDataService.updatePromotedEvent(
@@ -1534,7 +1572,7 @@ FROM (
       const jobPayLoad: any = {
         email: (
           await this.eventDataService.getUserRegisteredForPromotedEvent(
-            '9c47b7cc-ff9d-4c36-ab4e-25b39966cb5e',// user.accountId,
+            user.accountId,
             eventId,
           )
         ).map((interest) => interest.interestedUser.email),

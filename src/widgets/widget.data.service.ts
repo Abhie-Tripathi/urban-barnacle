@@ -35,7 +35,16 @@ export class WidgetDataService {
     })
     return { check3, checkForBrandExists };
   }
-  async createKit(data: any) {
+  async createKit(accountId: string, data: any) {
+    console.dir(data, { depth: null });
+    const existing = await this.prisma.customBrandKit.findUnique({
+      where: { accountId: accountId },
+    });
+
+    if (existing) {
+      // Either return it, update it, or throw
+      return existing;
+    }
     const create = await this.prisma.customBrandKit.create({
       data: {
         ...data,
@@ -96,6 +105,7 @@ export class WidgetDataService {
     const upsert = await this.prisma.brand.upsert({
       where: {
         domain: domain,
+        name: domainName,
       },
       create: {
         domain: domain,

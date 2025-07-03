@@ -1,10 +1,10 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { Industries, SubIndustries } from '../../../utils/types';
-import { AccessSourceEntity } from '@prisma/client';
+import { AccessSourceEntity, UserSource } from '@prisma/client';
 
 const SignInSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().transform(val => val.toLowerCase()),
 });
 
 export class SignInDto extends createZodDto(SignInSchema) { }
@@ -29,7 +29,7 @@ export const SignUpSchema = z.strictObject({
     })
     .optional(),
   category: z.string().optional(),
-  email: z.string().email(),
+  email: z.string().email().transform(val => val.toLowerCase()),
 });
 
 export class SignUpDto extends createZodDto(SignUpSchema) { }
@@ -53,18 +53,20 @@ export const SignUpTempSchema = z.strictObject({
     })
     .optional(),
   category: z.string().optional(),
-  email: z.string().email(),
+  source: z.nativeEnum(UserSource).optional(),
+  email: z.string().email().transform(val => val.toLowerCase()),
   firstname: z.string(),
   lastname: z.string().optional(),
   department: z.string().optional(),
   designation: z.string().optional(),
   profileUrl: z.string().optional(),
   locationId: z.string().optional(),
+  phoneNumber: z.string().optional(),
 });
 
 export class SignUpTempDto extends createZodDto(SignUpTempSchema) { }
 const VerifyOtpSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().transform(val => val.toLowerCase()),
   otp: z.string(),
 });
 

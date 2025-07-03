@@ -11,10 +11,12 @@ import { KitService } from 'src/widgets/kit.service';
 import { WidgetDataService } from 'src/widgets/widget.data.service';
 import { SavedLocationService } from 'src/saved-location/saved-location.service';
 import { SavedLocationDataService } from 'src/saved-location/saved-location.data.service';
+import { SavedLocationService } from 'src/saved-location/saved-location.service';
+import { SavedLocationDataService } from 'src/saved-location/saved-location.data.service';
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, AuthDataService, KitService, WidgetDataService,SavedLocationService,SavedLocationDataService],
+  providers: [AuthService, AuthDataService, KitService, WidgetDataService,SavedLocationService,SavedLocationDataService, SavedLocationService, SavedLocationDataService],
   exports: [AuthService, AuthDataService],
   imports: [UserModule, CompanyModule, AccountModule, AccessModule],
 })

@@ -13,6 +13,9 @@ export const SearchByEntity = {
   company: 'company',
   user: 'user',
   speaker: 'speaker',
+  event: 'event',
+  recruitment: 'recruitment',
+  keywords: 'keywords',
 };
 
 export const TrackerEventStatus = {
@@ -80,12 +83,14 @@ export interface LastActive {
 
 export type TrackerParams = z.infer<typeof TrackerParamsSchema>;
 export interface TrackerParamsOptions extends LastActive, TrackerParams { }
+export interface TrackerParamsOptions extends LastActive, TrackerParams { }
 
 const CreateTrackerSchema = z.object({
   name: z.string(),
   filterValues: ParamsSchema.strict(),
   type: z.nativeEnum(TrackerType),
-  source: z.string().optional()
+  cachingFlag: z.boolean().default(true),
+  source: z.string().optional(),
 });
 
 export class CreateTrackerDto extends createZodDto(CreateTrackerSchema) { }

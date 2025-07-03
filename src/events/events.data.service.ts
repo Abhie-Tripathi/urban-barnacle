@@ -8,6 +8,7 @@ import {
   EventDataDto,
   Show,
   View,
+  SimilarEventsDto,
 } from './dto';
 import {
   Export,
@@ -31,7 +32,7 @@ export class EventsDataService {
     private readonly trackerDataService: TrackerDataService,
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
   async createLogForEncryptedQuery(
     encryption: string,
     user: TCachedUser,
@@ -76,25 +77,39 @@ export class EventsDataService {
     const queryParams = new URLSearchParams(
       params as unknown as Record<string, any>,
     );
-    if (params.limit) {
-      queryParams.append('take', String(params.limit));
-    }
-    if (params.offset) {
-      queryParams.append('skip', String(params.offset));
-    }
-    const url =
+    // if (params.limit) {
+    //   queryParams.append('take', String(params.limit));
+    // }
+    // if (params.offset) {
+    //   queryParams.append('skip', String(params.offset));
+    // }
+    let url =
       this.configService.get('MICROSERVICE_URL') +
-      microserviceEndpoints.events.events +
-      '?' +
-      queryParams.toString();
+      microserviceEndpoints.events.events;
     console.log(url);
-    const response = await fetch(url);
+    let req: any = {};
+    if (JSON.stringify(params).length > 1000) {
+      req = {
+        method: 'POST',
+        body: JSON.stringify(this.convertArrayValuesToStrings(params)),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      };
+    } else {
+      url += '?' + queryParams.toString();
+    }
+    const response = await fetch(url, req);
     const result = await response.json();
+    console.error(result);
+    console.log(result);
     if (result.statusCode) {
       throw result;
     }
     const { data, error } = result;
     if (error) {
+      console.error(error, result);
+      console.log(error, result);
       throw new HttpException(result, result.statusCode);
     }
     return data as {
@@ -103,23 +118,59 @@ export class EventsDataService {
       events: { basic: Record<string, any>; advance: Record<string, any> }[];
     };
   }
+  convertArrayValuesToStrings(obj) {
+    const result = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (Array.isArray(value)) {
+        // if (key === 'eventTypes') {
 
+        //     result[key] = value.map(id => eventTypeDataIdToSlug[id].slug).join(',');
+        // } else
+        result[key] = value.join(',');
+      } else {
+        result[key] = value + '';
+      }
+    }
+    return result;
+  }
   async getEventsCount(params: CountQueryDto) {
     const queryParams = new URLSearchParams(
       params as unknown as Record<string, any>,
     );
-    const url =
+    let url =
       this.configService.get('MICROSERVICE_URL') +
-      microserviceEndpoints.events.count +
-      '?' +
-      queryParams.toString();
+      microserviceEndpoints.events.count;
     console.log(url);
-    const response = await fetch(url);
-    const { data, error } = await response.json();
-    if (!data || error) {
-      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+    let req: any = {};
+    if (JSON.stringify(params).length > 500) {
+      req = {
+        method: 'POST',
+        body: JSON.stringify(this.convertArrayValuesToStrings(params)),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      };
+    } else {
+      url += '?' + queryParams.toString();
     }
-    return data;
+    const response = await fetch(url, req);
+    try {
+      const { data, error } = await response.json();
+      // console.error(data);
+      console.log(data);
+      if (!data || error) {
+        console.error(error, data);
+        console.log(error, data);
+        throw new HttpException(error, HttpStatus.BAD_REQUEST);
+      }
+      return data;
+    } catch (error) {
+      // const text = await response.text();
+      throw new HttpException(
+        `Invalid JSON: ${error['message']}, response body: $}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
   async getEventPocs(eventId: string, sortBy: string) {
@@ -315,7 +366,7 @@ export class EventsDataService {
           user,
         ),
       ]);
-    console.log(peopleAllTrackData, keywordAllTrackData, competitorAllTrackData)
+
     const requestBody: {
       speakerBody?: { speakerNames: string; speakerCompanyName: string };
       peopleBody?: { peopleNames: string; peopleCompanyName: string };
@@ -387,18 +438,21 @@ export class EventsDataService {
     } else {
       countForFlag++;
     }
-    return { requestBody, flagForEmptyPayload: countForFlag === 3 ? true : false };
+    return {
+      requestBody,
+      flagForEmptyPayload: countForFlag === 3 ? true : false,
+    };
   }
   async getEventIntelScore(eventId: string, user: TCachedUser) {
     const url =
       this.configService.get('MICROSERVICE_URL') +
       microserviceEndpoints.events.eventIntelScore.replace(':eventId', eventId);
-    const { flagForEmptyPayload, requestBody } = await this.createTrackerPayloadForIntelScore(user);
+    const { flagForEmptyPayload, requestBody } =
+      await this.createTrackerPayloadForIntelScore(user);
     if (flagForEmptyPayload) {
       return {
-        data:
-          { intelScore: [] }
-      }
+        data: { intelScore: [] },
+      };
     }
     const response = await fetch(url, {
       method: 'POST',
@@ -495,5 +549,46 @@ export class EventsDataService {
       console.error('Error fetching the file:', error);
       reply.status(500).send('Error fetching the file');
     });
+  }
+  async getPromotedEventById(eventId: string) {
+    const eventData = await this.prisma.event.findUnique({
+      where: { id: eventId },
+    });
+    return eventData;
+  }
+
+  async getSimilarEvents(query: QueryDto) {
+    const queryParams = new URLSearchParams({
+      ...(query as unknown as object),
+    });
+    let url =
+      this.configService.get('MICROSERVICE_URL') +
+      microserviceEndpoints.events.similarEvents;
+    let req: any = {};
+    console.log({
+      lenght: JSON.stringify(query).length > 10,
+      val: JSON.stringify(query),
+      que: queryParams.toString(),
+    });
+
+    if (JSON.stringify(query).length > 1000) {
+      req = {
+        method: 'POST',
+        body: JSON.stringify(this.convertArrayValuesToStrings(query)),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      };
+    } else {
+      url += '?' + queryParams.toString();
+    }
+    const response = await fetch(url, req);
+    const { data, error } = await response.json();
+    if (!data || error) {
+      console.log(JSON.stringify(error));
+
+      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+    }
+    return data;
   }
 }

@@ -33,6 +33,7 @@ const CreateUserSchema = SignUpSchema.extend({
   socialIds: SocialIdsSchema.optional(),
   phoneNumber: z.string().optional(),
   category: z.string().optional(),
+  phoneNumber: z.string().optional(),
 });
 
 export class CreateUserDto extends createZodDto(CreateUserSchema) { }

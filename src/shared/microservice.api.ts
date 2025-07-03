@@ -16,7 +16,7 @@ export const microServiceApis = {
   userpoc: process.env.MICROSERVICE_URL + '/users/:userId/pocs',
   userbyId: process.env.MICROSERVICE_URL + '/users/:userId',
   locationSuggestionApi: process.env.MICROSERVICE_URL + '/locations',
-  findDuplicateEvent: process.env.MICROSERVICE_URL + '/events/find-duplicate'
+  findDuplicateEvent: process.env.MICROSERVICE_URL + '/events/find-duplicate',
 };
 
 export async function fetchDatafromMicroService(
@@ -41,19 +41,16 @@ export async function fetchDatafromMicroService(
   }
 }
 
-export async function postDatafromMicroService(
-  apiToFetch: string,
-  body: any,
-) {
+export async function postDatafromMicroService(apiToFetch: string, body: any) {
   try {
     const url = `${microServiceApis[`${apiToFetch}`]}`;
-    console.log(url);
+    console.log(url, JSON.stringify(body));
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     });
     const data = await response.json();
     // console.log(data);

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { Prisma } from '@prisma/client';
+import { EventSourceModule, Prisma } from '@prisma/client';
 
 // export const QuerySchema = z.object({
 //   title: z
@@ -105,6 +105,8 @@ const AllDataSchema = z.strictObject({
       if (value === 'year') return value;
       return value;
     }),
+  source: z.nativeEnum(EventSourceModule).default('PROMOTE'),
+  eventIds: z.array(z.string()).optional()
 });
 export class Query_Dto extends createZodDto(AllDataSchema) { }
 
