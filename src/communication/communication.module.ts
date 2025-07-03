@@ -1,79 +1,62 @@
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 import { Global, Module } from '@nestjs/common';
 import { CommunicationService } from './communication.service';
-import { OtpEmailWorkerClass } from './bull-service/bull-otp.service';
-import { AccessEmailWorkerClass } from './bull-service/bull-access.service';
-import { EventWorkerClass } from './bull-service/bull-event.service';
-import { IntendWorkerClass } from './bull-service/bull-intend.service';
-import { InvitationWorkerClass } from './bull-service/bull-invitation.service';
-
+import { EmailService } from './email/email.service';
 @Global()
 @Module({
   imports: [
     BullModule.forRoot({
-      redis: {
-        host: '0.0.0.0',
-        port: Number(process.env.REDIS_PORT),
-        password: process.env.REDIS_PASSWORD,
+      connection: {
+        ...(process.env.NODE_ENV &&
+          process.env.NODE_ENV.toLowerCase() !== 'production' ? {
+          host: process.env.REDIS_HOST || '0.0.0.0',
+          port: Number(process.env.REDIS_PORT) || 6379,
+          password: process.env.REDIS_PASSWORD,
+        } : {
+          host: process.env.REDIS_HOST || '0.0.0.0',
+          port: Number(process.env.REDIS_PORT) || 6379,
+          password: process.env.REDIS_PASSWORD, tls: {}
+        })
       },
-    }),
-    BullModule.registerQueue({
-      name: 'accessProcessor',
       defaultJobOptions: {
         removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
-        removeOnFail: false,
+        removeOnFail: 1000,
       },
     }),
     BullModule.registerQueue({
-      name: 'inviteProcessor',
-      defaultJobOptions: {
-        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
-        removeOnFail: false,
-      },
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}accessProcessor}`,
     }),
     BullModule.registerQueue({
-      name: 'eventProcessor',
-      defaultJobOptions: {
-        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
-        removeOnFail: false,
-      },
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}inviteProcessor}`,
     }),
     BullModule.registerQueue({
-      name: 'otpProcessor',
-      defaultJobOptions: {
-        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
-        removeOnFail: false,
-      },
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}eventProcessor}`,
     }),
     BullModule.registerQueue({
-      name: 'intendProcessor',
-      defaultJobOptions: {
-        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 1000),
-        removeOnFail: false,
-      },
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}otpProcessor}`,
     }),
     BullModule.registerQueue({
-      name: 'demoContactProcessor',
-      defaultJobOptions: {
-        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
-        removeOnFail: false,
-      },
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}intendProcessor}`,
     }),
     BullModule.registerQueue({
-      name: 'errorProcessor',
-      defaultJobOptions: {
-        removeOnComplete: Number(process.env.BULL_JOB_REMOVE_LIMIT || 100),
-        removeOnFail: false,
-      },
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}demoContactProcessor}`,
+    }),
+    // BullModule.registerQueue({
+    //   name: 'demoContactProcessor',
+    // }),
+    BullModule.registerQueue({
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}errorProcessor}`,
+    }),
+    BullModule.registerQueue({
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`,
+    }),
+    BullModule.registerQueue({
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}contactProcessor}`,
     }),
   ],
   providers: [
     CommunicationService,
-    // OtpEmailWorkerClass,
-    // AccessEmailWorkerClass,
-    // EventWorkerClass,
-    // IntendWorkerClass,
-    // InvitationWorkerClass,
+    EmailService
   ],
   exports: [CommunicationService],
 })
