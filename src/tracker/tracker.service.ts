@@ -306,6 +306,8 @@ export class TrackerService {
         82800000,
       );
     }
+    // console.log(tracker.createdByUser);
+
     const trackerValues = {
       id: tracker.id,
       name: tracker.name,
@@ -313,28 +315,15 @@ export class TrackerService {
       filterValues: filterValues,
       createdAt: tracker.createdAt,
       updatedAt: tracker.updatedAt,
-      createdBy: {
-        id: tracker.createdByUser.id,
-        name: getNameFromEmail(
-          tracker.createdByUser.email,
-          tracker.createdByUser.firstname,
-          tracker.createdByUser.lastname,
-        ),
-        email: tracker.createdByUser.email,
-        imageUrl: tracker.createdByUser.imageUrl,
-      },
+      createdBy: tracker.createdByUser,
+      // id: tracker.createdByUser.id,
+      // firstname: tracker.createdByUser.firstname,
+      // lastname: tracker.createdByUser.lastname,
+      // email: tracker.createdByUser.email,
+      // imageUrl: tracker.createdByUser.imageUrl,
       lastModifiedBy:
         tracker.modifiedByUser && tracker.modifiedByUser.id
-          ? {
-              id: tracker.modifiedByUser.id,
-              name: getNameFromEmail(
-                tracker.modifiedByUser.email,
-                tracker.modifiedByUser.firstname,
-                tracker.modifiedByUser.lastname,
-              ),
-              email: tracker.modifiedByUser.email,
-              imageUrl: tracker.modifiedByUser.imageUrl,
-            }
+          ? tracker.modifiedByUser
           : null,
     };
     return {
@@ -387,6 +376,7 @@ export class TrackerService {
       },
       user,
     );
+    // console.log(trackers);
 
     const allTrackers = await Promise.all(
       trackers.map((tracker) => {
