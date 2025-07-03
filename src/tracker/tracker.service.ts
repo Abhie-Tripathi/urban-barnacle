@@ -167,9 +167,9 @@ export class TrackerService {
     }
     tracker.filterValues = tracker.filterValues
       ? {
-          ...(tracker.filterValues as Record<string, any>),
-          searchByEntity,
-        }
+        ...(tracker.filterValues as Record<string, any>),
+        searchByEntity,
+      }
       : { searchByEntity };
 
     const savedEventsCount =
@@ -1077,7 +1077,7 @@ export class TrackerService {
       this.commentService.getComments(
         {
           accountId: user.accountId,
-          sourceModule: 'TRACKER',
+          sourceModule: ['TRACKER'],
           sourceId: tracker.id,
           limit: params.limit,
           offset: params.offset,

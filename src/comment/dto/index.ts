@@ -61,7 +61,7 @@ export class UpdateCommentDto extends createZodDto(UpdateCommentSchema) { }
 const GetCommentsSchema = LimitSchema.extend({
   id: z.string().uuid().optional(),
   accountId: z.string().uuid().optional(),
-  sourceModule: z.nativeEnum(CommentSourceModule).optional(),
+  sourceModule: z.array(z.nativeEnum(CommentSourceModule)).optional(),
   sourceId: z.string().optional(),
   parentId: z.string().uuid().optional(),
   userId: z.string().uuid().optional(),

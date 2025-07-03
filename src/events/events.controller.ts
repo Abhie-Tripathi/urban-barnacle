@@ -24,6 +24,8 @@ import { GetUser } from 'src/user/decorator';
 import { LimitDto } from 'src/global_dto';
 import { SharedService } from 'src/shared/shared.service';
 import { PointColumn } from 'src/shared/types';
+import { GetCommentsDto } from 'src/comment/dto';
+import { CommentSourceModule } from '@prisma/client';
 
 @Controller('events')
 export class EventsController {
@@ -260,6 +262,32 @@ export class EventsController {
       return { data: intelscore };
     } catch (error) {
       return { error };
+    }
+  }
+  @UseGuards(AuthGuard)
+  @Get(':eventId/comments/:source?')
+  async getEventComment(@Param('eventId') eventId: string,
+    @GetUser() user: TCachedUser,
+    @Query() query: GetCommentsDto,
+    @Param('source') source?: 'coordinate' | 'outreach',) {
+    try {
+      const alterSource =
+        !source || source === 'coordinate'
+          ? 'coordinate,EVENT_DETAIL_PAGE'
+          : 'outreach';
+      const comments = await this.eventsService.getEventsComment(
+        user,
+        eventId,
+        alterSource.toUpperCase().split(',') as CommentSourceModule[],
+        query,
+      );
+      return {
+        data: comments,
+      };
+    } catch (error) {
+      return {
+        error,
+      };
     }
   }
   @UseGuards(AuthGuard)
