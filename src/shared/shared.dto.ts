@@ -29,6 +29,7 @@ const prospectSchema = LimitSchema.extend({
     userRoleIds: z.string().optional(),
     userDepartmentIds: z.string().optional(),
     userDesignationIds: z.string().optional(),
+    eventIds: z.string().optional(),
     eventCountRange: z.string().optional(),
     upcomingEvents: z.string().optional(),
 }).refine((data) => {
