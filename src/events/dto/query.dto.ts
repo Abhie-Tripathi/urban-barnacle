@@ -5,6 +5,7 @@ import {
   defaultEventTypes,
   EventStatus,
   EventTypeGroup,
+  ValidEventTypes,
   VisitorRangeTag,
 } from 'src/utils/types';
 import { LimitSchema, LimitSchemaWithoutDefault } from 'src/global_dto';
@@ -127,7 +128,7 @@ export enum AudienceZone {
 export const viewBound = z
   .object({
     boundType: z.nativeEnum(BoundType),
-    coordinates: geoCoordinatesSchema,
+    coordinates: z.union([geoCoordinatesSchema, z.array(z.number())]),
     properties: z.record(z.string(), z.string()).optional(),
   })
   .transform((data) => {
@@ -206,6 +207,29 @@ export const QueryFilter = z.object({
     .transform((data) => {
       if (!data) return [];
       return data?.split(',').map((item) => item.trim());
+    })
+    .superRefine((values, ctx) => {
+      if (values.length === 0) return;
+
+      const backend = process.env.BACKEND as keyof typeof ValidEventTypes;
+
+      if (!backend || !(backend in ValidEventTypes)) {
+        return;
+      }
+
+      const allowedEventTypes = ValidEventTypes[backend];
+
+      const invalidTypes = values.filter(
+        (value) => !allowedEventTypes.includes(value),
+      );
+
+      if (invalidTypes.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Invalid event types : ${invalidTypes.join(', ')}. Allowed types are: ${allowedEventTypes.join(', ')}`,
+          path: [],
+        });
+      }
     })
     .optional(),
   categories: z
@@ -401,7 +425,7 @@ export const QueryFilter = z.object({
     .transform((val) =>
       val
         .split(',')
-        .map((item) => (item.trim() === 'in_person' ? 'offline' : item.trim())),
+        .map((item) => (item.trim() === 'offline' ? 'in_person' : item.trim())),
     )
     .optional(),
   entryType: z
@@ -570,7 +594,7 @@ export const QueryFilter = z.object({
 
 export const FilterNames = Object.keys(QueryFilter.shape);
 
-export class QueryFilterDto extends createZodDto(QueryFilter) {}
+export class QueryFilterDto extends createZodDto(QueryFilter) { }
 
 export const QueryHttpSchema = LimitSchemaWithoutDefault.extend(
   QueryFilter.shape,
@@ -609,58 +633,52 @@ export const QueryHttpSchema = LimitSchemaWithoutDefault.extend(
       .optional(),
   })
   .transform((data) => {
-    // const intersectedKeys = Object.keys(data).filter((key) =>
-    //   FilterNames.includes(key),
-    // );
-    // if (
-    //   !(
-    //     intersectedKeys.length === 1 && intersectedKeys[0].trim() === 'query'
-    //   ) &&
-    //   !(data.eventIds && data.eventIds.length)
-    // ) {
-    //   const defaultStartDate = new Date().toISOString();
-    //   const defaultEndDate = new Date(
-    //     new Date().getTime() + (90 - 1) * 24 * 60 * 60 * 1000,
-    //   ).toISOString();
-    //   if (!data['active_gte'] && !data['active_lte']) {
-    //     data['active_gte'] = defaultStartDate;
-    //     data['active_lte'] = defaultEndDate;
-    //   } else if (!data['active_lte'] && data['active_gte']) {
-    //     data['active_gte'] = data['active_gte'];
-    //   } else if (!data['active_gte'] && data['active_lte']) {
-    //     data['active_lte'] = data['active_lte'];
-    //   }
-    // }
-    // if (!data.show || data.show.length === 0) {
-    //   data['show'] = (Object.values(Show) as Show[]).filter((item) => {
-    //     return item !== Show.isNew && item !== Show.old;
-    //   });
-    // }
     data['show'] = (Object.values(Show) as Show[]).filter((item) => {
       return item !== Show.isNew && item !== Show.old;
     });
     if (data.view !== 'map' && !data.limit) {
       data.limit = 10;
     }
-    // if (!data.eventTypes || (data.eventTypes && data.eventTypes.length === 0)) {
-    //   const backend = process.env.BACKEND;
-    //   if (backend && backend in defaultEventTypes) {
-    //     data.eventTypes = defaultEventTypes[backend];
-    //   }
-    // }
     if (!data.sortBy || data.sortBy.length === 0) {
       data.sortBy = ['-score'];
+    }
+
+    if (!data.status || (data.status && data.status.length === 0)) {
+      data.status = [
+        EventStatus.ACTIVE,
+        EventStatus.CANCELLED,
+        EventStatus.POSTPONED,
+      ];
     }
     return data;
   });
 
-export class QueryHttpDto extends createZodDto(QueryHttpSchema) {}
+export class QueryHttpDto extends createZodDto(
+  QueryHttpSchema.refine(
+    (val) => {
+      console.log({ val });
+      if (
+        (val && !val.limit) ||
+        (val && val.limit && val.limit <= 100) ||
+        val.view === 'map'
+      ) {
+        return true;
+      }
+      return false;
+    },
+    {
+      message: 'Limit must be a number less than or equal to 100',
+      path: ['limit'],
+    },
+  ),
+) { }
 
 export const QuerySchema = QueryHttpSchema.innerType().extend({
   showValues: z.string(),
+  viewBounds: z.string().optional(),
 });
 
-export class QueryDto extends createZodDto(QuerySchema) {}
+export class QueryDto extends createZodDto(QuerySchema) { }
 
 export enum CountGroup {
   'year' = 'year',
@@ -673,6 +691,7 @@ export enum CountGroup {
   'status' = 'status',
   'alertType' = 'alertType',
   'eventTypeGroup' = 'eventTypeGroup',
+  'category' = 'category'
 }
 
 export const CountQuerySchema = QueryFilter.extend({
@@ -684,6 +703,8 @@ export const CountQuerySchema = QueryFilter.extend({
     })
     .transform((val) => val.split(',') as CountGroup[])
     .optional(),
+  trackerId: z.string().optional(),
+  eventSourceIds: z.string().optional(),
 }).transform((data) => {
   // const intersectedKeys = Object.keys(data).filter((key) =>
   //   FilterNames.includes(key),
@@ -722,7 +743,32 @@ export const CountQuerySchema = QueryFilter.extend({
   return data;
 });
 
-export class CountQueryDto extends createZodDto(CountQuerySchema) {}
+export class CountQueryDto extends createZodDto(CountQuerySchema) { }
+const similarEventsSchema = QuerySchema.omit({ showValues: true })
+  .extend({
+    showValues: z.string().default('basic,advance,insights,audience'),
+    groupBy: z
+      .string()
+      .refine((val) => val.split(',').every((item) => item in CountGroup), {
+        message: 'Invalid groupBy option',
+        params: { validOptions: Object.keys(CountGroup).join(', ') },
+      })
+      .transform((val) => val.split(',') as CountGroup[])
+      .optional(),
+    searchByEntity: z.string().optional(),
+    eventSourceIds: z.string().optional(),
+  })
+  .transform((data) => {
+    if (!data.status || (data.status && data.status.length === 0)) {
+      data.status = [
+        EventStatus.ACTIVE,
+        EventStatus.CANCELLED,
+        EventStatus.POSTPONED,
+      ];
+    }
+    return data;
+  });
+export class SimilarEventsDto extends createZodDto(similarEventsSchema) { }
 
 const groupByOptions = {
   date: 'date',
@@ -745,6 +791,10 @@ const columns = {
 };
 
 export const EventsTrendsSchema = QueryFilter.extend({
+  source: z
+    .string()
+    .refine((val) => val in ['geo', 'gtm'])
+    .optional(),
   groupBy: z.string().refine((val) => val in groupByOptions, {
     message: 'Invalid groupBy option',
     params: { validOptions: Object.keys(groupByOptions).join(', ') },
@@ -760,12 +810,24 @@ export const EventsTrendsSchema = QueryFilter.extend({
     message: 'Invalid dateView option',
     params: { validOptions: Object.keys(dateViewOptions).join(', ') },
   }),
-});
+  compare_to: z.string().refine(
+    (date) =>
+      date &&
+      new Date(date).toISOString().split('T')[0] === date.split('T')[0],
+  )
+    .transform((date) => new Date(date).toISOString().split('T')[0]).optional(),
+  compare_from: z.string().refine(
+    (date) =>
+      date &&
+      new Date(date).toISOString().split('T')[0] === date.split('T')[0],
+  )
+    .transform((date) => new Date(date).toISOString().split('T')[0]).optional(),
+})
 
-export class EventsTrendsDto extends createZodDto(EventsTrendsSchema) {}
+export class EventsTrendsDto extends createZodDto(EventsTrendsSchema) { }
 
 const sortSchema = LimitSchemaWithoutDefault.extend({
   sortBy: z.string().optional(),
 });
 
-export class SortingDto extends createZodDto(sortSchema) {}
+export class SortingDto extends createZodDto(sortSchema) { }

@@ -28,7 +28,7 @@ export class AccessService {
     private readonly communicationService: CommunicationService,
     private readonly configService: ConfigService,
     private readonly companyDataService: CompanyDataService,
-  ) {}
+  ) { }
 
   async createAccess(
     user: TCachedUser,
@@ -78,9 +78,9 @@ export class AccessService {
         });
         const primaryDetails = newUserPrimaryCompany
           ? {
-              primaryCompanyId: newUserPrimaryCompany.id,
-              primaryAccountId: newUserPrimaryCompany.accountId,
-            }
+            primaryCompanyId: newUserPrimaryCompany.id,
+            primaryAccountId: newUserPrimaryCompany.accountId,
+          }
           : null;
         const newUser = await this.userDataService.createUser({
           source: 'ACCESS_INVITE',
@@ -122,7 +122,7 @@ export class AccessService {
       accessReceiverId: receiver.id,
     });
 
-    if (data.redirectQueryParams && receiver && rest.token) {
+    if (data.redirectQueryParams && receiver && rest.token && data.flagForEmail) {
       await this.communicationService.createJobForBull(
         QueueActionOptions.SEND_TRACKER_ACCESS_EMAIL,
         {

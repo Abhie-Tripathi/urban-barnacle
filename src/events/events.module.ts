@@ -10,7 +10,10 @@ import { UserDataService } from 'src/user/user.data.service';
 
 @Module({
   controllers: [EventsController],
-  providers: [EventsService, EventsDataService, IntentDataService, TrackerDataService, EnquiryService, EnquiryDataService, UserDataService],
+  providers: [EventsService, EventsDataService, IntentDataService, TrackerDataService, EnquiryService,
+    EnquiryDataService,
+    UserDataService,
+  ],
   exports: [EventsService, EventsDataService],
 })
 export class EventsModule { }

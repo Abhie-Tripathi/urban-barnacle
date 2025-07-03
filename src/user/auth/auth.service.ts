@@ -4,6 +4,7 @@ import {
   AuthenticatDto,
   SignInDto,
   SignUpDto,
+  SignUpTempDto,
   SourceDto,
   VerifyAccessDto,
   VerifyOtpDto,
@@ -16,8 +17,6 @@ import {
 } from 'src/utils/types';
 import { randomInt, randomUUID } from 'crypto';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
 import { SharedService } from 'src/shared/shared.service';
 import { UserDataService } from '../user.data.service';
 import { AccountDataService } from '../account/account.data.service';
@@ -37,6 +36,7 @@ import { InterestDefaultConfigurationsWithIndustry } from '../account/account.co
 import { AccountService } from '../account/account.service';
 import { KitService } from 'src/widgets/kit.service';
 import { fetchDatafromMicroService } from 'src/shared/microservice.api';
+import { SavedLocationService } from 'src/saved-location/saved-location.service';
 
 @Injectable()
 export class AuthService {
@@ -52,7 +52,8 @@ export class AuthService {
     private readonly communicationService: CommunicationService,
     private readonly sharedService: SharedService,
     private readonly accessService: AccessService,
-    private readonly brandKitService: KitService
+    private readonly brandKitService: KitService,
+    private readonly savedLocationsService: SavedLocationService,
   ) { }
 
   async signUp(data: SignUpDto) {
@@ -74,10 +75,13 @@ export class AuthService {
         }),
     ]);
     let user = users && users.length > 0 ? users[0] : null;
-    let account = company ? {
-      id: company.accountId, currentSubscriptionId: company.accounts.currentSubscriptionId,
-      configurationId: company.accounts.configurationId
-    } : null;
+    let account = company
+      ? {
+        id: company.accountId,
+        currentSubscriptionId: company.accounts.currentSubscriptionId,
+        configurationId: company.accounts.configurationId,
+      }
+      : null;
     if (
       user &&
       user.currentOnboardingState !== OnboardingState.VERIFICATION &&
@@ -182,12 +186,15 @@ export class AuthService {
           );
         }
       }
-      this.createDefaultBrandKit({
-        id: user.id,
-        accountId: account.id,
-        domain: domain,
-      }, blackListDomain.includes(domain));
-      await this.authDataService.createVerificationToken(user, 'sign-up');
+      this.createDefaultBrandKit(
+        {
+          id: user.id,
+          accountId: account.id,
+          domain: domain,
+        },
+        blackListDomain.includes(domain),
+      );
+      this.authDataService.createVerificationToken(user, 'sign-up');
       return {
         message: 'otp sent successfully',
       };
@@ -209,7 +216,7 @@ export class AuthService {
     }
     const user = users[0];
     if (emailFlag)
-      await this.authDataService.createVerificationToken(user, 'sign-in');
+      this.authDataService.createVerificationToken(user, 'sign-in');
     return {
       message: 'otp sent successfully',
     };
@@ -357,9 +364,15 @@ export class AuthService {
   }
 
   async authenticateUserFromToken(source: SourceDto, body: AuthenticatDto) {
-    const response = await this.authDataService.authenticateUserFromToken(source, body);
+    const response = await this.authDataService.authenticateUserFromToken(
+      source,
+      body,
+    );
     console.log({ response });
-    if (0 === response.status.code && response.message.toLowerCase().includes('invalid')) {
+    if (
+      0 === response.status.code &&
+      response.message.toLowerCase().includes('invalid')
+    ) {
       throw new HttpException(`Invalid token`, HttpStatus.BAD_REQUEST);
     }
     const data: {
@@ -367,6 +380,7 @@ export class AuthService {
       email: string;
       profilepicture?: string;
       company?: string;
+      phone?: string;
       designationName?: string;
       industry?: string;
       departmentName?: string;
@@ -376,11 +390,14 @@ export class AuthService {
         countryId?: string;
         countryName?: string;
       };
-      confirmCategory?: { id: number, name?: string }[]
-      socialId?: { google?: string, linkedin?: string }
+      confirmCategory?: { id: number; name?: string }[];
+      socialId?: { google?: string; linkedin?: string };
     } = response.data;
     if (!data['email']) {
-      throw new HttpException('email is required', HttpStatus.FAILED_DEPENDENCY);
+      throw new HttpException(
+        'email is required',
+        HttpStatus.FAILED_DEPENDENCY,
+      );
     }
     const users = await this.userDataService.getUsers({
       email: [data['email'] as string],
@@ -410,12 +427,24 @@ export class AuthService {
         const updatedUser = await this.userDataService.updateUser({
           id: user.id,
           currentOnboardingState: OnboardingState.COMPLETED,
-          ...(['google', 'linkedin'].includes(source.source) ? {
-            socialIds: {
-              google: source.source === 'google' && response.socialId ? response.socialId['userId'] : (user?.socialIds as any)['google']
-              , linkedin: source.source === 'linkedin' && response.socialId ? response.socialId['userId'] : (user?.socialIds as any)['linkedin']
+          ...(['google', 'linkedin'].includes(source.source)
+            ? {
+              socialIds: {
+                google:
+                  source.source === 'google' && response.socialId
+                    ? response.socialId['userId']
+                    : user?.socialIds
+                      ? (user?.socialIds as any)['google']
+                      : undefined,
+                linkedin:
+                  source.source === 'linkedin' && response.socialId
+                    ? response.socialId['userId']
+                    : user?.socialIds
+                      ? (user?.socialIds as any)['linkedin']
+                      : undefined,
+              },
             }
-          } : {})
+            : {}),
         });
         userDetail = updatedUser;
       } else {
@@ -430,7 +459,7 @@ export class AuthService {
           accountConfigurationId: currentAccount.configurationId,
           currentSubscriptionId: currentAccount.currentSubscriptionId,
         }),
-        isNewUser: false
+        isNewUser: false,
       };
     } else {
       const domain = data.email.split('@')[1];
@@ -452,10 +481,13 @@ export class AuthService {
           }),
       ]);
       let user = users && users.length > 0 ? users[0] : null;
-      let account = company ? {
-        id: company.accountId, currentSubscriptionId: company.accounts.currentSubscriptionId,
-        configurationId: company.accounts.configurationId
-      } : null;
+      let account = company
+        ? {
+          id: company.accountId,
+          currentSubscriptionId: company.accounts.currentSubscriptionId,
+          configurationId: company.accounts.configurationId,
+        }
+        : null;
       if (!company) {
         const accountDefault = {};
         if (blackListDomain.includes(domain)) {
@@ -505,31 +537,106 @@ export class AuthService {
       if (!user) {
         let category: string | undefined = undefined;
         if (data.confirmCategory) {
-          const dataTofetch: { data: { id: string; name: string }[] } = await fetchDatafromMicroService('categoryFetch', { id_10x: data.confirmCategory.map(val => val.id).join(',') });
+          const dataTofetch: { data: { id: string; name: string }[] } =
+            await fetchDatafromMicroService('categoryFetch', {
+              id_10x: data.confirmCategory.map((val) => val.id).join(','),
+            });
           if (dataTofetch.data.length > 0)
-            category = dataTofetch.data.map(val => val.id).join(',');
+            category = dataTofetch.data.map((val) => val.id).join(',');
         }
         user = await this.userDataService.createUser({
-          firstname: source.source !== '10times' && data.name ? data.name : '',
-          ...(source.source !== '10times' && data.name && data.name.split(' ').length > 1 ? { lastname: data.name.substring(data.name.indexOf(' ') + 1) } : {}),
+          firstname:
+            source.source !== '10times' && data.name
+              ? data.name.split(' ')[0]
+              : data.name || '',
+          ...(source.source !== '10times' &&
+            data.name &&
+            data.name.split(' ').length > 1
+            ? { lastname: data.name.substring(data.name.indexOf(' ') + 1) }
+            : {}),
           email: data.email,
           role: 'CUSTOMER',
-          category: category,
+          ...(category ? { category: category, industry: 'Others' } : {}),
           primaryCompanyId: company?.id,
+          phoneNumber: data.phone,
           accountId: account.id,
           primaryAccountId: account.id,
+          currentOnboardingState: 'COMPLETED',
           socialIds: {
-            google: source.source === 'google' && response.socialId ? response.socialId['userId'] : undefined
-            , linkedin: source.source === 'linkedin' && response.socialId ? response.socialId['userId'] : undefined
-          }
+            google:
+              source.source === 'google' && response.socialId
+                ? response.socialId['userId']
+                : undefined,
+            linkedin:
+              source.source === 'linkedin' && response.socialId
+                ? response.socialId['userId']
+                : undefined,
+          },
         });
+        if (
+          data.location &&
+          (data.location?.cityId || data.location?.countryId)
+        ) {
+          const locationIdsRaw: string = data.location.cityId
+            ? `city-${data.location.cityId}`
+            : `country-${data.location.countryId}`;
+          if (locationIdsRaw.length > 3) {
+            const dataTofetch: {
+              data: {
+                formattedLocations: {
+                  id: string;
+                  name: string;
+                  displayName: string;
+                }[];
+              };
+            } = await fetchDatafromMicroService('locationSuggestionApi', {
+              id_10x: locationIdsRaw,
+            });
+            const data = await this.savedLocationsService.saveLocations(
+              [
+                {
+                  locationType: 'LOCATION_ID',
+                  locationName:
+                    dataTofetch.data.formattedLocations[0].displayName,
+                  locationId: dataTofetch.data.formattedLocations[0].id,
+                },
+              ] as any,
+              {
+                email: user.email,
+                accountId: account.id,
+                primaryAccountId: user.primaryAccountId,
+                primaryCompanyId: user.primaryCompanyId,
+                accountConfigurationId: account.configurationId,
+                currentSubscriptionId: account.currentSubscriptionId,
+                id: user.id,
+                industry: user.industry,
+                subIndustry: user.subIndustry,
+                category: user.category,
+                currentOnboardingState: user.currentOnboardingState,
+                department: user.department,
+                designation: user.designation,
+                firstname: user.firstname,
+                lastname: user.lastname,
+                phoneNumber: user.phoneNumber,
+                imageUrl: user.imageUrl,
+                primaryLocation: user.primaryLocation,
+                role: user.role,
+                token: 'dfas',
+              },
+            );
+          }
+        }
         if (data.profilepicture && data.profilepicture.length > 5) {
-          const profilepicture = await this.authDataService.fetchImageFromOtherDomian(data.profilepicture, user.id);
+          const profilepicture =
+            await this.authDataService.fetchImageFromOtherDomian(
+              data.profilepicture,
+              user.id,
+            );
           if (profilepicture) {
             user = await this.userDataService.updateUser({
               id: user.id,
               imageUrl: profilepicture.fileUrl,
-              profileImageId: profilepicture.id
+              profileImageId: profilepicture.id,
             });
           }
         }
@@ -566,11 +673,14 @@ export class AuthService {
         }
       }
       if (flag) {
-        this.createDefaultBrandKit({
-          id: user.id,
-          accountId: account.id,
-          domain: domain,
-        }, blackListDomain.includes(domain));
+        this.createDefaultBrandKit(
+          {
+            id: user.id,
+            accountId: account.id,
+            domain: domain,
+          },
+          blackListDomain.includes(domain),
+        );
       }
       return {
         user: await this.sharedService.UserResponse({
@@ -582,26 +692,248 @@ export class AuthService {
           currentSubscriptionId: account.currentSubscriptionId,
         }),
         isNewUser: true,
-        industryExist: user.industry && user.industry.length > 3 ? true : false
+        industryExist: user.industry && user.industry.length > 3 ? true : false,
       };
     }
   }
-  async createDefaultBrandKit(userData: {
-    accountId: string;
-    id: string;
-    domain: string
-  }, blackListDomain: boolean) {
-    const { data, error } = await this.brandKitService.getKit(userData.accountId);
-    if ((data && Object.keys(data.otherData).length <= 0 && data.color.length <= 0) && blackListDomain) {
+  async createDefaultBrandKit(
+    userData: {
+      accountId: string;
+      id: string;
+      domain: string;
+    },
+    blackListDomain: boolean,
+  ) {
+    const { data, error } = await this.brandKitService.getKit(
+      userData.accountId,
+    );
+    if (
+      data &&
+      Object.keys(data.otherData).length <= 0 &&
+      data.color.length <= 0 &&
+      blackListDomain
+    ) {
       await this.brandKitService.defaultKitCreate(userData);
     } else {
-      if ((data && Object.keys(data.otherData).length <= 0 && data.color.length <= 0)) {
-        const { data, error } = await this.brandKitService.createWidgetKit({ url: userData.domain }, userData, null);
+      if (
+        data &&
+        Object.keys(data.otherData).length <= 0 &&
+        data.color.length <= 0
+      ) {
+        const { data, error } = await this.brandKitService.createWidgetKit(
+          { url: userData.domain },
+          userData,
+          null,
+        );
         if (error) {
           await this.brandKitService.defaultKitCreate(userData);
         }
       }
     }
+  }
+  async tokenBasedSignUp(data: SignUpTempDto) {
+    const { locationId, profileUrl, ...rest } = data;
+    const domain = data.email.split('@')[1];
+    // let nonBusinessFlag: Boolean = false;
+    // if (blackListDomain.includes(domain)) {
+    //   nonBusinessFlag = true;
+    // }
+    let flag: boolean = false;
+    let [users, company] = await Promise.all([
+      this.userDataService.getUsers({
+        email: [data.email],
+        limit: 1,
+        offset: 0,
+      }),
+      blackListDomain.includes(domain)
+        ? null
+        : await this.companyDataService.getCompany({
+          domain: domain,
+        }),
+    ]);
+    let user = users && users.length > 0 ? users[0] : null;
+    let account = company
+      ? {
+        id: company.accountId,
+        currentSubscriptionId: company.accounts.currentSubscriptionId,
+        configurationId: company.accounts.configurationId,
+      }
+      : null;
+    if (
+      user &&
+      user.currentOnboardingState !== OnboardingState.VERIFICATION &&
+      company
+    ) {
+      account = (
+        await this.accountDataService.getAccounts({
+          id: company.accountId,
+          userId: user.id,
+          limit: 1,
+          offset: 0,
+        })
+      )[0];
+
+      if (account) {
+        // throw new HttpException('User already exists', HttpStatus.CONFLICT);
+      } else
+        await this.accountDataService.addAccountUser(
+          company.accountId,
+          user.id,
+        );
+    } else {
+      if (!company) {
+        const accountDefault = {};
+        if (blackListDomain.includes(domain)) {
+          accountDefault['domain'] = domain;
+        }
+        const createSubscription =
+          await this.accountDataService.createSubscription({
+            planEndDate: new Date('2126-01-01'),
+          });
+        account = await this.accountDataService.createAccount({
+          ...accountDefault,
+          currentSubscriptionId: createSubscription.id,
+          interestConfig: data.industry
+            ? InterestDefaultConfigurationsWithIndustry[data.industry]
+            : InterestDefaultConfigurations.interests,
+        });
+        flag = true;
+        const updateSubscription =
+          await this.accountDataService.updateSubscription(
+            { accountId: account.id },
+            createSubscription.id,
+          );
+        if (!blackListDomain.includes(domain)) {
+          company = await this.companyDataService.createCompany({
+            name: domain,
+            domain: domain,
+            accountId: account.id,
+          });
+          flag = true;
+        }
+
+        if (user) {
+          await Promise.all([
+            company
+              ? this.userDataService.updateUser({
+                id: user.id,
+                companyId: company.id,
+              })
+              : null,
+            this.accountDataService.addAccountUser(account.id, user.id),
+          ]);
+        }
+      }
+      if (!account || !(account && account.id)) {
+        throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
+      }
+      if (!user) {
+        user = await this.userDataService.createUser({
+          ...rest,
+          role: 'CUSTOMER',
+          source: data.source || 'IMPORT_10T',
+          primaryCompanyId: company?.id,
+          accountId: account.id,
+          primaryAccountId: account.id,
+        });
+      } else if (
+        user &&
+        user.currentOnboardingState === OnboardingState.VERIFICATION &&
+        company
+      ) {
+        user = await this.userDataService.updateUser({
+          id: user.id,
+          ...rest,
+        });
+        const accounts = await this.accountDataService.getAccounts({
+          id: company.accountId,
+          userId: user.id,
+          limit: 1,
+          offset: 0,
+        });
+        const account = accounts && accounts.length > 0 ? accounts[0] : null;
+        if (account) {
+          await this.accountService.updateAccountConfiguration(
+            {
+              ...user,
+              accountId: account.id,
+              accountConfigurationId: account.configurationId,
+              currentSubscriptionId: account.currentSubscriptionId,
+              token: '',
+            },
+            'interest',
+            data.industry
+              ? InterestDefaultConfigurationsWithIndustry[data.industry]
+              : InterestDefaultConfigurations.interests,
+          );
+        }
+      }
+      if (locationId) {
+        const data = await this.savedLocationsService.saveLocations(
+          JSON.stringify(locationId) as any,
+          {
+            email: user.email,
+            accountId: account.id,
+            primaryAccountId: user.primaryAccountId,
+            primaryCompanyId: user.primaryCompanyId,
+            accountConfigurationId: account.configurationId,
+            currentSubscriptionId: account.currentSubscriptionId,
+            id: user.id,
+            industry: user.industry,
+            subIndustry: user.subIndustry,
+            category: user.category,
+            currentOnboardingState: user.currentOnboardingState,
+            department: user.department,
+            designation: user.designation,
+            firstname: user.firstname,
+            lastname: user.lastname,
+            phoneNumber: user.phoneNumber,
+            imageUrl: user.imageUrl,
+            primaryLocation: user.primaryLocation,
+            role: user.role,
+            token: 'dfas',
+          },
+        );
+      }
+      user = await this.userDataService.updateUser({
+        id: user.id,
+      });
+      if (data.profileUrl && data.profileUrl.length > 5) {
+        const profilepicture =
+          await this.authDataService.fetchImageFromOtherDomian(
+            data.profileUrl,
+            user.id,
+          );
+        if (profilepicture) {
+          user = await this.userDataService.updateUser({
+            id: user.id,
+            imageUrl: profilepicture.fileUrl,
+            profileImageId: profilepicture.id,
+          });
+        }
+      }
+      if (flag) {
+        this.createDefaultBrandKit(
+          {
+            id: user.id,
+            accountId: account.id,
+            domain: domain,
+          },
+          blackListDomain.includes(domain),
+        );
+      }
+    }
+
+    return {
+      user: await this.sharedService.UserResponse({
+        ...user,
+        accountId: account.id,
+        primaryAccountId: user.primaryAccountId,
+        primaryCompanyId: user.primaryCompanyId,
+        accountConfigurationId: account.configurationId,
+        currentSubscriptionId: account.currentSubscriptionId,
+      }),
+    };
   }
   // async userBasicInfo(email: string) {
   //   try {

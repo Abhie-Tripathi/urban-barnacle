@@ -298,7 +298,7 @@ export class EnquiryService {
       offset: 0,
       accountId: user.accountId,
     });
-    console.log({ enquiries });
+    // console.log({ enquiries });
     if (enquiries.length === 0) {
       throw new HttpException('Enquiry not found', HttpStatus.NOT_FOUND);
     }
@@ -388,6 +388,7 @@ export class EnquiryService {
         profileImage: user.imageUrl,
         designation: user.designation,
         department: user.department,
+        followerIntendId: follower.id,
       };
     });
     return {
