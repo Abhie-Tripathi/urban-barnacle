@@ -116,8 +116,8 @@ export const defaultEventTypes = {
     festival: 'e5283caa-f655-504b-8e44-49ae0edb3faa',
     sport: 'bffa5040-c654-5991-a1c5-0610e2c0ec74',
     concert: '69cf1329-0c71-5dae-b7a9-838c5712bce0',
-    'performing-arts': '94fcb56e-2838-5d74-9092-e582d873a03e',
-    community: '3a3609e5-56df-5a8b-ad47-c9e168eb4f59',
+    'stage-performance': '94fcb56e-2838-5d74-9092-e582d873a03e',
+    'community-group': '3a3609e5-56df-5a8b-ad47-c9e168eb4f59',
     tradeshows: '9b5524b4-60f5-5478-b3f0-38e2e12e3981',
     conferences: '4de48054-46fb-5452-a23f-8aac6c00592e',
     workshops: 'ad7c83a5-b8fc-5109-a159-9306848de22c',
@@ -135,8 +135,8 @@ export const ValidEventTypes = {
     'festival',
     'sport',
     'concert',
-    'performing-arts',
-    'community',
+    'stage-performance',
+    'community-group',
     'tradeshows',
     'conferences',
     'workshops',
@@ -232,7 +232,9 @@ export enum QueueActionOptions {
   SEND_INTEND_UPDATE_EMAIL = 'SEND_INTEND_UPDATE_EMAIL',
   SEND_ERROR_EMAIL = 'SEND_ERROR_EMAIL',
   SEND_DEMO_CONTACT_EMAIL = 'SEND_DEMO_CONTACT_EMAIL',
-  SEND_TRACKER_EXPORT_MAIL = 'SEND_TRACKER_EXPORT_MAIL'
+  SEND_CONTACT_US_EMAIL = 'SEND_CONTACT_US_EMAIL',
+  SEND_CONTACT_ERROR_EMAIL = 'SEND_CONTACT_ERROR_EMAIL',
+  SEND_TRACKER_EXPORT_MAIL = 'SEND_TRACKER_EXPORT_MAIL',
 }
 
 // export type TrackerParams = {

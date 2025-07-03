@@ -31,7 +31,8 @@ lerna-debug.log*
 *.launch
 .settings/
 *.sublime-workspace
-
+/cron
+/cron/*
 # IDE - VSCode
 .vscode/*
 .vscode/settings.json

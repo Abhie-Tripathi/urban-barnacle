@@ -110,6 +110,10 @@ export class AccountService {
       view: View.tracker,
     } as QueryDto;
     const events = await this.eventService.getAllEvents(eventParams, false);
+    console.log({ sadasdas111events: events });
+    if (events.events.length === 0) {
+      return [];
+    }
     return { ...events, count: count.length };
   }
   async getEventFromProductDb(
@@ -272,14 +276,14 @@ export class AccountService {
       //   ...(eventId ? { eventId: eventId } : {}),
       // }),
     ]);
-    console.log('start=>1');
+    // console.log('start=>1');
     if (enquiries.length === 0) {
       return {
         count: 0,
         enquiries: [],
       };
     }
-    console.log('start=>2');
+    // console.log('start=>2');
     let eventIds = enquiries.map((enquiry) => enquiry.eventId);
     // const enquiryCount = eventIds.length;
     // const selectedEventIds: string[] = enquiry.map(
@@ -353,14 +357,14 @@ export class AccountService {
     //     }),
     //   ),
     // ]);
-    console.log(
-      'selectedEventIds=>',
-      { productEvents },
-      // { selectedEventIds },
-      { eventMap },
-      { microServiceEvents },
-      { selectedEnquiries }
-    );
+    // console.log(
+    //   'selectedEventIds=>',
+    //   { productEvents },
+    //   // { selectedEventIds },
+    //   { eventMap },
+    //   { microServiceEvents },
+    //   { selectedEnquiries }
+    // );
     const transformedEnquires = await Promise.all(
       selectedEnquiries.slice(offset, limit + offset).map(async (enquiry) => {
         const [interestedCount, activityCount, myActivity] = await Promise.all([
@@ -423,13 +427,13 @@ export class AccountService {
           activityCounts.total += curr._count.id;
           activityCounts[curr.activitySubType.toLowerCase()] = curr._count.id;
         });
-        console.log(
-          'selectedEventIds=>',
-          // { selectedEventIds },
-          { eventMap },
-          { microServiceEvents },
-          { selectedEnquiries },
-        );
+        // console.log(
+        //   'selectedEventIds=>',
+        //   // { selectedEventIds },
+        //   { eventMap },
+        //   { microServiceEvents },
+        //   { selectedEnquiries },
+        // );
         return EnquiryResponseSchema.parse({
           ...enquiry,
           activityCount: activityCounts,

@@ -7,7 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 import { SharedModule } from './shared/shared.module';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 import { RequestLoggingMiddleware } from './request-logging.middleware';
 // import { LoggingMiddleware } from './logging.interceptor';
 import { PromotedEventsModule } from './promotedEvent/promoted-event.module';
@@ -37,10 +37,10 @@ import { AfterResponseInterceptor } from './after-response.interceptor';
 import { PublicApiModule } from './public-api/public-api.module';
 import { CompaniesModule } from './company/company.module';
 import { OthersModule } from './others/others.module';
-import { DemoContactWorkerClass } from './communication/bull-service/bull-demoContact.service';
 import { ErrorWorkerClass } from './communication/bull-service/bull-errorMessage.service';
 import { GlobalResponseInterceptor } from './global-response.interceptor';
 import { CommunicationService } from './communication/communication.service';
+import { ContactWorkerClass } from './communication/bull-service/bull-contact.service';
 import { ExportWorkerClass } from './communication/bull-service/bull-export.service';
 import { RedisModule } from './redis/redis.module';
 @Module({
@@ -118,8 +118,8 @@ import { RedisModule } from './redis/redis.module';
     IntendWorkerClass,
     InvitationWorkerClass,
     AfterResponseInterceptor,
-    DemoContactWorkerClass,
     ErrorWorkerClass,
+    ContactWorkerClass,
     ExportWorkerClass
     // CommunicationService,
   ],

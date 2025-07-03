@@ -3,8 +3,8 @@ import { Inject, Logger, Scope } from '@nestjs/common';
 import { JobStatus, User } from '@prisma/client';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
-import { Job } from 'bull';
-import { Processor, Process, JOB_REF } from '@nestjs/bull';
+import { Job } from 'bullmq';
+import { Processor, JOB_REF, WorkerHost } from '@nestjs/bullmq';
 import { EmailService } from '../email/email.service';
 import {
   emailSenderAddress,
@@ -24,8 +24,8 @@ interface InviteData {
   encryptNo: string;
   sourceId: string;
 }
-@Processor({ name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}inviteProcessor}`, scope: Scope.REQUEST })
-export class InvitationWorkerClass {
+@Processor(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}inviteProcessor}`)
+export class InvitationWorkerClass extends WorkerHost {
   constructor(
     private email: EmailService,
     private prisma: PrismaService,
@@ -34,10 +34,31 @@ export class InvitationWorkerClass {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private configService: ConfigService,
   ) {
+    super();
     console.log(JSON.stringify(jobRef));
   }
   private readonly logger = new Logger(InvitationWorkerClass.name);
-  @Process('invitationMail')
+  async process(job: Job<any>): Promise<any> {
+    await job.log(`Started processing job: ${job.name}`);
+    await job.log(`Job data: ${JSON.stringify(job.data)}`);
+    switch (job.name) {
+      case 'invitationMail': {
+        const { done } = await this.handleEmailJob(job);
+        await job.log(`Finished processing job: ${job.name}`);
+        return { done };
+      }
+      case 'inviteUserMail': {
+        const { done } = await this.handleInviteEmailJob(job);
+        await job.log(`Finished processing job: ${job.name}`);
+        return { done };
+      }
+      default: {
+        await job.log(` Not Finished processing job(NOT FOUND): ${job.name}`);
+      }
+    }
+    return { done: false };
+  }
+  // @Process('invitationMail')
   async handleEmailJob(job: Job<InviteData>) {
     try {
       const jobdata = job.data;
@@ -82,7 +103,7 @@ export class InvitationWorkerClass {
           status: status,
         },
       });
-      return {};
+      return { done: true };
     } catch (error) {
       console.log(JSON.stringify(error));
       const data = await this.prisma.requestedJob.update({
@@ -93,9 +114,10 @@ export class InvitationWorkerClass {
           status: 'FAILED',
         },
       });
+      return { done: false };
     }
   }
-  @Process('inviteUserMail')
+  // @Process('inviteUserMail')
   async handleInviteEmailJob(
     job: Job<{
       jobRequestId: string;
@@ -137,7 +159,7 @@ export class InvitationWorkerClass {
           status: status,
         },
       });
-      return {};
+      return { done: false };
     } catch (error) {
       console.log(JSON.stringify(error));
       const data = await this.prisma.requestedJob.update({
@@ -148,6 +170,7 @@ export class InvitationWorkerClass {
           status: 'FAILED',
         },
       });
+      return { done: false };
     }
   }
 }
