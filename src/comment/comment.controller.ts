@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   HttpException,
   Param,
   Patch,
@@ -38,7 +39,14 @@ export class CommentController {
       return { error: error };
     }
   }
-
+  @Get(':id')
+  @UseGuards(AuthGuard)
+  async getCommentById(
+    @Param('id') id: string,
+    @GetUser() user: TCachedUser,
+  ) {
+    return this.commentService.getCommentById(id, user);
+  }
   @Patch(':id')
   @UseGuards(AuthGuard)
   async updateComment(

@@ -9,6 +9,7 @@ import {
 } from './dto';
 import { File } from '@nest-lab/fastify-multer';
 import { FileCreationService } from 'src/shared/file-creation.service';
+import { TCachedUser } from 'src/utils/types';
 
 @Injectable()
 export class CommentDataService {
@@ -100,5 +101,28 @@ export class CommentDataService {
       },
     });
     return commentCount;
+  }
+  async getCommentById(id: string, user: TCachedUser) {
+    const comment = await this.prisma.comment.findUnique({
+      where: {
+        id: id,
+        deleted: false,
+        accountId: user.accountId
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstname: true,
+            lastname: true,
+            imageUrl: true,
+          }
+        }
+    }
+    });
+    if (!comment) {
+      throw new HttpException("Comment not found", HttpStatus.NOT_FOUND);
+    }
+    return comment;
   }
 }

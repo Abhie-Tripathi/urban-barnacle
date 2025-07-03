@@ -222,4 +222,7 @@ export class CommentService {
     });
     return upvote;
   }
+  async getCommentById(id: string, user: TCachedUser) {
+    return await this.commentDataService.getCommentById(id, user);
+  }
 }
