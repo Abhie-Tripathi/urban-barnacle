@@ -24,7 +24,7 @@ export class AccountDataService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventService: EventsService,
-  ) {}
+  ) { }
   async createSubscription(data: CreateSubscriptionDto) {
     const subscription = await this.prisma.subscription.create({
       data: {
@@ -97,12 +97,12 @@ export class AccountDataService {
     const { configuration, ...rest } = data;
     const config = configuration
       ? {
-          accountConfiguration: {
-            update: {
-              config: configuration,
-            },
+        accountConfiguration: {
+          update: {
+            config: configuration,
           },
-        }
+        },
+      }
       : {};
     const account = await this.prisma.account.update({
       where: { id: data.id },
@@ -155,7 +155,7 @@ export class AccountDataService {
     });
     return await this.prisma.subscription.update({
       where: {
-        id: user.accountId,
+        id: user.currentSubscriptionId,
       },
       data: {
         plan: data.plan,
@@ -251,33 +251,33 @@ export class AccountDataService {
     // console.log(config, { comment }, comment[0].enquirystatus)
     return comment.length === 1
       ? {
-          comment: {
-            id: comment[0].commentid,
-            content: comment[0].content,
-            createdAt: comment[0].createdAt,
-            stage: comment[0].sourceModule,
-          },
-          enquiry: {
-            enquiryId: comment[0].enquiryid,
-            enquiryStatusLabel: config
-              ? config['outreach'].find(
-                  (val) =>
-                    val.status.toLowerCase() ===
-                    comment[0].enquirystatus.toLowerCase(),
-                ).label
-              : null,
-            enquiryStatus: comment[0].enquirystatus,
-          },
-          event: {
-            id: comment[0].eventId,
-            name: eventBasic['name'],
-          },
-          user: {
-            name:
-              comment[0].username ||
-              getNameFromEmail(comment[0].email, null, null),
-          },
-        }
+        comment: {
+          id: comment[0].commentid,
+          content: comment[0].content,
+          createdAt: comment[0].createdAt,
+          stage: comment[0].sourceModule,
+        },
+        enquiry: {
+          enquiryId: comment[0].enquiryid,
+          enquiryStatusLabel: config
+            ? config['outreach'].find(
+              (val) =>
+                val.status.toLowerCase() ===
+                comment[0].enquirystatus.toLowerCase(),
+            ).label
+            : null,
+          enquiryStatus: comment[0].enquirystatus,
+        },
+        event: {
+          id: comment[0].eventId,
+          name: eventBasic['name'],
+        },
+        user: {
+          name:
+            comment[0].username ||
+            getNameFromEmail(comment[0].email, null, null),
+        },
+      }
       : {};
   }
 }

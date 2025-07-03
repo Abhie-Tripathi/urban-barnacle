@@ -156,7 +156,7 @@ export class EventsDataService {
     const response = await fetch(url, req);
     try {
       const { data, error } = await response.json();
-      console.error(data);
+      // console.error(data);
       console.log(data);
       if (!data || error) {
         console.error(error, data);

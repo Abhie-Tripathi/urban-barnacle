@@ -14,6 +14,7 @@ import {
 import { TrackerService } from './tracker.service';
 import {
   CreateTrackerDto,
+  CreateTrackerExportsDto,
   GetTrackerByIdDto,
   GetTrackerEventsCountDto,
   GetTrackerEventsDto,
@@ -28,6 +29,7 @@ import { membershipLimit, TCachedUser } from 'src/utils/types';
 import { AuthGuard } from 'src/user/auth/guard';
 import { GetCommentsDto } from 'src/comment/dto';
 import { CreateAccessHttpDto, UpdateAccessHttpDto } from 'src/access/dto';
+import { LimitDto } from 'src/global_dto';
 import { SharedService } from 'src/shared/shared.service';
 import { PointColumn } from 'src/shared/types';
 
@@ -36,7 +38,7 @@ export class TrackerController {
   constructor(
     private readonly trackerService: TrackerService,
     private readonly sharedService: SharedService,
-  ) {}
+  ) { }
 
   @UseGuards(AuthGuard)
   @Post()
@@ -164,7 +166,7 @@ export class TrackerController {
       // }
       if (
         membershipLimit[membershipStatus.membership] -
-          ((query.limit || 10) + (query.offset || 0)) <
+        ((query.limit || 10) + (query.offset || 0)) <
         0
       ) {
         throw new HttpException(
@@ -266,7 +268,7 @@ export class TrackerController {
         id,
         query,
       );
-      return { data: events };
+      return { data: events['data'] };
     } catch (error) {
       return { error: error };
     }
@@ -345,7 +347,69 @@ export class TrackerController {
       return { error: error };
     }
   }
-
+  @UseGuards(AuthGuard)
+  @Post(':id/exports')
+  async createTrackerEventDataExported(
+    @Param('id') id: string,
+    @GetUser() user: TCachedUser,
+    @Body() query: CreateTrackerExportsDto,
+  ) {
+    try {
+      const tracker = await this.trackerService.createTrackerEventDataExported(id, user, query);
+      return { data: tracker.data };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+  @UseGuards(AuthGuard)
+  @Get(':id/exports')
+  async getTrackerEventDataExported(
+    @Param('id') id: string,
+    @GetUser() user: TCachedUser,
+    @Query() query: LimitDto
+  ) {
+    try {
+      const { count, trackerExports } = await this.trackerService.getTrackerEventDataExported(id, user, query);
+      return { data: { count, trackerExports } };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+  @UseGuards(AuthGuard)
+  @Delete(':id/exports/:exportId')
+  async deleteTrackerEventDataExported(
+    @Param('id') id: string,
+    @Param('exportId') exportId: string,
+    @GetUser() user: TCachedUser,
+  ) {
+    try {
+      const tracker = await this.trackerService.deleteTrackerEventDataExported(id, exportId, user);
+      return { data: tracker };
+    } catch (error) {
+      return { error: error };
+    }
+  }  @UseGuards(AuthGuard)
+  @Get(':id/intelScore/:passKey/cron')
+  async getTrackerIntelScoreForCron(
+    @Param('id') id: string,
+    @Param('passKey') passKey: string,
+    @GetUser() user: TCachedUser,
+    @Query() query: GetTrackerIntelScoreDto,
+  ) {
+    try {
+      if (process.env.CRON_PASSKEY !== passKey) {
+        throw new HttpException('Not Allowed', HttpStatus.FORBIDDEN);
+      }
+      const events = await this.trackerService.getTrackerIntelScoreForCron(
+        user,
+        id,
+        query,
+      );
+      return { data: events };
+    } catch (error) {
+      return { error: error };
+    }
+  }
   @UseGuards(AuthGuard)
   @Get(':id')
   async getTracker(
