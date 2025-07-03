@@ -7,7 +7,7 @@ import Redis, { Command } from 'ioredis';
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private client: Redis;
 
-  constructor(private configService: ConfigService) {}
+  constructor(private configService: ConfigService) { }
 
   onModuleInit() {
     const host = process.env.REDIS_HOST || '0.0.0.0';
@@ -16,18 +16,18 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     this.client = new Redis({
       ...(process.env.NODE_ENV &&
-      process.env.NODE_ENV.toLowerCase() !== 'production'
+        process.env.NODE_ENV.toLowerCase() !== 'production'
         ? {
+          host,
+          port,
+          password,
+        }
+        : {
+          tls: {
             host,
             port,
-            password,
-          }
-        : {
-            tls: {
-              host,
-              port,
-            },
-          }),
+          },
+        }),
     });
 
     this.client.on('connect', () => console.log('Redis connected'));
@@ -93,7 +93,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return Number(result);
   }
 
-  async jsonMget(path = '.', ...keys: string[]): Promise<(any | null)[]> {
+  async jsonMget(path = '$', ...keys: string[]): Promise<(any | null)[]> {
     keys = keys.map((val) => this.addBackendEnv(val));
     const args = ['JSON.MGET', ...keys, path];
     const command = new Command(args[0], args.slice(1));

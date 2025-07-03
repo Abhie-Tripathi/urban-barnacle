@@ -92,9 +92,34 @@ export const errorMailSchema = z.object({
 })
 
 export const demoContactSchema = z.object({
-  body: z.string(),
-  subject: z.string()
+  firstName: z.string(),
+  lastName: z.string(),
+  email: z.string(),
+  source: z.string(),
+  companyName: z.string(),
+  jobTitle: z.string(),
+  phoneNumber: z.string(),
+  sourceId: z.string(),
 })
+export class DemoContactDto extends createZodDto(demoContactSchema) { }
+export const contactUsSchema = z.object({
+  firstName: z.string(),
+  lastName: z.string(),
+  email: z.string(),
+  message: z.string(),
+  source: z.string(),
+  sourceId: z.string(),
+})
+export class ContactUsDto extends createZodDto(contactUsSchema) { }
+export const ErrorContactSchema = z.object({
+  email: z.string(),
+  userLimit: z.string(),
+  dailyLimit: z.string(),
+  time: z.string(),
+  name: z.string(),
+  sourceId: z.string(),
+})
+export class ErrorContactDto extends createZodDto(ErrorContactSchema) { }
 const userInviteSchema = z.object({
   referredByUserName: z.string(),
   invitedUserEmail: z.string(),
@@ -130,5 +155,7 @@ export const PayloadDTO = z.union([
   errorMailSchema,
   demoContactSchema,
   userInviteSchema,
+  contactUsSchema,
+  ErrorContactSchema,
   trackerExportInputSchema
 ]);

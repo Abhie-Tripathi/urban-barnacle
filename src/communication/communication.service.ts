@@ -1,7 +1,7 @@
-import { InjectQueue } from '@nestjs/bull';
+import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
 import { JobSource } from '@prisma/client';
-import { Job, Queue } from 'bull';
+import { Job, Queue } from 'bullmq';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { QueueActionOptions, SelectedUserDetails } from 'src/utils/types';
 import { PayloadDTO } from './bull.dto';
@@ -18,8 +18,7 @@ export class CommunicationService {
     @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}accessProcessor}`) private readonly accessQueue: Queue,
     @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}otpProcessor}`) private readonly otpQueue: Queue,
     @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}intendProcessor}`) private readonly intendQueue: Queue,
-    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}demoContactProcessor}`)
-    private readonly demoContactQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}contactProcessor}`) private readonly demoContactQueue: Queue,
     @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}errorProcessor}`) private readonly errorQueue: Queue,
     @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`) private readonly exportQueue: Queue,
     private email: EmailService,
@@ -67,9 +66,9 @@ export class CommunicationService {
         SEND_ERROR_EMAIL: 'errorMessage',
         SEND_DEMO_CONTACT_EMAIL: 'demoContactMail',
         SEND_USER_INVITATION_EMAIL: 'inviteUserMail',
-        SEND_TRACKER_EXPORT_MAIL: 'exportTrackerEventData',
         SEND_CONTACT_US_EMAIL: 'contactUsMail',
         SEND_CONTACT_ERROR_EMAIL: 'errorContactLimitMessage',
+        SEND_TRACKER_EXPORT_MAIL: 'exportTrackerEventData',
       };
       const processToprocessorMapping: object = {
         shareAccess: 'accessProcessor',
@@ -109,7 +108,7 @@ export class CommunicationService {
           ? 'SEND_SIGNUP_OTP'
           : process === 'signUp/InEmail' &&
             jobRequestPayload.process === 'sign-in'
-            ? 'SEND_SIGNUP_OTP'
+            ? 'SEND_SIGNIN_OTP'
             : '';
       for (const key in jobSource) {
         if (jobSource[key] === process) {
@@ -268,7 +267,7 @@ export class CommunicationService {
               priority: priority,
             },
           );
-          console.log('Call contactProcessor');
+          console.log('Call contactProcessor',);
           break;
         case 'contactUsMail':
           jobAdded = await this.demoContactQueue.add(
@@ -281,7 +280,14 @@ export class CommunicationService {
               priority: priority,
             },
           );
-          console.log('Call contactProcessor');
+          console.log('Call contactProcessor', {
+            process,
+
+            ...validatedPayload,
+            ...requestId,
+
+            priority: priority,
+          });
           break;
         case 'exportTrackerEventData':
           jobAdded = await this.exportQueue.add(
@@ -321,7 +327,7 @@ export class CommunicationService {
             },
           );
           console.log('Call errorProcessor');
-          await this.errorQueue.client.disconnect();
+          // await this.errorQueue.client.disconnect();
           break;
         default:
           console.log('Unknown action');

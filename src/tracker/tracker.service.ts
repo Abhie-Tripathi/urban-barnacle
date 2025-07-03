@@ -32,7 +32,8 @@ import { CountGroup, CountQueryDto, QueryDto, View } from 'src/events/dto';
 import { IntentDataService } from 'src/intent/intent.data.service';
 import {
   AccessType,
-  ExportSubSource, Prisma,
+  ExportSubSource,
+  Prisma,
   Tracker,
   TrackerTypeTag,
   User,
@@ -49,7 +50,7 @@ import { AccountDataService } from 'src/user/account/account.data.service';
 import { microserviceEndpoints } from 'src/utils/endpoints';
 import { RedisService } from 'src/redis/redis.service';
 import { trackerExportDto } from 'src/communication/bull.dto';
-import { log } from 'console';
+// import { log } from 'console';
 import { LimitDto } from 'src/global_dto';
 @Injectable()
 export class TrackerService {
@@ -66,7 +67,7 @@ export class TrackerService {
     private readonly accountDataService: AccountDataService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly redisService: RedisService,
-  ) { }
+  ) {}
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const nonEmptyParams = getNonEmptyParams(data.filterValues);
@@ -115,7 +116,9 @@ export class TrackerService {
       flagForEmail: true,
     });
     // console.log("data.cachingFlag==> ", data.cachingFlag);
-
+    try {
+      this.getIntelScoreForUpdate(tracker.id, user);
+    } catch (error) {}
     if (data.cachingFlag) {
       this.getTrackerResponse(
         user,
@@ -164,9 +167,9 @@ export class TrackerService {
     }
     tracker.filterValues = tracker.filterValues
       ? {
-        ...(tracker.filterValues as Record<string, any>),
-        searchByEntity,
-      }
+          ...(tracker.filterValues as Record<string, any>),
+          searchByEntity,
+        }
       : { searchByEntity };
 
     const savedEventsCount =
@@ -288,7 +291,7 @@ export class TrackerService {
                 );
             }
           }
-        } catch (error) { }
+        } catch (error) {}
       }
 
       filterValues = await this.sharedService.convertIdParamsToSlug(
@@ -303,6 +306,8 @@ export class TrackerService {
         82800000,
       );
     }
+    // console.log(tracker.createdByUser);
+
     const trackerValues = {
       id: tracker.id,
       name: tracker.name,
@@ -310,28 +315,15 @@ export class TrackerService {
       filterValues: filterValues,
       createdAt: tracker.createdAt,
       updatedAt: tracker.updatedAt,
-      createdBy: {
-        id: tracker.createdByUser.id,
-        name: getNameFromEmail(
-          tracker.createdByUser.email,
-          tracker.createdByUser.firstname,
-          tracker.createdByUser.lastname,
-        ),
-        email: tracker.createdByUser.email,
-        imageUrl: tracker.createdByUser.imageUrl,
-      },
+      createdBy: tracker.createdByUser,
+      // id: tracker.createdByUser.id,
+      // firstname: tracker.createdByUser.firstname,
+      // lastname: tracker.createdByUser.lastname,
+      // email: tracker.createdByUser.email,
+      // imageUrl: tracker.createdByUser.imageUrl,
       lastModifiedBy:
         tracker.modifiedByUser && tracker.modifiedByUser.id
-          ? {
-            id: tracker.modifiedByUser.id,
-            name: getNameFromEmail(
-              tracker.modifiedByUser.email,
-              tracker.modifiedByUser.firstname,
-              tracker.modifiedByUser.lastname,
-            ),
-            email: tracker.modifiedByUser.email,
-            imageUrl: tracker.modifiedByUser.imageUrl,
-          }
+          ? tracker.modifiedByUser
           : null,
     };
     return {
@@ -384,6 +376,7 @@ export class TrackerService {
       },
       user,
     );
+    // console.log(trackers);
 
     const allTrackers = await Promise.all(
       trackers.map((tracker) => {
@@ -535,6 +528,9 @@ export class TrackerService {
       user,
       updateParams,
     );
+    try {
+      this.getIntelScoreForUpdate(trackerId, user);
+    } catch (error) {}
     this.getTrackerResponse(
       user,
       updatedTracker as Tracker & { createdByUser: User; modifiedByUser: User },
@@ -550,6 +546,26 @@ export class TrackerService {
       'ADMIN',
       'SUPER_ADMIN',
     ]);
+    let addJobs: any = null;
+
+    await Promise.all([
+      this.redisService.del(`${trackerId}-IntelScore`),
+      (async () => {
+        addJobs = await this.redisService.get(`tracker-IntelScore-Jobs24`);
+      })(),
+    ]);
+    if (!addJobs) {
+      addJobs = [];
+    }
+    if (addJobs && !Array.isArray(addJobs)) {
+      addJobs = !Array.isArray(addJobs) ? JSON.parse(addJobs) : addJobs;
+    }
+    addJobs.filter((val) => val !== trackerId);
+    await this.redisService.set(
+      `tracker-IntelScore-Jobs24`,
+      JSON.stringify([...new Set(addJobs)]),
+      60 * 60 * 24 * 7,
+    );
     return this.trackerDataService.updateTracker(user, {
       id: tracker.id,
       deleted: true,
@@ -612,6 +628,19 @@ export class TrackerService {
       ) {
         tracker.filterValues['eventIds'] = [];
         tracker.filterValues['eventSourceIds'] = [-1];
+      }
+      if (
+        tracker.filterValues &&
+        tracker.filterValues['viewBound'] &&
+        params.viewBound
+      ) {
+        const viewBounds = [
+          JSON.stringify(tracker.filterValues['viewBound']),
+          JSON.stringify(convertedParams.viewBound),
+        ];
+        convertedParams['viewBounds'] = viewBounds.join('<sep>');
+        delete tracker.filterValues['viewBound'];
+        delete convertedParams['viewBound'];
       }
       const eventParams = {
         ...(tracker.filterValues as Object),
@@ -703,6 +732,19 @@ export class TrackerService {
       );
       convertedParams['active_gte'] = startDate;
       convertedParams['active_lte'] = endDate;
+      if (
+        tracker.filterValues &&
+        tracker.filterValues['viewBound'] &&
+        params.viewBound
+      ) {
+        const viewBounds = [
+          JSON.stringify(tracker.filterValues['viewBound']),
+          JSON.stringify(convertedParams.viewBound),
+        ];
+        convertedParams['viewBounds'] = viewBounds.join('<sep>');
+        delete tracker.filterValues['viewBound'];
+        delete convertedParams['viewBound'];
+      }
       if (params.trackerEventStatus && params.trackerEventStatus === 'new') {
         const lastActive = await this.lastActive(
           user,
@@ -771,6 +813,19 @@ export class TrackerService {
       );
       convertedParams['active_gte'] = startDate;
       convertedParams['active_lte'] = endDate;
+      if (
+        tracker.filterValues &&
+        tracker.filterValues['viewBound'] &&
+        params.viewBound
+      ) {
+        const viewBounds = [
+          JSON.stringify(tracker.filterValues['viewBound']),
+          JSON.stringify(convertedParams.viewBound),
+        ];
+        convertedParams['viewBounds'] = viewBounds.join('<sep>');
+        delete tracker.filterValues['viewBound'];
+        delete convertedParams['viewBound'];
+      }
       if (params.trackerEventStatus && params.trackerEventStatus === 'new') {
         const lastActive = await this.lastActive(
           user,
@@ -815,8 +870,10 @@ export class TrackerService {
       }
 
       const count = await this.eventService.getEventsCount(eventParams, false);
-      return count;
+
+      return this.handleCountResponse(eventParams, count);
     } catch (error) {
+      console.log({ error });
       if (
         error instanceof HttpException &&
         error.getStatus() === 400 &&
@@ -873,6 +930,18 @@ export class TrackerService {
     }
   }
 
+  handleCountResponse(params: CountQueryDto, count: any) {
+    console.log(count);
+    if (
+      params.groupBy &&
+      ['city', 'state', 'country'].includes(params.groupBy[0]) &&
+      !Array.isArray(count)
+    ) {
+      return [];
+    }
+    return count;
+  }
+
   async getTrackerSavedEventsCount(
     user: TCachedUser,
     trackerId: string,
@@ -909,6 +978,19 @@ export class TrackerService {
       );
       convertedParams['active_gte'] = startDate;
       convertedParams['active_lte'] = endDate;
+      if (
+        tracker.filterValues &&
+        tracker.filterValues['viewBound'] &&
+        params.viewBound
+      ) {
+        const viewBounds = [
+          JSON.stringify(tracker.filterValues['viewBound']),
+          JSON.stringify(convertedParams.viewBound),
+        ];
+        convertedParams['viewBounds'] = viewBounds.join('<sep>');
+        delete tracker.filterValues['viewBound'];
+        delete convertedParams['viewBound'];
+      }
       if (params.trackerEventStatus && params.trackerEventStatus === 'new') {
         const lastActive = await this.lastActive(
           user,
@@ -1330,7 +1412,7 @@ export class TrackerService {
     showValues: string,
   ) {
     try {
-      console.log(params);
+      // console.log(params);
 
       const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
         'ADMIN',
@@ -1385,17 +1467,20 @@ export class TrackerService {
         trackerId: trackerId,
         showValues: showValues,
       };
-      const dataFromDB = await this.trackerDataService.getSimilarTrackerEvent(
-        trackerId,
-        (eventParams['trackerEventStatus']?.toUpperCase() as TrackerTypeTag) ||
-        'NEW',
-        1000,
-        params.offset || 0,
-      );
-      console.log({ dataFromDB: dataFromDB });
+      const [dataFromDB, countFromDB] =
+        await this.trackerDataService.getSimilarTrackerEvent(
+          trackerId,
+          (eventParams[
+            'trackerEventStatus'
+          ]?.toUpperCase() as TrackerTypeTag) || 'NEW',
+          1000,
+          params.offset || 0,
+        );
+      const countSimilarEventFromDB = Number(countFromDB[0].count);
+      console.log({ dataFromDB: countSimilarEventFromDB });
 
-      if (dataFromDB.length > 0) {
-        let count: number = dataFromDB[0].count;
+      if (countSimilarEventFromDB > 0) {
+        // let count: number = dataFromDB[0]?.count||0;
         const cache: Object = {};
         eventParams['eventSourceIds'] = dataFromDB
           .map((val) => {
@@ -1403,24 +1488,31 @@ export class TrackerService {
             return val.sourceId;
           })
           .join(',');
+        if ((eventParams['eventSourceIds'] as string).length < 5) {
+          eventParams['eventSourceIds'] = '-1';
+        }
         eventParams['eventIds'] = [];
         eventParams['cache'] = JSON.stringify(cache);
         if (searchByEntity) {
           eventParams['searchByEntity'] = searchByEntity;
         }
         const events = await this.eventService.getSimilarEvents(eventParams);
-        const dataForResponse: object[] = [];
+
+        // console.dir(events, { depth: null });
+        if (params.view === View.calendar || params.view === View.map) {
+          return events;
+        }
+        let dataForResponse: object[] = [];
         dataFromDB.map((val) => {
           const findEVent = events.events.find(
             (value) => value.basic.id === val.eventId,
           );
           dataForResponse.push(findEVent);
         });
-        console.log({ output: events });
+        dataForResponse = dataForResponse.filter((val) => val);
+        // console.log(events);
 
-        console.log(events);
-
-        return { events: dataForResponse, count: count };
+        return { events: dataForResponse, count: events['count'] || 0 };
       } else {
         await this.trackerDataService.bulkDeleteToSimilarTrackerEvent(
           tracker.id,
@@ -1468,7 +1560,7 @@ export class TrackerService {
     params: GetTrackerEventsCountDto,
   ) {
     try {
-      console.log(params);
+      // console.log(params);
 
       const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
         'ADMIN',
@@ -1519,20 +1611,26 @@ export class TrackerService {
         ...convertedParams,
         trackerId: trackerId,
       } as CountQueryDto;
-      const dataFromDB = await this.trackerDataService.getSimilarTrackerEvent(
-        trackerId,
-        (eventParams['trackerEventStatus']?.toUpperCase() as TrackerTypeTag) ||
-        'NEW',
-        1000,
-        0,
+      const [dataFromDB, countFromDB] =
+        await this.trackerDataService.getSimilarTrackerEvent(
+          trackerId,
+          (eventParams[
+            'trackerEventStatus'
+          ]?.toUpperCase() as TrackerTypeTag) || 'NEW',
+          1000,
+          0,
+        );
+      const countSimilarEventFromDB = Number(countFromDB[0].count);
+      console.log(
+        { dataFromDB: countSimilarEventFromDB },
+        countSimilarEventFromDB,
       );
-      console.log({ dataFromDB: dataFromDB });
 
       if (searchByEntity) {
         eventParams['searchByEntity'] = searchByEntity;
       }
-      if (dataFromDB.length > 0) {
-        let count: number = dataFromDB[0].count;
+      if (countSimilarEventFromDB > 0) {
+        // let count: number = dataFromDB[0]?.count||0;
         const cache: Object = {};
         eventParams['eventSourceIds'] = dataFromDB
           .map((val) => {
@@ -1541,6 +1639,9 @@ export class TrackerService {
           })
           .join(',');
         eventParams['eventIds'] = [];
+        if ((eventParams['eventSourceIds'] as string).length < 5) {
+          eventParams['eventSourceIds'] = '-1';
+        }
         const events =
           await this.eventService.getSimilarEventsCount(eventParams);
 
@@ -1619,6 +1720,7 @@ export class TrackerService {
     user: TCachedUser,
     trackerId: string,
     query: GetTrackerIntelScoreDto,
+    errorPass: boolean = true,
   ) {
     const MAX_FILTER_ITEMS = 100;
 
@@ -1630,94 +1732,6 @@ export class TrackerService {
     const trackerFilterValuesJson: Object = {
       ...(tracker.filterValues as unknown as object),
     };
-    const errorFunction = async () => {
-      const jobExist = {
-        trackerId,
-        keywords: '>100',
-        createdAt: new Date().toISOString(),
-        status: 'pending',
-        user: user,
-      };
-      let queueJobs: any | null =
-        await this.redisService.get(`IntelScore-JobQueue`);
-      console.log({ queueJobs });
-      if (!queueJobs) {
-        queueJobs = [];
-        await this.redisService.set(
-          `IntelScore-JobQueue`,
-          JSON.stringify([]),
-          60 * 60 * 24 * 7,
-        );
-      }
-      if (
-        queueJobs &&
-        !Array.isArray(queueJobs) &&
-        JSON.parse(queueJobs).length > 100
-      )
-        queueJobs = JSON.parse(queueJobs);
-      queueJobs = !Array.isArray(queueJobs) ? JSON.parse(queueJobs) : queueJobs;
-      queueJobs.push(jobExist);
-      await this.redisService.set(
-        `IntelScore-JobQueue`,
-        JSON.stringify(queueJobs),
-        60 * 60 * 24 * 7,
-      );
-      throw new HttpException(
-        'Unable to process the request: Too many filter items',
-        HttpStatus.EXPECTATION_FAILED,
-      );
-    };
-    if (tracker.type === 'T_EVENT_PARTICIPATION') {
-      let length: number = 10000;
-      if (length > MAX_FILTER_ITEMS) {
-        errorFunction();
-      }
-    }
-    if (tracker.type === 'T_COMPETITOR') {
-      let length: number = 0;
-      if (trackerFilterValuesJson['orgName']) {
-        length += (trackerFilterValuesJson['orgName'] as string).split(
-          ',',
-        ).length;
-      }
-      if (trackerFilterValuesJson['orgWebsite']) {
-        length += (trackerFilterValuesJson['orgWebsite'] as string).split(
-          ',',
-        ).length;
-      }
-      if (length > MAX_FILTER_ITEMS) {
-        errorFunction();
-      }
-    }
-    if (tracker.type === 'T_PRODUCT_KEYWORDS') {
-      let length: number = 0;
-      if (trackerFilterValuesJson['includeKeywords']) {
-        length += (trackerFilterValuesJson['includeKeywords'] as string[])
-          .length;
-      }
-      if (trackerFilterValuesJson['excludeKeywords']) {
-        length += (trackerFilterValuesJson['excludeKeywords'] as string[])
-          .length;
-      }
-      if (length > MAX_FILTER_ITEMS) {
-        errorFunction();
-      }
-    }
-    if (
-      tracker.type === 'T_SPEAKING_OPPORTUNITY' ||
-      tracker.type === 'T_PEOPLE_FINDER'
-    ) {
-      let length: number = 0;
-      if (trackerFilterValuesJson['userName']) {
-        length += (trackerFilterValuesJson['userName'] as string).split(
-          ',',
-        ).length;
-      }
-      if (length > MAX_FILTER_ITEMS) {
-        errorFunction();
-      }
-    }
-    let trackerEventsIntelScore: object[] = [];
     const queryForPayload = await this.createQueryForIntelScore(
       query,
       tracker,
@@ -1731,14 +1745,114 @@ export class TrackerService {
       ),
       this.redisService.jsonGet(`${trackerId}-IntelScore-Job`),
     ]);
+    const errorFunction = async () => {
+      if (tracker.type !== 'T_EVENT_PARTICIPATION') {
+        const jobExist = trackerId;
+        let queueJobs: any | null =
+          await this.redisService.get(`IntelScore-JobQueue`);
+        console.log({ queueJobs });
+        if (!queueJobs) {
+          queueJobs = [];
+          await this.redisService.set(
+            `IntelScore-JobQueue`,
+            JSON.stringify([]),
+            60 * 60 * 24 * 7,
+          );
+        }
+        if (queueJobs && !Array.isArray(queueJobs))
+          queueJobs = JSON.parse(queueJobs);
+        queueJobs = !Array.isArray(queueJobs)
+          ? JSON.parse(queueJobs)
+          : queueJobs;
+        queueJobs.push(jobExist);
+        await this.redisService.set(
+          `IntelScore-JobQueue`,
+          JSON.stringify([...new Set(queueJobs)]),
+          60 * 60 * 24 * 7,
+        );
+      }
+      // try {
+      throw new HttpException(
+        'Unable to process the request right now,but request is raised',
+        HttpStatus.ACCEPTED,
+      );
+      // } catch (error) {
+      //   return error;
+      // }
+    };
+    if (
+      tracker.type === 'T_EVENT_PARTICIPATION' &&
+      errorPass &&
+      !getJsonForTrackerType
+    ) {
+      let length: number = 10000;
+      if (length > MAX_FILTER_ITEMS) {
+        return errorFunction();
+      }
+    }
+    if (
+      tracker.type === 'T_COMPETITOR' &&
+      errorPass &&
+      !getJsonForTrackerType
+    ) {
+      let length: number = 0;
+      if (trackerFilterValuesJson['orgName']) {
+        length += (trackerFilterValuesJson['orgName'] as string).split(
+          ',',
+        ).length;
+      }
+      if (trackerFilterValuesJson['orgWebsite']) {
+        length += (trackerFilterValuesJson['orgWebsite'] as string).split(
+          ',',
+        ).length;
+      }
+      if (length > MAX_FILTER_ITEMS) {
+        return errorFunction();
+      }
+    }
+    if (
+      tracker.type === 'T_PRODUCT_KEYWORDS' &&
+      errorPass &&
+      !getJsonForTrackerType
+    ) {
+      let length: number = 0;
+      if (trackerFilterValuesJson['includeKeywords']) {
+        length += (trackerFilterValuesJson['includeKeywords'] as string[])
+          .length;
+      }
+      if (trackerFilterValuesJson['excludeKeywords']) {
+        length += (trackerFilterValuesJson['excludeKeywords'] as string[])
+          .length;
+      }
+      if (length > MAX_FILTER_ITEMS) {
+        return errorFunction();
+      }
+    }
+    if (
+      (tracker.type === 'T_SPEAKING_OPPORTUNITY' ||
+        tracker.type === 'T_PEOPLE_FINDER') &&
+      errorPass &&
+      !getJsonForTrackerType
+    ) {
+      let length: number = 0;
+      if (trackerFilterValuesJson['userName']) {
+        length += (trackerFilterValuesJson['userName'] as string).split(
+          ',',
+        ).length;
+      }
+      if (length > MAX_FILTER_ITEMS) {
+        return errorFunction();
+      }
+    }
+    let trackerEventsIntelScore: object[] = [];
     getJsonForTrackerType = getJsonForTrackerType
       ? JSON.parse(getJsonForTrackerType.toString())[0]
       : getJsonForTrackerType;
-    console.log(
-      { getJsonForTrackerType: getJsonForTrackerType },
-      { jobsForIntelScore },
-      { data: await this.redisService.get(`${trackerId}-IntelScore-Job`) },
-    );
+    // console.log(
+    //   { getJsonForTrackerType: getJsonForTrackerType },
+    //   { jobsForIntelScore },
+    //   { data: await this.redisService.get(`${trackerId}-IntelScore-Job`) },
+    // );
 
     if (
       !getJsonForTrackerType ||
@@ -1764,14 +1878,14 @@ export class TrackerService {
             jobExist,
           ),
         ]);
-        console.log({ getJsonForTrackerType, sadas: 'SAdfsa' });
+        // console.log({ getJsonForTrackerType, sadas: 'SAdfsa' });
         this.fetchTrackerIntelScoreForCache(tracker, trackerId, user, jobExist);
       }
       const dataOfINtelScore =
         await this.trackerDataService.getTrackerIntelScoreFromApi(
           queryForPayload,
         );
-      console.log({ dataOfINtelScore });
+      // console.log({ dataOfINtelScore });
 
       for (const eventId of query.eventIds.split(',')) {
         trackerEventsIntelScore.push(dataOfINtelScore[eventId]);
@@ -1779,22 +1893,32 @@ export class TrackerService {
     } else {
       const jsonTrackerType = getJsonForTrackerType[0];
       const eventIds = query.eventIds.split(',');
-      const keys = eventIds.map((id) => `${trackerId}-IntelScore`);
+      for (const eventId of eventIds) {
+        const data = await this.redisService.jsonGet(
+          `${trackerId}-IntelScore`,
+          `$.${query.trackerEventStatus}.${eventId}`,
+        );
+        if (!data) {
+          continue;
+        }
+        trackerEventsIntelScore.push(JSON.parse(data)[0] as any);
+      }
+      // const keys = eventIds.map((id) => `${trackerId}-IntelScore`);
 
-      const results = await this.redisService.jsonMget(
-        `$.${query.trackerEventStatus}`,
-        ...keys,
-      );
-      // console.log(());
+      // const results = await this.redisService.jsonMget(
+      //   `$.${query.trackerEventStatus}[${eventIds.join("\",\"")}]`,
+      //   ...keys,
+      // );
+      // console.log((JSON.parse((results as string[])?.join('') || '{}')));
 
-      trackerEventsIntelScore = results
-        .map((res) => (res ? JSON.parse(res)[0] : null)) // Get the root object from each Redis result
-        .filter(Boolean) // Remove nulls
-        .flatMap(
-          (
-            obj, // Flatten the nested eventId objects
-          ) => Object.entries(obj).map(([uuid, data]) => data),
-        ) as Object[];
+      // trackerEventsIntelScore = results
+      //   .map((res) => (res ? JSON.parse(res)[0] : null)) // Get the root object from each Redis result
+      //   .filter(Boolean) // Remove nulls
+      //   .flatMap(
+      //     (
+      //       obj, // Flatten the nested eventId objects
+      //     ) => Object.entries(obj).map(([uuid, data]) => data),
+      //   ) as Object[];
       // for (const eventId of query.eventIds.split(',')) {
       //   console.log({ eventId });
       //   const intelscore: any | null | undefined = await this.redisService.jsonGet(`${trackerId}-IntelScore`, `$.${query.trackerEventStatus + '.' + eventId}`);
@@ -1807,12 +1931,136 @@ export class TrackerService {
     trackerEventsIntelScore = trackerEventsIntelScore.filter(
       (val) => val && Object.keys(val).length > 0,
     );
-    const unique = trackerEventsIntelScore.filter(
-      (item, index, array) =>
-        array.findIndex((i) => JSON.stringify(i) === JSON.stringify(item)) ===
-        index,
+    // const unique = trackerEventsIntelScore.filter(
+    //   (item, index, array) =>
+    //     array.findIndex((i) => JSON.stringify(i) === JSON.stringify(item)) ===
+    //     index,
+    // );
+    return { trackerEventsIntelScore };
+  }
+  async getTrackerIntelScoreForCron(
+    user: TCachedUser,
+    trackerId: string,
+    query: GetTrackerIntelScoreDto,
+    errorPass: boolean = true,
+  ) {
+    const MAX_FILTER_ITEMS = 100;
+
+    const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
+      'ADMIN',
+      'SUPER_ADMIN',
+      'USER',
+    ]);
+    const trackerFilterValuesJson: Object = {
+      ...(tracker.filterValues as unknown as object),
+    };
+    const queryForPayload = await this.createQueryForIntelScore(
+      query,
+      tracker,
+      trackerId,
+      user,
     );
-    return { trackerEventsIntelScore: unique };
+    let [getJsonForTrackerType, jobsForIntelScore] = await Promise.all([
+      this.redisService.jsonGet(
+        `${trackerId}-IntelScore`,
+        `$.${query.trackerEventStatus}`,
+      ),
+      this.redisService.jsonGet(`${trackerId}-IntelScore-Job`),
+    ]);
+    let keywordsLength: number = 99;
+    if (
+      tracker.type === 'T_EVENT_PARTICIPATION' &&
+      errorPass &&
+      !getJsonForTrackerType
+    ) {
+      let length: number = 10000;
+      if (length > MAX_FILTER_ITEMS) {
+        keywordsLength = length;
+      }
+    }
+    if (
+      tracker.type === 'T_COMPETITOR' &&
+      errorPass &&
+      !getJsonForTrackerType
+    ) {
+      let length: number = 0;
+      if (trackerFilterValuesJson['orgName']) {
+        length += (trackerFilterValuesJson['orgName'] as string).split(
+          ',',
+        ).length;
+      }
+      if (trackerFilterValuesJson['orgWebsite']) {
+        length += (trackerFilterValuesJson['orgWebsite'] as string).split(
+          ',',
+        ).length;
+      }
+      if (length > MAX_FILTER_ITEMS) {
+        keywordsLength = length;
+      }
+    }
+    if (
+      tracker.type === 'T_PRODUCT_KEYWORDS' &&
+      errorPass &&
+      !getJsonForTrackerType
+    ) {
+      let length: number = 0;
+      if (trackerFilterValuesJson['includeKeywords']) {
+        length += (trackerFilterValuesJson['includeKeywords'] as string[])
+          .length;
+      }
+      if (trackerFilterValuesJson['excludeKeywords']) {
+        length += (trackerFilterValuesJson['excludeKeywords'] as string[])
+          .length;
+      }
+      if (length > MAX_FILTER_ITEMS) {
+        keywordsLength = length;
+      }
+    }
+    if (
+      (tracker.type === 'T_SPEAKING_OPPORTUNITY' ||
+        tracker.type === 'T_PEOPLE_FINDER') &&
+      errorPass &&
+      !getJsonForTrackerType
+    ) {
+      let length: number = 0;
+      if (trackerFilterValuesJson['userName']) {
+        length += (trackerFilterValuesJson['userName'] as string).split(
+          ',',
+        ).length;
+      }
+      if (length > MAX_FILTER_ITEMS) {
+        keywordsLength = length;
+      }
+    }
+    let trackerEventsIntelScore: object[] = [];
+    getJsonForTrackerType = getJsonForTrackerType
+      ? JSON.parse(getJsonForTrackerType.toString())[0]
+      : getJsonForTrackerType;
+    console.log(
+      { getJsonForTrackerType: getJsonForTrackerType },
+      { jobsForIntelScore },
+      { data: await this.redisService.get(`${trackerId}-IntelScore-Job`) },
+    );
+
+    let jobExist: TrackerIntelScoreJson = {
+      trackerId,
+      keywords: keywordsLength >= 100 ? '<100' : '>100',
+      createdAt: new Date().toISOString(),
+      status: 'pending',
+      user: user,
+    };
+    const createTemplate = await Promise.all([
+      this.redisService.jsonSet(`${trackerId}-IntelScore-Job`, '$', jobExist),
+    ]);
+    console.log({ getJsonForTrackerType, sadas: 'SAdfsa' });
+    await this.fetchTrackerIntelScoreForCache(
+      tracker,
+      trackerId,
+      user,
+      jobExist,
+    );
+
+    return { trackerEventsIntelScore: 'complete' };
   }
   async createQueryForIntelScore(
     query: any,
@@ -1840,14 +2088,17 @@ export class TrackerService {
         }
       }
     }
-    console.log(newParams);
+    // console.log(newParams);
     const { startDate, endDate } = this.getValidDateRange(
       tracker.filterValues as unknown as GetTrackerEventsDto,
       newParams as GetTrackerEventsDto,
     );
     convertedParams['active_gte'] = startDate;
     convertedParams['active_lte'] = endDate;
-    if (query.trackerEventStatus && query.trackerEventStatus === 'new') {
+    if (
+      (query.trackerEventStatus && query.trackerEventStatus === 'new') ||
+      (query['type'] && query['type'] === 'new')
+    ) {
       const lastActive = await this.lastActive(
         user,
         tracker.id,
@@ -1876,6 +2127,7 @@ export class TrackerService {
       ...convertedParams,
       trackerId: trackerId,
       showValues: showValues,
+      trackerEventStatus: query['type'] || 'new',
     } as QueryDto;
     if (searchByEntity) {
       eventParams['searchByEntity'] = searchByEntity;
@@ -1884,7 +2136,7 @@ export class TrackerService {
       Object.entries(eventParams).filter(([_, value]) => value !== undefined),
     );
     delete cleanEventParams['type'];
-    console.log(cleanEventParams);
+    // console.log(cleanEventParams);
 
     return cleanEventParams;
   }
@@ -1914,19 +2166,24 @@ export class TrackerService {
         },
       );
       await this.redisService.expire(`${trackerId}-IntelScore`, 86400);
-      console.dir(
-        {
-          past,
-          active,
-          new: newScore,
-          steCache,
-        },
-        { depth: null },
-      );
+      // console.dir(
+      //   {
+      //     past,
+      //     active,
+      //     new: newScore,
+      //     steCache,
+      //   },
+      //   { depth: null },
+      // );
 
-      let completedJobs: any | null = await this.redisService.get(
-        `tracker-IntelScore-JobsComplete`,
-      );
+      let completedJobs: any | null = null;
+      let addJobs: any | null = null;
+
+      [completedJobs, addJobs] = await Promise.all([
+        this.redisService.get('tracker-IntelScore-JobsComplete'),
+        this.redisService.get('tracker-IntelScore-Jobs24'),
+      ]);
+
       console.log({ completedJobs });
 
       if (!completedJobs) {
@@ -1936,6 +2193,9 @@ export class TrackerService {
           JSON.stringify([]),
           60 * 60 * 24 * 7,
         );
+      }
+      if (!addJobs) {
+        addJobs = [];
       }
       job.status = 'complete';
       if (
@@ -1947,14 +2207,23 @@ export class TrackerService {
           ? JSON.parse(completedJobs).slice(-50)
           : completedJobs;
       }
+      if (addJobs && !Array.isArray(addJobs)) {
+        addJobs = !Array.isArray(addJobs) ? JSON.parse(addJobs) : addJobs;
+      }
       completedJobs = !Array.isArray(completedJobs)
         ? JSON.parse(completedJobs).slice(-50)
         : completedJobs;
+      addJobs.push(trackerId);
       completedJobs.push(job);
       await Promise.all([
         this.redisService.set(
           `tracker-IntelScore-JobsComplete`,
           JSON.stringify(completedJobs),
+          60 * 60 * 24 * 7,
+        ),
+        this.redisService.set(
+          `tracker-IntelScore-Jobs24`,
+          JSON.stringify([...new Set(addJobs)]),
           60 * 60 * 24 * 7,
         ),
         this.redisService.del(`${trackerId}-IntelScore-Job`),
@@ -1968,7 +2237,7 @@ export class TrackerService {
       let failedJobs: any | null = await this.redisService.get(
         `tracker-IntelScore-JobsFailed`,
       );
-      console.log({ failedJobs });
+      // console.log({ failedJobs });
 
       if (!failedJobs) {
         failedJobs = [];
@@ -2056,77 +2325,247 @@ export class TrackerService {
     }
     return dataOfINtelScore;
   }
+  async getIntelScoreForUpdate(trackerId: string, user: TCachedUser) {
+    const MAX_FILTER_ITEMS = 100;
+
+    const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
+      'ADMIN',
+      'SUPER_ADMIN',
+      'USER',
+    ]);
+    const trackerFilterValuesJson: Object = {
+      ...(tracker.filterValues as unknown as object),
+    };
+    // const queryForPayload = await this.createQueryForIntelScore(
+    //   tracker,
+    //   trackerId,
+    //   user,
+    // );
+    let [getJsonForTrackerType, jobsForIntelScore] = await Promise.all([
+      this.redisService.jsonGet(`${trackerId}-IntelScore`, `$.${'acitve'}`),
+      this.redisService.jsonGet(`${trackerId}-IntelScore-Job`),
+    ]);
+    const errorFunction = async () => {
+      if (tracker.type !== 'T_EVENT_PARTICIPATION') {
+        const jobExist = trackerId;
+        let queueJobs: any | null =
+          await this.redisService.get(`IntelScore-JobQueue`);
+        console.log({ queueJobs });
+        if (!queueJobs) {
+          queueJobs = [];
+          await this.redisService.set(
+            `IntelScore-JobQueue`,
+            JSON.stringify([]),
+            60 * 60 * 24 * 7,
+          );
+        }
+        if (queueJobs && !Array.isArray(queueJobs))
+          queueJobs = JSON.parse(queueJobs);
+        queueJobs = !Array.isArray(queueJobs)
+          ? JSON.parse(queueJobs)
+          : queueJobs;
+        queueJobs.push(jobExist);
+        await this.redisService.set(
+          `IntelScore-JobQueue`,
+          JSON.stringify([...new Set(queueJobs)]),
+          60 * 60 * 24 * 7,
+        );
+      }
+      // try {
+      return {};
+      // } catch (error) {
+      //   return error;
+      // }
+    };
+    if (tracker.type === 'T_EVENT_PARTICIPATION' && !getJsonForTrackerType) {
+      let length: number = 10000;
+      if (length > MAX_FILTER_ITEMS) {
+        return errorFunction();
+      }
+    }
+    if (tracker.type === 'T_COMPETITOR' && !getJsonForTrackerType) {
+      let length: number = 0;
+      if (trackerFilterValuesJson['orgName']) {
+        length += (trackerFilterValuesJson['orgName'] as string).split(
+          ',',
+        ).length;
+      }
+      if (trackerFilterValuesJson['orgWebsite']) {
+        length += (trackerFilterValuesJson['orgWebsite'] as string).split(
+          ',',
+        ).length;
+      }
+      if (length > MAX_FILTER_ITEMS) {
+        return errorFunction();
+      }
+    }
+    if (tracker.type === 'T_PRODUCT_KEYWORDS' && !getJsonForTrackerType) {
+      let length: number = 0;
+      if (trackerFilterValuesJson['includeKeywords']) {
+        length += (trackerFilterValuesJson['includeKeywords'] as string[])
+          .length;
+      }
+      if (trackerFilterValuesJson['excludeKeywords']) {
+        length += (trackerFilterValuesJson['excludeKeywords'] as string[])
+          .length;
+      }
+      if (length > MAX_FILTER_ITEMS) {
+        return errorFunction();
+      }
+    }
+    if (
+      (tracker.type === 'T_SPEAKING_OPPORTUNITY' ||
+        tracker.type === 'T_PEOPLE_FINDER') &&
+      !getJsonForTrackerType
+    ) {
+      let length: number = 0;
+      if (trackerFilterValuesJson['userName']) {
+        length += (trackerFilterValuesJson['userName'] as string).split(
+          ',',
+        ).length;
+      }
+      if (length > MAX_FILTER_ITEMS) {
+        return errorFunction();
+      }
+    }
+    jobsForIntelScore = jobsForIntelScore
+      ? JSON.parse(jobsForIntelScore.toString())[0]
+      : jobsForIntelScore;
+    let jobExist: TrackerIntelScoreJson | null | undefined =
+      jobsForIntelScore as any;
+    if (!jobExist) {
+      jobExist = {
+        trackerId,
+        keywords: '<100',
+        createdAt: new Date().toISOString(),
+        status: 'pending',
+        user: user,
+      };
+      const createTemplate = await Promise.all([
+        this.redisService.jsonSet(`${trackerId}-IntelScore-Job`, '$', jobExist),
+      ]);
+      console.log({ getJsonForTrackerType, sadas: 'SAdfsa' });
+      await this.fetchTrackerIntelScoreForCache(
+        tracker,
+        trackerId,
+        user,
+        jobExist,
+      );
+    }
+  }
   async createTrackerEventDataExported(
     trackerId: string,
     user: TCachedUser,
     body: CreateTrackerExportsDto,
   ) {
     const trackerData = await this.getTracker(user, trackerId, {});
-    const allowerUserForExport: string[] = [...(JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || '')), ...(JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || ''))];
+    const allowerUserForExport: string[] = [
+      ...JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || ''),
+      ...JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || ''),
+    ];
     if (!allowerUserForExport.includes(user.email)) {
-      throw new HttpException('Invalid export request by user', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Invalid export request by user',
+        HttpStatus.FORBIDDEN,
+      );
     }
     const trackerEventTypeMappingObj: object = {
-      'new': 'exportIdNew',
-      'active': 'exportIdActive',
-      'past': 'exportIdPast',
-      'business': 'exportIdBusiness',
-      'social': 'exportIdSocial',
-      'unattended': 'exportIdUnattended',
+      new: 'exportIdNew',
+      active: 'exportIdActive',
+      past: 'exportIdPast',
+      business: 'exportIdBusiness',
+      social: 'exportIdSocial',
+      unattended: 'exportIdUnattended',
       exportIdNew: 'TRACKER_NEW_EVENT',
       exportIdPast: 'TRACKER_PAST_EVENT',
       exportIdActive: 'TRACKER_ACTIVE_EVENT',
       exportIdBusiness: 'TRACKER_BUSINESS_EVENT',
       exportIdSocial: 'TRACKER_SOCIAL_EVENT',
       exportIdUnattended: 'TRACKER_UNATTENDED_EVENT',
-    }
-    const trackerTypeGTM: string[] = ['past', 'active', 'new',]
+    };
+    const trackerTypeGTM: string[] = ['past', 'active', 'new'];
     const trackerTypeGEO: string[] = ['business', 'social', 'unattended'];
-    const payload: trackerExportDto = { userData: user, type: body.type, source: 'TRACKER', sourceId: trackerId, trackerId: trackerData.id, redirectUrl: body.redirectUrl + `&targetId=${trackerData.id}&target=tracker` };
+    const payload: trackerExportDto = {
+      userData: user,
+      type: body.type,
+      source: 'TRACKER',
+      sourceId: trackerId,
+      trackerId: trackerData.id,
+      redirectUrl:
+        body.redirectUrl + `&targetId=${trackerData.id}&target=tracker`,
+    };
     if (body.type === 'all') {
       if (process.env.BACKEND === 'gtm') {
         for (const val of trackerTypeGTM) {
           const key = trackerEventTypeMappingObj[val];
           const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
-          const result = await this.trackerDataService.createExport({
-            exportOf,
-            inputData: { ...payload, trackerData: trackerData },
-            trackerId: trackerData.id
-          }, user);
+          const result = await this.trackerDataService.createExport(
+            {
+              exportOf,
+              inputData: { ...payload, trackerData: trackerData },
+              trackerId: trackerData.id,
+            },
+            user,
+          );
           payload[key] = result.id;
         }
       } else {
         for (const val of trackerTypeGEO) {
           const key = trackerEventTypeMappingObj[val];
           const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
-          const result = await this.trackerDataService.createExport({
-            exportOf,
-            inputData: { ...payload, trackerData: trackerData },
-            trackerId: trackerData.id
-          }, user);
+          const result = await this.trackerDataService.createExport(
+            {
+              exportOf,
+              inputData: { ...payload, trackerData: trackerData },
+              trackerId: trackerData.id,
+            },
+            user,
+          );
           payload[key] = result.id;
         }
       }
     } else {
-      payload[trackerEventTypeMappingObj[body.type]] = (await this.trackerDataService.createExport({ exportOf: trackerEventTypeMappingObj[trackerEventTypeMappingObj[body.type]] as ExportSubSource, inputData: payload, trackerId: trackerData.id }, user)).id;
+      payload[trackerEventTypeMappingObj[body.type]] = (
+        await this.trackerDataService.createExport(
+          {
+            exportOf: trackerEventTypeMappingObj[
+              trackerEventTypeMappingObj[body.type]
+            ] as ExportSubSource,
+            inputData: payload,
+            trackerId: trackerData.id,
+          },
+          user,
+        )
+      ).id;
     }
     // console.log(payload);
 
     await this.trackerDataService.createTrackerExportJob(payload, user.id);
-    return { data: { message: "Export initiated successfully" } };
+    return { data: { message: 'Export initiated successfully' } };
   }
-  async getTrackerEventDataExported(trackerId: string,
-    user: TCachedUser, query: LimitDto) {
+  async getTrackerEventDataExported(
+    trackerId: string,
+    user: TCachedUser,
+    query: LimitDto,
+  ) {
     const trackerData = await this.getTracker(user, trackerId, {});
-    const allowerUserForExport: string[] = [...(JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || '')), ...(JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || ''))];
+    const allowerUserForExport: string[] = [
+      ...JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || ''),
+      ...JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || ''),
+    ];
     if (!allowerUserForExport.includes(user.email)) {
-      throw new HttpException('Invalid export request by user', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Invalid export request by user',
+        HttpStatus.FORBIDDEN,
+      );
     }
-    const [trackerExports,
-      count] = await Promise.all([this.trackerDataService.getTrackerExport(trackerId, user, query), this.trackerDataService.getTrackerExportCount(trackerId, user, query)]);
+    const [trackerExports, count] = await Promise.all([
+      this.trackerDataService.getTrackerExport(trackerId, user, query),
+      this.trackerDataService.getTrackerExportCount(trackerId, user, query),
+    ]);
     return {
       trackerExports: trackerExports.trackerExports,
-      count: count.count
+      count: count.count,
     };
   }
   async deleteTrackerEventDataExported(
@@ -2135,12 +2574,18 @@ export class TrackerService {
     user: TCachedUser,
   ) {
     const trackerData = await this.getTracker(user, trackerId, {});
-    const allowerUserForExport: string[] = [...(JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || '')), ...(JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || ''))];
+    const allowerUserForExport: string[] = [
+      ...JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || ''),
+      ...JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || ''),
+    ];
     if (!allowerUserForExport.includes(user.email)) {
-      throw new HttpException('Invalid export request by user', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Invalid export request by user',
+        HttpStatus.FORBIDDEN,
+      );
     }
     await this.trackerDataService.deleteTrackerExport(exportId);
-    return { message: "export deleted successfully" };
+    return { message: 'export deleted successfully' };
   }
 }
 // getTrackerEventDataExported
