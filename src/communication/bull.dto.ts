@@ -92,15 +92,58 @@ export const errorMailSchema = z.object({
 })
 
 export const demoContactSchema = z.object({
-  body: z.string(),
-  subject: z.string()
+  firstName: z.string(),
+  lastName: z.string(),
+  email: z.string(),
+  source: z.string(),
+  companyName: z.string(),
+  jobTitle: z.string(),
+  phoneNumber: z.string(),
+  sourceId: z.string(),
 })
+export class DemoContactDto extends createZodDto(demoContactSchema) { }
+export const contactUsSchema = z.object({
+  firstName: z.string(),
+  lastName: z.string(),
+  email: z.string(),
+  message: z.string(),
+  source: z.string(),
+  sourceId: z.string(),
+})
+export class ContactUsDto extends createZodDto(contactUsSchema) { }
+export const ErrorContactSchema = z.object({
+  email: z.string(),
+  userLimit: z.string(),
+  dailyLimit: z.string(),
+  time: z.string(),
+  name: z.string(),
+  sourceId: z.string(),
+})
+export class ErrorContactDto extends createZodDto(ErrorContactSchema) { }
 const userInviteSchema = z.object({
   referredByUserName: z.string(),
   invitedUserEmail: z.string(),
   sourceId: z.string(),
 })
 export class UserInviteDto extends createZodDto(userInviteSchema) { }
+
+const trackerExportInputSchema = z.object({
+  userData: z.any(),
+  sourceId: z.string(),
+  trackerId: z.string(),
+  searchByEntity: z.string().optional(),
+  redirectUrl: z.string(),
+  exportIdNew: z.string().optional(),
+  exportIdActive: z.string().optional(),
+  exportIdPast: z.string().optional(),
+  exportIdBusiness: z.string().optional(),
+  exportIdSocial: z.string().optional(),
+  exportIdUnattended: z.string().optional(),
+  type: z.enum(['all', 'past', 'active', 'new', 'business', 'social', 'unattended']),
+  source: z.literal('TRACKER').default('TRACKER'),
+});
+
+export class trackerExportDto extends createZodDto(trackerExportInputSchema) { }
 // Union of all DTO schemas
 export const PayloadDTO = z.union([
   AccessEmailDataSchema,
@@ -111,5 +154,8 @@ export const PayloadDTO = z.union([
   InviteEmailDataSchema,
   errorMailSchema,
   demoContactSchema,
-  userInviteSchema
+  userInviteSchema,
+  contactUsSchema,
+  ErrorContactSchema,
+  trackerExportInputSchema
 ]);

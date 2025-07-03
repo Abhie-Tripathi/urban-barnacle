@@ -6,6 +6,7 @@ import {
   PocsUnmaskDto,
   QueryDto,
   Show,
+  SimilarEventsDto,
   SortingDto,
   View,
 } from './dto';
@@ -17,13 +18,15 @@ import { IntentDataService } from 'src/intent/intent.data.service';
 import { LimitDto } from 'src/global_dto';
 import { AccountService } from 'src/user/account/account.service';
 import { UserActivitySource } from '@prisma/client';
+import { fetchDatafromMicroService } from 'src/shared/microservice.api';
+import { PromotedEventsService } from 'src/promotedEvent/promoted-event.service';
 @Injectable()
 export class EventsService {
   constructor(
     private readonly eventsDataService: EventsDataService,
     private readonly sharedService: SharedService,
     private readonly intentDataService: IntentDataService,
-  ) {}
+  ) { }
 
   async createLogForEncryptedQuery(query: QueryDto, user: TCachedUser) {
     const { save, requestSource, ...rest } = query;
@@ -85,7 +88,7 @@ export class EventsService {
       nonEmptyParams,
       validateIds,
     );
-
+    console.log({ convertedParams }, { nonEmptyParams });
     const fetchedEvents =
       await this.eventsDataService.getEvents(convertedParams);
     // console.log({ convertedParams }, { nonEmptyParams });
@@ -122,8 +125,8 @@ export class EventsService {
             Object.keys(userInterests).length > 0
               ? userInterests[event.basic.id]
               : !query.eventTypes ||
-                  (query.eventTypes.length > 0 &&
-                    !query.eventTypes.includes('alert'))
+                (query.eventTypes.length > 0 &&
+                  !query.eventTypes.includes('alert'))
                 ? []
                 : undefined,
         };
@@ -136,7 +139,12 @@ export class EventsService {
     return events;
   }
 
-  async getEvent(eventId: string, showValues: string, user?: TCachedUser) {
+  async getEvent(
+    eventId: string,
+    showValues: string,
+    user?: TCachedUser,
+    flag: boolean = true,
+  ) {
     const data = await this.eventsDataService.getEvents({
       eventIds: [eventId],
       view: View.detail,
@@ -145,11 +153,24 @@ export class EventsService {
       showValues,
     });
     if (
-      !data ||
-      (data && !data.events) ||
-      (data && data.events && data.events.length === 0)
+      flag &&
+      (!data ||
+        (data && !data.events) ||
+        (data && data.events && data.events.length === 0))
     ) {
       throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
+    }
+    if (
+      flag === false &&
+      (!data ||
+        (data && !data.events) ||
+        (data && data.events && data.events.length === 0))
+    ) {
+      return {
+        interests: {},
+        basic: {},
+        advance: {},
+      };
     }
     const event = data.events[0];
     let userInterests = {};
@@ -243,8 +264,16 @@ export class EventsService {
     const count = await this.eventsDataService.getEventsCount(convertedParams);
     return count;
   }
-
   async getEventPocs(eventId: string, query: SortingDto) {
+    try {
+      const eventProductData =
+        await this.eventsDataService.getPromotedEventById(eventId);
+      if (eventProductData && eventProductData.referenceId) {
+        eventId = eventProductData.referenceId;
+      }
+    } catch (error) {
+      console.log('event not fount in product event table');
+    }
     return await this.eventsDataService.getEventPocs(
       eventId,
       query.sortBy ? query.sortBy : 'desc',
@@ -287,6 +316,55 @@ export class EventsService {
       nonEmptyParams,
       true,
     );
+    if (
+      !nonEmptyParams.eventTypes ||
+      (nonEmptyParams.eventTypes && nonEmptyParams.eventTypes.length === 0)
+    ) {
+      const backend = process.env.BACKEND;
+      if (backend && backend in defaultEventTypes) {
+        convertedParams.eventTypes = Object.values(defaultEventTypes[backend]);
+      }
+    }
+
     return await this.eventsDataService.getEventsTrends(convertedParams);
+  }
+  async getSimilarEvents(query: QueryDto) {
+    const nonEmptyParams = getNonEmptyParams(query);
+    const convertedParams = await this.sharedService.convertSlugParamsToIds(
+      nonEmptyParams,
+      true,
+    );
+    if (
+      !nonEmptyParams.eventTypes ||
+      (nonEmptyParams.eventTypes && nonEmptyParams.eventTypes.length === 0)
+    ) {
+      const backend = process.env.BACKEND;
+      if (backend && backend in defaultEventTypes) {
+        convertedParams.eventTypes = Object.values(defaultEventTypes[backend]);
+      }
+    }
+    return await this.eventsDataService.getSimilarEvents(convertedParams);
+  }
+  async getSimilarEventsCount(query: CountQueryDto, validateIds: boolean = true) {
+    const nonEmptyParams = getNonEmptyParams(query);
+    if (
+      !nonEmptyParams.eventTypes ||
+      (nonEmptyParams.eventTypes && nonEmptyParams.eventTypes.length === 0)
+    ) {
+      const backend = process.env.BACKEND;
+      if (backend && backend in defaultEventTypes) {
+        if (validateIds) {
+          nonEmptyParams.eventTypes = Object.keys(defaultEventTypes[backend]);
+        } else {
+          nonEmptyParams.eventTypes = Object.values(defaultEventTypes[backend]);
+        }
+      }
+    }
+    const convertedParams = await this.sharedService.convertSlugParamsToIds(
+      nonEmptyParams,
+      validateIds,
+    );
+    const count = await this.eventsDataService.getSimilarEvents(convertedParams);
+    return count;
   }
 }

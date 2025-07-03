@@ -164,6 +164,9 @@ model Attachment {
   sourceModule    AttachmentSourceModule
   sourceId        String
   event           Event[]
+  exports         Export[]               @relation("exportRelation")
+
+  @@unique([fileUrl, fileSize])
 }
 
 enum AttachmentSourceModule {
@@ -317,22 +320,45 @@ enum EnquiryActivitySubType {
 }
 
 model Export {
-  id             String         @id @default(uuid()) @db.Uuid
-  accountId      String         @db.Uuid
-  account        Account        @relation(fields: [accountId], references: [id])
-  userId         String         @db.Uuid
-  user           User           @relation(fields: [userId], references: [id])
+  id             String             @id @default(uuid()) @db.Uuid
+  accountId      String             @db.Uuid
+  account        Account            @relation(fields: [accountId], references: [id])
+  userId         String             @db.Uuid
+  user           User               @relation(fields: [userId], references: [id])
+  source         ExportSourceModule
+  sourceId       String?            @db.Uuid
+  exportOf       ExportSubSource
   exportFileType ExportFileType
   inputData      Json
   outputData     Json?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  deleted        Boolean        @default(false)
+  fileUrl        String?            @db.Text
+  fileSize       Float?
+  attachment     Attachment?        @relation("exportRelation", fields: [fileUrl, fileSize], references: [fileUrl, fileSize])
+  status         JobStatus          @default(PENDING)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  deleted        Boolean            @default(false)
+}
+
+enum ExportSubSource {
+  TRACKER_NEW_EVENT
+  TRACKER_PAST_EVENT
+  TRACKER_ACTIVE_EVENT
+  TRACKER_BUSINESS_EVENT
+  TRACKER_SOCIAL_EVENT
+  TRACKER_UNATTENDED_EVENT
+  EVENT
+}
+
+enum ExportSourceModule {
+  TRACKER
+  RESEARCH
 }
 
 enum ExportFileType {
   CSV
   JSON
+  EXCEL
 }
 
 // discuss request table name
@@ -436,6 +462,7 @@ model Tracker {
 }
 
 enum TrackerType {
+  T_EVENT_PARTICIPATION
   T_PEOPLE_FINDER
   T_COMPETITOR
   T_SPEAKING_OPPORTUNITY
@@ -713,6 +740,9 @@ enum JobSource {
   SEND_INTEND_UPDATE
   SEND_ERROR_MAIL
   SEND_DEMO_CONTACT_MAIL
+  SEND_TRACKER_EXPORT_MAIL
+  SEND_CONTACT_US_EMAIL
+  SEND_CONTACT_ERROR_EMAIL
 }
 
 enum JobStatus {
@@ -733,6 +763,8 @@ model Preset {
   trackerType   TrackerType[]
   deleted       Boolean       @default(false)
   filterValue   Json
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now()) @updatedAt
 }
 
 enum EnquiryStatus {
@@ -796,4 +828,41 @@ enum FileType {
   PDF
   CSV
   JSON
+  EXCEL
+}
+
+enum ContactEnquirySourceModule {
+  DEMO
+  CONTACT_US
+  ERROR
+}
+
+model ContactEnquiry {
+  id           String                     @id @default(uuid()) @db.Uuid
+  firstName    String
+  lastName     String
+  email        String
+  subscribe    Boolean                    @default(false)
+  sourceModule ContactEnquirySourceModule
+  data         Json
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
+}
+
+enum TrackerTypeTag {
+  ACTIVE
+  PAST
+  NEW
+}
+
+model SimilarEventsToTracker {
+  id        String         @id @default(uuid())
+  trackerId String
+  eventId   String
+  tag       TrackerTypeTag
+  sourceId  Int
+  score     Float
+  count     Int            @db.Integer
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 }

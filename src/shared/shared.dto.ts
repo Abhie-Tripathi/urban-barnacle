@@ -30,6 +30,8 @@ const prospectSchema = LimitSchema.extend({
     userDepartmentIds: z.string().optional(),
     userDesignationIds: z.string().optional(),
     userType: z.enum(['visitor', 'speaker', 'visitor,speaker', 'speaker,visitor']).optional()
+    eventCountRange: z.string().optional(),
+    upcomingEvents: z.string().optional(),
 }).refine((data) => {
     const { userId, companyId, ...rest } = data;
     if (userId || companyId) {

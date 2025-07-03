@@ -31,7 +31,8 @@ lerna-debug.log*
 *.launch
 .settings/
 *.sublime-workspace
-
+/cron
+/cron/*
 # IDE - VSCode
 .vscode/*
 .vscode/settings.json
@@ -47,3 +48,4 @@ eventGTM-backend.code-workspace
 apiDoc.yml
 
 *.code-workspace
+start_prod.sh

@@ -14,11 +14,12 @@ import {
   PocsUnmaskDto,
   QueryDto,
   QueryHttpDto,
+  SimilarEventsDto,
   SortingDto,
   View,
 } from './dto';
 import { AuthGuard } from 'src/user/auth/guard';
-import { TCachedUser } from 'src/utils/types';
+import { membershipLimit, TCachedUser } from 'src/utils/types';
 import { GetUser } from 'src/user/decorator';
 import { LimitDto } from 'src/global_dto';
 import { SharedService } from 'src/shared/shared.service';
@@ -29,7 +30,7 @@ export class EventsController {
   constructor(
     private readonly eventsService: EventsService,
     private readonly sharedService: SharedService,
-  ) {}
+  ) { }
 
   @UseGuards(AuthGuard)
   @Get()
@@ -39,11 +40,17 @@ export class EventsController {
   ) {
     let flag = false;
     try {
-      const point = await this.sharedService.getPointForRequest(
+      const [point, membershipStatus] = await Promise.all([this.sharedService.getPointForRequest(
         PointColumn.pendingRequests,
         user.currentSubscriptionId,
-      );
-      if (point <= 0) {
+      ), this.sharedService.getAccountMemberShipStatus(user.currentSubscriptionId)]);
+      // if (point <= 0) {
+      //   throw new HttpException(
+      //     'You have reached the maximum limit to view data. Please get in touch with us.',
+      //     HttpStatus.TOO_MANY_REQUESTS,
+      //   );
+      // }
+      if ((membershipLimit[membershipStatus.membership] - ((query.limit || 10) + (query.offset || 0))) < 0) {
         throw new HttpException(
           'You have reached the maximum limit to view data. Please get in touch with us.',
           HttpStatus.TOO_MANY_REQUESTS,
@@ -117,7 +124,22 @@ export class EventsController {
       };
     }
   }
-
+  @UseGuards(AuthGuard)
+  @Get('similar')
+  async getSimilarEvents(@Query() query: SimilarEventsDto) {
+    try {
+      let queryDto = {
+        ...(query),
+        showValues: 'basic,advance,insights,audience',
+      } as any;
+      const events = await this.eventsService.getSimilarEvents(queryDto);
+      return { data: events };
+    } catch (error) {
+      return {
+        error,
+      };
+    }
+  }
   @UseGuards(AuthGuard)
   @Get('/trends')
   async getEventsTrends(@Query() query: EventsTrendsDto) {
@@ -130,7 +152,6 @@ export class EventsController {
       };
     }
   }
-
   @UseGuards(AuthGuard)
   @Get(':id/pocs')
   async getEventPocs(@Param('id') id: string, @Query() query: SortingDto) {

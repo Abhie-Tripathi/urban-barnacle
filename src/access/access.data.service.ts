@@ -12,10 +12,10 @@ import { TCachedUser } from 'src/utils/types';
 
 @Injectable()
 export class AccessDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async createAccess(data: CreateAccessDto) {
-    const { accessReceiverEmail, accessReceiverId, ...rest } = data;
+    const { accessReceiverEmail, accessReceiverId, flagForEmail, ...rest } = data;
     if (!accessReceiverId) {
       throw new HttpException(
         'Access receiver id is required',

@@ -12,7 +12,7 @@ const companyEventSchema = LimitSchema.extend({
   })
   .refine(
     (val) => {
-      if (val && val.limit && val.limit <= 100) {
+      if ((val && !val.limit) || (val && val.limit && val.limit <= 100)) {
         return true;
       }
       return false;
