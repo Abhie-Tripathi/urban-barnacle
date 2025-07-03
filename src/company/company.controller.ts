@@ -21,7 +21,7 @@ export class CompanyController {
   constructor(
     private readonly companyService: CompanyService,
     private readonly sharedService: SharedService,
-  ) {}
+  ) { }
   @UseGuards(AuthGuard)
   @Get('search')
   async searchCompany(
@@ -34,6 +34,8 @@ export class CompanyController {
         PointColumn.pendingCompanySearchRequests,
         userData.currentSubscriptionId,
       );
+      console.log(userData.currentSubscriptionId,);
+
       if (point <= 0) {
         throw new HttpException(
           'You have reached the maximum limit to view data. Please get in touch with us.',
