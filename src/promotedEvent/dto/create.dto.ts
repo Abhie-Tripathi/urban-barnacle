@@ -1,43 +1,22 @@
 import { EventSourceModule, EventType, Interest } from '@prisma/client';
 import { createZodDto } from 'nestjs-zod';
+import { EntryType } from 'src/events/dto';
 import { z } from 'zod';
 
-export const eventDto = z.strictObject({
-  name: z.string(),
-  data: z.string(),
-  logoUrl: z.string().optional(),
-  // interest: z.string().optional(),
-  // sourceId: z.string().optional(),
-  referenceId: z.string().optional(),
-  sourceModule: z.nativeEnum(EventSourceModule).default('PROMOTE'),
-  note: z.string().optional(),
-  type: z.nativeEnum(EventType).default('PARENT'),
-  widgetId: z.string().optional(),
-  eventId: z.string().optional(),
-  capacity: z.string().optional(),
-  waitlisting: z.string().optional(),
-  registration: z.string().optional(),
-  approval: z.string().optional(),
-  interest: z.nativeEnum(Interest).optional()
-});
 
-export class CreateEventDto extends createZodDto(eventDto) { }
-export const UpdateeventDto = z.strictObject({
-  id: z.string(),
-  name: z.string().optional(),
-  data: z.string().optional(),
-  logoUrl: z.string().optional(),
-  interest: z.string().optional(),
-  sourceId: z.string().optional(),
-  note: z.string().optional(),
-  capacity: z.string().optional(),
-  waitlisting: z.string().optional(),
-  registration: z.string().optional(),
-  approval: z.string().optional(),
-  maxCapacity: z.string().optional(),
-});
-
-export class UpdateEventDto extends createZodDto(UpdateeventDto) { }
+export enum PromoteEventType {
+  Tradeshow,
+  Conference,
+  Workshop,
+  Social,
+  Business,
+  Unattented
+}
+enum PromoteEventFormat {
+  "In-person",
+  Virtual,
+  Hybrid
+}
 export const EventDetailsSchema = z.object({
   start_date: z.string(),
   end_date: z.string(),
@@ -60,10 +39,10 @@ export const EventDetailsSchema = z.object({
   venue_id: z.string().optional(),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
-  format: z.string(),
+  format: z.string().refine((val) => val.split(',').every((item) => item in PromoteEventFormat)),
   booth_number: z.string().optional(),
   participationType: z.string().optional(),
-  event_type: z.string(),
+  event_type: z.string().refine((val) => val.split(',').every((item) => item in PromoteEventType)),
   category: z.string().optional(),
   tags: z.string().optional(),
   customizationData: z.string().optional(),
@@ -87,7 +66,103 @@ export const EventDetailsSchema = z.object({
 }, {
   message: 'venue_name is required when venue_id is present',
   path: ['venue_name'],
+}).refine(data => {
+  if (data.event_type) {
+    return true;
+  }
+}, {
+  message: 'event_type is required.',
+  path: ['event_type'],
+}).refine((data) => {
+  if (data.start_date && data.end_date) {
+    return new Date(data.start_date) <= new Date(data.end_date);
+  }
+  return true;
+}, {
+  message: 'start_date must be less than or equal to end_date',
+  path: ['start_date'],
 });
+export const eventDto = z.strictObject({
+  name: z.string(),
+  data: z.string(),
+  logoUrl: z.string().optional(),
+  // interest: z.string().optional(),
+  // sourceId: z.string().optional(),
+  referenceId: z.string().optional(),
+  sourceModule: z.nativeEnum(EventSourceModule),
+  note: z.string().optional(),
+  type: z.nativeEnum(EventType).default('PARENT'),
+  widgetId: z.string().optional(),
+  eventId: z.string().optional(),
+  capacity: z.string().optional(),
+  waitlisting: z.string().optional(),
+  registration: z.string().optional(),
+  approval: z.string().optional(),
+  interest: z.nativeEnum(Interest).optional()
+}).superRefine((val, ctx) => {
+  if (!val.data) return;
+
+  try {
+    const parsed = JSON.parse(val.data);
+    const result = EventDetailsSchema.safeParse(parsed);
+    if (!result.success) {
+      result.error.errors.forEach(err => {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['data', ...(err.path ?? [])],
+          message: err.message,
+        });
+      });
+    }
+  } catch (e) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['data'],
+      message: 'Invalid JSON format',
+    });
+  }
+});
+
+export class CreateEventDto extends createZodDto(eventDto) { }
+export const UpdateeventDto = z.strictObject({
+  id: z.string(),
+  name: z.string().optional(),
+  data: z.string().optional(),
+  logoUrl: z.string().optional(),
+  interest: z.string().optional(),
+  sourceId: z.string().optional(),
+  note: z.string().optional(),
+  capacity: z.string().optional(),
+  waitlisting: z.string().optional(),
+  registration: z.string().optional(),
+  approval: z.string().optional(),
+  maxCapacity: z.string().optional(),
+}).superRefine((val, ctx) => {
+  if (!val.data) return;
+
+  try {
+    const parsed = JSON.parse(val.data);
+    const result = EventDetailsSchema.safeParse(parsed);
+    if (!result.success) {
+      result.error.errors.forEach(err => {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['data', ...(err.path ?? [])],
+          message: err.message,
+        });
+      });
+    }
+  } catch (e) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['data'],
+      message: 'Invalid JSON format',
+    });
+  }
+});;
+
+export class UpdateEventDto extends createZodDto(UpdateeventDto) { }
+
 export const eventspeakerDto = z.strictObject({
   eventId: z.string(),
   data: z.string(),

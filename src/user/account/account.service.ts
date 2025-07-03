@@ -187,6 +187,11 @@ export class AccountService {
               displayName: `${event.data['venue_name'] ? event.data['venue_name'] + ',' : ''}${event.data['location_city'] ? event.data['location_city'] + ',' : ''}${event.data['location_country'] ? event.data['location_country'] : ''}`,
             },
           },
+          createdBy: {
+            userId: event['user_id'],
+            userName: event['user_name'],
+            userProfilePicture: event['user_profile_pic']
+          },
           isProductEvent: true,
         };
       })
