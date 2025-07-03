@@ -5,7 +5,6 @@ import {
   SignInDto,
   SignUpDto,
   SignUpTempDto,
-  SignUpTempDto,
   SourceDto,
   VerifyAccessDto,
   VerifyOtpDto,
@@ -54,7 +53,6 @@ export class AuthService {
     private readonly sharedService: SharedService,
     private readonly accessService: AccessService,
     private readonly brandKitService: KitService,
-    private readonly savedLocationsService: SavedLocationService,
     private readonly savedLocationsService: SavedLocationService,
   ) { }
 
@@ -563,7 +561,6 @@ export class AuthService {
           primaryCompanyId: company?.id,
           phoneNumber: data.phone,
           accountId: account.id,
-          phoneNumber: data.phone,
           primaryAccountId: account.id,
           currentOnboardingState: 'COMPLETED',
           socialIds: {

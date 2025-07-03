@@ -714,7 +714,7 @@ export class QueryHttpDto extends createZodDto(
       path: ['limit'],
     },
   ),
-) {  }
+) { }
 
 export const QuerySchema = QueryHttpSchema.innerType().extend({
   showValues: z.string(),
@@ -787,7 +787,31 @@ export const CountQuerySchema = QueryFilter.extend({
 });
 
 export class CountQueryDto extends createZodDto(CountQuerySchema) { }
-
+const similarEventsSchema = QuerySchema.omit({ showValues: true })
+  .extend({
+    showValues: z.string().default('basic,advance,insights,audience'),
+    groupBy: z
+      .string()
+      .refine((val) => val.split(',').every((item) => item in CountGroup), {
+        message: 'Invalid groupBy option',
+        params: { validOptions: Object.keys(CountGroup).join(', ') },
+      })
+      .transform((val) => val.split(',') as CountGroup[])
+      .optional(),
+    searchByEntity: z.string().optional(),
+    eventSourceIds: z.string().optional(),
+  })
+  .transform((data) => {
+    if (!data.status || (data.status && data.status.length === 0)) {
+      data.status = [
+        EventStatus.ACTIVE,
+        EventStatus.CANCELLED,
+        EventStatus.POSTPONED,
+      ];
+    }
+    return data;
+  });
+export class SimilarEventsDto extends createZodDto(similarEventsSchema) { }
 const groupByOptions = {
   date: 'date',
 };

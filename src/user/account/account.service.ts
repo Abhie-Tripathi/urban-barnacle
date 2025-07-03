@@ -80,11 +80,6 @@ export class AccountService {
     query: GetBookmarkedEventDto,
     showValues: string,
   ) {
-  async getSavedEvent(
-    user: TCachedUser,
-    query: GetBookmarkedEventDto,
-    showValues: string,
-  ) {
     const [savedEvents, count] = await Promise.all([
       this.intentDataService.getUserEventInterest({
         interest: ['BOOKMARK'],
