@@ -1740,7 +1740,7 @@ export class TrackerService {
         }
         const events =
           await this.eventService.getSimilarEventsCount(eventParams);
-        console.log("eventseventsevents", events);
+        // console.log("eventseventsevents", events);
 
         return { data: events };
       } else {
@@ -1756,7 +1756,7 @@ export class TrackerService {
         );
       }
       const events = await this.eventService.getSimilarEventsCount(eventParams);
-      console.log("eventseventsevents", events);
+      // console.log("eventseventsevents", events);
       return { data: events };;
     } catch (error) {
       if (
