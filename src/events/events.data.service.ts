@@ -589,6 +589,7 @@ export class EventsDataService {
 
       throw new HttpException(error, HttpStatus.BAD_REQUEST);
     }
+     console.log(data);
     return data;
   }
 }

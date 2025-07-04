@@ -1016,7 +1016,7 @@ export class TrackerService {
   }
 
   handleCountResponse(params: CountQueryDto, count: any) {
-    console.log(count);
+    console.log("countcountcount", count);
     if (
       params.groupBy &&
       ['city', 'state', 'country'].includes(params.groupBy[0]) &&
@@ -1740,6 +1740,7 @@ export class TrackerService {
         }
         const events =
           await this.eventService.getSimilarEventsCount(eventParams);
+        console.log("eventseventsevents", events);
 
         return { data: events };
       } else {
@@ -1755,7 +1756,8 @@ export class TrackerService {
         );
       }
       const events = await this.eventService.getSimilarEventsCount(eventParams);
-      return events;
+      console.log("eventseventsevents", events);
+      return { data: events };;
     } catch (error) {
       if (
         error instanceof HttpException &&
