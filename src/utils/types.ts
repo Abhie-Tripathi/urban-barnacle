@@ -325,12 +325,12 @@ export const membershipMap: Record<SubscriptionPlan, number> = {
   ADVANCE: 30,
   ENTERPRISE: 40,
 };
-export const membershipLimit: Record<number, number> = {
-  0: 4000,
-  10: 4000,
-  20: 4000,
-  30: 20000,
-  40: 100000,
+export const membershipLimit: Record<number, { upperLimit: number, perSearchLimit: number, exportAllowed: boolean }> = {
+  0: { upperLimit: 4000, perSearchLimit: 10, exportAllowed: false },
+  10: { upperLimit: 4000, perSearchLimit: 10, exportAllowed: false },
+  20: { upperLimit: 4000, perSearchLimit: 50, exportAllowed: false },
+  30: { upperLimit: 20000, perSearchLimit: 100, exportAllowed: true },
+  40: { upperLimit: 100000, perSearchLimit: 100, exportAllowed: true },
 };
 // ["a4a3b8d9-e170-4972-8981-0282e58ccb45","e485cdd3-0e61-5f36-b896-aed7ba606697","0ba63d1a-eb97-4587-b1c7-6c79c2948256",1,0]
 

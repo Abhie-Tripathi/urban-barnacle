@@ -164,8 +164,11 @@ export class TrackerController {
       //     HttpStatus.TOO_MANY_REQUESTS,
       //   );
       // }
+      if (query.limit && membershipLimit[membershipStatus.membership].perSearchLimit < query.limit) {
+        query.limit = membershipLimit[membershipStatus.membership].perSearchLimit;
+      }
       if (
-        membershipLimit[membershipStatus.membership] -
+        membershipLimit[membershipStatus.membership].upperLimit -
         ((query.limit || 10) + (query.offset || 0)) <
         0
       ) {
@@ -388,7 +391,7 @@ export class TrackerController {
     } catch (error) {
       return { error: error };
     }
-  }  @UseGuards(AuthGuard)
+  } @UseGuards(AuthGuard)
   @Get(':id/intelScore/:passKey/cron')
   async getTrackerIntelScoreForCron(
     @Param('id') id: string,

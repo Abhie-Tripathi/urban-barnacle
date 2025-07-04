@@ -4,6 +4,7 @@ import {
   blackListDomain,
   defaultEventTypes,
   LastActive,
+  membershipLimit,
   TCachedUser,
 } from 'src/utils/types';
 import {
@@ -67,7 +68,7 @@ export class TrackerService {
     private readonly accountDataService: AccountDataService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly redisService: RedisService,
-  ) {}
+  ) { }
 
   async filterValueRestriction(filterValue: QueryDto) {
     if (filterValue.locationIds) {
@@ -150,7 +151,7 @@ export class TrackerService {
     // console.log("data.cachingFlag==> ", data.cachingFlag);
     try {
       this.getIntelScoreForUpdate(tracker.id, user);
-    } catch (error) {}
+    } catch (error) { }
     if (data.cachingFlag) {
       this.getTrackerResponse(
         user,
@@ -198,9 +199,9 @@ export class TrackerService {
                 : undefined;
     tracker.filterValues = tracker.filterValues
       ? {
-          ...(tracker.filterValues as Record<string, any>),
-          searchByEntity,
-        }
+        ...(tracker.filterValues as Record<string, any>),
+        searchByEntity,
+      }
       : { searchByEntity };
     if (searchByEntity && searchByEntity === 'event') {
       // tracker.filterValues['eventIds'] = [];
@@ -339,7 +340,7 @@ export class TrackerService {
                 );
             }
           }
-        } catch (error) {}
+        } catch (error) { }
       }
 
       filterValues = await this.sharedService.convertIdParamsToSlug(
@@ -591,7 +592,7 @@ export class TrackerService {
     );
     try {
       await this.getIntelScoreForUpdate(trackerId, user);
-    } catch (error) {}
+    } catch (error) { }
     this.getTrackerResponse(
       user,
       updatedTracker as Tracker & { createdByUser: User; modifiedByUser: User },
@@ -1540,10 +1541,10 @@ export class TrackerService {
           trackerId,
           eventParams['trackerEventStatus']
             ? [
-                eventParams[
-                  'trackerEventStatus'
-                ]?.toUpperCase() as TrackerTypeTag,
-              ]
+              eventParams[
+                'trackerEventStatus'
+              ]?.toUpperCase() as TrackerTypeTag,
+            ]
             : ['NEW', 'ACTIVE', 'PAST'],
           1000,
           0,
@@ -1688,10 +1689,10 @@ export class TrackerService {
           trackerId,
           eventParams['trackerEventStatus']
             ? [
-                eventParams[
-                  'trackerEventStatus'
-                ]?.toUpperCase() as TrackerTypeTag,
-              ]
+              eventParams[
+                'trackerEventStatus'
+              ]?.toUpperCase() as TrackerTypeTag,
+            ]
             : ['NEW', 'ACTIVE', 'PAST'],
           1000,
           0,
@@ -2534,7 +2535,13 @@ export class TrackerService {
     user: TCachedUser,
     body: CreateTrackerExportsDto,
   ) {
-    const trackerData = await this.getTracker(user, trackerId, {});
+    const [trackerData, membershipStatus] = await Promise.all([this.getTracker(user, trackerId, {}), this.sharedService.getAccountMemberShipStatus(user.currentSubscriptionId)]);
+    if (!membershipLimit[membershipStatus.membership].exportAllowed) {
+      throw new HttpException(
+        `Your current membership (${membershipStatus.membership}) does not allow data export.`,
+        HttpStatus.FORBIDDEN,
+      );
+    }
     const allowerUserForExport: string[] = [
       ...JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || ''),
       ...JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || ''),
