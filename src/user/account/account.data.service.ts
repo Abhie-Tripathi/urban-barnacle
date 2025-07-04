@@ -353,12 +353,12 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}';
     if (data['error']) {
       // console.log(JSON.stringify(data));
 
-      throw new HttpException('payment not found', HttpStatus.BAD_REQUEST);
+      throw new HttpException('subscription not found', HttpStatus.BAD_REQUEST);
     }
-    if (data?.status && data.status !== 'succeeded') {
-      console.warn('Payment status not succeeded:', data);
+    if (data?.status && data.status !== 'active') {
+      console.warn('subscription status not active:', data);
       throw new HttpException(
-        'Wrong payment status received',
+        'Wrong subscription status received',
         HttpStatus.BAD_REQUEST,
       );
     }
