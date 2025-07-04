@@ -245,7 +245,7 @@ export class TrackerService {
     ) {
       if (!tracker.type.startsWith('TR_')) {
         try {
-          groupedEventsCount = await this.getGroupedEventsCount(
+          groupedEventsCount = (await this.getGroupedEventsCount(
             {
               searchByEntity,
               trackerId: tracker.id,
@@ -253,102 +253,113 @@ export class TrackerService {
               createdAt: lastActive.last_active_gte,
             } as CountQueryDto,
             groupBy ? groupBy : undefined,
-          );
+          )) ||
+            (this.configService.get('BACKEND') && this.configService.get('BACKEND') === 'gtm'
+              ? ({ active: 0, new: 0, past: 0 }) : ({ social: 0, business: 0, unattended: 0 }))
+            ;
+          console.log(groupedEventsCount);
+
           if (
             this.configService.get('BACKEND') &&
-            this.configService.get('BACKEND').toLowerCase() === 'gtm'
+            this.configService.get('BACKEND').toLowerCase() === 'gtm' && groupedEventsCount
+            && (groupedEventsCount['active'] !== 0 || groupedEventsCount['new'] !== 0 || groupedEventsCount['past'] !== 0)
           ) {
+
             if (searchByEntity && searchByEntity === 'event') {
               // tracker.filterValues['eventIds'] = [];
               await this.trackerDataService.bulkDeleteToSimilarTrackerEvent(
                 tracker.id,
               );
-            }
-            const similarEventCache = {
-              ...groupedEventsCount!['similarEventCache'],
-            };
-            delete groupedEventsCount!['similarEventCache'];
-            groupedEventsCount = groupedEventsCount!['count'];
-            if (searchByEntity && searchByEntity === 'event') {
-              const trackerSimilarEventPauload: {
-                trackerId: string;
-                eventId: string;
-                count: number;
-                tag: TrackerTypeTag;
-                sourceId: number;
-                score: number;
-              }[] = [];
+              const similarEventCache = {
+                ...groupedEventsCount!['similarEventCache'],
+              };
+              delete groupedEventsCount!['similarEventCache'];
+              groupedEventsCount = groupedEventsCount!['count'];
+              if (searchByEntity && searchByEntity === 'event') {
+                const trackerSimilarEventPauload: {
+                  trackerId: string;
+                  eventId: string;
+                  count: number;
+                  tag: TrackerTypeTag;
+                  sourceId: number;
+                  score: number;
+                }[] = [];
 
-              if (groupedEventsCount!['past_ids']) {
-                const pastData = (
-                  groupedEventsCount!['past_ids'] as string
-                ).split(',');
-                const pastCount: number = pastData.length;
-                for (const eachPastData of pastData) {
-                  const eventIds: string[] = eachPastData.split('#');
+                if (groupedEventsCount!['past_ids']) {
+                  const pastData = (
+                    groupedEventsCount!['past_ids'] as string
+                  ).split(',');
+                  const pastCount: number = pastData.length;
+                  for (const eachPastData of pastData) {
+                    const eventIds: string[] = eachPastData.split('#');
 
-                  trackerSimilarEventPauload.push({
-                    trackerId: tracker.id,
-                    count: pastCount,
-                    eventId: eventIds[0],
-                    sourceId: Number(eventIds[1]),
-                    tag: 'PAST',
-                    score: similarEventCache[eventIds[1]] || 0,
-                  });
+                    trackerSimilarEventPauload.push({
+                      trackerId: tracker.id,
+                      count: pastCount,
+                      eventId: eventIds[0],
+                      sourceId: Number(eventIds[1]),
+                      tag: 'PAST',
+                      score: similarEventCache[eventIds[1]] || 0,
+                    });
+                  }
                 }
-              }
-              delete groupedEventsCount!['past_ids'];
-              if (groupedEventsCount!['active_ids']) {
-                const activeData = (
-                  groupedEventsCount!['active_ids'] as string
-                ).split(',');
-                const activeCount: number = activeData.length;
-                for (const eachActiveData of activeData) {
-                  const eventIds: string[] = eachActiveData.split('#');
-                  trackerSimilarEventPauload.push({
-                    trackerId: tracker.id,
-                    count: activeCount,
-                    eventId: eventIds[0],
-                    sourceId: Number(eventIds[1]),
-                    tag: 'ACTIVE',
-                    score: similarEventCache[eventIds[1]] || 0,
-                  });
+                delete groupedEventsCount!['past_ids'];
+                if (groupedEventsCount!['active_ids']) {
+                  const activeData = (
+                    groupedEventsCount!['active_ids'] as string
+                  ).split(',');
+                  const activeCount: number = activeData.length;
+                  for (const eachActiveData of activeData) {
+                    const eventIds: string[] = eachActiveData.split('#');
+                    trackerSimilarEventPauload.push({
+                      trackerId: tracker.id,
+                      count: activeCount,
+                      eventId: eventIds[0],
+                      sourceId: Number(eventIds[1]),
+                      tag: 'ACTIVE',
+                      score: similarEventCache[eventIds[1]] || 0,
+                    });
+                  }
                 }
-              }
-              delete groupedEventsCount!['active_ids'];
-              if (groupedEventsCount!['new_ids']) {
-                const newData = (
-                  groupedEventsCount!['new_ids'] as string
-                ).split(',');
-                const newCount: number = newData.length;
-                for (const eachNewData of newData) {
-                  const eventIds: string[] = eachNewData.split('#');
-                  trackerSimilarEventPauload.push({
-                    trackerId: tracker.id,
-                    count: newCount,
-                    eventId: eventIds[0],
-                    sourceId: Number(eventIds[1]),
-                    tag: 'NEW',
-                    score: similarEventCache[eventIds[1]] || 0,
-                  });
+                delete groupedEventsCount!['active_ids'];
+                if (groupedEventsCount!['new_ids']) {
+                  const newData = (
+                    groupedEventsCount!['new_ids'] as string
+                  ).split(',');
+                  const newCount: number = newData.length;
+                  for (const eachNewData of newData) {
+                    const eventIds: string[] = eachNewData.split('#');
+                    trackerSimilarEventPauload.push({
+                      trackerId: tracker.id,
+                      count: newCount,
+                      eventId: eventIds[0],
+                      sourceId: Number(eventIds[1]),
+                      tag: 'NEW',
+                      score: similarEventCache[eventIds[1]] || 0,
+                    });
+                  }
                 }
-              }
-              delete groupedEventsCount!['new_ids'];
-              if (trackerSimilarEventPauload.length > 0) {
-                await this.trackerDataService.bulkInsertToSimilarTrackerEvent(
-                  trackerSimilarEventPauload,
-                );
-              }
-              if (!groupedEventsCount) {
-                groupedEventsCount = {
-                  active: 0,
-                  new: 0,
-                  past: 0
+                delete groupedEventsCount!['new_ids'];
+                if (trackerSimilarEventPauload.length > 0) {
+                  await this.trackerDataService.bulkInsertToSimilarTrackerEvent(
+                    trackerSimilarEventPauload,
+                  );
                 }
               }
             }
+            if (!groupedEventsCount) {
+              groupedEventsCount = {
+                active: 0,
+                new: 0,
+                past: 0
+              }
+            }
+
           }
-        } catch (error) { }
+        } catch (error) {
+          console.log(error);
+
+        }
       }
 
       filterValues = await this.sharedService.convertIdParamsToSlug(
