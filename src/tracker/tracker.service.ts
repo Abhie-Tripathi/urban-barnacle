@@ -92,6 +92,7 @@ export class TrackerService {
       'active_lte',
       'eventTypes',
       'eventIds',
+      'show'
     ];
     Object.keys(filterValue).forEach((val) => {
       if (!allowedFilters.includes(val)) {
