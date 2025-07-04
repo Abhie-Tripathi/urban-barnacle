@@ -141,12 +141,12 @@ export class AccountDataService {
         passkey: true,
       },
     }),
-    this.getPaymentInfoById(data.paymentId),
+    this.getPaymentInfoById(data.subscriptionId),
     this.prisma.$queryRaw<{ count_record: number }[]>(Prisma.raw(`SELECT count(*) count_record FROM "Subscription"
-WHERE ("planMetaData"->'paymentData'->>'id') = '${data.paymentId || -1}';
+WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}';
 `))]);
     if (Number(checkForDuplicatePaymentId[0].count_record > 0)) {
-      throw new HttpException(`Invalid payment`, HttpStatus.NOT_FOUND);
+      throw new HttpException(`Invalid subscription`, HttpStatus.NOT_FOUND);
     }
     if (!checkForToken) {
       throw new HttpException(`token not found`, HttpStatus.NOT_FOUND);
@@ -154,8 +154,8 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.paymentId || -1}';
     if (data.token !== checkForToken.passkey) {
       throw new HttpException(`Invalid token`, HttpStatus.NOT_FOUND);
     }
-    if (data.paymentId && !checkPaymentInfo) {
-      throw new HttpException(`Invalid payment`, HttpStatus.NOT_FOUND);
+    if (data.subscriptionId && !checkPaymentInfo) {
+      throw new HttpException(`Invalid subscription`, HttpStatus.NOT_FOUND);
     }
     await this.prisma.verification.update({
       where: {
@@ -336,13 +336,13 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.paymentId || -1}';
       }
       : {};
   }
-  async getPaymentInfoById(paymentId: String | undefined) {
-    if (!paymentId) {
+  async getPaymentInfoById(subscriptionId: String | undefined) {
+    if (!subscriptionId) {
       return null;
     }
     let url =
       (process.env.PAYMENT_BASE_URL || '') +
-      `v1/payment_intents/${paymentId}`;
+      `v1/subscriptions/${subscriptionId}`;
 
     const response = await fetch(url, {
       headers: {

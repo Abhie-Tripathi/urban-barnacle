@@ -49,7 +49,7 @@ export class FilterConfigurationDto extends createZodDto(
 const membershipSchema = z
   .strictObject({
     token: z.string(),
-    paymentId: z.string().optional(),
+    subscriptionId: z.string().optional(),
     plan: z
       .union([
         z.literal(0),
@@ -79,11 +79,11 @@ const membershipSchema = z
     path: ['startDate'],
   }).superRefine((data, ctx) => {
     if (data.plan !== 'BASIC') {
-      if (!data.paymentId) {
+      if (!data.subscriptionId) {
         ctx.addIssue({
-          path: ['paymentId'],
+          path: ['subscriptionId'],
           code: z.ZodIssueCode.custom,
-          message: 'paymentId is required for non-BASIC plans',
+          message: 'subscriptionId is required for non-BASIC plans',
         });
       }
       if (!data.planFrequency) {
