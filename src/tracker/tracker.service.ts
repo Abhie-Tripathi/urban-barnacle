@@ -67,7 +67,7 @@ export class TrackerService {
     private readonly accountDataService: AccountDataService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly redisService: RedisService,
-  ) {}
+  ) { }
 
   async filterValueRestriction(filterValue: QueryDto) {
     if (filterValue.locationIds) {
@@ -151,7 +151,7 @@ export class TrackerService {
     // console.log("data.cachingFlag==> ", data.cachingFlag);
     try {
       this.getIntelScoreForUpdate(tracker.id, user);
-    } catch (error) {}
+    } catch (error) { }
     if (data.cachingFlag) {
       this.getTrackerResponse(
         user,
@@ -199,9 +199,9 @@ export class TrackerService {
                 : undefined;
     tracker.filterValues = tracker.filterValues
       ? {
-          ...(tracker.filterValues as Record<string, any>),
-          searchByEntity,
-        }
+        ...(tracker.filterValues as Record<string, any>),
+        searchByEntity,
+      }
       : { searchByEntity };
     if (searchByEntity && searchByEntity === 'event') {
       // tracker.filterValues['eventIds'] = [];
@@ -334,13 +334,21 @@ export class TrackerService {
                 }
               }
               delete groupedEventsCount!['new_ids'];
-              if (trackerSimilarEventPauload.length > 0)
+              if (trackerSimilarEventPauload.length > 0) {
                 await this.trackerDataService.bulkInsertToSimilarTrackerEvent(
                   trackerSimilarEventPauload,
                 );
+              }
+              if (!groupedEventsCount) {
+                groupedEventsCount = {
+                  active: 0,
+                  new: 0,
+                  past: 0
+                }
+              }
             }
           }
-        } catch (error) {}
+        } catch (error) { }
       }
 
       filterValues = await this.sharedService.convertIdParamsToSlug(
@@ -592,7 +600,7 @@ export class TrackerService {
     );
     try {
       await this.getIntelScoreForUpdate(trackerId, user);
-    } catch (error) {}
+    } catch (error) { }
     this.getTrackerResponse(
       user,
       updatedTracker as Tracker & { createdByUser: User; modifiedByUser: User },
@@ -1541,10 +1549,10 @@ export class TrackerService {
           trackerId,
           eventParams['trackerEventStatus']
             ? [
-                eventParams[
-                  'trackerEventStatus'
-                ]?.toUpperCase() as TrackerTypeTag,
-              ]
+              eventParams[
+                'trackerEventStatus'
+              ]?.toUpperCase() as TrackerTypeTag,
+            ]
             : ['NEW', 'ACTIVE', 'PAST'],
           1000,
           0,
@@ -1689,10 +1697,10 @@ export class TrackerService {
           trackerId,
           eventParams['trackerEventStatus']
             ? [
-                eventParams[
-                  'trackerEventStatus'
-                ]?.toUpperCase() as TrackerTypeTag,
-              ]
+              eventParams[
+                'trackerEventStatus'
+              ]?.toUpperCase() as TrackerTypeTag,
+            ]
             : ['NEW', 'ACTIVE', 'PAST'],
           1000,
           0,
