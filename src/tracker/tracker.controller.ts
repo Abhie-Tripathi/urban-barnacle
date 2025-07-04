@@ -246,6 +246,34 @@ export class TrackerController {
     @Query() query: GetTrackerEventsDto,
   ) {
     try {
+      const [membershipStatus] = await Promise.all([
+        // this.sharedService.getPointForRequest(
+        //   PointColumn.pendingRequests,
+        //   user.currentSubscriptionId,
+        // ),
+        this.sharedService.getAccountMemberShipStatus(
+          user.currentSubscriptionId,
+        ),
+      ]);
+      // if (point <= 0) {
+      //   throw new HttpException(
+      //     'You have reached the maximum limit to view data. Please get in touch with us.',
+      //     HttpStatus.TOO_MANY_REQUESTS,
+      //   );
+      // }
+      if (query.limit && membershipLimit[membershipStatus.membership].perSearchLimit < query.limit) {
+        query.limit = membershipLimit[membershipStatus.membership].perSearchLimit;
+      }
+      if (
+        membershipLimit[membershipStatus.membership].upperLimit -
+        ((query.limit || 10) + (query.offset || 0)) <
+        0
+      ) {
+        throw new HttpException(
+          'You have reached the maximum limit to view data. Please get in touch with us.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
       const showValues = 'basic,advance,insights,audience';
       const events = await this.trackerService.getTrackerSimilarEvents(
         user,
