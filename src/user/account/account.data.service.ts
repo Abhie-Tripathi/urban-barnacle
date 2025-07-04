@@ -355,6 +355,13 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.paymentId || -1}';
 
       throw new HttpException('payment not found', HttpStatus.BAD_REQUEST);
     }
+    if (data?.status && data.status !== 'succeeded') {
+      console.warn('Payment status not succeeded:', data);
+      throw new HttpException(
+        'Wrong payment status received',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
     // console.log(data);
     return data;
   }
