@@ -145,7 +145,7 @@ export class AccountDataService {
     this.prisma.$queryRaw<{ count_record: number }[]>(Prisma.raw(`SELECT count(*) count_record FROM "Subscription"
 WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}';
 `))]);
-    if (Number(checkForDuplicatePaymentId[0].count_record > 0)) {
+    if (Number(checkForDuplicatePaymentId[0].count_record > 1)) {
       throw new HttpException(`Invalid subscription`, HttpStatus.NOT_FOUND);
     }
     if (!checkForToken) {
@@ -176,7 +176,7 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}';
         currency: data.planPurchaseCurrency,
         purchaseValue: data.planPurchaseValue,
         planFrequency: data.planFrequency,
-        planRenewalDate: data.planFrequency ? this.calculateNextDate(data.planFrequency) : undefined,
+        planRenewalDate: new Date(data.endDate),
         ...membershipMapForToken[data.plan]
       },
       select: {
@@ -210,19 +210,7 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}';
     ]);
     return create;
   }
-  calculateNextDate(frequency: PlanFrequency, fromDate = new Date()): Date {
-    const planFrequency: object = {
-      MONTHLY: 1,
-      BIMONTHLY: 2,
-      QUARTERLY: 3,
-      SEMIANNUAL: 6,
-      ANNUALLY: 12
-    }
-    const monthsToAdd = planFrequency[frequency];
-    const newDate = new Date(fromDate);
-    newDate.setMonth(newDate.getMonth() + monthsToAdd);
-    return newDate;
-  }
+
   async addAccountUser(accountId: string, userId: string) {
     const account = await this.prisma.account.update({
       where: { id: accountId },
