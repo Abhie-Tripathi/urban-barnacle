@@ -400,13 +400,13 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
     }
     const where: object = {};
     if (planEndDate) {
-      where['planEndDate'] = planEndDate;
+      where['planEndDate'] = new Date(planEndDate);
     }
     if (planStartDate) {
-      where['planStartDate'] = planStartDate;
+      where['planStartDate'] = new Date(planStartDate);
     }
     if (planRenewalDate) {
-      where['planRenewalDate'] = planRenewalDate;
+      where['planRenewalDate'] = new Date(planRenewalDate);
     } else {
       where['planRenewalDate'] = undefined;
     }
