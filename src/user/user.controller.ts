@@ -22,7 +22,7 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly sharedService: SharedService,
-  ) {}
+  ) { }
   @UseGuards(AuthGuard)
   @Get('search')
   async getUserProspectData(
@@ -31,9 +31,9 @@ export class UserController {
   ) {
     let flag = false;
     try {
-      const point = await this.sharedService.getPointForRequest(
+      const { point, subscriptionId } = await this.sharedService.getPointForRequest(
         PointColumn.pendingCompanySearchRequests,
-        userData.currentSubscriptionId,
+        userData.accountId,
       );
       if (point <= 0) {
         throw new HttpException(
@@ -44,7 +44,7 @@ export class UserController {
       const result = await this.userService.getUserProspectData(query);
       await this.sharedService.deductPointForRequest(
         PointColumn.pendingCompanySearchRequests,
-        userData.currentSubscriptionId,
+        userData.accountId,
         point - 1,
       );
       flag = true;
@@ -53,7 +53,7 @@ export class UserController {
       if (flag)
         this.sharedService.creditPointForRequest(
           PointColumn.pendingCompanySearchRequests,
-          userData.currentSubscriptionId,
+          userData.accountId,
         );
       return { error: error };
     }

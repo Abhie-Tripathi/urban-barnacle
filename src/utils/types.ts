@@ -52,7 +52,7 @@ export type SelectedUserDetails = Pick<
 > & {
   accountId: string;
   accountConfigurationId: string;
-  currentSubscriptionId: string;
+  // currentSubscriptionId: string;
 };
 
 export type TCachedUser = SelectedUserDetails & {

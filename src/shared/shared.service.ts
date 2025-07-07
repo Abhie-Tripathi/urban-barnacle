@@ -90,7 +90,7 @@ export class SharedService {
     validateIds: boolean = true,
     transformViewBound = true,
   ) {
-     console.log(params);
+    console.log(params);
     if (params.categories && params.categories.length > 0 && validateIds) {
       console.log(params.categories);
       const categoriesSlug = params.categories as string[];
@@ -522,16 +522,26 @@ export class SharedService {
   }
   async getPointForRequest(
     column: PointColumn,
-    subscriptionId: string,
-  ): Promise<number> {
-    const pointsData = await this.prisma.subscription.findFirst({
-      where: { id: subscriptionId },
-      select: { [column]: true },
+    accountId: string,
+  ) {
+    const pointsData = await this.prisma.account.findFirst({
+      where: { id: accountId },
+      select: {
+        currentSubscriptionId: true,
+        subscription: {
+          where: {
+            deleted: false
+          },
+          select: { [column]: true, id: true }
+        }
+      },
     });
+
+    console.log({ pointsData, membership12: pointsData?.subscription });
     if (
-      !pointsData ||
-      pointsData[column] === null ||
-      typeof pointsData[column] !== 'number'
+      !pointsData?.subscription ||
+      pointsData.subscription[0][column] === null ||
+      typeof pointsData.subscription[0][column] !== 'number'
     ) {
       throw new HttpException(
         `Invalid point value for column ${column}`,
@@ -539,14 +549,14 @@ export class SharedService {
       );
     }
 
-    return pointsData[column];
+    return { point: pointsData.subscription[0][column], subscriptionId: pointsData.currentSubscriptionId };
   }
   async deductPointForRequest(
     column: PointColumn,
-    subscriptionId: string,
+    accountId: string,
     remainingPoints: number,
   ) {
-    const point = await this.getPointForRequest(column, subscriptionId);
+    const { point,subscriptionId } = await this.getPointForRequest(column, accountId);
     if (point <= 0) {
       throw new HttpException(
         `You have reached the maximum limit to view data. Please get in touch with us.`,
@@ -559,24 +569,33 @@ export class SharedService {
     });
     return { data: { message: 'points updated' } };
   }
-  async creditPointForRequest(column: PointColumn, subscriptionId: string) {
-    const point = await this.getPointForRequest(column, subscriptionId);
+  async creditPointForRequest(column: PointColumn, accountId: string) {
+    const { point, subscriptionId } = await this.getPointForRequest(column, accountId);
     await this.prisma.subscription.update({
       where: { id: subscriptionId },
       data: { [column]: point + 1 },
     });
     return { data: { message: 'points updated' } };
   }
-  async getAccountMemberShipStatus(subscriptionId: string) {
-    const membership = await this.prisma.subscription.findFirst({
-      where: {
-        id: subscriptionId,
-      },
+  async getAccountMemberShipStatus(accountId: string) {
+    const pointsData = await this.prisma.account.findFirst({
+      where: { id: accountId },
       select: {
-        plan: true,
-        planEndDate: true,
+        currentSubscriptionId: true,
+        subscription: {
+          where: {
+            deleted: false
+          },
+          select: {
+            plan: true,
+            planEndDate: true,
+          }
+        }
       },
     });
+
+    const membership = pointsData?.subscription[0];
+
     if (!membership) {
       throw new HttpException('membership not found', HttpStatus.NOT_FOUND);
     }

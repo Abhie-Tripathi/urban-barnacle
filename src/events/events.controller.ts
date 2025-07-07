@@ -42,10 +42,11 @@ export class EventsController {
   ) {
     let flag = false;
     try {
-      const [point, membershipStatus] = await Promise.all([this.sharedService.getPointForRequest(
+      const [{ point, subscriptionId }, membershipStatus] = await Promise.all([this.sharedService.getPointForRequest(
         PointColumn.pendingRequests,
-        user.currentSubscriptionId,
-      ), this.sharedService.getAccountMemberShipStatus(user.currentSubscriptionId)]);
+        user.accountId,
+      ), this.sharedService.
+        getAccountMemberShipStatus(user.accountId)]);
       // if (point <= 0) {
       //   throw new HttpException(
       //     'You have reached the maximum limit to view data. Please get in touch with us.',
@@ -73,7 +74,7 @@ export class EventsController {
       if (query.view !== 'suggestion') {
         await this.sharedService.deductPointForRequest(
           PointColumn.pendingRequests,
-          user.currentSubscriptionId,
+          user.accountId,
           point - 1,
         );
       }
@@ -86,7 +87,7 @@ export class EventsController {
       if (flag)
         this.sharedService.creditPointForRequest(
           PointColumn.pendingRequests,
-          user.currentSubscriptionId,
+          user.accountId,
         );
       return {
         error,

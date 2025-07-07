@@ -526,14 +526,14 @@ export class AccountService {
       department: user.department,
     }));
   }
-  async getAccountMemberShipStatus(currentSubscriptionId: string) {
+  async getAccountMemberShipStatus(accountId: string) {
     return await this.sharedService.getAccountMemberShipStatus(
-      currentSubscriptionId,
+      accountId,
     );
   }
   async getAccountConfiguration(user: TCachedUser, key: AccountConfigKey) {
     if (key === 'membership') {
-      return await this.getAccountMemberShipStatus(user.currentSubscriptionId);
+      return await this.getAccountMemberShipStatus(user.accountId);
     }
     const configuration = await this.accountDataService.getAccountConfiguration(
       user.accountConfigurationId,

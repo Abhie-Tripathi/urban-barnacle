@@ -86,7 +86,7 @@ export class SavedLocationService {
             ...updatedUser,
             accountId: user.accountId,
             accountConfigurationId: user.accountConfigurationId,
-            currentSubscriptionId: user.accountConfigurationId,
+            // currentSubscriptionId: user.accountConfigurationId,
           },
           user.token,
         ),

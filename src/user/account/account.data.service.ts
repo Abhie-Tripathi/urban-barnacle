@@ -131,14 +131,17 @@ export class AccountDataService {
   }
   async updateAccountMembership(user: TCachedUser, data: MembershipDto) {
     // return await this.prisma.
-    const checkForToken = await this.prisma.verification.findFirst({
+    const [checkForToken, subscription] = await Promise.all([this.prisma.verification.findFirst({
       where: {
         userId: user.id,
       },
       select: {
         passkey: true,
       },
-    });
+    }), this.prisma.account.findFirst({ where: { id: user.accountId }, select: { currentSubscriptionId: true } })]);
+    if (!subscription) {
+      throw new HttpException(`subscription not found`, HttpStatus.NOT_FOUND);
+    }
     if (!checkForToken) {
       throw new HttpException(`token not found`, HttpStatus.NOT_FOUND);
     }
@@ -155,7 +158,7 @@ export class AccountDataService {
     });
     return await this.prisma.subscription.update({
       where: {
-        id: user.currentSubscriptionId,
+        id: subscription.currentSubscriptionId,
       },
       data: {
         plan: data.plan,

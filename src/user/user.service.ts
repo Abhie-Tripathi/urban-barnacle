@@ -77,7 +77,7 @@ export class UserService {
         '',
       );
     }
-    const [checkForEntry, limitForPoc] = await Promise.all([
+    const [checkForEntry, { point, subscriptionId }] = await Promise.all([
       this.userDataService.getPocUnlockedDatabyAccount(
         user.accountId,
         query.targetId,
@@ -88,11 +88,11 @@ export class UserService {
         query.target === 'COMPANY' || query.target === 'EVENT'
           ? PointColumn.pendingPocUnlockRequests
           : PointColumn.pendingProspectPocUnlockRequests,
-        user.currentSubscriptionId,
+        user.accountId,
       ),
     ]);
 
-    if (limitForPoc <= 0) {
+    if (point <= 0) {
       throw new HttpException(
         'Limit exceeded for POC viewing',
         HttpStatus.TOO_MANY_REQUESTS,
@@ -104,8 +104,8 @@ export class UserService {
     );
     let countForSeenUnlockValue = -1;
 
-    if (limitForPoc < 2) {
-      countForSeenUnlockValue = limitForPoc;
+    if (point < 2) {
+      countForSeenUnlockValue = point;
     }
 
     const remainingUnmask: string[] = [];
@@ -140,8 +140,8 @@ export class UserService {
         query.target === 'COMPANY' || query.target === 'EVENT'
           ? PointColumn.pendingPocUnlockRequests
           : PointColumn.pendingProspectPocUnlockRequests,
-        user.currentSubscriptionId,
-        limitForPoc - remainingUnmask.length,
+        user.accountId,
+        point - remainingUnmask.length,
       );
     }
 
