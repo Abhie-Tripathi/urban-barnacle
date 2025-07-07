@@ -6,6 +6,7 @@ import {
   GetAccountDto,
   UpdateAccountDto,
   UpdateSubscriptionDto,
+  UpdateSubscriptionWebhookDto,
 } from './dto';
 import { PlanFrequency, Prisma, SubscriptionPlan } from '@prisma/client';
 import {
@@ -131,9 +132,9 @@ export class AccountDataService {
     });
     return account;
   }
-  async updateAccountMembership(user: TCachedUser, data: MembershipDto, requestToken: string) {
+  async updateAccountMembership(user: TCachedUser, data: MembershipDto) {
     // return await this.prisma.
-    const [checkForToken, checkPaymentInfo, checkForDuplicatePaymentId] = await Promise.all([this.prisma.verification.findFirst({
+    const [checkForToken, checkPaymentInfo, checkForDuplicatePaymentId, currentSubscriptionId] = await Promise.all([this.prisma.verification.findFirst({
       where: {
         userId: user.id,
       },
@@ -143,9 +144,20 @@ export class AccountDataService {
     }),
     this.getPaymentInfoById(data.subscriptionId),
     this.prisma.$queryRaw<{ count_record: number }[]>(Prisma.raw(`SELECT count(*) count_record FROM "Subscription"
-WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}';
-`))]);
-    if (Number(checkForDuplicatePaymentId[0].count_record > 1)) {
+WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' and deleted=false;
+`)), this.prisma.account.findFirst({
+      where: {
+        id: user.accountId
+      }, select: {
+        currentSubscriptionId: true
+      }
+    })]);
+    console.log("Number(checkForDuplicatePaymentId[0].count_record)Number(checkForDuplicatePaymentId[0].count_record)", Number(checkForDuplicatePaymentId[0].count_record));
+
+    if (!currentSubscriptionId) {
+      throw new HttpException(`subscription not found`, HttpStatus.NOT_FOUND);
+    }
+    if (checkForDuplicatePaymentId.length && Number(checkForDuplicatePaymentId[0].count_record) >= 1) {
       throw new HttpException(`Invalid subscription`, HttpStatus.NOT_FOUND);
     }
     if (!checkForToken) {
@@ -166,7 +178,7 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}';
       },
     });
 
-    const create = await this.prisma.subscription.create({
+    const [create] = await Promise.all([this.prisma.subscription.create({
       data: {
         accountId: user.accountId,
         plan: data.plan,
@@ -189,25 +201,16 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}';
         planFrequency: true,
         planRenewalDate: true,
       },
-    });
-    const getDataOfcurrentUserFromRedis = await this.redisService.get(`user-${requestToken}`);
-    // console.log(getDataOfcurrentUserFromRedis, requestToken);
-    if (!getDataOfcurrentUserFromRedis) {
-      throw new HttpException(`user not found`, HttpStatus.NOT_FOUND);
-    }
-    const userData: TCachedUser = JSON.parse(getDataOfcurrentUserFromRedis);
-    userData.currentSubscriptionId = create.id;
-    // console.log("newUserCookie", userData);
-    await Promise.all([this.redisService.updatePreservingTTL(`user-${requestToken}`, JSON.stringify(userData)),
-    this.prisma.account.update({
+    }), this.prisma.subscription.update({
       where: {
-        id: user.accountId
+        id: currentSubscriptionId.currentSubscriptionId
       },
       data: {
-        currentSubscriptionId: create.id
+        deleted: true
       }
-    })
-    ]);
+    })]);
+    if (data.subscriptionId)
+      await this.setSubscriptionMetadata(data.subscriptionId, { subscriptionId: create.id, accountId: user.accountId });
     return create;
   }
 
@@ -352,5 +355,69 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}';
     }
     // console.log(data);
     return data;
+  }
+  async setSubscriptionMetadata(stripeSubscriptionId: string, metadata: Record<string, string>) {
+    if (!stripeSubscriptionId || typeof metadata !== 'object') {
+      throw new HttpException('Invalid subscriptionId or metadata', HttpStatus.BAD_REQUEST);
+    }
+
+    const url = `${process.env.PAYMENT_BASE_URL || ''}v1/subscriptions/${stripeSubscriptionId}`;
+
+    const formBody = new URLSearchParams();
+    for (const [key, value] of Object.entries(metadata)) {
+      formBody.append(`metadata[${key}]`, value);
+    }
+
+    const response = await fetch(url, {
+      method: 'POST', // PATCH also works
+      headers: {
+        Authorization: `Bearer ${process.env.PAYMENT_TOKEN}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formBody.toString(),
+    });
+
+    const data = await response.json();
+
+    if (data['error']) {
+      console.error('Stripe Error:', data);
+      throw new HttpException('Failed to update metadata', HttpStatus.BAD_REQUEST);
+    }
+    console.log(data);
+
+    return data;
+  }
+  async updateMembershipFromWebhook(body: UpdateSubscriptionWebhookDto) {
+    const { subscriptionId, planEndDate, planRenewalDate, planStartDate } = body;
+    const checkSubsscription = await this.prisma.subscription.findFirst({
+      where: {
+        id: subscriptionId,
+        deleted: false
+      }
+    });
+    if (!checkSubsscription) {
+      throw new HttpException(`Invalid subscription`, HttpStatus.NOT_FOUND);
+    }
+    const where: object = {};
+    if (planEndDate) {
+      where['planEndDate'] = planEndDate;
+    }
+    if (planStartDate) {
+      where['planStartDate'] = planStartDate;
+    }
+    if (planRenewalDate) {
+      where['planRenewalDate'] = planRenewalDate;
+    } else {
+      where['planRenewalDate'] = undefined;
+    }
+    return await this.prisma.subscription.update({
+      where: {
+        id: subscriptionId,
+      },
+      data: {
+        ...where,
+        ...membershipMapForToken[checkSubsscription.plan]
+      }
+    })
   }
 }

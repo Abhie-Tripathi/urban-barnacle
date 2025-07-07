@@ -17,7 +17,9 @@ import { eventSearchFilterCheck, transformEventData } from './global.service';
 import { IntentDataService } from 'src/intent/intent.data.service';
 import { LimitDto } from 'src/global_dto';
 import { AccountService } from 'src/user/account/account.service';
-import { UserActivitySource } from '@prisma/client';
+import { CommentSourceModule, UserActivitySource } from '@prisma/client';
+import { EnquiryService } from 'src/enquiry/enquiry.service';
+import { GetCommentsDto } from 'src/comment/dto';
 import { fetchDatafromMicroService } from 'src/shared/microservice.api';
 import { PromotedEventsService } from 'src/promotedEvent/promoted-event.service';
 @Injectable()
@@ -26,6 +28,7 @@ export class EventsService {
     private readonly eventsDataService: EventsDataService,
     private readonly sharedService: SharedService,
     private readonly intentDataService: IntentDataService,
+    private readonly enquiryService: EnquiryService
   ) { }
 
   async createLogForEncryptedQuery(query: QueryDto, user: TCachedUser) {
@@ -88,7 +91,7 @@ export class EventsService {
       nonEmptyParams,
       validateIds,
     );
-    console.log({ convertedParams }, { nonEmptyParams });
+    // console.log({ convertedParams }, { nonEmptyParams });
     const fetchedEvents =
       await this.eventsDataService.getEvents(convertedParams);
     // console.log({ convertedParams }, { nonEmptyParams });
@@ -328,11 +331,17 @@ export class EventsService {
 
     return await this.eventsDataService.getEventsTrends(convertedParams);
   }
+  async getEventsComment(user: TCachedUser,
+    eventId: string,
+    source: CommentSourceModule[],
+    query: GetCommentsDto) {
+    return await this.enquiryService.getEnquiryComments(user, eventId, source, query);
+  }
   async getSimilarEvents(query: QueryDto) {
     const nonEmptyParams = getNonEmptyParams(query);
     const convertedParams = await this.sharedService.convertSlugParamsToIds(
       nonEmptyParams,
-      true,
+      false,
     );
     if (
       !nonEmptyParams.eventTypes ||

@@ -58,6 +58,7 @@ export class AuthService {
 
   async signUp(data: SignUpDto) {
     const domain = data.email.split('@')[1];
+    let flag: boolean = false;
     // let nonBusinessFlag: Boolean = false;
     // if (blackListDomain.includes(domain)) {
     //   nonBusinessFlag = true;
@@ -117,6 +118,7 @@ export class AuthService {
             ? InterestDefaultConfigurationsWithIndustry[data.industry]
             : InterestDefaultConfigurations.interests,
         });
+        flag = true;
         const updateSubscription =
           await this.accountDataService.updateSubscription(
             { accountId: account.id },
@@ -128,6 +130,7 @@ export class AuthService {
             domain: domain,
             accountId: account.id,
           });
+          flag = true;
         }
 
         if (user) {
@@ -176,7 +179,7 @@ export class AuthService {
               ...user,
               accountId: account.id,
               accountConfigurationId: account.configurationId,
-              currentSubscriptionId: account.currentSubscriptionId,
+              // currentSubscriptionId: account.currentSubscriptionId,
               token: '',
             },
             'interest',
@@ -186,15 +189,13 @@ export class AuthService {
           );
         }
       }
-      this.createDefaultBrandKit(
-        {
+      if (flag)
+        this.createDefaultBrandKit({
           id: user.id,
           accountId: account.id,
           domain: domain,
-        },
-        blackListDomain.includes(domain),
-      );
-      this.authDataService.createVerificationToken(user, 'sign-up');
+        }, blackListDomain.includes(domain));
+      await this.authDataService.createVerificationToken(user, 'sign-up');
       return {
         message: 'otp sent successfully',
       };
@@ -286,7 +287,7 @@ export class AuthService {
         primaryAccountId: user.primaryAccountId,
         primaryCompanyId: user.primaryCompanyId,
         accountConfigurationId: currentAccount.configurationId,
-        currentSubscriptionId: currentAccount.currentSubscriptionId,
+        // currentSubscriptionId: currentAccount.currentSubscriptionId,
       }),
     };
   }
@@ -349,7 +350,7 @@ export class AuthService {
           ...updatedUser,
           accountId: currentAccount.id,
           accountConfigurationId: currentAccount.configurationId,
-          currentSubscriptionId: currentAccount.currentSubscriptionId,
+          // currentSubscriptionId: currentAccount.currentSubscriptionId,
         }),
       };
     }
@@ -358,7 +359,7 @@ export class AuthService {
         ...user,
         accountId: currentAccount.id,
         accountConfigurationId: currentAccount.configurationId,
-        currentSubscriptionId: currentAccount.currentSubscriptionId,
+        // currentSubscriptionId: currentAccount.currentSubscriptionId,
       }),
     };
   }
@@ -457,7 +458,7 @@ export class AuthService {
           primaryAccountId: user.primaryAccountId,
           primaryCompanyId: user.primaryCompanyId,
           accountConfigurationId: currentAccount.configurationId,
-          currentSubscriptionId: currentAccount.currentSubscriptionId,
+          // currentSubscriptionId: currentAccount.currentSubscriptionId,
         }),
         isNewUser: false,
       };
@@ -607,7 +608,7 @@ export class AuthService {
                 primaryAccountId: user.primaryAccountId,
                 primaryCompanyId: user.primaryCompanyId,
                 accountConfigurationId: account.configurationId,
-                currentSubscriptionId: account.currentSubscriptionId,
+                // currentSubscriptionId: account.currentSubscriptionId,
                 id: user.id,
                 industry: user.industry,
                 subIndustry: user.subIndustry,
@@ -662,7 +663,7 @@ export class AuthService {
               ...user,
               accountId: account.id,
               accountConfigurationId: account.configurationId,
-              currentSubscriptionId: account.currentSubscriptionId,
+              // currentSubscriptionId: account.currentSubscriptionId,
               token: '',
             },
             'interest',
@@ -689,7 +690,7 @@ export class AuthService {
           primaryAccountId: user.primaryAccountId,
           primaryCompanyId: user.primaryCompanyId,
           accountConfigurationId: account.configurationId,
-          currentSubscriptionId: account.currentSubscriptionId,
+          // currentSubscriptionId: account.currentSubscriptionId,
         }),
         isNewUser: true,
         industryExist: user.industry && user.industry.length > 3 ? true : false,
@@ -858,7 +859,7 @@ export class AuthService {
               ...user,
               accountId: account.id,
               accountConfigurationId: account.configurationId,
-              currentSubscriptionId: account.currentSubscriptionId,
+              // currentSubscriptionId: account.currentSubscriptionId,
               token: '',
             },
             'interest',
@@ -877,7 +878,7 @@ export class AuthService {
             primaryAccountId: user.primaryAccountId,
             primaryCompanyId: user.primaryCompanyId,
             accountConfigurationId: account.configurationId,
-            currentSubscriptionId: account.currentSubscriptionId,
+            // currentSubscriptionId: account.currentSubscriptionId,
             id: user.id,
             industry: user.industry,
             subIndustry: user.subIndustry,
@@ -931,7 +932,7 @@ export class AuthService {
         primaryAccountId: user.primaryAccountId,
         primaryCompanyId: user.primaryCompanyId,
         accountConfigurationId: account.configurationId,
-        currentSubscriptionId: account.currentSubscriptionId,
+        // currentSubscriptionId: account.currentSubscriptionId,
       }),
     };
   }

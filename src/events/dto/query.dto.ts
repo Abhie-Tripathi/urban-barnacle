@@ -124,7 +124,29 @@ export enum AudienceZone {
   regional,
   global,
 }
-
+const conditionsSchema = z
+  .strictObject({
+    logic: z.enum(['AND', 'OR']).optional(),
+    departmentIds: z.array(z.string()).optional(),
+    seniorityIds: z.array(z.string()).optional(),
+  })
+  .refine(
+    (data) => {
+      const hasDepartmentOrRole = !!data.departmentIds?.length || !!data.seniorityIds?.length;
+      if (hasDepartmentOrRole) {
+        return data.logic === 'AND' || data.logic === 'OR';
+      }
+      return true; // Valid if no department or role
+    },
+    {
+      message: "`logic` is required when `seniority` or `department` is provided.",
+      path: ['logic'], // Apply the error to the `logic` key
+    }
+  );
+const jobCompositeSchema = z.strictObject({
+  designationIds: z.array(z.string()).optional(),
+  conditions: conditionsSchema.optional(),
+});
 export const viewBound = z
   .object({
     boundType: z.nativeEnum(BoundType),
@@ -590,6 +612,27 @@ export const QueryFilter = z.object({
       return data?.split(',').map((item) => item.trim());
     })
     .optional(),
+  jobComposite: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined;
+      try {
+        return JSON.parse(val);
+      } catch {
+        return undefined;
+      }
+    })
+    .refine(
+      (val) => val === undefined || jobCompositeSchema.safeParse(val).success,
+      {
+        message: 'Invalid jobComposite format',
+      }
+    )
+    .transform((val) => {
+      if (!val) return undefined;
+      return JSON.stringify(val);
+    }),
 });
 
 export const FilterNames = Object.keys(QueryFilter.shape);
@@ -743,7 +786,7 @@ export const CountQuerySchema = QueryFilter.extend({
   return data;
 });
 
-export class CountQueryDto extends createZodDto(CountQuerySchema) { }
+export class CountQueryDto extends createZodDto(CountQuerySchema) {  }
 const similarEventsSchema = QuerySchema.omit({ showValues: true })
   .extend({
     showValues: z.string().default('basic,advance,insights,audience'),
@@ -769,7 +812,6 @@ const similarEventsSchema = QuerySchema.omit({ showValues: true })
     return data;
   });
 export class SimilarEventsDto extends createZodDto(similarEventsSchema) { }
-
 const groupByOptions = {
   date: 'date',
 };

@@ -131,7 +131,7 @@ export class IntentDataService {
   ) {
     const trackerWhere: object = {};
     if (trackerId) {
-      trackerWhere['sourceId'] = trackerId;
+      trackerWhere['sourceId'] = { in: trackerId.split(',') };
       trackerWhere['sourceModule'] = 'TRACKER';
     }
     if (type && type.length > 0) {

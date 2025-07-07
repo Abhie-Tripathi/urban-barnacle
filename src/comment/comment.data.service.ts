@@ -9,6 +9,7 @@ import {
 } from './dto';
 import { File } from '@nest-lab/fastify-multer';
 import { FileCreationService } from 'src/shared/file-creation.service';
+import { TCachedUser } from 'src/utils/types';
 
 @Injectable()
 export class CommentDataService {
@@ -56,10 +57,16 @@ export class CommentDataService {
   }
 
   async getComments(data: GetCommentsDto) {
-    const { limit, offset, ...where } = data;
+    const { limit, offset, sourceModule, ...where } = data;
+    const normalizedSourceModule = Array.isArray(sourceModule)
+      ? sourceModule
+      : sourceModule
+        ? [sourceModule]
+        : undefined;
     const comments = await this.prisma.comment.findMany({
       where: {
         ...where,
+        ...(normalizedSourceModule ? { sourceModule: { in: normalizedSourceModule } } : {}),
         deleted: false,
       },
       include: {
@@ -80,12 +87,42 @@ export class CommentDataService {
   }
 
   async getCommentCount(data: GetCommentCountDto) {
+    const { sourceModule, ...rest } = data;
+    const normalizedSourceModule = Array.isArray(sourceModule)
+      ? sourceModule
+      : sourceModule
+        ? [sourceModule]
+        : undefined;
     const commentCount = await this.prisma.comment.count({
       where: {
-        ...data,
+        ...rest,
+        ...(normalizedSourceModule ? { sourceModule: { in: normalizedSourceModule } } : {}),
         deleted: false,
       },
     });
     return commentCount;
+  }
+  async getCommentById(id: string, user: TCachedUser) {
+    const comment = await this.prisma.comment.findUnique({
+      where: {
+        id: id,
+        deleted: false,
+        accountId: user.accountId
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstname: true,
+            lastname: true,
+            imageUrl: true,
+          }
+        }
+    }
+    });
+    if (!comment) {
+      throw new HttpException("Comment not found", HttpStatus.NOT_FOUND);
+    }
+    return comment;
   }
 }

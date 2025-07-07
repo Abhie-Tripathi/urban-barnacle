@@ -24,7 +24,7 @@ import { CommentSourceModule, Interest } from '@prisma/client';
 
 @Controller('enquiries')
 export class EnquiryController {
-  constructor(private readonly enquiryService: EnquiryService) {}
+  constructor(private readonly enquiryService: EnquiryService) { }
 
   @UseGuards(AuthGuard)
   @Patch(':id')
@@ -98,18 +98,19 @@ export class EnquiryController {
   }
 
   @UseGuards(AuthGuard)
-  @Get(':id/:source/comments')
+  @Get(':eventId/:source/comments')
   async getEnquiryComments(
-    @Param('id') id: string,
-    @Param('source') source: 'coordinate' | 'outreach',
+    @Param('eventId') eventId: string,
+    @Param('source') source: 'coordinate' | 'outreach' | 'eventDetailPage',
     @GetUser() user: TCachedUser,
     @Query() query: GetCommentsDto,
   ) {
     try {
+      const alterSource = source === 'coordinate' ? 'coordinate,EVENT_DETAIL_PAGE' : 'outreach';
       const comments = await this.enquiryService.getEnquiryComments(
         user,
-        id,
-        source.toUpperCase() as CommentSourceModule,
+        eventId,
+        alterSource.toUpperCase().split(',') as CommentSourceModule[],
         query,
       );
       return {

@@ -15,6 +15,7 @@ export const EnquiryResponseSchema = z.object({
   status: z.nativeEnum(EnquiryStatus),
   eventId: z.string().uuid(),
   eventData: z.any(),
+  createdBy: z.any().optional(),
   owner: z
     .object({
       id: z.string().uuid(),

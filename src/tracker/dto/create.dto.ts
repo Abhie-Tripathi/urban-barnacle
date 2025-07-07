@@ -83,6 +83,7 @@ export interface LastActive {
 
 export type TrackerParams = z.infer<typeof TrackerParamsSchema>;
 export interface TrackerParamsOptions extends LastActive, TrackerParams { }
+export interface TrackerParamsOptions extends LastActive, TrackerParams { }
 
 const CreateTrackerSchema = z.object({
   name: z.string(),

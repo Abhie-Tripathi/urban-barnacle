@@ -30,6 +30,7 @@ import {
   AccountConfigKey,
   GetAccountEnquiriesCountDto,
   GetBookmarkedEventDto,
+  UpdateSubscriptionWebhookDto,
 } from './dto';
 
 @Controller('me/account')
@@ -197,24 +198,12 @@ export class AccountController {
   @Put('membership')
   async updateAccountMembership(
     @GetUser() user: TCachedUser,
-    @Body() data: MembershipDto,
-    @Req() req: FastifyRequest
+    @Body() data: MembershipDto
   ) {
     try {
-      const key = (process.env.COOKIE_PREFIX ? `${process.env.COOKIE_PREFIX}-` : '') + 'token';
-      // const requestToken = request.unsignCookie[key];
-      const signedCookie = req.cookies[key];
-      if (!signedCookie) {
-        return null;
-      }
-      const requestToken: string | null = req.unsignCookie(signedCookie).value;
-      if (!requestToken) {
-        throw new HttpException(`cookie not found`, HttpStatus.NOT_FOUND);
-      }
       const configuration = await this.accountService.updateAccountMembership(
         user,
-        data,
-        requestToken
+        data
       );
       return { data: configuration };
     } catch (error) {
@@ -228,6 +217,18 @@ export class AccountController {
       console.log(user);
       const data = await this.accountService.createMembershipToken(user);
       return { data: { user: data } };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+  @Patch(':token/membership')
+  async updateMembership(@Param('token') token: string, @Body() body: UpdateSubscriptionWebhookDto) {
+    try {
+      if (process.env.STRIPE_PASS_TOKEN !== token) {
+        throw new HttpException('Invalid token', HttpStatus.BAD_REQUEST);
+      }
+      const data = await this.accountService.updateMembershipFromWebhook(body)
+      return { data: data };
     } catch (error) {
       return { error: error };
     }

@@ -14,7 +14,7 @@ import { SavedLocationDataService } from 'src/saved-location/saved-location.data
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, AuthDataService, KitService, WidgetDataService, SavedLocationService, SavedLocationDataService],
+  providers: [AuthService, AuthDataService, KitService, WidgetDataService,SavedLocationService,SavedLocationDataService, SavedLocationService, SavedLocationDataService],
   exports: [AuthService, AuthDataService],
   imports: [UserModule, CompanyModule, AccountModule, AccessModule],
 })

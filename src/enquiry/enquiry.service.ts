@@ -236,8 +236,8 @@ export class EnquiryService {
 
   async getEnquiryComments(
     user: TCachedUser,
-    id: string,
-    source: CommentSourceModule,
+    eventId: string,
+    source: CommentSourceModule[],
     query: GetCommentsDto,
   ) {
     // const comments = await this.commentService.getComments({
@@ -248,13 +248,14 @@ export class EnquiryService {
     //   offset: query.offset,
     // });
     // return comments;
+
     const { limit, offset, ...rest } = query;
     const [comments, commentsCount] = await Promise.all([
       this.enquiryDataService.getComments({
         ...rest,
         accountId: user.accountId,
         sourceModule: source,
-        sourceId: id,
+        sourceId: eventId,
         limit: limit,
         offset: offset,
       }),
@@ -262,7 +263,7 @@ export class EnquiryService {
         ...rest,
         accountId: user.accountId,
         sourceModule: source,
-        sourceId: id,
+        sourceId: eventId,
       }),
     ]);
 

@@ -64,3 +64,17 @@ const GetBookmarkedEventSchema = LimitSchema;
 export class GetBookmarkedEventDto extends createZodDto(
   GetBookmarkedEventSchema,
 ) { }
+
+
+
+const UpdateSubscriptionFromWebhookSchema = z.strictObject({
+  // plan: z.nativeEnum(SubscriptionPlan).optional(),
+  // pendingRequests: z.number().optional(),
+  // pendingPocUnlockRequests: z.number().optional(),
+  planEndDate: z.string().optional(),
+  planStartDate: z.string().optional(),
+  subscriptionId: z.string(),
+  planRenewalDate: z.string().optional(),
+});
+
+export class UpdateSubscriptionWebhookDto extends createZodDto(UpdateSubscriptionFromWebhookSchema) { }

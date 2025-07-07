@@ -32,6 +32,7 @@ import {
   AccountConfigKey,
   GetAccountEnquiriesCountDto,
   GetBookmarkedEventDto,
+  UpdateSubscriptionWebhookDto,
 } from './dto';
 import { IntentDataService } from 'src/intent/intent.data.service';
 import {
@@ -83,7 +84,7 @@ export class AccountService {
     const [savedEvents, count] = await Promise.all([
       this.intentDataService.getUserEventInterest({
         interest: ['BOOKMARK'],
-        sourceModule: { in: ['TRACKER', 'RESEARCH'] },
+        sourceModule: { in: ['TRACKER'] },
         // interestedUserId: user.id,
         accountId: user.accountId,
         limit: query.limit,
@@ -91,7 +92,7 @@ export class AccountService {
       }),
       this.intentDataService.getUserEventInterestCountForBookmark({
         interest: ['BOOKMARK'],
-        sourceModule: { in: ['TRACKER', 'RESEARCH'] },
+        sourceModule: { in: ['TRACKER'] },
         // interestedUserId: user.id,
         accountId: user.accountId,
         limit: query.limit,
@@ -102,10 +103,12 @@ export class AccountService {
     if (savedEventsIds.length === 0) {
       return [];
     }
+    const trackerIds: string[] = savedEvents.map((item) => item.sourceId || '').filter(val => val && val.length > 0);
     const eventParams = {
       eventIds: savedEventsIds,
       limit: query.limit,
       // offset: 0,
+      trackerId: trackerIds.join(','),
       showValues: showValues,
       view: View.tracker,
     } as QueryDto;
@@ -187,6 +190,11 @@ export class AccountService {
               displayName: `${event.data['venue_name'] ? event.data['venue_name'] + ',' : ''}${event.data['location_city'] ? event.data['location_city'] + ',' : ''}${event.data['location_country'] ? event.data['location_country'] : ''}`,
             },
           },
+          createdBy: {
+            userId: event['user_id'],
+            userName: event['user_name'],
+            userProfilePicture: event['user_profile_pic']
+          },
           isProductEvent: true,
         };
       })
@@ -225,6 +233,7 @@ export class AccountService {
         if (!event || !enquiry) {
           return null;
         }
+        const location = event.basic.eventLocation;
         return {
           ...enquiry,
           eventData: {
@@ -518,14 +527,14 @@ export class AccountService {
       department: user.department,
     }));
   }
-  async getAccountMemberShipStatus(currentSubscriptionId: string) {
+  async getAccountMemberShipStatus(accountId: string) {
     return await this.sharedService.getAccountMemberShipStatus(
-      currentSubscriptionId,
+      accountId,
     );
   }
   async getAccountConfiguration(user: TCachedUser, key: AccountConfigKey) {
     if (key === 'membership') {
-      return await this.getAccountMemberShipStatus(user.currentSubscriptionId);
+      return await this.getAccountMemberShipStatus(user.accountId);
     }
     const configuration = await this.accountDataService.getAccountConfiguration(
       user.accountConfigurationId,
@@ -556,6 +565,7 @@ export class AccountService {
         );
       }
       const uniqueStatus = new Set();
+      const uniqueLabel = new Set();
       interestConfig.forEach((item) => {
         if (uniqueStatus.has(item.status)) {
           throw new HttpException(
@@ -563,6 +573,13 @@ export class AccountService {
             HttpStatus.BAD_REQUEST,
           );
         }
+        if (uniqueLabel.has(item.label.toLowerCase())) {
+          throw new HttpException(
+            'Same label must not be repeated',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+        uniqueLabel.add(item.label.toLowerCase());
         uniqueStatus.add(item.status);
       });
       config['interest'] = interestConfig;
@@ -575,6 +592,7 @@ export class AccountService {
         );
       }
       const uniqueStatus = new Set();
+      const uniqueLabel = new Set();
       outreachConfig.forEach((item) => {
         if (uniqueStatus.has(item.status)) {
           throw new HttpException(
@@ -582,6 +600,13 @@ export class AccountService {
             HttpStatus.BAD_REQUEST,
           );
         }
+        if (uniqueLabel.has(item.label.toLowerCase())) {
+          throw new HttpException(
+            'Same label must not be repeated',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+        uniqueLabel.add(item.label.toLowerCase());
         uniqueStatus.add(item.status);
       });
       config['outreach'] = outreachConfig;
@@ -598,8 +623,8 @@ export class AccountService {
 
     return { [key]: configuration ? configuration[key] : [] };
   }
-  async updateAccountMembership(user: TCachedUser, data: MembershipDto, requestToken: string) {
-    return await this.accountDataService.updateAccountMembership(user, data,requestToken);
+  async updateAccountMembership(user: TCachedUser, data: MembershipDto) {
+    return await this.accountDataService.updateAccountMembership(user, data);
   }
   async createMembershipToken(user: TCachedUser) {
     return this.accountDataService.createMembershipToken(user);
@@ -692,5 +717,8 @@ export class AccountService {
       totalEnquiries: totalEnquiries,
       ...response,
     };
+  }
+  async updateMembershipFromWebhook(body: UpdateSubscriptionWebhookDto) {
+    return await this.accountDataService.updateMembershipFromWebhook(body);
   }
 }

@@ -101,8 +101,8 @@ export class EventsDataService {
     }
     const response = await fetch(url, req);
     const result = await response.json();
-    console.error(result);
-    console.log(result);
+    // console.error(result);
+    // console.log(result);
     if (result.statusCode) {
       throw result;
     }
@@ -199,8 +199,8 @@ export class EventsDataService {
 
   async getEventEditions(eventId: string, query: LimitDto) {
     const queryParams = new URLSearchParams({
-      take: query.limit.toString(),
-      skip: query.offset.toString(),
+      limit: query.limit.toString(),
+      offset: query.offset.toString(),
     });
     const url =
       this.configService.get('MICROSERVICE_URL') +
@@ -244,8 +244,8 @@ export class EventsDataService {
 
   async getEventSpeakers(eventId: string, query: LimitDto) {
     const queryParams = new URLSearchParams({
-      take: query.limit.toString(),
-      skip: query.offset.toString(),
+      limit: query.limit.toString(),
+      offset: query.offset.toString(),
     });
     const url =
       this.configService.get('MICROSERVICE_URL') +
@@ -262,8 +262,8 @@ export class EventsDataService {
 
   async getEventSponsors(eventId: string, query: LimitDto) {
     const queryParams = new URLSearchParams({
-      take: query.limit.toString(),
-      skip: query.offset.toString(),
+      limit: query.limit.toString(),
+      offset: query.offset.toString(),
     });
     const url =
       this.configService.get('MICROSERVICE_URL') +
@@ -280,8 +280,8 @@ export class EventsDataService {
 
   async getEventExhibitors(eventId: string, query: LimitDto) {
     const queryParams = new URLSearchParams({
-      take: query.limit.toString(),
-      skip: query.offset.toString(),
+      limit: query.limit.toString(),
+      offset: query.offset.toString(),
     });
     const url =
       this.configService.get('MICROSERVICE_URL') +
@@ -389,8 +389,8 @@ export class EventsDataService {
       peopleAllTrackData.forEach((tracker) => {
         const filterValues: any = tracker.filterValues;
         requestBody.peopleBody!.peopleCompanyName +=
-          filterValues.userOrgWebsite;
-        requestBody.peopleBody!.peopleNames += filterValues.userName;
+          filterValues.userOrgWebsite + ',';
+        requestBody.peopleBody!.peopleNames += filterValues.userName + ',';
       });
     } else {
       countForFlag++;
@@ -404,10 +404,10 @@ export class EventsDataService {
         const filterValues: any = tracker.filterValues;
         if (filterValues.orgName)
           requestBody.competitorBody!.competitorCompanyName +=
-            filterValues.orgName;
+            filterValues.orgName + ',';
         if (filterValues.orgWebsite)
           requestBody.competitorBody!.competitorWebsiteNames +=
-            filterValues.orgWebsite;
+            filterValues.orgWebsite + ',';
       });
       if (requestBody.competitorBody.competitorCompanyName?.length === 0) {
         requestBody.competitorBody.competitorCompanyName = undefined;
@@ -424,10 +424,10 @@ export class EventsDataService {
         const filterValues: any = tracker.filterValues;
         if (filterValues.includeKeywords)
           requestBody.keywordBody!.includeKeywords +=
-            filterValues.includeKeywords;
+            filterValues.includeKeywords + ',';
         if (filterValues.excludeKeywords)
           requestBody.keywordBody!.excludeKeywords +=
-            filterValues.excludeKeywords;
+            filterValues.excludeKeywords + ',';
       });
       if (requestBody.keywordBody.includeKeywords?.length === 0) {
         requestBody.keywordBody.includeKeywords = undefined;
@@ -462,12 +462,12 @@ export class EventsDataService {
       },
     });
 
-    const { data, error } = await response.json();
-    if (!data || error) {
-      console.log({ data, error });
-      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+    const data = await response.json();
+    if (!data) {
+      // console.log({ data, error });
+      throw new HttpException(data, HttpStatus.BAD_REQUEST);
     }
-    return data;
+    return { intelScore: data };
   }
   async getEventsTrends(params: EventsTrendsDto) {
     params = {
@@ -566,9 +566,9 @@ export class EventsDataService {
       microserviceEndpoints.events.similarEvents;
     let req: any = {};
     console.log({
-      lenght: JSON.stringify(query).length > 10,
-      val: JSON.stringify(query),
-      que: queryParams.toString(),
+      // lenght: JSON.stringify(query).length > 10,
+      query,
+      // queryParams,
     });
 
     if (JSON.stringify(query).length > 1000) {
@@ -589,6 +589,7 @@ export class EventsDataService {
 
       throw new HttpException(error, HttpStatus.BAD_REQUEST);
     }
+     console.log(data);
     return data;
   }
 }

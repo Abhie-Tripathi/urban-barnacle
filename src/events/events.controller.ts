@@ -24,6 +24,8 @@ import { GetUser } from 'src/user/decorator';
 import { LimitDto } from 'src/global_dto';
 import { SharedService } from 'src/shared/shared.service';
 import { PointColumn } from 'src/shared/types';
+import { GetCommentsDto } from 'src/comment/dto';
+import { CommentSourceModule } from '@prisma/client';
 
 @Controller('events')
 export class EventsController {
@@ -40,10 +42,11 @@ export class EventsController {
   ) {
     let flag = false;
     try {
-      const [point, membershipStatus] = await Promise.all([this.sharedService.getPointForRequest(
+      const [{ point, subscriptionId }, membershipStatus] = await Promise.all([this.sharedService.getPointForRequest(
         PointColumn.pendingRequests,
-        user.currentSubscriptionId,
-      ), this.sharedService.getAccountMemberShipStatus(user.currentSubscriptionId)]);
+        user.accountId,
+      ), this.sharedService.
+        getAccountMemberShipStatus(user.accountId)]);
       // if (point <= 0) {
       //   throw new HttpException(
       //     'You have reached the maximum limit to view data. Please get in touch with us.',
@@ -71,7 +74,7 @@ export class EventsController {
       if (query.view !== 'suggestion') {
         await this.sharedService.deductPointForRequest(
           PointColumn.pendingRequests,
-          user.currentSubscriptionId,
+          user.accountId,
           point - 1,
         );
       }
@@ -84,7 +87,7 @@ export class EventsController {
       if (flag)
         this.sharedService.creditPointForRequest(
           PointColumn.pendingRequests,
-          user.currentSubscriptionId,
+          user.accountId,
         );
       return {
         error,
@@ -256,10 +259,36 @@ export class EventsController {
     @GetUser() user: TCachedUser,
   ) {
     try {
-      const polygons = await this.eventsService.getEventIntelScore(id, user);
-      return { data: polygons };
+      const intelscore = await this.eventsService.getEventIntelScore(id, user);
+      return { data: intelscore };
     } catch (error) {
       return { error };
+    }
+  }
+  @UseGuards(AuthGuard)
+  @Get(':eventId/comments/:source?')
+  async getEventComment(@Param('eventId') eventId: string,
+    @GetUser() user: TCachedUser,
+    @Query() query: GetCommentsDto,
+    @Param('source') source?: 'coordinate' | 'outreach',) {
+    try {
+      const alterSource =
+        !source || source === 'coordinate'
+          ? 'coordinate,EVENT_DETAIL_PAGE'
+          : 'outreach';
+      const comments = await this.eventsService.getEventsComment(
+        user,
+        eventId,
+        alterSource.toUpperCase().split(',') as CommentSourceModule[],
+        query,
+      );
+      return {
+        data: comments,
+      };
+    } catch (error) {
+      return {
+        error,
+      };
     }
   }
   @UseGuards(AuthGuard)

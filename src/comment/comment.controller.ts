@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   HttpException,
   Param,
   Patch,
@@ -32,13 +33,20 @@ export class CommentController {
     @UploadedFiles() files: File[],
   ) {
     try {
-      const comment = await this.commentService.createComment(user, data,files);
+      const comment = await this.commentService.createComment(user, data, files);
       return { data: comment };
     } catch (error) {
       return { error: error };
     }
   }
-
+  @Get(':id')
+  @UseGuards(AuthGuard)
+  async getCommentById(
+    @Param('id') id: string,
+    @GetUser() user: TCachedUser,
+  ) {
+    return this.commentService.getCommentById(id, user);
+  }
   @Patch(':id')
   @UseGuards(AuthGuard)
   async updateComment(
@@ -73,7 +81,7 @@ export class CommentController {
     try {
       const upvote = await this.commentService.deleteCommentUpvote(user, id);
       return {
-        data: upvote,
+        data: upvote.data,
       };
     } catch (error) {
       return {

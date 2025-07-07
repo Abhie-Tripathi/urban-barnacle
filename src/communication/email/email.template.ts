@@ -1263,11 +1263,9 @@ export const demoContactEmailTemplate: string = ` <!DOCTYPE html>
                 <span class="label">Phone Number</span>
                 <span class="value">{phoneNumber}</span>
               </div>
-              </div>
                 <div class="field">
                 <span class="label">Source:</span>
                 <span class="value">{Source}</span>
-              </div>
             </div>
           </body>
         </html>`
@@ -1325,11 +1323,9 @@ export const contactUsEmailTemplate: string = `<!DOCTYPE html>
               <div class="field">
                 <span class="label">Message:</span>
                 <span class="value">{message}</span>
-              </div>
                 <div class="field">
                 <span class="label">Source:</span>
                 <span class="value">{Source}</span>
-              </div>
           </body>
         </html>`
 

@@ -282,7 +282,7 @@ export class TrackerDataService {
   }
   async getSimilarTrackerEvent(
     trackerId: string,
-    tag: TrackerTypeTag,
+    tag: TrackerTypeTag[],
     limit: number,
     offset: number,
   ) {
@@ -300,7 +300,7 @@ export class TrackerDataService {
 FROM "SimilarEventsToTracker"
 where
     "trackerId" = '${trackerId}'
-    and tag = '${tag}'
+    and tag in ('${tag.join("','")}')
     and "createdAt"::DATE = now()::DATE
     ORDER BY score desc
     limit ${limit} Offset ${offset};`),
