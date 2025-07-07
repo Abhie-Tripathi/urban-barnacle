@@ -179,7 +179,7 @@ export class AuthService {
               ...user,
               accountId: account.id,
               accountConfigurationId: account.configurationId,
-              // currentSubscriptionId: account.currentSubscriptionId,
+              currentSubscriptionId: account.currentSubscriptionId,
               token: '',
             },
             'interest',
@@ -287,7 +287,7 @@ export class AuthService {
         primaryAccountId: user.primaryAccountId,
         primaryCompanyId: user.primaryCompanyId,
         accountConfigurationId: currentAccount.configurationId,
-        // currentSubscriptionId: currentAccount.currentSubscriptionId,
+        currentSubscriptionId: currentAccount.currentSubscriptionId,
       }),
     };
   }
@@ -350,7 +350,7 @@ export class AuthService {
           ...updatedUser,
           accountId: currentAccount.id,
           accountConfigurationId: currentAccount.configurationId,
-          // currentSubscriptionId: currentAccount.currentSubscriptionId,
+          currentSubscriptionId: currentAccount.currentSubscriptionId,
         }),
       };
     }
@@ -359,7 +359,7 @@ export class AuthService {
         ...user,
         accountId: currentAccount.id,
         accountConfigurationId: currentAccount.configurationId,
-        // currentSubscriptionId: currentAccount.currentSubscriptionId,
+        currentSubscriptionId: currentAccount.currentSubscriptionId,
       }),
     };
   }
@@ -458,7 +458,7 @@ export class AuthService {
           primaryAccountId: user.primaryAccountId,
           primaryCompanyId: user.primaryCompanyId,
           accountConfigurationId: currentAccount.configurationId,
-          // currentSubscriptionId: currentAccount.currentSubscriptionId,
+          currentSubscriptionId: currentAccount.currentSubscriptionId,
         }),
         isNewUser: false,
       };
@@ -608,7 +608,7 @@ export class AuthService {
                 primaryAccountId: user.primaryAccountId,
                 primaryCompanyId: user.primaryCompanyId,
                 accountConfigurationId: account.configurationId,
-                // currentSubscriptionId: account.currentSubscriptionId,
+                currentSubscriptionId: account.currentSubscriptionId,
                 id: user.id,
                 industry: user.industry,
                 subIndustry: user.subIndustry,
@@ -663,7 +663,7 @@ export class AuthService {
               ...user,
               accountId: account.id,
               accountConfigurationId: account.configurationId,
-              // currentSubscriptionId: account.currentSubscriptionId,
+              currentSubscriptionId: account.currentSubscriptionId,
               token: '',
             },
             'interest',
@@ -690,7 +690,7 @@ export class AuthService {
           primaryAccountId: user.primaryAccountId,
           primaryCompanyId: user.primaryCompanyId,
           accountConfigurationId: account.configurationId,
-          // currentSubscriptionId: account.currentSubscriptionId,
+          currentSubscriptionId: account.currentSubscriptionId,
         }),
         isNewUser: true,
         industryExist: user.industry && user.industry.length > 3 ? true : false,
@@ -859,7 +859,7 @@ export class AuthService {
               ...user,
               accountId: account.id,
               accountConfigurationId: account.configurationId,
-              // currentSubscriptionId: account.currentSubscriptionId,
+              currentSubscriptionId: account.currentSubscriptionId,
               token: '',
             },
             'interest',
@@ -878,7 +878,7 @@ export class AuthService {
             primaryAccountId: user.primaryAccountId,
             primaryCompanyId: user.primaryCompanyId,
             accountConfigurationId: account.configurationId,
-            // currentSubscriptionId: account.currentSubscriptionId,
+            currentSubscriptionId: account.currentSubscriptionId,
             id: user.id,
             industry: user.industry,
             subIndustry: user.subIndustry,
@@ -932,7 +932,7 @@ export class AuthService {
         primaryAccountId: user.primaryAccountId,
         primaryCompanyId: user.primaryCompanyId,
         accountConfigurationId: account.configurationId,
-        // currentSubscriptionId: account.currentSubscriptionId,
+        currentSubscriptionId: account.currentSubscriptionId,
       }),
     };
   }
