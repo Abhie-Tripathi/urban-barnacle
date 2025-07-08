@@ -1,5 +1,6 @@
 import {
   GeomType,
+  JobSource,
   LocationType,
   OnboardingState,
   RadiusUnit,
@@ -236,6 +237,7 @@ export enum QueueActionOptions {
   SEND_CONTACT_US_EMAIL = 'SEND_CONTACT_US_EMAIL',
   SEND_CONTACT_ERROR_EMAIL = 'SEND_CONTACT_ERROR_EMAIL',
   SEND_TRACKER_EXPORT_MAIL = 'SEND_TRACKER_EXPORT_MAIL',
+  CRON_USER_TRACKER_IMPORT = 'CRON_USER_TRACKER_IMPORT',
 }
 
 // export type TrackerParams = {

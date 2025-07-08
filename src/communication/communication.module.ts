@@ -53,6 +53,9 @@ import { EmailService } from './email/email.service';
     BullModule.registerQueue({
       name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}contactProcessor}`,
     }),
+    BullModule.registerQueue({
+      name: `{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}userTrackerImportProcessor}`,
+    }),
   ],
   providers: [
     CommunicationService,
