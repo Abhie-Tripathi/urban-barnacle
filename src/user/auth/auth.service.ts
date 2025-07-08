@@ -577,6 +577,7 @@ export class AuthService {
                 : undefined,
           },
         });
+        this.authDataService.createjobForUserTrackerImport(user);
         if (
           data.location &&
           (data.location?.cityId || data.location?.countryId)
@@ -840,6 +841,7 @@ export class AuthService {
           accountId: account.id,
           primaryAccountId: account.id,
         });
+        this.authDataService.createjobForUserTrackerImport(user);
       } else if (
         user &&
         user.currentOnboardingState === OnboardingState.VERIFICATION &&
