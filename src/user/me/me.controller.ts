@@ -107,7 +107,7 @@ export class MeController {
     }
   }
   @UseGuards(AuthGuard)
-  @Get('imports/tracker')
+  @Get('imports/trackers')
   async getMyImportedTracker(
     @GetUser() user: TCachedUser,
   ) {
