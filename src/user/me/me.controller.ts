@@ -106,7 +106,23 @@ export class MeController {
       };
     }
   }
-
+  @UseGuards(AuthGuard)
+  @Get('imports/tracker')
+  async getMyImportedTracker(
+    @GetUser() user: TCachedUser,
+  ) {
+    try {
+      const imports = await this.meService.getMyImportedTracker(user);
+      return { data: { trackers: { dataImported: imports } } };
+    } catch (error) {
+      return {
+        error: new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        ),
+      };
+    }
+  }
   @UseGuards(AuthGuard)
   @Get('trackers')
   async getMyTrackers(

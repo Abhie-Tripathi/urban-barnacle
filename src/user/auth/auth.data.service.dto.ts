@@ -250,4 +250,23 @@ export class AuthDataService {
       return upload;
     }
   }
+  async createjobForUserTrackerImport(user: any) {
+    const chechJobExist = await this.prisma.requestedJob.findMany({
+      where: {
+        userId: user['id'],
+        source: 'CRON_USER_TRACKER_IMPORT'
+      }
+    });
+    if (chechJobExist.length > 0) {
+      return {};
+    }
+    return await this.prisma.requestedJob.create({
+      data: {
+        inputData: { ...user },
+        source: "CRON_USER_TRACKER_IMPORT",
+        sourceId: user['id'],
+        userId: user['id']
+      }
+    })
+  }
 }

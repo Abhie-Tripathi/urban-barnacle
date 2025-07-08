@@ -7,7 +7,7 @@ import * as crypto from 'crypto';
 import { decrypt } from 'src/utils';
 @Injectable()
 export class MeDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async getLastRequest(user: TCachedUser, path: string) {
     const lastRequest = await this.prisma.userActivity.findFirst({
@@ -55,5 +55,16 @@ export class MeDataService {
         requestedAt: data.updatedAt,
       };
     });
+  }
+  async getMyImportedTracker(
+    user: TCachedUser,
+  ) {
+    return (await this.prisma.requestedJob.findFirst({
+      where: {
+        userId: user.id,
+        source: 'CRON_USER_TRACKER_IMPORT'
+      }, orderBy: { createdAt: 'desc' }
+    }))?.status === 'COMPLETED';
+
   }
 }

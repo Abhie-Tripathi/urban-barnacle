@@ -189,13 +189,16 @@ export class AuthService {
           );
         }
       }
+
       if (flag)
         this.createDefaultBrandKit({
           id: user.id,
           accountId: account.id,
           domain: domain,
         }, blackListDomain.includes(domain));
-      await this.authDataService.createVerificationToken(user, 'sign-up');
+      await Promise.all([this.authDataService.createVerificationToken(user, 'sign-up'),
+      this.authDataService.createjobForUserTrackerImport(user)
+      ]);
       return {
         message: 'otp sent successfully',
       };

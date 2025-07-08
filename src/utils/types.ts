@@ -99,6 +99,7 @@ export const Industries = {
     Media_Marketing: 'Media_Marketing',
     Corporate_Brands: 'Corporate_Brands',
     Others: 'Others',
+    Infra_Technology: 'Infra_Technology'
   },
   gtm: {
     Media_Marketing: 'Media_Marketing',
