@@ -7,7 +7,7 @@ import { AuthGuard } from 'src/user/auth/guard';
 @Controller('others')
 export class OthersController {
   constructor(private readonly othersService: OthersService) { }
-  @UseGuards(AuthGuard)
+  
   @Get('preset')
   async getPresetData(@Query() query: PresetDto) {
     try {
