@@ -32,7 +32,7 @@ export class AuthGuard implements CanActivate {
 
     if (
       pathBreakdown.length >= 1 &&
-      (pathBreakdown[0] === 'auth' || pathBreakdown[0] === 'public' || (pathBreakdown[0] === 'others' && pathBreakdown[1] === 'contactMail'))
+      (pathBreakdown[0] === 'auth' || pathBreakdown[0] === 'public' || (pathBreakdown[0] === 'others'))
     ) {
       return true;
     }
