@@ -177,6 +177,12 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
         passkey: '' + Math.random(),
       },
     });
+    const create = await this.createMembeShip(currentSubscriptionId.currentSubscriptionId, user, data, checkPaymentInfo);
+    if (data.subscriptionId)
+      await this.setSubscriptionMetadata(data.subscriptionId, { subscriptionId: create.id, accountId: user.accountId });
+    return create;
+  }
+  async createMembeShip(currentSubscriptionId: string, user: any, data: MembershipDto, checkPaymentInfo: object | null = {}) {
 
     const [create] = await Promise.all([this.prisma.subscription.create({
       data: {
@@ -188,7 +194,7 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
         currency: data.planPurchaseCurrency,
         purchaseValue: data.planPurchaseValue,
         planFrequency: data.planFrequency,
-        planRenewalDate: new Date(data.endDate),
+        planRenewalDate: data.planRenewalDate ? new Date(data.endDate) : undefined,
         ...membershipMapForToken[data.plan]
       },
       select: {
@@ -203,17 +209,14 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
       },
     }), this.prisma.subscription.update({
       where: {
-        id: currentSubscriptionId.currentSubscriptionId
+        id: currentSubscriptionId
       },
       data: {
         deleted: true
       }
     })]);
-    if (data.subscriptionId)
-      await this.setSubscriptionMetadata(data.subscriptionId, { subscriptionId: create.id, accountId: user.accountId });
     return create;
   }
-
   async addAccountUser(accountId: string, userId: string) {
     const account = await this.prisma.account.update({
       where: { id: accountId },
@@ -388,36 +391,21 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
     return data;
   }
   async updateMembershipFromWebhook(body: UpdateSubscriptionWebhookDto) {
-    const { subscriptionId, planEndDate, planRenewalDate, planStartDate } = body;
-    const checkSubsscription = await this.prisma.subscription.findFirst({
+    const { subscriptionId, ...rest } = body;
+    const [checkSubsscription, checkPaymentInfo] = await Promise.all([this.prisma.subscription.findFirst({
       where: {
         id: subscriptionId,
         deleted: false
+      },
+      select: {
+        id: true,
+        accountId: true
       }
-    });
-    if (!checkSubsscription) {
+    }), this.getPaymentInfoById(body.subscriptionRenewalId)]);
+    if (!checkSubsscription || !subscriptionId) {
       throw new HttpException(`Invalid subscription`, HttpStatus.NOT_FOUND);
     }
-    const where: object = {};
-    if (planEndDate) {
-      where['planEndDate'] = new Date(planEndDate);
-    }
-    if (planStartDate) {
-      where['planStartDate'] = new Date(planStartDate);
-    }
-    if (planRenewalDate) {
-      where['planRenewalDate'] = new Date(planRenewalDate);
-    } else {
-      where['planRenewalDate'] = undefined;
-    }
-    return await this.prisma.subscription.update({
-      where: {
-        id: subscriptionId,
-      },
-      data: {
-        ...where,
-        ...membershipMapForToken[checkSubsscription.plan]
-      }
-    })
+    return await this.createMembeShip(subscriptionId, { accountId: checkSubsscription.accountId }, body, checkPaymentInfo)
+
   }
 }
