@@ -113,7 +113,7 @@ export class MeController {
   ) {
     try {
       const imports = await this.meService.getMyImportedTracker(user);
-      return { data: { trackers: { dataImported: imports } } };
+      return { data: { trackers: imports  } };
     } catch (error) {
       return {
         error: new HttpException(
