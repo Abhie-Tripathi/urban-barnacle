@@ -14,7 +14,7 @@ import {
   AccountConfigDto,
   MembershipDto,
 } from './account.config';
-import { membershipMapForToken, TCachedUser } from 'src/utils/types';
+import { membershipMap, membershipMapForToken, TCachedUser } from 'src/utils/types';
 import { InputJsonObject, JsonArray } from '@prisma/client/runtime/library';
 import { getNameFromEmail } from 'src/utils';
 import { createHash, randomInt, randomUUID } from 'crypto';
@@ -177,9 +177,9 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
         passkey: '' + Math.random(),
       },
     });
-    const create = await this.createMembeShip(currentSubscriptionId.currentSubscriptionId, user, data, checkPaymentInfo);
+    const create = await this.createMembeShip(currentSubscriptionId.currentSubscriptionId, user, { ...data, planRenewalDate: data.endDate }, checkPaymentInfo);
     if (data.subscriptionId)
-      await this.setSubscriptionMetadata(data.subscriptionId, { subscriptionId: create.id, accountId: user.accountId });
+      await this.setSubscriptionMetadata(data.subscriptionId, { subscriptionId: create.id, accountId: user.accountId, plan: `${membershipMap[create.plan]}` });
     return create;
   }
   async createMembeShip(currentSubscriptionId: string, user: any, data: MembershipDto, checkPaymentInfo: object | null = {}) {
@@ -215,6 +215,14 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
         deleted: true
       }
     })]);
+    await this.prisma.account.update({
+      where: {
+        id: user['accountId']
+      },
+      data: {
+        currentSubscriptionId: create.id
+      }
+    });
     return create;
   }
   async addAccountUser(accountId: string, userId: string) {
@@ -402,10 +410,16 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
         accountId: true
       }
     }), this.getPaymentInfoById(body.subscriptionRenewalId)]);
-    if (!checkSubsscription || !subscriptionId) {
+    console.log(checkSubsscription);
+
+    if (!checkSubsscription || !subscriptionId || !checkSubsscription.accountId) {
       throw new HttpException(`Invalid subscription`, HttpStatus.NOT_FOUND);
     }
-    return await this.createMembeShip(subscriptionId, { accountId: checkSubsscription.accountId }, body, checkPaymentInfo)
+    const create = await this.createMembeShip(subscriptionId, { accountId: checkSubsscription.accountId }, body, checkPaymentInfo)
+    if (body.subscriptionRenewalId)
+      await this.setSubscriptionMetadata(body.subscriptionRenewalId, { subscriptionId: create.id, accountId: checkSubsscription.accountId, plan: `${membershipMap[create.plan]}` });
+
+    return create;
 
   }
 }

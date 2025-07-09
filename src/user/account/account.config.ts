@@ -74,7 +74,7 @@ export const membershipSchema = z
     planFrequency: z.nativeEnum(PlanFrequency).optional(),
     planPurchaseValue: z.number().optional(),
     planPurchaseCurrency: z.nativeEnum(Currency).optional(),
-    planRenewalDate: z.string(),
+    planRenewalDate: z.string().optional(),
   })
   .refine((data) => new Date(data.startDate) <= new Date(data.endDate), {
     message: 'startDate must not be later than endDate',
@@ -107,13 +107,6 @@ export const membershipSchema = z
           path: ['planPurchaseCurrency'],
           code: z.ZodIssueCode.custom,
           message: 'planPurchaseCurrency is required for non-BASIC plans',
-        });
-      }
-      if (!data.planRenewalDate) {
-        ctx.addIssue({
-          path: ['planRenewalDate'],
-          code: z.ZodIssueCode.custom,
-          message: 'planRenewalDate is required for non-BASIC plans',
         });
       }
     }
