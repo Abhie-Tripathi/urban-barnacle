@@ -11,6 +11,9 @@ export class OthersController {
   @Get('preset')
   async getPresetData(@Query() query: PresetDto) {
     try {
+      if (query.limit > 20) {
+        query.limit = 20;
+      }
       return await this.othersService.getPresetData(query);
     } catch (error) {
       return error;
