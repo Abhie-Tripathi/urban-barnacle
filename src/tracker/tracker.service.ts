@@ -365,6 +365,9 @@ export class TrackerService {
       filterValues = await this.sharedService.convertIdParamsToSlug(
         tracker.filterValues,
       );
+      if (groupedEventsCount && groupedEventsCount['count']) {
+        groupedEventsCount = groupedEventsCount['count'];
+      }
       await this.redisService.set(
         `tracker-${tracker.id}`,
         JSON.stringify({
