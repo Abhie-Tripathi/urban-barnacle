@@ -215,6 +215,14 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
         deleted: true
       }
     })]);
+    await this.prisma.account.update({
+      where: {
+        id: user['accountId']
+      },
+      data: {
+        currentSubscriptionId: create.id
+      }
+    });
     return create;
   }
   async addAccountUser(accountId: string, userId: string) {
@@ -234,7 +242,6 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
     }
     return configuration.config;
   }
-
 
   async createMembershipToken(user: TCachedUser) {
     const passkey: string = createHash('sha256')
