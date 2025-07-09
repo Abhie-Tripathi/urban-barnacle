@@ -179,7 +179,7 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
     });
     const create = await this.createMembeShip(currentSubscriptionId.currentSubscriptionId, user, { ...data, planRenewalDate: data.endDate }, checkPaymentInfo);
     if (data.subscriptionId)
-      await this.setSubscriptionMetadata(data.subscriptionId, { subscriptionId: create.id, accountId: user.accountId, plan: `${membershipMap[create.plan]}` });
+      await this.setSubscriptionMetadata(data.subscriptionId, { subscriptionId: create.id, accountId: user.accountId });
     return create;
   }
   async createMembeShip(currentSubscriptionId: string, user: any, data: MembershipDto, checkPaymentInfo: object | null = {}) {
@@ -417,7 +417,7 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
     }
     const create = await this.createMembeShip(subscriptionId, { accountId: checkSubsscription.accountId }, body, checkPaymentInfo)
     if (body.subscriptionRenewalId)
-      await this.setSubscriptionMetadata(body.subscriptionRenewalId, { subscriptionId: create.id, accountId: checkSubsscription.accountId, plan: `${membershipMap[create.plan]}` });
+      await this.setSubscriptionMetadata(body.subscriptionRenewalId, { subscriptionId: create.id, accountId: checkSubsscription.accountId });
 
     return create;
 
