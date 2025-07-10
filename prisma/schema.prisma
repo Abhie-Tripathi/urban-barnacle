@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,16 +5,6 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-}
-
-enum UserSource {
-  SELF
-  PROMOTE_EVENT
-  PROMOTE_EVENT_INVITE
-  ACCESS_INVITE
-  SCRIPT
-  IMPORT_10T
-  IMPORT_9T
 }
 
 model User {
@@ -39,44 +23,41 @@ model User {
   phoneNumber                String?
   primaryCompanyId           String?               @db.Uuid
   primaryAccountId           String?               @db.Uuid
-  company                    Company?              @relation(fields: [primaryCompanyId], references: [id])
-  // aliasName              String? // discuss with gaurav
   currentOnboardingState     OnboardingState       @default(VERIFICATION)
   primaryLocation            Json?
   imageUrl                   String?
   profileImageId             String?
-  designation                String? // discuss with gaurav
-  department                 String? // discuss with gaurav
+  designation                String?
+  department                 String?
   deleted                    Boolean               @default(false)
-  userInterests              UserEventInterest[]   @relation("interestedUser")
-  approvingInterests         UserEventInterest[]   @relation("approvedBy")
-  recommendingInterests      UserEventInterest[]   @relation("recommendedBy")
-  ownedEnquiries             Enquiry[]             @relation("owner")
-  initiatedEnquiries         Enquiry[]             @relation("initiatedBy")
-  comments                   Comment[]
-  accounts                   Account[]
-  intents                    Intent[]
-  enquiryActivities          EnquiryActivity[]
-  exports                    Export[]
-  userActivities             UserActivity[]
-  apiLogs                    ApiLogs[]
-  verificationPasskeys       Verification[]
   accessProvided             Access[]              @relation("accessProvider")
   accessReceived             Access[]              @relation("accessReceiver")
   accessDeletedByUser        Access[]              @relation("accessDeletedByUser")
+  apiLogs                    ApiLogs[]
   attachments                Attachment[]
+  comments                   Comment[]
+  lastModifiedConfigurations Configuration[]       @relation("lastModifiedBy")
+  CustomBrandKit             CustomBrandKit[]
+  initiatedEnquiries         Enquiry[]             @relation("initiatedBy")
+  ownedEnquiries             Enquiry[]             @relation("owner")
+  enquiryActivities          EnquiryActivity[]
+  createdEvents              Event[]
+  exports                    Export[]
+  intents                    Intent[]
+  Invitation                 Invitation[]
+  requestedJobs              RequestedJob[]
+  savedLocations             SavedLocation[]
   createdTrackers            Tracker[]             @relation("createdByUser")
   modifiedTrackers           Tracker[]             @relation("modifiedByUser")
-  savedLocations             SavedLocation[]
   unlockedTransactions       UnlockedTransaction[]
-  createdEvents              Event[]
-  // userConfigurations         UserConfiguration[]
-  // createdConfigurations      Configuration[]       @relation("createdBy")
-  lastModifiedConfigurations Configuration[]       @relation("lastModifiedBy")
-  Invitation                 Invitation[]
+  company                    Company?              @relation(fields: [primaryCompanyId], references: [id])
+  userActivities             UserActivity[]
+  approvingInterests         UserEventInterest[]   @relation("approvedBy")
+  userInterests              UserEventInterest[]   @relation("interestedUser")
+  recommendingInterests      UserEventInterest[]   @relation("recommendedBy")
+  verificationPasskeys       Verification?
   Widget                     Widget[]
-  CustomBrandKit             CustomBrandKit[]
-  requestedJobs              RequestedJob[]
+  accounts                   Account[]             @relation("AccountToUser")
 }
 
 model Company {
@@ -87,11 +68,489 @@ model Company {
   imageUrl       String?
   profileImageId String?
   accountId      String   @unique @db.Uuid
-  accounts       Account  @relation(references: [id], fields: [accountId])
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   deleted        Boolean  @default(false)
+  accounts       Account  @relation(fields: [accountId], references: [id])
   users          User[]
+}
+
+model Subscription {
+  id                               String           @id @default(uuid()) @db.Uuid
+  plan                             SubscriptionPlan @default(BASIC)
+  planStartDate                    DateTime         @default(now())
+  planEndDate                      DateTime
+  purchaseValue                    Float            @default(0)
+  pendingRequests                  Int              @default(200)
+  pendingPocUnlockRequests         Int              @default(4400)
+  pendingCompanySearchRequests     Int              @default(20)
+  pendingProspectPocUnlockRequests Int              @default(200)
+  accountId                        String?          @db.Uuid
+  createdAt                        DateTime         @default(now())
+  updatedAt                        DateTime         @updatedAt
+  planFrequency                    PlanFrequency?
+  planMetaData                     Json?
+  planRenewalDate                  DateTime?
+  deleted                          Boolean          @default(false)
+  currency                         Currency         @default(USD)
+  account                          Account?         @relation(fields: [accountId], references: [id])
+}
+
+enum PlanFrequency {
+  MONTHLY
+  BIMONTHLY
+  QUARTERLY
+  SEMIANNUAL
+  ANNUALLY
+}
+
+enum Currency {
+  USD
+  INR
+}
+
+model Account {
+  id                    String                @id @default(uuid()) @db.Uuid
+  currentSubscriptionId String                @db.Uuid
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  deleted               Boolean               @default(false)
+  domain                String?
+  configurationId       String                @unique @db.Uuid
+  accessProvided        Access[]
+  accountConfiguration  Configuration         @relation(fields: [configurationId], references: [id])
+  apiLogs               ApiLogs[]
+  comments              Comment[]
+  company               Company?
+  customBrandKit        CustomBrandKit?
+  enquiries             Enquiry[]
+  enquiryActivities     EnquiryActivity[]
+  events                Event[]
+  exports               Export[]
+  intents               Intent[]
+  invitations           Invitation[]
+  savedLocations        SavedLocation[]
+  subscription          Subscription[]
+  trackers              Tracker[]
+  unlockedTransactions  UnlockedTransaction[]
+  userActivities        UserActivity[]
+  userInterests         UserEventInterest[]
+  widgets               Widget[]
+  user                  User[]                @relation("AccountToUser")
+}
+
+model Attachment {
+  id              String                 @id @default(uuid()) @db.Uuid
+  fileUrl         String                 @unique
+  fileType        FileType
+  fileName        String
+  fileSize        Float
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  createdByUserId String                 @db.Uuid
+  deleted         Boolean                @default(false)
+  sourceModule    AttachmentSourceModule
+  sourceId        String
+  createdByUser   User                   @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+  event           Event[]
+  exports         Export[]               @relation("exportRelation")
+
+  @@unique([fileUrl, fileSize])
+}
+
+model UserEventInterest {
+  id               String               @id @default(uuid())
+  accountId        String               @db.Uuid
+  enquiryId        String?              @db.Uuid
+  eventId          String
+  note             String?
+  sourceModule     InterestSourceModule
+  sourceId         String?
+  status           InterestStatus       @default(PENDING)
+  interest         Interest
+  modifiedBy       String               @db.Uuid
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  deleted          Boolean              @default(false)
+  approvedBy       String?              @db.Uuid
+  recommendedBy    String?              @db.Uuid
+  interestedUserId String               @db.Uuid
+  account          Account              @relation(fields: [accountId], references: [id])
+  approvingUser    User?                @relation("approvedBy", fields: [approvedBy], references: [id])
+  enquiry          Enquiry?             @relation(fields: [enquiryId], references: [id])
+  interestedUser   User                 @relation("interestedUser", fields: [interestedUserId], references: [id])
+  recommendingUser User?                @relation("recommendedBy", fields: [recommendedBy], references: [id])
+}
+
+model Enquiry {
+  id              String              @id @default(uuid()) @db.Uuid
+  status          EnquiryStatus       @default(PENDING)
+  eventId         String
+  accountId       String              @db.Uuid
+  initiatedBy     String              @db.Uuid
+  ownerId         String?             @db.Uuid
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  deleted         Boolean             @default(false)
+  account         Account             @relation(fields: [accountId], references: [id])
+  initiatedByUser User                @relation("initiatedBy", fields: [initiatedBy], references: [id])
+  owner           User?               @relation("owner", fields: [ownerId], references: [id])
+  activities      EnquiryActivity[]
+  userInterests   UserEventInterest[]
+
+  @@unique([accountId, eventId], name: "unique_enquiry")
+}
+
+model Comment {
+  id              String              @id @default(uuid()) @db.Uuid
+  content         String?
+  commentType     CommentType
+  userId          String              @db.Uuid
+  accountId       String              @db.Uuid
+  sourceModule    CommentSourceModule
+  sourceId        String
+  parentCommentId String?             @db.Uuid
+  totalLikes      Int                 @default(0)
+  attachments     String[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  deleted         Boolean             @default(false)
+  account         Account             @relation(fields: [accountId], references: [id])
+  parentComment   Comment?            @relation("parentComment", fields: [parentCommentId], references: [id])
+  replies         Comment[]           @relation("parentComment")
+  user            User                @relation(fields: [userId], references: [id])
+}
+
+model Intent {
+  id           String             @id @default(uuid()) @db.Uuid
+  targetModule IntentTargetModule
+  targetId     String
+  intentType   IntentType
+  userId       String             @db.Uuid
+  accountId    String?            @db.Uuid
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  deleted      Boolean            @default(false)
+  account      Account?           @relation(fields: [accountId], references: [id])
+  user         User               @relation(fields: [userId], references: [id])
+
+  @@unique([targetModule, targetId, userId, intentType, accountId], name: "unique_intent")
+}
+
+model EnquiryActivity {
+  id              String                  @id @default(uuid()) @db.Uuid
+  enquiryId       String                  @db.Uuid
+  userId          String                  @db.Uuid
+  accountId       String?                 @db.Uuid
+  activityType    EnquiryActivityType
+  activitySubType EnquiryActivitySubType?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  deleted         Boolean                 @default(false)
+  account         Account?                @relation(fields: [accountId], references: [id])
+  enquiry         Enquiry                 @relation(fields: [enquiryId], references: [id])
+  user            User                    @relation(fields: [userId], references: [id])
+}
+
+model Export {
+  id             String             @id @default(uuid()) @db.Uuid
+  accountId      String             @db.Uuid
+  userId         String             @db.Uuid
+  exportFileType ExportFileType
+  inputData      Json
+  outputData     Json?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  deleted        Boolean            @default(false)
+  exportOf       ExportSubSource
+  fileSize       Float?
+  fileUrl        String?
+  source         ExportSourceModule
+  sourceId       String?            @db.Uuid
+  status         JobStatus          @default(PENDING)
+  account        Account            @relation(fields: [accountId], references: [id])
+  attachment     Attachment?        @relation("exportRelation", fields: [fileUrl, fileSize], references: [fileUrl, fileSize])
+  user           User               @relation(fields: [userId], references: [id])
+}
+
+model UserActivity {
+  id        String              @id @default(uuid()) @db.Uuid
+  request   Json
+  path      String
+  source    UserActivitySource?
+  userId    String              @db.Uuid
+  accountId String?             @db.Uuid
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  account   Account?            @relation(fields: [accountId], references: [id])
+  user      User                @relation(fields: [userId], references: [id], onDelete: NoAction)
+}
+
+model ApiLogs {
+  id        String   @id @default(uuid()) @db.Uuid
+  request   Json
+  path      String
+  userId    String?  @db.Uuid
+  accountId String?  @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  account   Account? @relation(fields: [accountId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
+}
+
+model Verification {
+  passkey   String
+  userId    String   @id @unique @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiresAt DateTime
+  deleted   Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Access {
+  id                  String             @id @default(uuid()) @db.Uuid
+  sourceEntity        AccessSourceEntity
+  sourceEntityId      String
+  accessReceiverId    String             @db.Uuid
+  accessProviderId    String             @db.Uuid
+  accessType          AccessType
+  lastModifiedBy      String?            @db.Uuid
+  token               String?
+  expiry              DateTime?
+  accessStatus        AccessStatus       @default(PENDING)
+  accountId           String?            @db.Uuid
+  deletedBy           String?            @db.Uuid
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  deleted             Boolean            @default(false)
+  accessProvider      User               @relation("accessProvider", fields: [accessProviderId], references: [id])
+  accessReceiver      User               @relation("accessReceiver", fields: [accessReceiverId], references: [id])
+  account             Account?           @relation(fields: [accountId], references: [id])
+  accessDeletedByUser User?              @relation("accessDeletedByUser", fields: [deletedBy], references: [id])
+}
+
+model Tracker {
+  id             String      @id @default(uuid()) @db.Uuid
+  name           String?     @db.VarChar(200)
+  filterValues   Json
+  attachmentId   String?
+  type           TrackerType @default(T_CUSTOM)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  createdBy      String      @db.Uuid
+  deleted        Boolean     @default(false)
+  lastModifiedBy String?     @db.Uuid
+  accountId      String?     @db.Uuid
+  source         String?
+  account        Account?    @relation(fields: [accountId], references: [id])
+  createdByUser  User        @relation("createdByUser", fields: [createdBy], references: [id])
+  modifiedByUser User?       @relation("modifiedByUser", fields: [lastModifiedBy], references: [id])
+}
+
+model SavedLocation {
+  id           String       @id @default(uuid()) @db.Uuid
+  userId       String       @db.Uuid
+  type         LocationType
+  locationId   String?
+  geomType     GeomType?
+  latitude     Float?
+  longitude    Float?
+  radius       Float?
+  radiusUnit   RadiusUnit?
+  locationName String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  area         Float?
+  accountId    String?      @db.Uuid
+  deleted      Boolean      @default(false)
+  account      Account?     @relation(fields: [accountId], references: [id])
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Configuration {
+  id               String   @id @default(uuid()) @db.Uuid
+  config           Json
+  lastModifiedById String?  @db.Uuid
+  tag              String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  account          Account?
+  lastModifiedBy   User?    @relation("lastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: Cascade)
+}
+
+model UnlockedTransaction {
+  id             String      @id @default(uuid()) @db.Uuid
+  accountId      String      @db.Uuid
+  unlockedById   String      @db.Uuid
+  sourceId       String
+  source         String
+  unlockValue    UnlockValue
+  target         UnlockType
+  targetId       String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  account        Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  unlockedByUser User        @relation(fields: [unlockedById], references: [id], onDelete: Cascade)
+}
+
+model Event {
+  id            String            @id @default(uuid()) @db.Uuid
+  name          String
+  data          Json
+  deleted       Boolean           @default(false)
+  attachmentId  String?           @db.Uuid
+  type          EventType         @default(PARENT)
+  createdAt     DateTime          @default(now())
+  updateAt      DateTime          @updatedAt
+  createdBy     String            @db.Uuid
+  approval      Boolean           @default(true)
+  capacity      Int               @default(0)
+  registration  Boolean           @default(true)
+  waitlisting   Boolean           @default(false)
+  accountId     String            @db.Uuid
+  parentEventId String?           @db.Uuid
+  referenceId   String?
+  sourceModule  EventSourceModule @default(PROMOTE)
+  account       Account           @relation(fields: [accountId], references: [id])
+  Attachment    Attachment?       @relation(fields: [attachmentId], references: [id])
+  User          User              @relation(fields: [createdBy], references: [id])
+  parentEvent   Event?            @relation("parentEvent", fields: [parentEventId], references: [id])
+  subEvents     Event[]           @relation("parentEvent")
+  WidgetEvents  Widget[]          @relation("EventToWidget")
+}
+
+model Invitation {
+  id         String           @id @default(uuid()) @db.Uuid
+  email      String           @db.VarChar(50)
+  entityType InvitationEntity @default(EVENT)
+  entityId   String
+  accountId  String           @db.Uuid
+  userId     String           @db.Uuid
+  createdAt  DateTime         @default(now())
+  updateAt   DateTime         @updatedAt
+  account    Account          @relation(fields: [accountId], references: [id])
+  user       User             @relation(fields: [userId], references: [id])
+}
+
+model Credit {
+  id         String             @id @default(uuid()) @db.Uuid
+  entityId   String             @db.VarChar(50)
+  entityType UsageTrackerEntity @default(USER)
+  creditType CreditType
+  count      Int                @default(15)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  @@index([entityId])
+}
+
+model Brand {
+  domain    String   @unique
+  name      String   @unique
+  logoUrl   String
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updateAt  DateTime @updatedAt
+}
+
+model CustomBrandKit {
+  id         String   @id @default(uuid()) @db.Uuid
+  data       Json?
+  deleted    Boolean  @default(false)
+  accountId  String   @unique @db.Uuid
+  createdAt  DateTime @default(now())
+  updateAt   DateTime @updatedAt
+  color      String?
+  fontFamily String?
+  logoUrl    String?
+  otherData  Json?
+  createdBy  String   @db.Uuid
+  account    Account  @relation(fields: [accountId], references: [id])
+  user       User     @relation(fields: [createdBy], references: [id])
+  widgets    Widget[]
+}
+
+model Widget {
+  id                String          @id @default(uuid()) @db.Uuid
+  customizationData Json?
+  otherData         Json?
+  domain            String?
+  templatePublicId  Int
+  type              WidgetType
+  status            WidgetStatus
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  deleted           Boolean         @default(false)
+  customBrandKitId  String?         @db.Uuid
+  createdBy         String          @db.Uuid
+  accountId         String          @db.Uuid
+  account           Account         @relation(fields: [accountId], references: [id])
+  user              User            @relation(fields: [createdBy], references: [id])
+  CustomBrandKit    CustomBrandKit? @relation(fields: [customBrandKitId], references: [id])
+  eventId           Event[]         @relation("EventToWidget")
+}
+
+model RequestedJob {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  source    JobSource
+  sourceId  String
+  processId Int?
+  status    JobStatus @default(PENDING)
+  inputData Json
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Preset {
+  id            String        @id @default(uuid()) @db.Uuid
+  name          String        @unique
+  totalEvent    Int           @default(0)
+  data          Json
+  newEventCount Int           @default(0)
+  keywords      String?
+  description   String?
+  trackerType   TrackerType[]
+  deleted       Boolean       @default(false)
+  filterValue   Json
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now()) @updatedAt
+}
+
+model ContactEnquiry {
+  id           String                     @id @default(uuid()) @db.Uuid
+  firstName    String
+  lastName     String
+  email        String
+  subscribe    Boolean                    @default(false)
+  sourceModule ContactEnquirySourceModule
+  data         Json
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
+}
+
+model SimilarEventsToTracker {
+  id        String         @id @default(uuid())
+  trackerId String
+  eventId   String
+  tag       TrackerTypeTag
+  sourceId  Int
+  score     Float
+  count     Int
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+enum UserSource {
+  SELF
+  PROMOTE_EVENT
+  PROMOTE_EVENT_INVITE
+  ACCESS_INVITE
+  SCRIPT
+  IMPORT_10T
+  IMPORT_9T
 }
 
 enum SubscriptionPlan {
@@ -100,73 +559,6 @@ enum SubscriptionPlan {
   SCALE
   ADVANCE
   ENTERPRISE
-}
-
-model Subscription {
-  id                               String           @id @default(uuid()) @db.Uuid
-  plan                             SubscriptionPlan @default(BASIC)
-  planStartDate                    DateTime         @default(now())
-  planEndDate                      DateTime // default 1 year or 3 month
-  purchaseValue                    Float            @default(0)
-  currency                         String           @default("usd")
-  pendingRequests                  Int              @default(200)
-  pendingPocUnlockRequests         Int              @default(4400)
-  pendingCompanySearchRequests     Int              @default(20)
-  pendingProspectPocUnlockRequests Int              @default(200)
-  account                          Account?         @relation(fields: [accountId], references: [id])
-  accountId                        String?          @db.Uuid
-  createdAt                        DateTime         @default(now())
-  updatedAt                        DateTime         @updatedAt
-}
-
-model Account {
-  id                    String                @id @default(uuid()) @db.Uuid
-  currentSubscriptionId String                @db.Uuid
-  user                  User[]
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
-  deleted               Boolean               @default(false)
-  domain                String?
-  configurationId       String                @unique @db.Uuid
-  userInterests         UserEventInterest[]
-  enquiries             Enquiry[]
-  exports               Export[]
-  unlockedTransactions  UnlockedTransaction[]
-  events                Event[]
-  // accountConfigurations    AccountConfiguration[]
-  accountConfiguration  Configuration         @relation(fields: [configurationId], references: [id])
-  invitations           Invitation[]
-  trackers              Tracker[]
-  customBrandKit        CustomBrandKit?
-  widgets               Widget[]
-  company               Company?
-  intents               Intent[]
-  comments              Comment[]
-  enquiryActivities     EnquiryActivity[]
-  userActivities        UserActivity[]
-  apiLogs               ApiLogs[]
-  savedLocations        SavedLocation[]
-  accessProvided        Access[]
-  subscription          Subscription[]
-}
-
-model Attachment {
-  id              String                 @id @default(uuid()) @db.Uuid
-  fileUrl         String                 @unique
-  fileType        FileType
-  fileName        String
-  fileSize        Float // kb
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
-  createdByUser   User                   @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
-  createdByUserId String                 @db.Uuid
-  deleted         Boolean                @default(false)
-  sourceModule    AttachmentSourceModule
-  sourceId        String
-  event           Event[]
-  exports         Export[]               @relation("exportRelation")
-
-  @@unique([fileUrl, fileSize])
 }
 
 enum AttachmentSourceModule {
@@ -183,91 +575,6 @@ enum AttachmentSourceModule {
   OTHERS
 }
 
-// discuss source : gtm geni usecase
-// discuss recommendation confirmation
-// discuss if we want to capture all recommendation for a given user interest
-// recommended array
-model UserEventInterest {
-  id               String               @id @default(uuid())
-  accountId        String               @db.Uuid
-  enquiryId        String?              @db.Uuid
-  eventId          String
-  note             String?
-  sourceModule     InterestSourceModule
-  sourceId         String?
-  status           InterestStatus       @default(PENDING)
-  interest         Interest
-  modifiedBy       String               @db.Uuid
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-  deleted          Boolean              @default(false)
-  account          Account?             @relation(fields: [accountId], references: [id])
-  approvingUser    User?                @relation("approvedBy", fields: [approvedBy], references: [id])
-  approvedBy       String?              @db.Uuid
-  recommendingUser User?                @relation("recommendedBy", fields: [recommendedBy], references: [id])
-  recommendedBy    String?              @db.Uuid
-  interestedUser   User                 @relation("interestedUser", fields: [interestedUserId], references: [id])
-  interestedUserId String               @db.Uuid
-  enquiry          Enquiry?             @relation(fields: [enquiryId], references: [id])
-}
-
-// discuss with vipul, if we want to create enquiry without creating user interest first
-model Enquiry {
-  id              String              @id @default(uuid()) @db.Uuid
-  status          EnquiryStatus       @default(PENDING)
-  eventId         String
-  accountId       String              @db.Uuid
-  // eventData       Json
-  account         Account?            @relation(fields: [accountId], references: [id])
-  initiatedBy     String              @db.Uuid
-  initiatedByUser User?               @relation("initiatedBy", fields: [initiatedBy], references: [id])
-  ownerId         String?             @db.Uuid
-  owner           User?               @relation("owner", fields: [ownerId], references: [id])
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  deleted         Boolean             @default(false)
-  userInterests   UserEventInterest[]
-  activities      EnquiryActivity[]
-
-  @@unique([accountId, eventId], name: "unique_enquiry") // adds constraint to the table to avoid duplicate entries for a given enquiry for a given user of specific account
-}
-
-model Comment {
-  id              String              @id @default(uuid()) @db.Uuid
-  content         String?
-  commentType     CommentType
-  user            User                @relation(fields: [userId], references: [id])
-  userId          String              @db.Uuid
-  accountId       String              @db.Uuid
-  account         Account             @relation(fields: [accountId], references: [id])
-  sourceModule    CommentSourceModule
-  sourceId        String
-  parentCommentId String?             @db.Uuid
-  parentComment   Comment?            @relation("parentComment", fields: [parentCommentId], references: [id])
-  totalLikes      Int                 @default(0)
-  attachments     String[]
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  deleted         Boolean             @default(false)
-  replies         Comment[]           @relation("parentComment")
-}
-
-model Intent {
-  id           String             @id @default(uuid()) @db.Uuid
-  targetModule IntentTargetModule
-  targetId     String
-  intentType   IntentType
-  userId       String             @db.Uuid
-  user         User               @relation(fields: [userId], references: [id])
-  accountId    String?            @db.Uuid
-  account      Account?           @relation(fields: [accountId], references: [id])
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  deleted      Boolean            @default(false)
-
-  @@unique([targetModule, targetId, userId, intentType, accountId], name: "unique_intent")
-}
-
 enum IntentTargetModule {
   COMMENT
 }
@@ -280,7 +587,6 @@ enum CommentType {
   TEXT
   RECOMMENDATION
   INTEREST
-  // UPVOTE
 }
 
 enum CommentSourceModule {
@@ -288,23 +594,6 @@ enum CommentSourceModule {
   COORDINATE
   OUTREACH
   EVENT_DETAIL_PAGE
-}
-
-// discuss comment likes : comment / intent 
-
-model EnquiryActivity {
-  id              String                  @id @default(uuid()) @db.Uuid
-  enquiryId       String                  @db.Uuid
-  enquiry         Enquiry                 @relation(fields: [enquiryId], references: [id])
-  userId          String                  @db.Uuid
-  user            User                    @relation(fields: [userId], references: [id])
-  accountId       String?                 @db.Uuid
-  account         Account?                @relation(fields: [accountId], references: [id])
-  activityType    EnquiryActivityType
-  activitySubType EnquiryActivitySubType?
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
-  deleted         Boolean                 @default(false)
 }
 
 enum EnquiryActivityType {
@@ -317,27 +606,6 @@ enum EnquiryActivitySubType {
   SPEAK
   SPONSOR
   EXHIBIT
-}
-
-model Export {
-  id             String             @id @default(uuid()) @db.Uuid
-  accountId      String             @db.Uuid
-  account        Account            @relation(fields: [accountId], references: [id])
-  userId         String             @db.Uuid
-  user           User               @relation(fields: [userId], references: [id])
-  source         ExportSourceModule
-  sourceId       String?            @db.Uuid
-  exportOf       ExportSubSource
-  exportFileType ExportFileType
-  inputData      Json
-  outputData     Json?
-  fileUrl        String?            @db.Text
-  fileSize       Float?
-  attachment     Attachment?        @relation("exportRelation", fields: [fileUrl, fileSize], references: [fileUrl, fileSize])
-  status         JobStatus          @default(PENDING)
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-  deleted        Boolean            @default(false)
 }
 
 enum ExportSubSource {
@@ -361,68 +629,9 @@ enum ExportFileType {
   EXCEL
 }
 
-// discuss request table name
-model UserActivity {
-  id        String              @id @default(uuid()) @db.Uuid
-  request   Json
-  path      String
-  source    UserActivitySource?
-  userId    String              @db.Uuid
-  accountId String?             @db.Uuid
-  account   Account?            @relation(fields: [accountId], references: [id])
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
-  user      User                @relation(fields: [userId], references: [id], onDelete: NoAction)
-}
-
 enum UserActivitySource {
   RESEARCH
   TRENDS
-}
-
-model ApiLogs {
-  id        String   @id @default(uuid()) @db.Uuid
-  request   Json
-  path      String
-  userId    String?  @db.Uuid
-  accountId String?  @db.Uuid
-  account   Account? @relation(fields: [accountId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-}
-
-model Verification {
-  passkey   String
-  userId    String   @id @unique @db.Uuid
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  expiresAt DateTime
-  deleted   Boolean  @default(false)
-}
-
-// discuss if we want to expire access token after some time / after first use
-model Access {
-  id                  String             @id @default(uuid()) @db.Uuid
-  sourceEntity        AccessSourceEntity
-  sourceEntityId      String
-  accessReceiverId    String             @db.Uuid
-  accessReceiver      User               @relation(name: "accessReceiver", fields: [accessReceiverId], references: [id])
-  accessProviderId    String             @db.Uuid
-  accessProvider      User               @relation(name: "accessProvider", fields: [accessProviderId], references: [id])
-  accessType          AccessType
-  lastModifiedBy      String?            @db.Uuid
-  token               String? // after first use token and expiry will be removed
-  expiry              DateTime? // 7 days
-  accessStatus        AccessStatus       @default(PENDING)
-  accountId           String?            @db.Uuid
-  account             Account?           @relation(fields: [accountId], references: [id])
-  deletedBy           String?            @db.Uuid
-  accessDeletedByUser User?              @relation(name: "accessDeletedByUser", fields: [deletedBy], references: [id])
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
-  deleted             Boolean            @default(false)
 }
 
 enum AccessStatus {
@@ -443,26 +652,7 @@ enum AccessType {
   USER
 }
 
-model Tracker {
-  id             String      @id @default(uuid()) @db.Uuid
-  name           String?     @db.VarChar(200)
-  filterValues   Json
-  attachmentId   String?
-  source         String?
-  type           TrackerType @default(T_CUSTOM)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  createdBy      String      @db.Uuid
-  deleted        Boolean     @default(false)
-  lastModifiedBy String?     @db.Uuid
-  createdByUser  User        @relation("createdByUser", fields: [createdBy], references: [id])
-  modifiedByUser User?       @relation("modifiedByUser", fields: [lastModifiedBy], references: [id])
-  accountId      String?     @db.Uuid
-  account        Account?    @relation(fields: [accountId], references: [id])
-}
-
 enum TrackerType {
-  T_EVENT_PARTICIPATION
   T_PEOPLE_FINDER
   T_COMPETITOR
   T_SPEAKING_OPPORTUNITY
@@ -476,26 +666,7 @@ enum TrackerType {
   T_GEOTIME
   T_CUSTOM
   TR_CUSTOM
-}
-
-model SavedLocation {
-  id           String       @id @default(uuid()) @db.Uuid
-  userId       String       @db.Uuid
-  type         LocationType
-  locationId   String?
-  geomType     GeomType?
-  latitude     Float?
-  longitude    Float?
-  radius       Float?
-  radiusUnit   RadiusUnit?
-  locationName String
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  area         Float?
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accountId    String?      @db.Uuid
-  account      Account?     @relation(fields: [accountId], references: [id])
-  deleted      Boolean      @default(false)
+  T_EVENT_PARTICIPATION
 }
 
 enum LocationType {
@@ -511,60 +682,6 @@ enum RadiusUnit {
 enum GeomType {
   POINT
 }
-
-// model AccountConfiguration {
-//   id              String        @id @default(uuid()) @db.Uuid
-//   accountId       String        @db.Uuid
-//   account         Account       @relation(fields: [accountId], references: [id])
-//   configurationId String        @db.Uuid @unique
-//   configuration   Configuration @relation(fields: [configurationId], references: [id])
-//   updatedAt       DateTime      @updatedAt
-// }
-
-// discuss if separate account/user configuration key is required
-model Configuration {
-  id               String   @id @default(uuid()) @db.Uuid
-  config           Json // outreach , interest, filterValue
-  // createdById      String   @db.Uuid
-  lastModifiedById String?  @db.Uuid
-  tag              String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  // createdBy        User     @relation("createdBy", fields: [createdById], references: [id], onDelete: Cascade)
-  lastModifiedBy   User?    @relation("lastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: Cascade)
-  account          Account?
-  // accountConfigurations AccountConfiguration[]
-  // userConfigurations    UserConfiguration[]
-}
-
-// model UserConfiguration {
-//   id              String        @id @default(uuid()) @db.Uuid
-//   userId          String        @db.Uuid
-//   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-//   configurationId String        @db.Uuid
-//   configuration   Configuration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
-//   updatedAt       DateTime      @updatedAt
-// }
-
-model UnlockedTransaction {
-  id             String      @id @default(uuid()) @db.Uuid
-  accountId      String      @db.Uuid
-  unlockedById   String      @db.Uuid
-  sourceId       String
-  source         String
-  unlockValue    UnlockValue
-  target         UnlockType
-  targetId       String?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  account        Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  unlockedByUser User        @relation(fields: [unlockedById], references: [id], onDelete: Cascade)
-}
-
-// enum UnlockSource {
-//   CONTACT_DETAIL
-//   EVENT_DETAIL
-// }
 
 enum UnlockType {
   USER
@@ -589,62 +706,8 @@ enum EventSourceModule {
   COORDINATE
 }
 
-// EVENT GENI
-model Event {
-  id            String            @id @default(uuid()) @db.Uuid
-  name          String
-  data          Json
-  referenceId   String?
-  sourceModule  EventSourceModule @default(PROMOTE)
-  deleted       Boolean           @default(false)
-  attachmentId  String?           @db.Uuid
-  type          EventType         @default(PARENT)
-  createdAt     DateTime          @default(now())
-  updateAt      DateTime          @updatedAt
-  createdBy     String            @db.Uuid
-  approval      Boolean           @default(true)
-  capacity      Int               @default(0)
-  registration  Boolean           @default(true)
-  waitlisting   Boolean           @default(false)
-  Attachment    Attachment?       @relation(fields: [attachmentId], references: [id])
-  account       Account           @relation(fields: [accountId], references: [id])
-  accountId     String            @db.Uuid
-  User          User              @relation(fields: [createdBy], references: [id])
-  parentEventId String?           @db.Uuid
-  parentEvent   Event?            @relation(name: "parentEvent", fields: [parentEventId], references: [id])
-  subEvents     Event[]           @relation("parentEvent")
-  WidgetEvents  Widget[]          @relation("EventToWidget")
-  // Widget        Widget?     @relation(fields: [widgetId], references: [id])
-  // widgetId      String?     @db.Uuid
-}
-
-model Invitation {
-  id         String           @id @default(uuid()) @db.Uuid
-  email      String           @db.VarChar(50)
-  entityType InvitationEntity @default(EVENT)
-  entityId   String
-  accountId  String           @db.Uuid
-  userId     String           @db.Uuid
-  createdAt  DateTime         @default(now())
-  updateAt   DateTime         @updatedAt
-  account    Account          @relation(fields: [accountId], references: [id])
-  user       User             @relation(fields: [userId], references: [id])
-}
-
 enum InvitationEntity {
   EVENT
-}
-
-model Credit {
-  id         String             @id @default(uuid()) @db.Uuid
-  entityId   String             @db.VarChar(50)
-  entityType UsageTrackerEntity @default(USER)
-  creditType CreditType
-  count      Int                @default(15)
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
-
-  @@index([entityId])
 }
 
 enum UsageTrackerEntity {
@@ -653,52 +716,6 @@ enum UsageTrackerEntity {
 
 enum CreditType {
   INVITAION
-}
-
-model Brand {
-  domain    String   @unique
-  name      String   @unique
-  logoUrl   String
-  deleted   Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updateAt  DateTime @updatedAt
-}
-
-model CustomBrandKit {
-  id         String   @id @default(uuid()) @db.Uuid
-  data       Json?
-  deleted    Boolean  @default(false)
-  accountId  String   @unique @db.Uuid
-  createdAt  DateTime @default(now())
-  updateAt   DateTime @updatedAt
-  color      String?
-  fontFamily String?
-  logoUrl    String?
-  otherData  Json?
-  createdBy  String   @db.Uuid
-  user       User     @relation(references: [id], fields: [createdBy])
-  widgets    Widget[]
-  account    Account  @relation(fields: [accountId], references: [id])
-}
-
-model Widget {
-  id                String          @id @default(uuid()) @db.Uuid
-  customizationData Json?
-  otherData         Json?
-  domain            String?
-  templatePublicId  Int
-  type              WidgetType
-  status            WidgetStatus
-  eventId           Event[]         @relation("EventToWidget")
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  deleted           Boolean         @default(false)
-  CustomBrandKit    CustomBrandKit? @relation(fields: [customBrandKitId], references: [id])
-  customBrandKitId  String?         @db.Uuid
-  createdBy         String          @db.Uuid
-  user              User            @relation(fields: [createdBy], references: [id])
-  accountId         String          @db.Uuid
-  account           Account         @relation(fields: [accountId], references: [id])
 }
 
 enum WidgetType {
@@ -714,19 +731,6 @@ enum WidgetStatus {
   active
   draft
   deactivate
-}
-
-model RequestedJob {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String    @db.Uuid
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  source    JobSource
-  sourceId  String
-  processId Int?
-  status    JobStatus @default(PENDING)
-  inputData Json
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
 }
 
 enum JobSource {
@@ -750,21 +754,6 @@ enum JobStatus {
   COMPLETED
   FAILED
   PROCESSING
-}
-
-model Preset {
-  id            String        @id @default(uuid()) @db.Uuid
-  name          String        @unique
-  totalEvent    Int           @default(0)
-  data          Json
-  newEventCount Int           @default(0)
-  keywords      String?
-  description   String?
-  trackerType   TrackerType[]
-  deleted       Boolean       @default(false)
-  filterValue   Json
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @default(now()) @updatedAt
 }
 
 enum EnquiryStatus {
@@ -837,32 +826,9 @@ enum ContactEnquirySourceModule {
   ERROR
 }
 
-model ContactEnquiry {
-  id           String                     @id @default(uuid()) @db.Uuid
-  firstName    String
-  lastName     String
-  email        String
-  subscribe    Boolean                    @default(false)
-  sourceModule ContactEnquirySourceModule
-  data         Json
-  createdAt    DateTime                   @default(now())
-  updatedAt    DateTime                   @updatedAt
-}
-
 enum TrackerTypeTag {
   ACTIVE
   PAST
   NEW
 }
 
-model SimilarEventsToTracker {
-  id        String         @id @default(uuid())
-  trackerId String
-  eventId   String
-  tag       TrackerTypeTag
-  sourceId  Int
-  score     Float
-  count     Int            @db.Integer
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-}

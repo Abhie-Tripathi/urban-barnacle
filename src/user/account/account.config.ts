@@ -1,4 +1,4 @@
-import { EnquiryStatus, Interest, SubscriptionPlan } from '@prisma/client';
+import { Currency, EnquiryStatus, Interest, PlanFrequency, SubscriptionPlan } from '@prisma/client';
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { FilterNames } from 'src/events/dto';
@@ -27,7 +27,7 @@ export const InterestConfigurationSchema = z.array(
 
 export class InterestConfigurationDto extends createZodDto(
   InterestConfigurationSchema,
-) {}
+) { }
 
 export const OutreachConfigurationSchema = z.array(
   z.object({
@@ -38,17 +38,19 @@ export const OutreachConfigurationSchema = z.array(
 
 export class OutreachConfigurationDto extends createZodDto(
   OutreachConfigurationSchema,
-) {}
+) { }
 
 // const FilterConfigurationSchema = z.record(z.string(), filterValueSchema);
 const FilterConfigurationSchema = z.record(z.string(), z.any());
 
 export class FilterConfigurationDto extends createZodDto(
   FilterConfigurationSchema,
-) {}
-const membershipSchema = z
+) { }
+export const membershipSchema = z
   .strictObject({
     token: z.string(),
+    subscriptionId: z.string().optional(),
+    subscriptionRenewalId: z.string().optional(),
     plan: z
       .union([
         z.literal(0),
@@ -69,20 +71,55 @@ const membershipSchema = z
       }),
     startDate: z.string(),
     endDate: z.string(),
+    planFrequency: z.nativeEnum(PlanFrequency).optional(),
+    planPurchaseValue: z.number().optional(),
+    planPurchaseCurrency: z.nativeEnum(Currency).optional(),
+    planRenewalDate: z.string().optional(),
   })
   .refine((data) => new Date(data.startDate) <= new Date(data.endDate), {
     message: 'startDate must not be later than endDate',
     path: ['startDate'],
-  });
+  }).superRefine((data, ctx) => {
+    if (data.plan !== 'BASIC') {
+      if (!data.subscriptionId) {
+        ctx.addIssue({
+          path: ['subscriptionId'],
+          code: z.ZodIssueCode.custom,
+          message: 'subscriptionId is required for non-BASIC plans',
+        });
+      }
+      if (!data.planFrequency) {
+        ctx.addIssue({
+          path: ['planFrequency'],
+          code: z.ZodIssueCode.custom,
+          message: 'planFrequency is required for non-BASIC plans',
+        });
+      }
+      if (data.planPurchaseValue == null) {
+        ctx.addIssue({
+          path: ['planPurchaseValue'],
+          code: z.ZodIssueCode.custom,
+          message: 'planPurchaseValue is required for non-BASIC plans',
+        });
+      }
+      if (!data.planPurchaseCurrency) {
+        ctx.addIssue({
+          path: ['planPurchaseCurrency'],
+          code: z.ZodIssueCode.custom,
+          message: 'planPurchaseCurrency is required for non-BASIC plans',
+        });
+      }
+    }
+  });;
 
-export class MembershipDto extends createZodDto(membershipSchema) {}
+export class MembershipDto extends createZodDto(membershipSchema) { }
 export const AccountConfigSchema = z.strictObject({
   interest: InterestConfigurationSchema,
   outreach: OutreachConfigurationSchema,
   filter: FilterConfigurationSchema,
 });
 
-export class AccountConfigDto extends createZodDto(AccountConfigSchema) {}
+export class AccountConfigDto extends createZodDto(AccountConfigSchema) { }
 
 export const InterestDefaultConfigurations: Record<
   string,

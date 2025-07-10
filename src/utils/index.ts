@@ -63,3 +63,5 @@ export interface TrackerIntelScoreJson {
   updateAt?: string
   , user: any
 }
+
+export const REDIS_TTL = 1000 * 60 * 60 * 24 * 365;

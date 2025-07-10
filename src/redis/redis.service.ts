@@ -2,6 +2,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis, { Command } from 'ioredis';
+import { REDIS_TTL } from 'src/utils';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
@@ -73,6 +74,16 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return await this.client.expire(key, seconds);
   }
 
+  async updatePreservingTTL(key: string, value: string) {
+    key = this.addBackendEnv(key);
+    const ttl = await this.client.ttl(key); // Get TTL in seconds
+
+    if (ttl > 0) {
+      await this.client.set(key, value, 'EX', ttl);
+    } else {
+      await this.client.set(key, value, 'EX', REDIS_TTL);
+    }
+  }
   // -------- RedisJSON Functions (Redis Stack) --------
   async jsonSet(key: string, path: string, json: any): Promise<string> {
     key = this.addBackendEnv(key);

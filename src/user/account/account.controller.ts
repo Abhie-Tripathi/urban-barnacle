@@ -2,11 +2,14 @@ import {
   Body,
   Controller,
   Get,
+  HttpException,
+  HttpStatus,
   Param,
   Patch,
   Post,
   Put,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { AccountService } from './account.service';
@@ -15,6 +18,7 @@ import { GetUser } from '../decorator';
 import { TCachedUser } from 'src/utils/types';
 import { GetEnquiriesDto, GetEnquiriesHttpDto } from 'src/enquiry/dto';
 import { GetUserHttpDto } from '../dto';
+import { FastifyRequest } from 'fastify';
 import {
   AccountConfigDto,
   FilterConfigurationDto,
@@ -26,6 +30,7 @@ import {
   AccountConfigKey,
   GetAccountEnquiriesCountDto,
   GetBookmarkedEventDto,
+  UpdateSubscriptionWebhookDto,
 } from './dto';
 
 @Controller('me/account')
@@ -60,7 +65,7 @@ export class AccountController {
   ) {
     try {
       const showValues = 'basic,advance,insights,audience';
-      const events = await this.accountService.getSavedEvent(user, query,showValues);
+      const events = await this.accountService.getSavedEvent(user, query, showValues);
       return { data: events };
     } catch (error) {
       return { error: error };
@@ -193,12 +198,12 @@ export class AccountController {
   @Put('membership')
   async updateAccountMembership(
     @GetUser() user: TCachedUser,
-    @Body() data: MembershipDto,
+    @Body() data: MembershipDto
   ) {
     try {
       const configuration = await this.accountService.updateAccountMembership(
         user,
-        data,
+        data
       );
       return { data: configuration };
     } catch (error) {
@@ -212,6 +217,18 @@ export class AccountController {
       console.log(user);
       const data = await this.accountService.createMembershipToken(user);
       return { data: { user: data } };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+  @Patch(':token/membership')
+  async updateMembership(@Param('token') token: string, @Body() body: UpdateSubscriptionWebhookDto) {
+    try {
+      if (process.env.STRIPE_PASS_TOKEN !== token) {
+        throw new HttpException('Invalid token', HttpStatus.BAD_REQUEST);
+      }
+      const data = await this.accountService.updateMembershipFromWebhook(body)
+      return { data: data };
     } catch (error) {
       return { error: error };
     }

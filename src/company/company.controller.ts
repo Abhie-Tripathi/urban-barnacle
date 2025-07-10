@@ -30,12 +30,11 @@ export class CompanyController {
   ) {
     let flag = false;
     try {
-      const point = await this.sharedService.getPointForRequest(
+      const { point, subscriptionId } = await this.sharedService.getPointForRequest(
         PointColumn.pendingCompanySearchRequests,
-        userData.currentSubscriptionId,
+        userData.accountId,
       );
-      console.log(userData.currentSubscriptionId,);
-
+      // console.log(userData.currentSubscriptionId,);
       if (point <= 0) {
         throw new HttpException(
           'You have reached the maximum limit to view data. Please get in touch with us.',
@@ -48,7 +47,7 @@ export class CompanyController {
       );
       await this.sharedService.deductPointForRequest(
         PointColumn.pendingCompanySearchRequests,
-        userData.currentSubscriptionId,
+        userData.accountId,
         point - 1,
       );
       flag = true;
@@ -57,7 +56,7 @@ export class CompanyController {
       if (flag)
         this.sharedService.creditPointForRequest(
           PointColumn.pendingCompanySearchRequests,
-          userData.currentSubscriptionId,
+          userData.accountId,
         );
       return { error: error };
     }

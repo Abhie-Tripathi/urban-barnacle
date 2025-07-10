@@ -6,24 +6,27 @@ import {
   GetAccountDto,
   UpdateAccountDto,
   UpdateSubscriptionDto,
+  UpdateSubscriptionWebhookDto,
 } from './dto';
-import { Prisma, SubscriptionPlan } from '@prisma/client';
+import { PlanFrequency, Prisma, SubscriptionPlan } from '@prisma/client';
 import {
   accountConfig,
   AccountConfigDto,
   MembershipDto,
 } from './account.config';
-import { TCachedUser } from 'src/utils/types';
+import { membershipMap, membershipMapForToken, TCachedUser } from 'src/utils/types';
 import { InputJsonObject, JsonArray } from '@prisma/client/runtime/library';
 import { getNameFromEmail } from 'src/utils';
 import { createHash, randomInt, randomUUID } from 'crypto';
 import { EventsService } from 'src/events/events.service';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class AccountDataService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventService: EventsService,
+    private readonly redisService: RedisService,
   ) { }
   async createSubscription(data: CreateSubscriptionDto) {
     const subscription = await this.prisma.subscription.create({
@@ -131,19 +134,40 @@ export class AccountDataService {
   }
   async updateAccountMembership(user: TCachedUser, data: MembershipDto) {
     // return await this.prisma.
-    const checkForToken = await this.prisma.verification.findFirst({
+    const [checkForToken, checkPaymentInfo, checkForDuplicatePaymentId, currentSubscriptionId] = await Promise.all([this.prisma.verification.findFirst({
       where: {
         userId: user.id,
       },
       select: {
         passkey: true,
       },
-    });
+    }),
+    this.getPaymentInfoById(data.subscriptionId),
+    this.prisma.$queryRaw<{ count_record: number }[]>(Prisma.raw(`SELECT count(*) count_record FROM "Subscription"
+WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' and deleted=false;
+`)), this.prisma.account.findFirst({
+      where: {
+        id: user.accountId
+      }, select: {
+        currentSubscriptionId: true
+      }
+    })]);
+    console.log("Number(checkForDuplicatePaymentId[0].count_record)Number(checkForDuplicatePaymentId[0].count_record)", Number(checkForDuplicatePaymentId[0].count_record));
+
+    if (!currentSubscriptionId) {
+      throw new HttpException(`subscription not found`, HttpStatus.NOT_FOUND);
+    }
+    if (checkForDuplicatePaymentId.length && Number(checkForDuplicatePaymentId[0].count_record) >= 1) {
+      throw new HttpException(`Invalid subscription`, HttpStatus.NOT_FOUND);
+    }
     if (!checkForToken) {
       throw new HttpException(`token not found`, HttpStatus.NOT_FOUND);
     }
     if (data.token !== checkForToken.passkey) {
       throw new HttpException(`Invalid token`, HttpStatus.NOT_FOUND);
+    }
+    if (data.subscriptionId && !checkPaymentInfo) {
+      throw new HttpException(`Invalid subscription`, HttpStatus.NOT_FOUND);
     }
     await this.prisma.verification.update({
       where: {
@@ -153,19 +177,53 @@ export class AccountDataService {
         passkey: '' + Math.random(),
       },
     });
-    return await this.prisma.subscription.update({
-      where: {
-        id: user.currentSubscriptionId,
-      },
+    const create = await this.createMembeShip(currentSubscriptionId.currentSubscriptionId, user, { ...data, planRenewalDate: data.endDate }, checkPaymentInfo);
+    if (data.subscriptionId)
+      await this.setSubscriptionMetadata(data.subscriptionId, { subscriptionId: create.id, accountId: user.accountId });
+    return create;
+  }
+  async createMembeShip(currentSubscriptionId: string, user: any, data: MembershipDto, checkPaymentInfo: object | null = {}) {
+
+    const [create] = await Promise.all([this.prisma.subscription.create({
       data: {
+        accountId: user.accountId,
         plan: data.plan,
         planStartDate: new Date(data.startDate),
         planEndDate: new Date(data.endDate),
+        planMetaData: { paymentData: checkPaymentInfo, userData: user },
+        currency: data.planPurchaseCurrency,
+        purchaseValue: data.planPurchaseValue,
+        planFrequency: data.planFrequency,
+        planRenewalDate: data.planRenewalDate ? new Date(data.endDate) : undefined,
+        ...membershipMapForToken[data.plan]
       },
       select: {
         plan: true,
+        id: true,
+        planStartDate: true,
+        planEndDate: true,
+        currency: true,
+        purchaseValue: true,
+        planFrequency: true,
+        planRenewalDate: true,
       },
+    }), this.prisma.subscription.update({
+      where: {
+        id: currentSubscriptionId
+      },
+      data: {
+        deleted: true
+      }
+    })]);
+    await this.prisma.account.update({
+      where: {
+        id: user['accountId']
+      },
+      data: {
+        currentSubscriptionId: create.id
+      }
     });
+    return create;
   }
   async addAccountUser(accountId: string, userId: string) {
     const account = await this.prisma.account.update({
@@ -184,7 +242,6 @@ export class AccountDataService {
     }
     return configuration.config;
   }
-
 
   async createMembershipToken(user: TCachedUser) {
     const passkey: string = createHash('sha256')
@@ -279,5 +336,89 @@ export class AccountDataService {
         },
       }
       : {};
+  }
+  async getPaymentInfoById(subscriptionId: String | undefined) {
+    if (!subscriptionId) {
+      return null;
+    }
+    let url =
+      (process.env.PAYMENT_BASE_URL || '') +
+      `v1/subscriptions/${subscriptionId}`;
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${process.env.PAYMENT_TOKEN}`,
+      },
+    });
+    const data = await response.json();
+    if (data['error']) {
+      // console.log(JSON.stringify(data));
+
+      throw new HttpException('subscription not found', HttpStatus.BAD_REQUEST);
+    }
+    if (data?.status && data.status !== 'active') {
+      console.warn('subscription status not active:', data);
+      throw new HttpException(
+        'Wrong subscription status received',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    // console.log(data);
+    return data;
+  }
+  async setSubscriptionMetadata(stripeSubscriptionId: string, metadata: Record<string, string>) {
+    if (!stripeSubscriptionId || typeof metadata !== 'object') {
+      throw new HttpException('Invalid subscriptionId or metadata', HttpStatus.BAD_REQUEST);
+    }
+
+    const url = `${process.env.PAYMENT_BASE_URL || ''}v1/subscriptions/${stripeSubscriptionId}`;
+
+    const formBody = new URLSearchParams();
+    for (const [key, value] of Object.entries(metadata)) {
+      formBody.append(`metadata[${key}]`, value);
+    }
+
+    const response = await fetch(url, {
+      method: 'POST', // PATCH also works
+      headers: {
+        Authorization: `Bearer ${process.env.PAYMENT_TOKEN}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formBody.toString(),
+    });
+
+    const data = await response.json();
+
+    if (data['error']) {
+      console.error('Stripe Error:', data);
+      throw new HttpException('Failed to update metadata', HttpStatus.BAD_REQUEST);
+    }
+    console.log(data);
+
+    return data;
+  }
+  async updateMembershipFromWebhook(body: UpdateSubscriptionWebhookDto) {
+    const { subscriptionId, ...rest } = body;
+    const [checkSubsscription, checkPaymentInfo] = await Promise.all([this.prisma.subscription.findFirst({
+      where: {
+        id: subscriptionId,
+        deleted: false
+      },
+      select: {
+        id: true,
+        accountId: true
+      }
+    }), this.getPaymentInfoById(body.subscriptionRenewalId)]);
+    console.log(checkSubsscription);
+
+    if (!checkSubsscription || !subscriptionId || !checkSubsscription.accountId) {
+      throw new HttpException(`Invalid subscription`, HttpStatus.NOT_FOUND);
+    }
+    const create = await this.createMembeShip(subscriptionId, { accountId: checkSubsscription.accountId }, body, checkPaymentInfo)
+    if (body.subscriptionRenewalId)
+      await this.setSubscriptionMetadata(body.subscriptionRenewalId, { subscriptionId: create.id, accountId: checkSubsscription.accountId });
+
+    return create;
+
   }
 }
