@@ -50,6 +50,8 @@ export class EventsService {
     if (show.includes(Show.old)) {
       show = show.filter((item) => item !== Show.old);
     }
+    console.log("asdfafaf", show);
+
     const nonEmptyParams = getNonEmptyParams({ ...query, show });
     if (
       !nonEmptyParams.eventTypes ||

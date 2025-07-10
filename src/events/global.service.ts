@@ -1,322 +1,548 @@
-import { EventDataDto, QueryDto } from './dto';
+import { EventDataDto, jobCompositeSchema, QueryDto } from './dto';
+function checkTheValue(main: string[], sub: string[]): boolean {
+  let count = 0;
+  for (const val1 of main) {
+    for (const val2 of sub) {
+      if (val2.toLowerCase() === val1.toLowerCase()) count++;
+    }
+  }
+  return main.length > 0 || sub.length > 0
+    ? count === main.length && count >= 1
+    : true;
+}
 
+function checkAdvancedConditions(data: any, key: string): boolean {
+  if (!data[key]) return true;
+  if ([true, false].includes(data[key].isAllowed)) {
+    return data[key].isAllowed;
+  }
+  return true;
+}
 export function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
   const data: any = dataFilter.filter ?? {};
-  let checkToPassFilter: boolean = true;
+  let checkToPassFilter = true;
+  let rootTodiscard = '';
   let shows: string = query.show?.join(',') ?? '';
-  let rootTodiscard: string = '';
-  const checkTheValue = (main: string[], sub: string[]) => {
-    let count: number = 0;
-    for (const val1 of main) {
-      for (const val2 of sub) {
-        if (val2.toLowerCase() === val1.toLowerCase()) {
-          count++;
-        }
-      }
-    }
-    console.log(main, sub, count, { main: main.length }, count === main.length);
-    return main.length > 0 || sub.length > 0
-      ? count === main.length && count >= 1
-      : true;
-  };
-  if (data.eventTypes) {
-    const main = query?.eventTypes ?? [];
-    const sub = (data?.eventTypes?.enabledValue as string[]) ?? [];
+
+  const conditionalChecks = [
+    'eventTypes',
+    'eventFormats',
+    'ratings',
+    'status',
+    'top',
+    'maturity',
+    'entryType',
+    'frequencies',
+    'estimatedVisitorRangeTag',
+    'estimatedExhibitors',
+    'audienceSpread',
+    'locationIds',
+  ];
+
+  for (const key of conditionalChecks) {
+    if (!checkToPassFilter || !data[key]) continue;
+    const main = query?.[key] ?? [];
+    const sub = (data?.[key]?.enabledValue as string[]) ?? [];
     if (sub.length > main.length) {
       checkToPassFilter = false;
+    } else {
+      checkToPassFilter = checkTheValue(main, sub);
+    }
+    if (!checkToPassFilter) rootTodiscard = key;
+    if (key === 'ratings') shows = shows.replace('rankings', '');
+    if (key === 'top') shows = shows.replace('top', '');
+    if (key === 'maturity') shows = shows.replace('maturity', '');
+  }
+  if (data.branded && checkToPassFilter) {
+    const brandedCheck = query.onlyBranded === true;
+    const brandedMatch = data?.branded?.enabledValue?.eventBrand;
+    checkToPassFilter = brandedCheck === brandedMatch;
+    if (!checkToPassFilter) rootTodiscard = 'onlyBranded';
+  }
+
+  if (data.branded && checkToPassFilter) {
+    const seriesCheck = query.onlySeries === true;
+    const seriesMatch = data?.branded?.enabledValue?.eventSeries;
+    checkToPassFilter = seriesCheck === seriesMatch;
+    if (!checkToPassFilter) rootTodiscard = 'onlySeries';
+  }
+  // Advanced boolean filters
+  const advancedKeys = [
+    // 'eventRanking',
+    'audienceZone',
+    // 'isforecasted',
+    // 'analytics',
+    // 'designation',
+    'economicImpact',
+  ];
+  for (const key of advancedKeys) {
+    if (!checkToPassFilter) break;
+    if (shows.includes(key)) {
+      checkToPassFilter = false;
+      rootTodiscard = key;
+    }
+    console.log("showsshowsshows", shows, checkToPassFilter, rootTodiscard);
+
+  }
+
+  // Category check
+  if (data?.categories?.enabledValue && checkToPassFilter) {
+    const main = query?.categories ?? [];
+    const slugs = (data.categories.enabledValue as any[]).map(d => d.slug);
+    const ids = (data.categories.enabledValue as any[]).map(d => d.id);
+    checkToPassFilter = checkTheValue(main, slugs) || checkTheValue(main, ids);
+    if (!checkToPassFilter) rootTodiscard = 'categories';
+  }
+
+  // Duration checks
+  if (data?.durations?.active_gte && checkToPassFilter) {
+    const [start, end] = data.durations.active_gte.split(',').map(d => new Date(d));
+    const [rangeStart, rangeEnd] = (query.active_gte ?? '').split(',').map(d => new Date(d));
+    checkToPassFilter = start <= rangeStart && rangeEnd <= end;
+    if (!checkToPassFilter) rootTodiscard = 'active_gte';
+  }
+
+  if (data?.durations?.active_lte && checkToPassFilter) {
+    const [start, end] = data.durations.active_lte.split(',').map(d => new Date(d));
+    const [rangeStart, rangeEnd] = (query.active_lte ?? '').split(',').map(d => new Date(d));
+    checkToPassFilter = start <= rangeStart && rangeEnd <= end;
+    if (!checkToPassFilter) rootTodiscard = 'active_lte';
+  }
+
+  if (data.durations && !query.active_gte && !query.active_lte) {
+    checkToPassFilter = false;
+    rootTodiscard = 'startDate/endDate';
+  }
+
+  // Keywords check
+  for (const keywordType of ['excludeKeywords', 'includeKeywords']) {
+    if (!checkToPassFilter || !data?.keywords?.[keywordType]) continue;
+
+    const isAllowed = checkAdvancedConditions(data, 'keywords');
+    if (isAllowed === false) {
+      checkToPassFilter = false;
+      rootTodiscard = keywordType;
+      break;
     }
 
-    //   console.log(query.eventType, main[0], sub, 2);
-    checkToPassFilter = checkTheValue(main, sub);
-    if (checkToPassFilter === false) {
-      rootTodiscard = 'eventTypes';
-    }
-  }
-  if (data.eventFormats && checkToPassFilter) {
-    const main = query?.eventFormats ?? [];
-    const sub = (data?.eventFormats?.enabledValue as string[]) ?? [];
+    const main = query?.[keywordType] ?? [];
+    const sub = data.keywords[keywordType] ?? [];
+
     if (sub.length > main.length) {
       checkToPassFilter = false;
+      rootTodiscard = keywordType;
+      break;
     }
+
     checkToPassFilter = checkTheValue(main, sub);
-    if (checkToPassFilter === false) {
-      rootTodiscard = 'eventFormats';
+    if (!checkToPassFilter) {
+      rootTodiscard = keywordType;
+      break;
     }
   }
-  if (data.ratings && checkToPassFilter) {
-    const main = query?.ratings ?? [];
-    const sub = (data?.ratings?.enabledValue as string[]) ?? [];
-    if (sub.length > main.length) {
-      checkToPassFilter = false;
-    }
-    checkToPassFilter = checkTheValue(main, sub);
-    shows = shows.replace('rankings', '');
-    if (checkToPassFilter === false) {
-      rootTodiscard = 'rankings';
-    }
-  }
-  if (data.status && checkToPassFilter) {
-    const main = query?.status ?? [];
-    const sub = (data?.status?.enabledValue as string[]) ?? [];
-    if (sub.length > main.length) {
-      checkToPassFilter = false;
-    }
-    checkToPassFilter = checkTheValue(main, sub);
-    if (checkToPassFilter === false) {
-      rootTodiscard = 'status';
-    }
-  }
-  // if (query.eventRating || checkToPassFilter) {
-  //   const main = query.eventRating.split(',');
-  //   const sub = data.eventRating.enabledValue as string[];
+
+
+  if (query.eventIds) checkToPassFilter = true;
+
+  // const data: any = dataFilter.filter ?? {};
+  // let checkToPassFilter: boolean = true;
+  // let shows: string = query.show?.join(',') ?? '';
+  // let rootTodiscard: string = '';
+  // const checkTheValue = (main: string[], sub: string[]) => {
+  //   let count: number = 0;
+  //   for (const val1 of main) {
+  //     for (const val2 of sub) {
+  //       if (val2.toLowerCase() === val1.toLowerCase()) {
+  //         count++;
+  //       }
+  //     }
+  //   }
+  //   console.log(main, sub, count, { main: main.length }, count === main.length);
+  //   return main.length > 0 || sub.length > 0
+  //     ? count === main.length && count >= 1
+  //     : true;
+  // };
+  // if (data.eventTypes) {
+  //   const main = query?.eventTypes ?? [];
+  //   const sub = (data?.eventTypes?.enabledValue as string[]) ?? [];
   //   if (sub.length > main.length) {
   //     checkToPassFilter = false;
   //   }
-  //   checkToPassFilter =  checkTheValue(main, sub);
-  //   shows = shows.replace('eventRating', '');
-  // }
-  if (data.maturity && checkToPassFilter) {
-    const main = query?.maturity ?? [];
-    const sub = (data?.maturity?.enabledValue as string[]) ?? [];
-    if (sub.length > main.length) {
-      checkToPassFilter = false;
-    }
-    checkToPassFilter = checkTheValue(main, sub);
-    shows = shows.replace('maturity', '');
-    if (checkToPassFilter === false) {
-      rootTodiscard = 'maturity';
-    }
-  }
-  if (data.branded && checkToPassFilter) {
-    checkToPassFilter =
-      (query.onlyBranded === true ? true : false) ===
-      data?.branded?.enabledValue?.eventBrand;
-    checkToPassFilter === undefined ? false : checkToPassFilter;
-    if (checkToPassFilter === false) {
-      rootTodiscard = 'onlyBranded';
-    }
-  }
-  if (data.branded && checkToPassFilter) {
-    checkToPassFilter =
-      (query.onlySeries === true ? true : false) ===
-      data.branded.enabledValue.eventSeries;
-    checkToPassFilter === undefined ? false : checkToPassFilter;
-    if (checkToPassFilter === false) {
-      rootTodiscard = 'onlySeries';
-    }
-  }
-  // need to ask
-  // if (data.isforecasted && checkToPassFilter) {
-  //   checkToPassFilter =
-  //     query.isforecasted === data.isforecasted.isForecastedEnabled;
-  //   checkToPassFilter === undefined ? false : checkToPassFilter;
+
+  //   //   console.log(query.eventType, main[0], sub, 2);
+  //   checkToPassFilter = checkTheValue(main, sub);
   //   if (checkToPassFilter === false) {
-  //     rootTodiscard = 'isforecasted';
+  //     rootTodiscard = 'eventTypes';
   //   }
   // }
-  if (data.entryType && checkToPassFilter) {
-    const main = query?.entryType ?? [];
-    const sub = (data?.entryType?.enabledValue as string[]) ?? [];
-    if (sub.length > main.length) {
-      checkToPassFilter = false;
-    }
-    checkToPassFilter = checkTheValue(main, sub);
-    if (checkToPassFilter === false) {
-      rootTodiscard = 'entryType';
-    }
-  }
-  console.log('checkToPassFilter', checkToPassFilter);
-  if (data.frequencies && checkToPassFilter) {
-    const main = query?.frequencies ?? [];
-    const sub = (data?.frequencies?.enabledValue as string[]) ?? [];
-    if (sub.length > main.length) {
-      checkToPassFilter = false;
-    }
-    checkToPassFilter = checkTheValue(main, sub);
-    if (checkToPassFilter === false) {
-      rootTodiscard = 'frequencies';
-    }
-  }
-  console.log('checkToPassFilter', checkToPassFilter);
-  // if (data.eventSize && checkToPassFilter) {
-  //   const main = query?.?.split(',') ?? [];
-  //   const sub = (data?.eventSize?.enabledValue as string[]) ?? [];
+  // if (data.eventFormats && checkToPassFilter) {
+  //   const main = query?.eventFormats ?? [];
+  //   const sub = (data?.eventFormats?.enabledValue as string[]) ?? [];
   //   if (sub.length > main.length) {
   //     checkToPassFilter = false;
   //   }
   //   checkToPassFilter = checkTheValue(main, sub);
   //   if (checkToPassFilter === false) {
-  //     rootTodiscard = 'eventSize';
+  //     rootTodiscard = 'eventFormats';
   //   }
   // }
-  if (data.estimatedVisitorRangeTag && checkToPassFilter) {
-    const main = query?.estimatedVisitorRangeTag ?? [];
-    const sub =
-      (data?.estimatedVisitorRangeTag?.enabledValue as string[]) ?? [];
-    if (sub.length > main.length) {
-      checkToPassFilter = false;
-    }
-    checkToPassFilter = checkTheValue(main, sub);
-    if (checkToPassFilter === false) {
-      rootTodiscard = 'estimatedVisitorRangeTag';
-    }
-  }
-  console.log('checkToPassFilter', checkToPassFilter);
-  if (data.estimatedExhibitors && checkToPassFilter) {
-    const main = query?.estimatedExhibitors ?? [];
-    const sub = (data?.estimatedExhibitors?.enabledValue as string[]) ?? [];
-    if (sub.length > main.length) {
-      checkToPassFilter = false;
-    }
-    checkToPassFilter = checkTheValue(main, sub);
-    if (checkToPassFilter === false) {
-      rootTodiscard = 'estimatedExhibitors';
-    }
-  }
-  console.log('checkToPassFilter', checkToPassFilter);
-  // if ((query.designation || data.designation) && checkToPassFilter) {
+  // if (data.ratings && checkToPassFilter) {
+  //   const main = query?.ratings ?? [];
+  //   const sub = (data?.ratings?.enabledValue as string[]) ?? [];
+  //   if (sub.length > main.length) {
+  //     checkToPassFilter = false;
+  //   }
+  //   checkToPassFilter = checkTheValue(main, sub);
+  //   shows = shows.replace('rankings', '');
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'rankings';
+  //   }
+  // }
+  // if (data.status && checkToPassFilter) {
+  //   const main = query?.status ?? [];
+  //   const sub = (data?.status?.enabledValue as string[]) ?? [];
+  //   if (sub.length > main.length) {
+  //     checkToPassFilter = false;
+  //   }
+  //   checkToPassFilter = checkTheValue(main, sub);
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'status';
+  //   }
+  // }
+  // // if (query.eventRating || checkToPassFilter) {
+  // //   const main = query.eventRating.split(',');
+  // //   const sub = data.eventRating.enabledValue as string[];
+  // //   if (sub.length > main.length) {
+  // //     checkToPassFilter = false;
+  // //   }
+  // //   checkToPassFilter =  checkTheValue(main, sub);
+  // //   shows = shows.replace('eventRating', '');
+  // // }
+  // if (data.top && checkToPassFilter) {
+  //   if ([true, false].includes(data.top['isAllowed'])) {
+  //     checkToPassFilter = data.top['isAllowed'];
+  //   }
+  //   const main = query.top ? [String(query.top)] : [];
+  //   const sub = (data?.top?.enabledValue as string[]) ?? [];
+  //   if (sub.length > main.length) {
+  //     checkToPassFilter = false;
+  //   }
+  //   checkToPassFilter = checkTheValue(main, sub);
+  //   shows = shows.replace('top', '');
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'top';
+  //   }
+  // }
+  // if (data.eventRanking && checkToPassFilter) {
+  //   if ([true, false].includes(data.eventRanking['isAllowed'])) {
+  //     checkToPassFilter = data.eventRanking['isAllowed'];
+  //   }
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'eventRanking';
+  //   }
+  // }
+  // if (data.audienceZone && checkToPassFilter) {
+  //   if ([true, false].includes(data.audienceZone['isAllowed'])) {
+  //     checkToPassFilter = data.audienceZone['isAllowed'];
+  //   }
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'audienceZone';
+  //   }
+  // }
+  // if (data.maturity && checkToPassFilter) {
+  //   if ([true, false].includes(data.maturity['isAllowed'])) {
+  //     checkToPassFilter = data.maturity['isAllowed'];
+  //   }
+  //   const main = query?.maturity ?? [];
+  //   const sub = (data?.maturity?.enabledValue as string[]) ?? [];
+  //   if (sub.length > main.length) {
+  //     checkToPassFilter = false;
+  //   }
+  //   checkToPassFilter = checkTheValue(main, sub);
+  //   shows = shows.replace('maturity', '');
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'maturity';
+  //   }
+  // }
+  // if (data.branded && checkToPassFilter) {
+  //   if ([true, false].includes(data.branded['isAllowed'])) {
+  //     checkToPassFilter = data.branded['isAllowed'];
+  //   }
   //   checkToPassFilter =
-  //     query.designation && data.designation.isProfileEnabed;
+  //     (query.onlyBranded === true ? true : false) ===
+  //     data?.branded?.enabledValue?.eventBrand;
+  //   checkToPassFilter === undefined ? false : checkToPassFilter;
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'onlyBranded';
+  //   }
+  // }
+  // if (data.branded && checkToPassFilter) {
+  //   checkToPassFilter =
+  //     (query.onlySeries === true ? true : false) ===
+  //     data.branded.enabledValue.eventSeries;
+  //   checkToPassFilter === undefined ? false : checkToPassFilter;
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'onlySeries';
+  //   }
+  // }
+  // // need to ask
+  // if (data.isforecasted && checkToPassFilter) {
+  //   if ([true, false].includes(data.isforecasted['isAllowed'])) {
+  //     checkToPassFilter = data.isforecasted['isAllowed'];
+  //   }
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'isforecasted';
+  //   }
+  // }
+  // if (data.analytics && checkToPassFilter) {
+  //   if ([true, false].includes(data.analytics['isAllowed'])) {
+  //     checkToPassFilter = data.analytics['isAllowed'];
+  //   }
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'analytics';
+  //   }
+  // }
+  // if (data.entryType && checkToPassFilter) {
+  //   if ([true, false].includes(data.entryType['isAllowed'])) {
+  //     checkToPassFilter = data.entryType['isAllowed'];
+  //   }
+  //   const main = query?.entryType ?? [];
+  //   const sub = (data?.entryType?.enabledValue as string[]) ?? [];
+  //   if (sub.length > main.length) {
+  //     checkToPassFilter = false;
+  //   }
+  //   checkToPassFilter = checkTheValue(main, sub);
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'entryType';
+  //   }
+  // }
+  // console.log('checkToPassFilter', checkToPassFilter);
+  // if (data.frequencies && checkToPassFilter) {
+  //   if ([true, false].includes(data.frequencies['isAllowed'])) {
+  //     checkToPassFilter = data.frequencies['isAllowed'];
+  //   }
+  //   const main = query?.frequencies ?? [];
+  //   const sub = (data?.frequencies?.enabledValue as string[]) ?? [];
+  //   if (sub.length > main.length) {
+  //     checkToPassFilter = false;
+  //   }
+  //   checkToPassFilter = checkTheValue(main, sub);
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'frequencies';
+  //   }
+  // }
+  // console.log('checkToPassFilter', checkToPassFilter);
+  // // if (data.eventSize && checkToPassFilter) {
+  // //   const main = query?.?.split(',') ?? [];
+  // //   const sub = (data?.eventSize?.enabledValue as string[]) ?? [];
+  // //   if (sub.length > main.length) {
+  // //     checkToPassFilter = false;
+  // //   }
+  // //   checkToPassFilter = checkTheValue(main, sub);
+  // //   if (checkToPassFilter === false) {
+  // //     rootTodiscard = 'eventSize';
+  // //   }
+  // // }
+  // if (data.estimatedVisitorRangeTag && checkToPassFilter) {
+  //   if ([true, false].includes(data.estimatedVisitorRangeTag['isAllowed'])) {
+  //     checkToPassFilter = data.estimatedVisitorRangeTag['isAllowed'];
+  //   }
+  //   const main = query?.estimatedVisitorRangeTag ?? [];
+  //   const sub =
+  //     (data?.estimatedVisitorRangeTag?.enabledValue as string[]) ?? [];
+  //   if (sub.length > main.length) {
+  //     checkToPassFilter = false;
+  //   }
+  //   checkToPassFilter = checkTheValue(main, sub);
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'estimatedVisitorRangeTag';
+  //   }
+  // }
+  // console.log('checkToPassFilter', checkToPassFilter);
+  // if (data.estimatedExhibitors && checkToPassFilter) {
+  //   if ([true, false].includes(data.estimatedExhibitors['isAllowed'])) {
+  //     checkToPassFilter = data.estimatedExhibitors['isAllowed'];
+  //   }
+  //   const main = query?.estimatedExhibitors ?? [];
+  //   const sub = (data?.estimatedExhibitors?.enabledValue as string[]) ?? [];
+  //   if (sub.length > main.length) {
+  //     checkToPassFilter = false;
+  //   }
+  //   checkToPassFilter = checkTheValue(main, sub);
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'estimatedExhibitors';
+  //   }
+  // }
+  // console.log('checkToPassFilter', checkToPassFilter);
+  // if ((data.designation) && checkToPassFilter) {
+  //   if ([true, false].includes(data.designation['isAllowed'])) {
+  //     checkToPassFilter = data.designation['isAllowed'];
+  //   }
+  //   // const main = query?.jobComposite ? jobCompositeSchema.parse(query?.jobComposite) : [];
+  //   // const sub = (data?.designation?.enabledValue as string[]) ?? [];
+  //   // if (sub.length > main.length) {
+  //   //   checkToPassFilter = false;
+  //   // }
+  //   // checkToPassFilter = checkTheValue(main, sub);
   //   checkToPassFilter =
   //     checkToPassFilter === undefined ? false : checkToPassFilter;
   //   if (checkToPassFilter === false) {
   //     rootTodiscard = 'designation';
   //   }
   // }
-  console.log('checkToPassFilter11111', checkToPassFilter);
-  if (data.audienceSpread && checkToPassFilter) {
-    const main = query?.audienceSpread ?? [];
-    const sub = (data?.audienceSpread?.enabledValue as string[]) ?? [];
-    if (sub.length > main.length) {
-      checkToPassFilter = false;
-    }
-    checkToPassFilter = checkTheValue(main, sub);
-    checkToPassFilter =
-      checkToPassFilter === undefined ? false : checkToPassFilter;
-    if (checkToPassFilter === false) {
-      rootTodiscard = 'audienceSpread';
-    }
-  }
-  console.log('checkToPassFilter', checkToPassFilter);
-  if (data.locationIds && checkToPassFilter) {
-    const main = query?.locationIds ?? [];
-    const sub: string[] =
-      (
-        data?.locationIds?.enabledValue as {
-          id: string;
-          description: string;
-          type: string;
-        }[]
-      )?.map((data) => data.id) ?? [];
-    if (sub.length > main.length) {
-      checkToPassFilter = false;
-    }
-    checkToPassFilter = checkTheValue(main, sub);
-    if (checkToPassFilter === false) {
-      rootTodiscard = 'locationIds';
-    }
-  }
-  console.log('query.eventCategory', data.eventCategory, checkToPassFilter);
-  if (data?.categories?.enabledValue && checkToPassFilter) {
-    const main = query?.categories ?? [];
-    const sub: string[] =
-      (
-        data?.categories?.enabledValue as {
-          id: string;
-          slug: string;
-        }[]
-      )?.map((data) => data.slug) ?? [];
-    console.log('query.categories', main, sub);
+  // if ((data.economicImpact) && checkToPassFilter) {
+  //   if ([true, false].includes(data.economicImpact['isAllowed'])) {
+  //     checkToPassFilter = data.economicImpact['isAllowed'];
+  //   }
+  //   checkToPassFilter =
+  //     checkToPassFilter === undefined ? false : checkToPassFilter;
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'economicImpactu';
+  //   }
+  // }
+  // console.log('checkToPassFilter11111', checkToPassFilter);
+  // if (data.audienceSpread && checkToPassFilter) {
+  //   if ([true, false].includes(data.audienceSpread['isAllowed'])) {
+  //     checkToPassFilter = data.audienceSpread['isAllowed'];
+  //   }
+  //   const main = query?.audienceSpread ?? [];
+  //   const sub = (data?.audienceSpread?.enabledValue as string[]) ?? [];
+  //   if (sub.length > main.length) {
+  //     checkToPassFilter = false;
+  //   }
+  //   checkToPassFilter = checkTheValue(main, sub);
+  //   checkToPassFilter =
+  //     checkToPassFilter === undefined ? false : checkToPassFilter;
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'audienceSpread';
+  //   }
+  // }
+  // console.log('checkToPassFilter', checkToPassFilter);
+  // if (data.locationIds && checkToPassFilter) {
+  //   const main = query?.locationIds ?? [];
+  //   const sub: string[] =
+  //     (
+  //       data?.locationIds?.enabledValue as {
+  //         id: string;
+  //         description: string;
+  //         type: string;
+  //       }[]
+  //     )?.map((data) => data.id) ?? [];
+  //   if (sub.length > main.length) {
+  //     checkToPassFilter = false;
+  //   }
+  //   checkToPassFilter = checkTheValue(main, sub);
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'locationIds';
+  //   }
+  // }
+  // console.log('query.eventCategory', data.eventCategory, checkToPassFilter);
+  // if (data?.categories?.enabledValue && checkToPassFilter) {
+  //   const main = query?.categories ?? [];
+  //   const sub: string[] =
+  //     (
+  //       data?.categories?.enabledValue as {
+  //         id: string;
+  //         slug: string;
+  //       }[]
+  //     )?.map((data) => data.slug) ?? [];
+  //   console.log('query.categories', main, sub);
 
-    if (sub.length > main.length) {
-      checkToPassFilter = false;
-    }
-    checkToPassFilter = checkTheValue(main, sub);
-    if (checkToPassFilter === false) {
-      checkToPassFilter = checkTheValue(
-        main,
-        (
-          data?.categories?.enabledValue as {
-            id: string;
-            slug: string;
-          }[]
-        )?.map((data) => data.id) ?? [],
-      );
-      if (checkToPassFilter === false) rootTodiscard = 'categories';
-    }
-  }
-  if (data?.durations?.active_gte && checkToPassFilter) {
-    const [durationStart, durationEnd] =
-      data?.durations?.active_gte?.split(',').map((date) => new Date(date)) ??
-      [];
-    const [rangeStart, rangeEnd] =
-      query?.active_gte?.split(',').map((date) => new Date(date)) ?? [];
-    checkToPassFilter = durationStart <= rangeStart && rangeEnd <= durationEnd;
-    //   if (!query.endDate && query.startDate) {
-    //     query.startDate =
-    //       rangeStart.toISOString() + ',' + durationEnd.toISOString();
-    //   }
-    //   console.log('query.startDate', query.startDate);
+  //   if (sub.length > main.length) {
+  //     checkToPassFilter = false;
+  //   }
+  //   checkToPassFilter = checkTheValue(main, sub);
+  //   if (checkToPassFilter === false) {
+  //     checkToPassFilter = checkTheValue(
+  //       main,
+  //       (
+  //         data?.categories?.enabledValue as {
+  //           id: string;
+  //           slug: string;
+  //         }[]
+  //       )?.map((data) => data.id) ?? [],
+  //     );
+  //     if (checkToPassFilter === false) rootTodiscard = 'categories';
+  //   }
+  // }
+  // if (data?.durations?.active_gte && checkToPassFilter) {
+  //   const [durationStart, durationEnd] =
+  //     data?.durations?.active_gte?.split(',').map((date) => new Date(date)) ??
+  //     [];
+  //   const [rangeStart, rangeEnd] =
+  //     query?.active_gte?.split(',').map((date) => new Date(date)) ?? [];
+  //   checkToPassFilter = durationStart <= rangeStart && rangeEnd <= durationEnd;
+  //   //   if (!query.endDate && query.startDate) {
+  //   //     query.startDate =
+  //   //       rangeStart.toISOString() + ',' + durationEnd.toISOString();
+  //   //   }
+  //   //   console.log('query.startDate', query.startDate);
 
-    if (checkToPassFilter === false) {
-      rootTodiscard = 'active_gte';
-    }
-  }
-  console.log('checkToPassFilter', checkToPassFilter);
-  if (data?.durations?.active_lte && checkToPassFilter) {
-    const [durationStart, durationEnd] =
-      data?.durations?.active_lte?.split(',').map((date) => new Date(date)) ??
-      [];
-    const [rangeStart, rangeEnd] =
-      query?.active_lte?.split(',').map((date) => new Date(date)) ?? [];
-    checkToPassFilter = durationStart <= rangeStart && rangeEnd <= durationEnd;
-    //   if (query.endDate && !query.startDate) {
-    //     query.endDate =
-    //       rangeStart.toISOString() + ',' + durationEnd.toISOString();
-    //   }
-    if (checkToPassFilter === false) {
-      rootTodiscard = 'active_lte';
-    }
-  }
-  if (
-    data.durations &&
-    !query.active_gte &&
-    !query.active_lte
-    // &&      !query.groupBy
-  ) {
-    checkToPassFilter = false;
-    rootTodiscard = 'startDate/endDate';
-  }
-  console.log('checkToPassFilter', checkToPassFilter);
-  if (data?.keywords?.excludeKeywords && checkToPassFilter) {
-    const main = query?.excludeKeywords ?? [];
-    const sub: string[] = data?.keywords?.excludeKeywords ?? [];
-    if (sub.length > main.length) {
-      checkToPassFilter = false;
-    }
-    checkToPassFilter = checkTheValue(main, sub);
-    if (checkToPassFilter === false) {
-      rootTodiscard = 'excludeKeywords';
-    }
-  }
-  console.log('checkToPassFilter', checkToPassFilter);
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'active_gte';
+  //   }
+  // }
+  // console.log('checkToPassFilter', checkToPassFilter);
+  // if (data?.durations?.active_lte && checkToPassFilter) {
+  //   const [durationStart, durationEnd] =
+  //     data?.durations?.active_lte?.split(',').map((date) => new Date(date)) ??
+  //     [];
+  //   const [rangeStart, rangeEnd] =
+  //     query?.active_lte?.split(',').map((date) => new Date(date)) ?? [];
+  //   checkToPassFilter = durationStart <= rangeStart && rangeEnd <= durationEnd;
+  //   //   if (query.endDate && !query.startDate) {
+  //   //     query.endDate =
+  //   //       rangeStart.toISOString() + ',' + durationEnd.toISOString();
+  //   //   }
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'active_lte';
+  //   }
+  // }
+  // if (
+  //   data.durations &&
+  //   !query.active_gte &&
+  //   !query.active_lte
+  //   // &&      !query.groupBy
+  // ) {
+  //   checkToPassFilter = false;
+  //   rootTodiscard = 'startDate/endDate';
+  // }
+  // console.log('checkToPassFilter', checkToPassFilter);
+  // if (data?.keywords?.excludeKeywords && checkToPassFilter) {
+  //   if ([true, false].includes(data.keywords['isAllowed'])) {
+  //     checkToPassFilter = data.keywords['isAllowed'];
+  //   }
+  //   const main = query?.excludeKeywords ?? [];
+  //   const sub: string[] = data?.keywords?.excludeKeywords ?? [];
+  //   if (sub.length > main.length) {
+  //     checkToPassFilter = false;
+  //   }
+  //   checkToPassFilter = checkTheValue(main, sub);
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'excludeKeywords';
+  //   }
+  // }
+  // console.log('checkToPassFilter', checkToPassFilter);
 
-  if (data?.keywords?.includeKeywords && checkToPassFilter) {
-    const main = query?.includeKeywords ?? [];
-    const sub: string[] = data?.keywords?.includeKeywords ?? [];
-    if (sub.length > main.length) {
-      checkToPassFilter = false;
-    }
-    checkToPassFilter = checkTheValue(main, sub);
-    if (checkToPassFilter === false) {
-      rootTodiscard = 'includeKeywords';
-    }
-  }
-  console.log('checkToPassFilter', checkToPassFilter);
-  if (query.eventIds) {
-    checkToPassFilter = true;
-  }
-  console.log('checkToPassFilter', checkToPassFilter);
+  // if (data?.keywords?.includeKeywords && checkToPassFilter) {
+  //   if ([true, false].includes(data.keywords['isAllowed'])) {
+  //     checkToPassFilter = data.keywords['isAllowed'];
+  //   }
+  //   const main = query?.includeKeywords ?? [];
+  //   const sub: string[] = data?.keywords?.includeKeywords ?? [];
+  //   if (sub.length > main.length) {
+  //     checkToPassFilter = false;
+  //   }
+  //   checkToPassFilter = checkTheValue(main, sub);
+  //   if (checkToPassFilter === false) {
+  //     rootTodiscard = 'includeKeywords';
+  //   }
+  // }
+  // console.log('checkToPassFilter', checkToPassFilter);
+  // if (query.eventIds) {
+  //   checkToPassFilter = true;
+  // }
+  // console.log('checkToPassFilter', checkToPassFilter);
   return {
     result: checkToPassFilter,
     rootTodiscard: rootTodiscard,

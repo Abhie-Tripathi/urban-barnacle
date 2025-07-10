@@ -143,7 +143,7 @@ const conditionsSchema = z
       path: ['logic'], // Apply the error to the `logic` key
     }
   );
-const jobCompositeSchema = z.strictObject({
+export const jobCompositeSchema = z.strictObject({
   designationIds: z.array(z.string()).optional(),
   conditions: conditionsSchema.optional(),
 });
@@ -410,11 +410,12 @@ export const QueryFilter = z.object({
     .optional(),
   show: z
     .string()
-    .refine((val) => val.split(',').every((item) => item in Show))
+    .optional()
     .transform((val) =>
-      val.split(',').map((item) => item.trim() as unknown as Show),
-    )
-    .optional(),
+      val
+        ? val.split(',').map((item) => item.trim() as unknown as Show)
+        : undefined
+    ),
   ratings: z
     .string()
     .refine((val) => val.split(',').every((item) => item in Rating))
@@ -676,9 +677,9 @@ export const QueryHttpSchema = LimitSchemaWithoutDefault.extend(
       .optional(),
   })
   .transform((data) => {
-    data['show'] = (Object.values(Show) as Show[]).filter((item) => {
-      return item !== Show.isNew && item !== Show.old;
-    });
+    // data['show'] = (Object.values(Show) as Show[]).filter((item) => {
+    //   return item !== Show.isNew && item !== Show.old;
+    // });
     if (data.view !== 'map' && !data.limit) {
       data.limit = 10;
     }
@@ -786,7 +787,7 @@ export const CountQuerySchema = QueryFilter.extend({
   return data;
 });
 
-export class CountQueryDto extends createZodDto(CountQuerySchema) {  }
+export class CountQueryDto extends createZodDto(CountQuerySchema) { }
 const similarEventsSchema = QuerySchema.omit({ showValues: true })
   .extend({
     showValues: z.string().default('basic,advance,insights,audience'),
