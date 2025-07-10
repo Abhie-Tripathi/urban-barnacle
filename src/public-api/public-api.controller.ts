@@ -2,6 +2,7 @@ import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import { FastifyRequest } from 'fastify';
 import { PublicApiService } from './public-api.service';
 import { Query_Dto } from 'src/promotedEvent/dto';
+import { QueryDto, QueryHttpDto } from 'src/events/dto';
 
 @Controller('public')
 export class PublicApiController {
@@ -38,6 +39,24 @@ export class PublicApiController {
     try {
       const result = this.service.getWidgetEventById(id);
       return result;
+    } catch (error) {
+      return {
+        error,
+      };
+    }
+  }
+  @Get('events')
+  async getpresetEvents(@Query() query: QueryHttpDto) {
+    try {
+      const queryDto: QueryDto = {
+        ...query,
+        showValues:
+          query.view === 'suggestion'
+            ? 'suggestion'
+            : 'basic,advance,insights,audience',
+      };
+      const result = this.service.getPresetEvents(queryDto);
+      return { data: result };
     } catch (error) {
       return {
         error,

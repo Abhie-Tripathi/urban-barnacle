@@ -9,6 +9,7 @@ import {
   VisitorRangeTag,
 } from 'src/utils/types';
 import { LimitSchema, LimitSchemaWithoutDefault } from 'src/global_dto';
+import { SearchByEntity, TrackerEventStatus } from 'src/tracker/dto';
 
 const scoreRange = {
   lte: 100,
@@ -124,7 +125,7 @@ export enum AudienceZone {
   regional,
   global,
 }
-const conditionsSchema = z
+export const conditionsSchema = z
   .strictObject({
     logic: z.enum(['AND', 'OR']).optional(),
     departmentIds: z.array(z.string()).optional(),
@@ -143,7 +144,7 @@ const conditionsSchema = z
       path: ['logic'], // Apply the error to the `logic` key
     }
   );
-const jobCompositeSchema = z.strictObject({
+export const jobCompositeSchema = z.strictObject({
   designationIds: z.array(z.string()).optional(),
   conditions: conditionsSchema.optional(),
 });
@@ -633,6 +634,15 @@ export const QueryFilter = z.object({
       if (!val) return undefined;
       return JSON.stringify(val);
     }),
+  orgName: z.string().optional(),
+  // orgId: z.string().optional(),
+  orgWebsite: z.string().optional(),
+  userName: z.string().optional(),
+  userOrgWebsite: z.string().optional(),
+  // userSocialLink: z.string().optional(),
+  // userDepartment: z.string().optional(),
+  // userRole: z.string().optional(),
+  // userDesignation: z.string().optional(),
 });
 
 export const FilterNames = Object.keys(QueryFilter.shape);
@@ -786,7 +796,7 @@ export const CountQuerySchema = QueryFilter.extend({
   return data;
 });
 
-export class CountQueryDto extends createZodDto(CountQuerySchema) {  }
+export class CountQueryDto extends createZodDto(CountQuerySchema) { }
 const similarEventsSchema = QuerySchema.omit({ showValues: true })
   .extend({
     showValues: z.string().default('basic,advance,insights,audience'),

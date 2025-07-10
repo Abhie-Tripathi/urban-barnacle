@@ -5,12 +5,15 @@ import { FastifyRequest } from 'fastify';
 import { EventType, Prisma } from '@prisma/client';
 import { Query_Dto } from 'src/promotedEvent/dto';
 import { PublicApiDataService } from './public-api.data.service';
+import { EventsService } from 'src/events/events.service';
+import { QueryDto } from 'src/events/dto';
 @Injectable()
 export class PublicApiService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly widget: WidgetsService,
     private readonly publicApiDataService: PublicApiDataService,
+    private readonly eventService: EventsService,
   ) { }
 
   async getWidgetById(id: string, req: FastifyRequest, query: Query_Dto) {
@@ -182,5 +185,14 @@ export class PublicApiService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+  async getPresetEvents(query: QueryDto) {
+    if ((query.limit || 10) + (query.offset || 0) > 100) {
+      throw new HttpException(
+        `Invalid request`,
+        HttpStatus.NOT_ACCEPTABLE,
+      );
+    }
+    return await this.eventService.getAllEvents(query);
   }
 }
