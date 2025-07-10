@@ -556,7 +556,7 @@ export class SharedService {
     accountId: string,
     remainingPoints: number,
   ) {
-    const { point,subscriptionId } = await this.getPointForRequest(column, accountId);
+    const { point, subscriptionId } = await this.getPointForRequest(column, accountId);
     if (point <= 0) {
       throw new HttpException(
         `You have reached the maximum limit to view data. Please get in touch with us.`,
@@ -589,7 +589,8 @@ export class SharedService {
           select: {
             plan: true,
             planEndDate: true,
-          }
+          },
+          orderBy: { createdAt: 'desc' }
         }
       },
     });
