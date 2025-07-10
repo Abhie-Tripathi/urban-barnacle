@@ -3,6 +3,7 @@ import { FastifyRequest } from 'fastify';
 import { PublicApiService } from './public-api.service';
 import { Query_Dto } from 'src/promotedEvent/dto';
 import { QueryDto, QueryHttpDto } from 'src/events/dto';
+import { QueryFilterDto } from './dto';
 
 @Controller('public')
 export class PublicApiController {
@@ -46,7 +47,7 @@ export class PublicApiController {
     }
   }
   @Get('events')
-  async getpresetEvents(@Query() query: QueryHttpDto) {
+  async getpresetEvents(@Query() query: QueryFilterDto) {
     try {
       const queryDto: QueryDto = {
         ...query,
@@ -55,7 +56,7 @@ export class PublicApiController {
             ? 'suggestion'
             : 'basic,advance,insights,audience',
       };
-      const result = this.service.getPresetEvents(queryDto);
+      const result = await this.service.getPresetEvents(queryDto);
       return { data: result };
     } catch (error) {
       return {

@@ -102,7 +102,7 @@ export class EventsDataService {
     const response = await fetch(url, req);
     const result = await response.json();
     // console.error(result);
-    // console.log(result);
+    console.log(result);
     if (result.statusCode) {
       throw result;
     }

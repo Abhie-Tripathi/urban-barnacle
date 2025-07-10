@@ -33,6 +33,15 @@ export const TrackerEventTypeGroup = {
 export const EventTabs = { ...TrackerEventTypeGroup, ...TrackerEventStatus };
 
 export const TrackerQuerySchema = z.object({
+  orgName: z.string().optional(),
+  // orgId: z.string().optional(),
+  orgWebsite: z.string().optional(),
+  userName: z.string().optional(),
+  userOrgWebsite: z.string().optional(),
+  // userSocialLink: z.string().optional(),
+  // userDepartment: z.string().optional(),
+  // userRole: z.string().optional(),
+  // userDesignation: z.string().optional(),
   searchByEntity: z
     .string()
     .refine((val) => val in SearchByEntity)
