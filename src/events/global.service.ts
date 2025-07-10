@@ -81,7 +81,7 @@ export function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
       checkToPassFilter = false;
       rootTodiscard = key;
     }
-    console.log("showsshowsshows", shows, checkToPassFilter, rootTodiscard);
+    // console.log("showsshowsshows", shows, checkToPassFilter, rootTodiscard);
 
   }
 
