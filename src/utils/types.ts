@@ -1,5 +1,6 @@
 import {
   GeomType,
+  JobSource,
   LocationType,
   OnboardingState,
   RadiusUnit,
@@ -99,6 +100,7 @@ export const Industries = {
     Media_Marketing: 'Media_Marketing',
     Corporate_Brands: 'Corporate_Brands',
     Others: 'Others',
+    Infra_Technology: 'Infra_Technology'
   },
   gtm: {
     Media_Marketing: 'Media_Marketing',
@@ -235,6 +237,7 @@ export enum QueueActionOptions {
   SEND_CONTACT_US_EMAIL = 'SEND_CONTACT_US_EMAIL',
   SEND_CONTACT_ERROR_EMAIL = 'SEND_CONTACT_ERROR_EMAIL',
   SEND_TRACKER_EXPORT_MAIL = 'SEND_TRACKER_EXPORT_MAIL',
+  CRON_USER_TRACKER_IMPORT = 'CRON_USER_TRACKER_IMPORT',
 }
 
 // export type TrackerParams = {

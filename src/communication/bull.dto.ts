@@ -144,6 +144,12 @@ const trackerExportInputSchema = z.object({
 });
 
 export class trackerExportDto extends createZodDto(trackerExportInputSchema) { }
+
+const usertrackerImportchema = z.object({
+  email: z.string(),
+  sourceId: z.string()
+})
+export class UserTrackerImportDto extends createZodDto(usertrackerImportchema) { }
 // Union of all DTO schemas
 export const PayloadDTO = z.union([
   AccessEmailDataSchema,
@@ -157,5 +163,6 @@ export const PayloadDTO = z.union([
   userInviteSchema,
   contactUsSchema,
   ErrorContactSchema,
-  trackerExportInputSchema
+  trackerExportInputSchema,
+  usertrackerImportchema,
 ]);

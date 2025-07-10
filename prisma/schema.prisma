@@ -491,19 +491,6 @@ model Widget {
   eventId           Event[]         @relation("EventToWidget")
 }
 
-model RequestedJob {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String    @db.Uuid
-  source    JobSource
-  sourceId  String
-  processId Int?
-  status    JobStatus @default(PENDING)
-  inputData Json
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
 model Preset {
   id            String        @id @default(uuid()) @db.Uuid
   name          String        @unique
@@ -733,6 +720,20 @@ enum WidgetStatus {
   deactivate
 }
 
+model RequestedJob {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source     JobSource
+  sourceId   String
+  processId  Int?
+  status     JobStatus @default(PENDING)
+  inputData  Json
+  outputData Json      @default("{}")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
 enum JobSource {
   SEND_SIGNIN_OTP
   SEND_SIGNUP_OTP
@@ -747,6 +748,7 @@ enum JobSource {
   SEND_TRACKER_EXPORT_MAIL
   SEND_CONTACT_US_EMAIL
   SEND_CONTACT_ERROR_EMAIL
+  CRON_USER_TRACKER_IMPORT
 }
 
 enum JobStatus {
@@ -831,4 +833,3 @@ enum TrackerTypeTag {
   PAST
   NEW
 }
-

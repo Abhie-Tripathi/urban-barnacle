@@ -7,10 +7,13 @@ import { AuthGuard } from 'src/user/auth/guard';
 @Controller('others')
 export class OthersController {
   constructor(private readonly othersService: OthersService) { }
-  @UseGuards(AuthGuard)
+  
   @Get('preset')
   async getPresetData(@Query() query: PresetDto) {
     try {
+      if (query.limit > 20) {
+        query.limit = 20;
+      }
       return await this.othersService.getPresetData(query);
     } catch (error) {
       return error;

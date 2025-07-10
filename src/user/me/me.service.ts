@@ -27,7 +27,7 @@ export class MeService {
     private readonly savedLocationService: SavedLocationService,
     private readonly exportDataService: ExportDataService,
     private readonly sharedService: SharedService,
-  ) {}
+  ) { }
   async getMe(userId: string) {
     const user = await this.userDataService.getUsers({
       id: [userId as unknown as any],
@@ -89,8 +89,8 @@ export class MeService {
           ...search.filterValues,
           eventFormats: search.filterValues.eventFormats
             ? search.filterValues.eventFormats.map((format) =>
-                format === 'offline' ? 'in_person' : format,
-              )
+              format === 'offline' ? 'in_person' : format,
+            )
             : undefined,
         },
       };
@@ -124,7 +124,11 @@ export class MeService {
   async switchAccount(user: TCachedUser, accountId: string) {
     await this.userService.switchAccount(user, accountId);
   }
-
+  async getMyImportedTracker(
+    user: TCachedUser,
+  ) {
+    return await this.meDataService.getMyImportedTracker(user);
+  }
   // async getProfileData(userId: string) {
   //   try {
   //     const user = await this.prisma.user.findUnique({
