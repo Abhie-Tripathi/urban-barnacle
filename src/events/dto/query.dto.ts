@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { SortByOptions, Regions, timezones } from 'src/utils';
+import { SortByOptions, Regions, timezones, TrackerEventStatus, SearchByEntity } from 'src/utils';
 import {
   defaultEventTypes,
   EventStatus,
@@ -9,7 +9,7 @@ import {
   VisitorRangeTag,
 } from 'src/utils/types';
 import { LimitSchema, LimitSchemaWithoutDefault } from 'src/global_dto';
-import { SearchByEntity, TrackerEventStatus } from 'src/tracker/dto';
+// import { SearchByEntity, TrackerEventStatus } from 'src/tracker/dto';
 
 const scoreRange = {
   lte: 100,
@@ -22,7 +22,6 @@ const refineScore = {
     message: `score should be between ${scoreRange.gte} and ${scoreRange.lte}`,
   },
 };
-
 const Range = {
   gte: 0,
 };
@@ -643,7 +642,17 @@ export const QueryFilter = z.object({
   // userDepartment: z.string().optional(),
   // userRole: z.string().optional(),
   // userDesignation: z.string().optional(),
-  
+  searchByEntity: z
+    .string()
+    .refine((val) => val in SearchByEntity)
+    .transform((val) => val as keyof typeof SearchByEntity)
+    .optional(),
+  trackerEventStatus: z
+    .string()
+    .refine((val) => val in TrackerEventStatus)
+    .transform((val) => val as keyof typeof TrackerEventStatus)
+    .optional(),
+
 });
 
 export const FilterNames = Object.keys(QueryFilter.shape);
@@ -684,6 +693,16 @@ export const QueryHttpSchema = LimitSchemaWithoutDefault.extend(
         message: 'Invalid request source',
         params: { validOptions: ['research', 'trends'].join(', ') },
       })
+      .optional(),
+    // trackerEventStatus: z
+    //   .string()
+    //   .refine((val) => val in TrackerEventStatus)
+    //   .transform((val) => val as keyof typeof TrackerEventStatus)
+    //   .optional(),
+    searchByEntity: z
+      .string()
+      .refine((val) => val in SearchByEntity)
+      .transform((val) => val as keyof typeof SearchByEntity)
       .optional(),
   })
   .transform((data) => {

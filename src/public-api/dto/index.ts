@@ -1,6 +1,6 @@
 import { createZodDto } from "nestjs-zod";
 import { jobCompositeSchema, Show, View } from "src/events/dto";
-import { SearchByEntity, TrackerEventStatus } from "src/tracker/dto";
+import { SearchByEntity, TrackerEventStatus } from "src/utils";
 import { VisitorRangeTag } from "src/utils/types";
 import { z } from "zod";
 
