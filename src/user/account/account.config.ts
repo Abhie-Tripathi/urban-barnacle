@@ -204,10 +204,10 @@ export const accountConfig: AccountConfigDto = {
       "isFreqEnabled": false,
       "isAllowed": false
     },
-    // "eventRanking": {
-    //   "isRanking": false,
-    //   "isAllowed": false
-    // },
+    "eventRanking": {
+      "isRanking": false,
+      "isAllowed": false
+    },
     "audienceZone": {
       "isZoneEnabled": false,
       "isAllowed": false
@@ -220,26 +220,27 @@ export const accountConfig: AccountConfigDto = {
       "isEstimatedVisitorRangeTag": false,
       "isAllowed": false
     },
-    // "analytics": {
-    //   "isAnalyticsEnabled": false,
-    //   "isAllowed": false
-    // },
-    // "isForecasted": {
-    //   "isForecastedEnabled": false,
-    //   "isAllowed": false
-    // },
+    "isForecasted": {
+      "isForecastedEnabled": false,
+    },
     "audienceSpread": {
       "isAudienceEnabled": false,
       "isAllowed": false
     },
-    // "designation": {
-    //   "isProfileEnabled": false,
-    //   "isAllowed": false
-    // },
-    "economicImpact": {
-      "isEconomicImpactEnabled": false,
+    "designation": {
+      "isProfileEnabled": false,
       "isAllowed": false
     },
+    ...(process.env.BACKEND === 'geo' ? {
+      "economicImpact": {
+        "isEconomicImpactEnabled": false,
+        "isAllowed": false
+      },
+      "analytics": {
+        "isAnalyticsEnabled": false,
+        "isAllowed": false
+      },
+    } : {}),
     "keywords": {
       "isKeywordEnabled": false,
       "isAllowed": false

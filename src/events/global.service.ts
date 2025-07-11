@@ -29,7 +29,7 @@ export function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
     'eventFormats',
     'ratings',
     'status',
-    'top',
+    // 'top',
     'maturity',
     'entryType',
     'frequencies',
@@ -49,8 +49,8 @@ export function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
       checkToPassFilter = checkTheValue(main, sub);
     }
     if (!checkToPassFilter) rootTodiscard = key;
-    if (key === 'ratings') shows = shows.replace('rankings', '');
-    if (key === 'top') shows = shows.replace('top', '');
+    if (key === 'ratings') shows = shows.replace('ratings', '');
+    // if (key === 'top') shows = shows.replace('top', '');
     if (key === 'maturity') shows = shows.replace('maturity', '');
   }
   if (data.branded && checkToPassFilter) {
@@ -67,46 +67,103 @@ export function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
     if (!checkToPassFilter) rootTodiscard = 'onlySeries';
   }
   // Advanced boolean filters
-  const advancedKeys = [
-    // 'eventRanking',
-    'audienceZone',
-    // 'isforecasted',
-    // 'analytics',
-    // 'designation',
-    'economicImpact',
-  ];
-  for (const key of advancedKeys) {
-    if (!checkToPassFilter) break;
-    if (shows.includes(key)) {
-      checkToPassFilter = false;
-      rootTodiscard = key;
-    }
-    // console.log("showsshowsshows", shows, checkToPassFilter, rootTodiscard);
+  // const advancedKeys = [
+  //   // 'eventRanking',
+  //   'audienceZone',
+  //   // 'isforecasted',
+  //   // 'analytics',
+  //   // 'designation',
+  //   'economicImpact',
+  // ];
+  // for (const key of advancedKeys) {
+  //   if (!checkToPassFilter) break;
+  //   if (shows.includes(key)) {
+  //     checkToPassFilter = false;
+  //     rootTodiscard = key;
+  //   }
+  //   // console.log("showsshowsshows", shows, checkToPassFilter, rootTodiscard);
 
+  // }
+
+
+  if (data?.designation && checkToPassFilter) {
+    const main = query?.designations ?? [];
+    const slugs = (data.designation.enabledValue as any[]).map(d => d.slug);
+    const ids = (data.designation.enabledValue as any[]).map(d => d.id);
+    checkToPassFilter = checkTheValue(main, slugs) || checkTheValue(main, ids);
+    if (!checkToPassFilter) rootTodiscard = 'designations';
   }
-
   // Category check
-  if (data?.categories?.enabledValue && checkToPassFilter) {
+  if (data?.categories && checkToPassFilter) {
     const main = query?.categories ?? [];
     const slugs = (data.categories.enabledValue as any[]).map(d => d.slug);
     const ids = (data.categories.enabledValue as any[]).map(d => d.id);
     checkToPassFilter = checkTheValue(main, slugs) || checkTheValue(main, ids);
     if (!checkToPassFilter) rootTodiscard = 'categories';
   }
-
+  if (data?.eventRanking && checkToPassFilter) {
+    checkToPassFilter = this.checkAdvancedConditions(data, 'eventRanking');
+    if (checkToPassFilter && data.eventRanking.top['isAllowed']) {
+      const main = [String(query?.top ?? 0)];
+      const sub = (data.eventRanking.top?.enabledValue as any[]) || [];
+      checkToPassFilter = checkTheValue(main, sub);
+      if (!checkToPassFilter) rootTodiscard = 'top';
+    } else {
+      checkToPassFilter = false;
+    }
+    if (checkToPassFilter && data.eventRanking.trustScore['isAllowed']) {
+      const main_gte = String(query?.trust_score_gte ?? 0);
+      const main_lte = String(query?.trust_score_lte ?? 100);
+      const sub_gte = (data.eventRanking.trustScore?.trust_score_gte);
+      const sub_lte = (data.eventRanking.trustScore?.trust_score_lte);
+      checkToPassFilter = sub_gte >= main_gte && sub_lte >= main_lte;
+      if (!checkToPassFilter) rootTodiscard = 'trustScore';
+    } else {
+      checkToPassFilter = false;
+    }
+  }
+  if (data?.analytics && checkToPassFilter) {
+    checkToPassFilter = this.checkAdvancedConditions(data, 'analytics');
+    if (checkToPassFilter && data.analytics.internationalScore['isAllowed']) {
+      const main_gte = String(query?.international_score_gte ?? 0);
+      const main_lte = String(query?.international_score_lte ?? 100);
+      const sub_gte = (data.analytics.trustScore?.international_score_gte);
+      const sub_lte = (data.analytics.trustScore?.international_score_lte);
+      checkToPassFilter = sub_gte >= main_gte && sub_lte >= main_lte;
+      if (!checkToPassFilter) rootTodiscard = 'internationalScore';
+    } else {
+      checkToPassFilter = false;
+    }
+    if (checkToPassFilter && data.analytics.inboundScore['isAllowed']) {
+      const main_gte = String(query?.inbound_score_gte ?? 0);
+      const main_lte = String(query?.inbound_score_lte ?? 100);
+      const sub_gte = (data.analytics.trustScore?.inbound_score_gte);
+      const sub_lte = (data.analytics.trustScore?.inbound_score_lte);
+      checkToPassFilter = sub_gte >= main_gte && sub_lte >= main_lte;
+      if (!checkToPassFilter) rootTodiscard = 'inboundScore';
+    } else {
+      checkToPassFilter = false;
+    }
+  }
   // Duration checks
   if (data?.durations?.active_gte && checkToPassFilter) {
-    const [start, end] = data.durations.active_gte.split(',').map(d => new Date(d));
-    const [rangeStart, rangeEnd] = (query.active_gte ?? '').split(',').map(d => new Date(d));
-    checkToPassFilter = start <= rangeStart && rangeEnd <= end;
-    if (!checkToPassFilter) rootTodiscard = 'active_gte';
+    checkToPassFilter = this.checkAdvancedConditions(data, 'durations');
+    if (checkToPassFilter) {
+      const [start, end] = data.durations.active_gte.split(',').map(d => new Date(d));
+      const [rangeStart, rangeEnd] = (query.active_gte ?? '').split(',').map(d => new Date(d));
+      checkToPassFilter = start <= rangeStart && rangeEnd <= end;
+      if (!checkToPassFilter) rootTodiscard = 'active_gte';
+    }
   }
 
   if (data?.durations?.active_lte && checkToPassFilter) {
-    const [start, end] = data.durations.active_lte.split(',').map(d => new Date(d));
-    const [rangeStart, rangeEnd] = (query.active_lte ?? '').split(',').map(d => new Date(d));
-    checkToPassFilter = start <= rangeStart && rangeEnd <= end;
-    if (!checkToPassFilter) rootTodiscard = 'active_lte';
+    checkToPassFilter = this.checkAdvancedConditions(data, 'durations');
+    if (checkToPassFilter) {
+      const [start, end] = data.durations.active_lte.split(',').map(d => new Date(d));
+      const [rangeStart, rangeEnd] = (query.active_lte ?? '').split(',').map(d => new Date(d));
+      checkToPassFilter = start <= rangeStart && rangeEnd <= end;
+      if (!checkToPassFilter) rootTodiscard = 'active_lte';
+    }
   }
 
   if (data.durations && !query.active_gte && !query.active_lte) {

@@ -677,9 +677,9 @@ export const QueryHttpSchema = LimitSchemaWithoutDefault.extend(
       .optional(),
   })
   .transform((data) => {
-    // data['show'] = (Object.values(Show) as Show[]).filter((item) => {
-    //   return item !== Show.isNew && item !== Show.old;
-    // });
+    data['show'] = (Object.values(Show) as Show[]).filter((item) => {
+      return item !== Show.isNew && item !== Show.old;
+    });
     if (data.view !== 'map' && !data.limit) {
       data.limit = 10;
     }
