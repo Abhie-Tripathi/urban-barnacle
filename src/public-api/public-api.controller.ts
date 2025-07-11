@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import { FastifyRequest } from 'fastify';
 import { PublicApiService } from './public-api.service';
 import { Query_Dto } from 'src/promotedEvent/dto';
@@ -46,8 +46,8 @@ export class PublicApiController {
       };
     }
   }
-  @Get('events')
-  async getpresetEvents(@Query() query: QueryFilterDto) {
+  @Post('events')
+  async getpresetEvents(@Body() query: QueryFilterDto) {
     try {
       const queryDto: QueryDto = {
         ...query,
