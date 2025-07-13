@@ -790,7 +790,7 @@ export class TrackerService {
           sourceId: tracker.id,
           // interestedUserId: user.id,
           accountId: user.accountId,
-          limit: params.limit,
+          limit: params.view === View.calendar ? 10000 : params.limit,
           offset: params.offset,
         }),
         this.intentDataService.getUserEventInterestCountForBookmark({
@@ -847,7 +847,7 @@ export class TrackerService {
         ...convertedParams,
         limit: params.limit,
         offset: 0,
-        view: View.tracker,
+        view: params.view || View.tracker,
         showValues: showValues,
       } as QueryDto;
 
