@@ -143,7 +143,7 @@ const conditionsSchema = z
       path: ['logic'], // Apply the error to the `logic` key
     }
   );
-const jobCompositeSchema = z.strictObject({
+export const jobCompositeSchema = z.strictObject({
   designationIds: z.array(z.string()).optional(),
   conditions: conditionsSchema.optional(),
 });
@@ -786,7 +786,7 @@ export const CountQuerySchema = QueryFilter.extend({
   return data;
 });
 
-export class CountQueryDto extends createZodDto(CountQuerySchema) {  }
+export class CountQueryDto extends createZodDto(CountQuerySchema) { }
 const similarEventsSchema = QuerySchema.omit({ showValues: true })
   .extend({
     showValues: z.string().default('basic,advance,insights,audience'),
