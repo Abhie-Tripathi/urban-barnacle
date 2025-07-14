@@ -589,6 +589,7 @@ export class SharedService {
           select: {
             plan: true,
             planEndDate: true,
+            planRenewalDate: true
           },
           orderBy: { createdAt: 'desc' }
         }
@@ -610,6 +611,7 @@ export class SharedService {
     return {
       membership: membershipMap[membership.plan],
       endDate: membership.planEndDate,
+      planRenewalDate: membership.planRenewalDate,
     };
   }
   async getLocationData(locationIds: string[]) {
