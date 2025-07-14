@@ -51,10 +51,7 @@ export class PublicApiController {
     try {
       const queryDto: QueryDto = {
         ...query,
-        showValues:
-          query.view === 'suggestion'
-            ? 'suggestion'
-            : 'basic,advance,insights,audience',
+        showValues: 'basic,advance,insights,audience',
       };
       const result = await this.service.getPresetEvents(queryDto);
       return { data: result };

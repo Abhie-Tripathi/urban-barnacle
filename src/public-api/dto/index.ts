@@ -1,10 +1,11 @@
 import { createZodDto } from "nestjs-zod";
 import { jobCompositeSchema, Show, View } from "src/events/dto";
+import { LimitDto, LimitSchema } from "src/global_dto";
 import { SearchByEntity, TrackerEventStatus } from "src/utils";
 import { VisitorRangeTag } from "src/utils/types";
 import { z } from "zod";
 
-const QueryFilter = z.strictObject({
+const QueryFilter = LimitSchema.extend({
     //   eventIds: z
     //     .string()
     //     .transform((data) => {
@@ -486,7 +487,7 @@ const QueryFilter = z.strictObject({
         .optional(),
     // showValues: z.string(),
     view: z.nativeEnum(View).optional().default(View.list),
-});
+}).strict();
 
 // export const FilterNames = Object.keys(QueryFilter.shape);
 

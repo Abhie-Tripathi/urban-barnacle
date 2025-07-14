@@ -187,7 +187,7 @@ export class PublicApiService {
     }
   }
   async getPresetEvents(query: QueryDto) {
-    if ((query.limit || 10) + (query.offset || 0) > 100) {
+    if ((query.limit || 10) + (query.offset || 0) > 50) {
       throw new HttpException(
         `Invalid request`,
         HttpStatus.NOT_ACCEPTABLE,
