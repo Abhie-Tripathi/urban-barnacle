@@ -478,7 +478,7 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
       throw new HttpException(`subscription not found`, HttpStatus.NOT_FOUND);
     }
     if (!currentSubscriptionData.planRenewalDate) {
-      return { message: 'subscription is already cancelled' };
+      return { message: 'subscription is already cancelled', cancelled: true };
     }
     const currentStripeId: string = (currentSubscriptionData.planMetaData as object)['paymentData']['id'];
     const [updateCurrentSubscription, stripeCancelResponse] = await Promise.all([
@@ -506,7 +506,7 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
       qna: data.qna, sourceId: currentSubscriptionData.id,
       stripeId: currentStripeId, userEmail: user.email
     }, user.id)
-    return { message: 'subscription is cancelled' };
+    return { message: 'subscription is cancelled', cancelled: true };
   }
   async cancelMailForSubscripotion(data: SubscriptionCancelDto, userId: string) {
     return await this.communicationService.createJobForBull(QueueActionOptions.SEND_SUBSCRIPTION_CANCEL_MAIL, data, userId);
