@@ -844,10 +844,10 @@ export class TrackerService {
 
       const eventParams = {
         eventIds: savedEventsIds,
+        view: View.tracker,
         ...convertedParams,
         limit: params.limit,
         offset: 0,
-        view: params.view || View.tracker,
         showValues: showValues,
       } as QueryDto;
 
