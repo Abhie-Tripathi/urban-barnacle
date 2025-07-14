@@ -13,20 +13,23 @@ import {
   accountConfig,
   AccountConfigDto,
   MembershipDto,
+  UpdateCurrentMembershipDto,
 } from './account.config';
-import { membershipMap, membershipMapForToken, TCachedUser } from 'src/utils/types';
+import { membershipMap, membershipMapForToken, QueueActionOptions, TCachedUser } from 'src/utils/types';
 import { InputJsonObject, JsonArray } from '@prisma/client/runtime/library';
 import { getNameFromEmail } from 'src/utils';
 import { createHash, randomInt, randomUUID } from 'crypto';
 import { EventsService } from 'src/events/events.service';
 import { RedisService } from 'src/redis/redis.service';
+import { SubscriptionCancelDto } from 'src/communication/bull.dto';
+import { CommunicationService } from 'src/communication/communication.service';
 
 @Injectable()
 export class AccountDataService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventService: EventsService,
-    private readonly redisService: RedisService,
+    private readonly communicationService: CommunicationService
   ) { }
   async createSubscription(data: CreateSubscriptionDto) {
     const subscription = await this.prisma.subscription.create({
@@ -152,7 +155,7 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
         currentSubscriptionId: true
       }
     })]);
-    console.log("Number(checkForDuplicatePaymentId[0].count_record)Number(checkForDuplicatePaymentId[0].count_record)", Number(checkForDuplicatePaymentId[0].count_record));
+    // console.log("Number(checkForDuplicatePaymentId[0].count_record)Number(checkForDuplicatePaymentId[0].count_record)", Number(checkForDuplicatePaymentId[0].count_record));
 
     if (!currentSubscriptionId) {
       throw new HttpException(`subscription not found`, HttpStatus.NOT_FOUND);
@@ -357,7 +360,7 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
       throw new HttpException('subscription not found', HttpStatus.BAD_REQUEST);
     }
     if (data?.status && data.status !== 'active') {
-      console.warn('subscription status not active:', data);
+      // console.warn('subscription status not active:', data);
       throw new HttpException(
         'Wrong subscription status received',
         HttpStatus.BAD_REQUEST,
@@ -390,10 +393,10 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
     const data = await response.json();
 
     if (data['error']) {
-      console.error('Stripe Error:', data);
+      // console.error('Stripe Error:', data);
       throw new HttpException('Failed to update metadata', HttpStatus.BAD_REQUEST);
     }
-    console.log(data);
+    // console.log(data);
 
     return data;
   }
@@ -409,7 +412,7 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
         accountId: true
       }
     }), this.getPaymentInfoById(body.subscriptionRenewalId)]);
-    console.log(checkSubsscription);
+    // console.log(checkSubsscription);
 
     if (!checkSubsscription || !subscriptionId || !checkSubsscription.accountId) {
       throw new HttpException(`Invalid subscription`, HttpStatus.NOT_FOUND);
@@ -420,5 +423,92 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
 
     return create;
 
+  }
+  async cancelSubscriptionAtPeriodEnd(subscriptionId: string) {
+    if (!subscriptionId) {
+      throw new HttpException('Subscription ID is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const url = `${process.env.PAYMENT_BASE_URL || ''}v1/subscriptions/${subscriptionId}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.PAYMENT_TOKEN}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        cancel_at_period_end: 'true',
+      }),
+    });
+
+    const data = await response.json();
+    // console.log("Asdasdasdasdsada", data);
+
+    if (data?.error) {
+      throw new HttpException(
+        data.error.message || 'Failed to cancel subscription',
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    return data;
+  }
+
+  async updateCurrentMemberShip(user: TCachedUser, data: UpdateCurrentMembershipDto) {
+    const currentSubscriptionIdFromAccount = await this.prisma.account.findFirst({
+      where: {
+        id: user.accountId
+      },
+      select: {
+        currentSubscriptionId: true,
+      }
+    });
+    if (!currentSubscriptionIdFromAccount) {
+      throw new HttpException(`subscription not found`, HttpStatus.NOT_FOUND);
+    }
+
+    const currentSubscriptionData = await this.prisma.subscription.findFirst({
+      where: {
+        id: currentSubscriptionIdFromAccount.currentSubscriptionId
+      },
+    });
+
+    if (!currentSubscriptionData) {
+      throw new HttpException(`subscription not found`, HttpStatus.NOT_FOUND);
+    }
+    if (!currentSubscriptionData.planRenewalDate) {
+      return { message: 'subscription is already cancelled' };
+    }
+    const currentStripeId: string = (currentSubscriptionData.planMetaData as object)['paymentData']['id'];
+    const [updateCurrentSubscription, stripeCancelResponse] = await Promise.all([
+      this.prisma.subscription.update({
+        where: {
+          id: currentSubscriptionData.id
+        },
+        data: {
+          planRenewalDate: null
+        }
+      }),
+      this.cancelSubscriptionAtPeriodEnd(currentStripeId)
+    ]);
+    await this.prisma.subscription.update({
+      where: {
+        id: currentSubscriptionData.id
+      },
+      data: {
+        planMetaData: { ...(currentSubscriptionData.planMetaData as object), cancelData: stripeCancelResponse },
+        planRenewalDate: null
+      }
+    });
+    this.cancelMailForSubscripotion({
+      cancelDate: updateCurrentSubscription.updatedAt.toISOString(),
+      qna: data.qna, sourceId: currentSubscriptionData.id,
+      stripeId: currentStripeId, userEmail: user.email
+    }, user.id)
+    return { message: 'subscription is cancelled' };
+  }
+  async cancelMailForSubscripotion(data: SubscriptionCancelDto, userId: string) {
+    return await this.communicationService.createJobForBull(QueueActionOptions.SEND_SUBSCRIPTION_CANCEL_MAIL, data, userId);
   }
 }

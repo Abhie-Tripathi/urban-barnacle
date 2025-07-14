@@ -150,6 +150,14 @@ const usertrackerImportchema = z.object({
   sourceId: z.string()
 })
 export class UserTrackerImportDto extends createZodDto(usertrackerImportchema) { }
+const subscriptionCancel = z.strictObject({
+  userEmail: z.string(),
+  stripeId: z.string(),
+  cancelDate: z.string(),
+  qna: z.record(z.string(), z.string()),
+  sourceId: z.string(),
+});
+export class SubscriptionCancelDto extends createZodDto(subscriptionCancel) { }
 // Union of all DTO schemas
 export const PayloadDTO = z.union([
   AccessEmailDataSchema,
@@ -165,4 +173,5 @@ export const PayloadDTO = z.union([
   ErrorContactSchema,
   trackerExportInputSchema,
   usertrackerImportchema,
+  subscriptionCancel,
 ]);

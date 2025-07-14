@@ -749,6 +749,7 @@ enum JobSource {
   SEND_CONTACT_US_EMAIL
   SEND_CONTACT_ERROR_EMAIL
   CRON_USER_TRACKER_IMPORT
+  SEND_SUBSCRIPTION_CANCEL_MAIL
 }
 
 enum JobStatus {
@@ -756,6 +757,7 @@ enum JobStatus {
   COMPLETED
   FAILED
   PROCESSING
+  CANCELLED
 }
 
 enum EnquiryStatus {
