@@ -53,11 +53,16 @@ export class SubscriptionEmailWorkerClass extends WorkerHost {
         <div style="color: white;">{answer}</div>
       </div>`;
             let qnaHtmlElement: string = '';
-            for (const key in jobdata.qna) {
+            for (const key in jobdata.qna || {}) {
                 let temp_qnaHtmlTemplate = String(qnaHtmlTemplate);
-                qnaHtmlElement = qnaHtmlElement + temp_qnaHtmlTemplate.replaceAll('{question}', key)
-                    .replaceAll('{answer}', jobdata.qna[key]) + '\n'
+                qnaHtmlElement = `<div class="qna">
+      <h3 style="color: #f0f0f0;">QnA Summary</h3>`+ qnaHtmlElement + temp_qnaHtmlTemplate.replaceAll('{question}', key)
+                        .replaceAll('{answer}', jobdata.qna[key]) + '\n'
             }
+            let temp_qnaHtmlTemplate = String(qnaHtmlTemplate);
+            jobdata.feedback ? qnaHtmlElement = `<div class="qna">
+      <h3 style="color: #f0f0f0;">FeedBack Summary</h3>`+ qnaHtmlElement + jobdata.feedback.replaceAll('{question}', 'feedbackByUser')
+                    .replaceAll('{answer}', jobdata.feedback) + '\n' : ''
             const trackerAccessTemplate = subscriptionCancelMail
                 .replace('{qna}', qnaHtmlElement)
                 .replace('{userEmail}', jobdata.userEmail)

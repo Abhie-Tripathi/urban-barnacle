@@ -114,7 +114,8 @@ export const membershipSchema = z
 
 export class MembershipDto extends createZodDto(membershipSchema) { }
 export const updateMembershipSchema = z.strictObject({
-  qna: z.record(z.string()),
+  qna: z.record(z.string()).optional(),
+  feedback: z.string().optional()
 })
 export class UpdateCurrentMembershipDto extends createZodDto(updateMembershipSchema) { }
 export const AccountConfigSchema = z.strictObject({

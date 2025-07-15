@@ -1498,10 +1498,6 @@ export const subscriptionCancelMail: string = `<!DOCTYPE html>
       <div><span class="label">Subscription ID:</span> <span class="value">{stripeId}</span></div>
       <div><span class="label">Canceled At:</span> <span class="value">{cancelDate}</span></div>
     </div>
-
-    <div class="qna">
-      <h3 style="color: #f0f0f0;">Feedback Summary</h3>
-
      {qna}
     </div>
 
