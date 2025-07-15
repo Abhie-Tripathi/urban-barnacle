@@ -68,8 +68,8 @@ export class SubscriptionEmailWorkerClass extends WorkerHost {
                 .replace('{userEmail}', jobdata.userEmail)
                 .replace('{stripeId}', jobdata.stripeId)
                 .replace('{cancelDate}', jobdata.cancelDate);
-            const { data, error } = await this.email.mailSender(
-                process.env.SUBSCRIPTION_CANCAL_MAIL_RECIPIENTS || '',
+            const { data, error } = await this.email.multiMailSender(
+                (process.env.SUBSCRIPTION_CANCAL_MAIL_RECIPIENTS || '').split(','),
                 emailSenderAddress,
                 `Subscription Cancellation By ${jobdata.userEmail}`,
                 trackerAccessTemplate,
