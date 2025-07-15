@@ -69,7 +69,7 @@ export class SubscriptionEmailWorkerClass extends WorkerHost {
                 .replace('{stripeId}', jobdata.stripeId)
                 .replace('{cancelDate}', jobdata.cancelDate);
             const { data, error } = await this.email.multiMailSender(
-                (process.env.SUBSCRIPTION_CANCAL_MAIL_RECIPIENTS || '').split(','),
+                (process.env.SUBSCRIPTION_CANCEL_MAIL_RECIPIENTS || '').split(','),
                 emailSenderAddress,
                 `Subscription Cancellation By ${jobdata.userEmail}`,
                 trackerAccessTemplate,
@@ -88,6 +88,7 @@ export class SubscriptionEmailWorkerClass extends WorkerHost {
             });
             return { done: true };
         } catch (error) {
+            console.error((error));
             console.log(JSON.stringify(error));
             const data = await this.prisma.requestedJob.update({
                 where: {

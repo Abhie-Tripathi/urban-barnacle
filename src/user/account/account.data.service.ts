@@ -477,9 +477,9 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
     if (!currentSubscriptionData) {
       throw new HttpException(`subscription not found`, HttpStatus.NOT_FOUND);
     }
-    if (!currentSubscriptionData.planRenewalDate) {
-      return { message: 'subscription is already cancelled', cancelled: true };
-    }
+    // if (!currentSubscriptionData.planRenewalDate) {
+    //   return { message: 'subscription is already cancelled', cancelled: true };
+    // }
     const currentStripeId: string = (currentSubscriptionData.planMetaData as object)['paymentData']['id'];
     const [updateCurrentSubscription, stripeCancelResponse] = await Promise.all([
       this.prisma.subscription.update({
@@ -490,7 +490,7 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
           planRenewalDate: null
         }
       }),
-      this.cancelSubscriptionAtPeriodEnd(currentStripeId)
+      {}// this.cancelSubscriptionAtPeriodEnd(currentStripeId)
     ]);
     await this.prisma.subscription.update({
       where: {
