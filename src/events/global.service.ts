@@ -36,7 +36,7 @@ export function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
     'estimatedVisitorRangeTag',
     'estimatedExhibitors',
     'audienceSpread',
-    'locationIds',
+    // 'locationIds',
   ];
 
   for (const key of conditionalChecks) {
@@ -84,10 +84,21 @@ export function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
   //   // console.log("showsshowsshows", shows, checkToPassFilter, rootTodiscard);
 
   // }
-
+  if (data?.locationIds && checkToPassFilter) {
+    checkToPassFilter = checkAdvancedConditions(data, 'locationIds');
+    if (checkToPassFilter) {
+      const main = query?.locationIds ?? [];
+      // const slugs = (data.locationIds.enabledValue as any[]).map(d => d.slug);
+      const ids = (data.locationIds.enabledValue as any[]).map(d => d.id);
+      checkToPassFilter = checkTheValue(main, ids);
+      if (!checkToPassFilter) rootTodiscard = 'designations';
+    } else {
+      checkToPassFilter = false;
+    }
+  }
 
   if (data?.designation && checkToPassFilter) {
-    checkToPassFilter = this.checkAdvancedConditions(data, 'designation');
+    checkToPassFilter = checkAdvancedConditions(data, 'designation');
     if (checkToPassFilter) {
       const main = query?.designations ?? [];
       const slugs = (data.designation.enabledValue as any[]).map(d => d.slug);
@@ -100,7 +111,7 @@ export function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
   }
   // Category check
   if (data?.categories && checkToPassFilter) {
-    checkToPassFilter = this.checkAdvancedConditions(data, 'categories');
+    checkToPassFilter = checkAdvancedConditions(data, 'categories');
     if (checkToPassFilter) {
       const main = query?.categories ?? [];
       const slugs = (data.categories.enabledValue as any[]).map(d => d.slug);
@@ -112,7 +123,7 @@ export function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
     }
   }
   if (data?.eventRanking && checkToPassFilter) {
-    checkToPassFilter = this.checkAdvancedConditions(data, 'eventRanking');
+    checkToPassFilter = checkAdvancedConditions(data, 'eventRanking');
     if (checkToPassFilter && data.eventRanking.top['isAllowed']) {
       const main = [String(query?.top ?? 0)];
       const sub = (data.eventRanking.top?.enabledValue as any[]) || [];
@@ -133,7 +144,7 @@ export function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
     }
   }
   if (data?.analytics && checkToPassFilter) {
-    checkToPassFilter = this.checkAdvancedConditions(data, 'analytics');
+    checkToPassFilter = checkAdvancedConditions(data, 'analytics');
     if (checkToPassFilter && data.analytics.internationalScore['isAllowed']) {
       const main_gte = String(query?.international_score_gte ?? 0);
       const main_lte = String(query?.international_score_lte ?? 100);
@@ -157,7 +168,7 @@ export function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
   }
   // Duration checks
   if (data?.durations?.active_gte && checkToPassFilter) {
-    checkToPassFilter = this.checkAdvancedConditions(data, 'durations');
+    checkToPassFilter = checkAdvancedConditions(data, 'durations');
     if (checkToPassFilter) {
       const [start, end] = data.durations.active_gte.split(',').map(d => new Date(d));
       const [rangeStart, rangeEnd] = (query.active_gte ?? '').split(',').map(d => new Date(d));
@@ -167,7 +178,7 @@ export function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
   }
 
   if (data?.durations?.active_lte && checkToPassFilter) {
-    checkToPassFilter = this.checkAdvancedConditions(data, 'durations');
+    checkToPassFilter = checkAdvancedConditions(data, 'durations');
     if (checkToPassFilter) {
       const [start, end] = data.durations.active_lte.split(',').map(d => new Date(d));
       const [rangeStart, rangeEnd] = (query.active_lte ?? '').split(',').map(d => new Date(d));
