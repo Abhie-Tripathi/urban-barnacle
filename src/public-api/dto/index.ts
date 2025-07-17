@@ -487,6 +487,7 @@ const QueryFilter = LimitSchema.extend({
         .optional(),
     // showValues: z.string(),
     view: z.nativeEnum(View).optional().default(View.list),
+    trackerDates: z.string().optional()
 }).strict();
 
 // export const FilterNames = Object.keys(QueryFilter.shape);
