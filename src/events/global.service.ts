@@ -87,19 +87,29 @@ export function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
 
 
   if (data?.designation && checkToPassFilter) {
-    const main = query?.designations ?? [];
-    const slugs = (data.designation.enabledValue as any[]).map(d => d.slug);
-    const ids = (data.designation.enabledValue as any[]).map(d => d.id);
-    checkToPassFilter = checkTheValue(main, slugs) || checkTheValue(main, ids);
-    if (!checkToPassFilter) rootTodiscard = 'designations';
+    checkToPassFilter = this.checkAdvancedConditions(data, 'designation');
+    if (checkToPassFilter) {
+      const main = query?.designations ?? [];
+      const slugs = (data.designation.enabledValue as any[]).map(d => d.slug);
+      const ids = (data.designation.enabledValue as any[]).map(d => d.id);
+      checkToPassFilter = checkTheValue(main, slugs) || checkTheValue(main, ids);
+      if (!checkToPassFilter) rootTodiscard = 'designations';
+    } else {
+      checkToPassFilter = false;
+    }
   }
   // Category check
   if (data?.categories && checkToPassFilter) {
-    const main = query?.categories ?? [];
-    const slugs = (data.categories.enabledValue as any[]).map(d => d.slug);
-    const ids = (data.categories.enabledValue as any[]).map(d => d.id);
-    checkToPassFilter = checkTheValue(main, slugs) || checkTheValue(main, ids);
-    if (!checkToPassFilter) rootTodiscard = 'categories';
+    checkToPassFilter = this.checkAdvancedConditions(data, 'categories');
+    if (checkToPassFilter) {
+      const main = query?.categories ?? [];
+      const slugs = (data.categories.enabledValue as any[]).map(d => d.slug);
+      const ids = (data.categories.enabledValue as any[]).map(d => d.id);
+      checkToPassFilter = checkTheValue(main, slugs) || checkTheValue(main, ids);
+      if (!checkToPassFilter) rootTodiscard = 'categories';
+    } else {
+      checkToPassFilter = false;
+    }
   }
   if (data?.eventRanking && checkToPassFilter) {
     checkToPassFilter = this.checkAdvancedConditions(data, 'eventRanking');
