@@ -756,6 +756,7 @@ enum JobStatus {
   COMPLETED
   FAILED
   PROCESSING
+  CANCELLED
 }
 
 enum EnquiryStatus {
