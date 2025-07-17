@@ -79,7 +79,7 @@ const GetTrackerEventsSchema = TrackerEventSearchSchema.extend({
       }
       return item !== Show.old && item !== Show.isNew;
     });
-    console.log(data.show);
+    // console.log(data.show);
     if (data.view !== 'map' && !data.limit) {
       data.limit = 10;
     }

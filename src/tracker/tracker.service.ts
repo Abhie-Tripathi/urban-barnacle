@@ -1553,7 +1553,7 @@ export class TrackerService {
         ...(tracker.filterValues as Object),
         ...convertedParams,
         limit: params.limit,
-        offset: 0,
+        offset: params.offset,
         view: params.view || View.tracker,
         trackerId: trackerId,
         showValues: showValues,
