@@ -94,7 +94,7 @@ export class EventsService {
     // console.log({ convertedParams }, { nonEmptyParams });
     const fetchedEvents =
       await this.eventsDataService.getEvents(convertedParams);
-    console.log(fetchedEvents);
+    // console.log(fetchedEvents);
     let events = fetchedEvents;
     if (['list', 'tracker'].includes(query.view)) {
       let userInterests = {};
