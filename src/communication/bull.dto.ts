@@ -151,11 +151,12 @@ const usertrackerImportchema = z.object({
 })
 export class UserTrackerImportDto extends createZodDto(usertrackerImportchema) { }
 const subscriptionCancel = z.strictObject({
-  userEmail: z.string(),
+  userId: z.string(),
   stripeId: z.string(),
   cancelDate: z.string(),
+  subscriptionId: z.string(),
   qna: z.record(z.string(), z.string()).optional(),
-  feedback: z.string().optional(),
+  feedback: z.string(),
   sourceId: z.string(),
 });
 export class SubscriptionCancelDto extends createZodDto(subscriptionCancel) { }

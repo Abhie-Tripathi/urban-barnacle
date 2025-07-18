@@ -48,30 +48,35 @@ export class SubscriptionEmailWorkerClass extends WorkerHost {
                 },
             });
             const userData = jobdata.accessMetaData;
-            const qnaHtmlTemplate: string = ` <div class="qna-item">
-        <div style="color: white;"><strong>{question}</strong></div>
-        <div style="color: white;">{answer}</div>
+            const qnaHtmlTemplate: string = ` <div style="margin-top: 10px">
+        <div><strong>Question{count} {question}</strong></div>
+        <div>Question{count} {answer}</div>
       </div>`;
             let qnaHtmlElement: string = '';
+            let count: number = 1;
             for (const key in jobdata.qna || {}) {
                 let temp_qnaHtmlTemplate = String(qnaHtmlTemplate);
-                qnaHtmlElement = `<div class="qna">
-      <h3 style="color: #f0f0f0;">QnA Summary</h3>`+ qnaHtmlElement + temp_qnaHtmlTemplate.replaceAll('{question}', key)
-                        .replaceAll('{answer}', jobdata.qna[key]) + '\n'
+                qnaHtmlElement = qnaHtmlElement + temp_qnaHtmlTemplate.replaceAll('{question}', key)
+                    .replaceAll('{answer}', jobdata.qna[key]).replace('{count}',count+'') + '\n';
+                count++;
             }
-            let temp_qnaHtmlTemplate = String(qnaHtmlTemplate);
-            jobdata.feedback ? qnaHtmlElement = `<div class="qna">
-      <h3 style="color: #f0f0f0;">FeedBack Summary</h3>`+ qnaHtmlElement + jobdata.feedback.replaceAll('{question}', 'feedbackByUser')
-                    .replaceAll('{answer}', jobdata.feedback) + '\n' : ''
+             const FqnaHtmlTemplate: string = ` <div style="margin-top: 10px">
+        <div><strong>{question}</strong></div>
+        <div>{answer}</div>
+      </div>`;
+            let temp_qnaHtmlTemplate = String(FqnaHtmlTemplate);
+            qnaHtmlElement = qnaHtmlElement + temp_qnaHtmlTemplate.replaceAll('{question}', 'Additional Comment ')
+                .replaceAll('{answer}', jobdata.feedback).replace('{count}','') + '\n';
             const trackerAccessTemplate = subscriptionCancelMail
                 .replace('{qna}', qnaHtmlElement)
-                .replace('{userEmail}', jobdata.userEmail)
+                .replace('{userId}', jobdata.userId)
                 .replace('{stripeId}', jobdata.stripeId)
-                .replace('{cancelDate}', jobdata.cancelDate);
+                .replace('{cancelDate}', jobdata.cancelDate)
+                .replace('{subscriptionId}', jobdata.subscriptionId);
             const { data, error } = await this.email.multiMailSender(
                 (process.env.SUBSCRIPTION_CANCEL_MAIL_RECIPIENTS || '').split(','),
                 emailSenderAddress,
-                `Subscription Cancellation By ${jobdata.userEmail}`,
+                `WHR Subscription Cancellation By ${jobdata.userEmail}`,
                 trackerAccessTemplate,
             );
             let status = 'COMPLETED' as JobStatus;

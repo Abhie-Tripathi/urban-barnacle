@@ -1441,70 +1441,32 @@ export const exportFailMailTemplate: string =
 
 export const subscriptionCancelMail: string = `<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Subscription Cancellation Notice</title>
-  <style>
-    body {
-      background-color: #1e1e2f;
-      color: #e0e0e0;
-      font-family: 'Roboto', sans-serif;
-      padding: 40px;
-    }
-    .card {
-      max-width: 680px;
-      margin: auto;
-      background-color: #2a2a3b;
-      border-radius: 10px;
-      padding: 30px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.3);
-    }
-    h2 {
-      color: #f94f6d;
-    }
-    .meta, .qna {
-      margin-top: 20px;
-    }
-    .meta div, .qna div {
-      margin-bottom: 10px;
-    }
-    .label {
-      color: #999;
-      font-weight: 600;
-    }
-    .value {
-      color: #fff;
-    }
-    .qna-item {
-      padding: 10px;
-      background-color: #3a3a4f;
-      border-radius: 5px;
-      margin-bottom: 10px;
-    }
-    .footer {
-      margin-top: 30px;
-      font-size: 12px;
-      color: #bbb;
-      text-align: center;
-    }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h2>🚫 Subscription Cancellation Notice</h2>
-
-    <div class="meta">
-      <div><span class="label">User:</span> <span class="value">{userEmail}</span></div>
-      <div><span class="label">Subscription ID:</span> <span class="value">{stripeId}</span></div>
-      <div><span class="label">Canceled At:</span> <span class="value">{cancelDate}</span></div>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Subscription Cancellation</title>
+  </head>
+  <body>
+    <div class="card">
+      <div class="meta">
+        <div>
+          <span class="label">User Id: </span>
+          <span class="value">{userId}</span>
+        </div>
+        <div>
+          <span class="label">Stripe Subscription ID:</span>
+          <span class="value">{stripeId}</span>
+        </div>
+        <div>
+          <span class="label">WHR Subscription Id: </span>
+          <span class="value">{subscriptionId}</span>
+        </div>
+        <div>
+          <span class="label">Cancelled At: </span>
+          <span class="value">{cancelDate}</span>
+        </div>
+        {qna}
+      </div>
     </div>
-     {qna}
-    </div>
-
-    <div class="footer">
-      Generated for internal use – please review cancellation trends regularly.
-    </div>
-  </div>
-</body>
+  </body>
 </html>
 `;
