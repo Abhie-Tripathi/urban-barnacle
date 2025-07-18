@@ -76,7 +76,7 @@ export class EventsService {
         configuration['filter'] &&
         Object.keys(configuration['filter']).length > 0
       ) {
-        const { result, rootTodiscard } = eventSearchFilterCheck(
+        const { result, rootTodiscard } = await eventSearchFilterCheck(
           configuration,
           queryParams,
         );
