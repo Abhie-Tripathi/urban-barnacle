@@ -11,8 +11,9 @@ import * as fs from 'fs';
 import * as ExcelJS from 'exceljs';
 import { TrackerService } from 'src/tracker/tracker.service';
 import { Show, View } from 'src/events/dto';
-import { EventTabs, TrackerEventStatus } from 'src/tracker/dto';
+import { EventTabs } from 'src/tracker/dto';
 import { TCachedUser } from 'src/utils/types';
+import { TrackerEventStatus } from 'src/utils';
 
 interface JobDataForExport {
     userData: TCachedUser,

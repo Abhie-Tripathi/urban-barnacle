@@ -1842,7 +1842,7 @@ export class TrackerService {
     let [getJsonForTrackerType, jobsForIntelScore] = await Promise.all([
       this.redisService.jsonGet(
         `${trackerId}-IntelScore`,
-        `$.${query.trackerEventStatus}`,
+        `$.${String(query.trackerEventStatus)}`,
       ),
       this.redisService.jsonGet(`${trackerId}-IntelScore-Job`),
     ]);
@@ -1997,7 +1997,7 @@ export class TrackerService {
       for (const eventId of eventIds) {
         const data = await this.redisService.jsonGet(
           `${trackerId}-IntelScore`,
-          `$.${query.trackerEventStatus}.${eventId}`,
+          `$.${String(query.trackerEventStatus)}.${eventId}`,
         );
         if (!data) {
           continue;
@@ -2064,7 +2064,7 @@ export class TrackerService {
     let [getJsonForTrackerType, jobsForIntelScore] = await Promise.all([
       this.redisService.jsonGet(
         `${trackerId}-IntelScore`,
-        `$.${query.trackerEventStatus}`,
+        `$.${String(query.trackerEventStatus)}`,
       ),
       this.redisService.jsonGet(`${trackerId}-IntelScore-Job`),
     ]);
