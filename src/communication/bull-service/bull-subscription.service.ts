@@ -49,15 +49,15 @@ export class SubscriptionEmailWorkerClass extends WorkerHost {
             });
             const userData = jobdata.accessMetaData;
             const qnaHtmlTemplate: string = ` <div style="margin-top: 10px">
-        <div><strong>Question{count} {question}</strong></div>
-        <div>Question{count} {answer}</div>
+        <div><strong>Question{count}: {question}</strong></div>
+        <div>Answer{count}: {answer}</div>
       </div>`;
             let qnaHtmlElement: string = '';
             let count: number = 1;
             for (const key in jobdata.qna || {}) {
                 let temp_qnaHtmlTemplate = String(qnaHtmlTemplate);
                 qnaHtmlElement = qnaHtmlElement + temp_qnaHtmlTemplate.replaceAll('{question}', key)
-                    .replaceAll('{answer}', jobdata.qna[key]).replace('{count}',count+'') + '\n';
+                    .replaceAll('{answer}', jobdata.qna[key]).replaceAll('{count}',count+'') + '\n';
                 count++;
             }
              const FqnaHtmlTemplate: string = ` <div style="margin-top: 10px">

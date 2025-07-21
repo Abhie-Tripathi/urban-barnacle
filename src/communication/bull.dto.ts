@@ -158,6 +158,7 @@ const subscriptionCancel = z.strictObject({
   qna: z.record(z.string(), z.string()).optional(),
   feedback: z.string(),
   sourceId: z.string(),
+  userEmail: z.string(),
 });
 export class SubscriptionCancelDto extends createZodDto(subscriptionCancel) { }
 // Union of all DTO schemas
