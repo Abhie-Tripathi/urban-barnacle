@@ -185,10 +185,6 @@ export const accountConfig: AccountConfigDto = {
     },
   ],
   filter: {
-    "entryType": {
-      "isEntryTypeEnabled": false,
-      "isAllowed": false
-    },
     "maturity": {
       "isMaturityEnabled": false,
       "isAllowed": false
