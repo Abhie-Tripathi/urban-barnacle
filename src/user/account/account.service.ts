@@ -84,7 +84,7 @@ export class AccountService {
     const [savedEvents, count] = await Promise.all([
       this.intentDataService.getUserEventInterest({
         interest: ['BOOKMARK'],
-        sourceModule: { in: ['TRACKER','RESEARCH'] },
+        sourceModule: { in: ['TRACKER', 'RESEARCH'] },
         // interestedUserId: user.id,
         accountId: user.accountId,
         limit: query.limit,
@@ -92,7 +92,7 @@ export class AccountService {
       }),
       this.intentDataService.getUserEventInterestCountForBookmark({
         interest: ['BOOKMARK'],
-        sourceModule: { in: ['TRACKER','RESEARCH'] },
+        sourceModule: { in: ['TRACKER', 'RESEARCH'] },
         // interestedUserId: user.id,
         accountId: user.accountId,
         limit: query.limit,
@@ -113,11 +113,14 @@ export class AccountService {
       view: View.tracker,
     } as QueryDto;
     const events = await this.eventService.getAllEvents(eventParams, false);
+    const eventsFiltered = events.events.map(val => {
+      return savedEventsIds.find(eventId => eventId === val.basic['id']) ? val : null
+    }).filter(val => val)
     console.log({ sadasdas111events: events });
     if (events.events.length === 0) {
       return [];
     }
-    return { ...events, count: count.length };
+    return { events: eventsFiltered, count: count.length };
   }
   async getEventFromProductDb(
     user: TCachedUser,
