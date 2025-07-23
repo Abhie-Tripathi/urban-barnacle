@@ -115,6 +115,7 @@ export class IntentDataService {
     }
     const userEventInterests = await this.prisma.userEventInterest.findMany({
       where: { ...rest, deleted: false },
+      orderBy: { createdAt: 'desc' },
       include,
       skip: offset,
       take: limit,
