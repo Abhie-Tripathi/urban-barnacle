@@ -89,6 +89,7 @@ const authenticatSchema = z.object({
   token: z.string().optional(),
   userId: z.number().optional(),
   accessToken: z.string().optional(),
+  eventId: z.string().optional(),
 }).refine(
   (data) =>
     (data.accessToken && !data.token && !data.userId) ||

@@ -250,8 +250,8 @@ export class AuthDataService {
       return upload;
     }
   }
-  async createjobForUserTrackerImport(user: any) {
-    if (process.env.BACKEND !== 'gtm') {
+  async createjobForUserTrackerImport(user: any, ignore: boolean = false, data: { eventId?: string } | null = null) {
+    if (process.env.BACKEND !== 'gtm' && !ignore) {
       return {};
     }
     const chechJobExist = await this.prisma.requestedJob.findMany({
@@ -263,7 +263,7 @@ export class AuthDataService {
     if (chechJobExist.length > 0) {
       return {};
     }
-    return await this.communicationService.createJobForBull(QueueActionOptions.CRON_USER_TRACKER_IMPORT, { email: user['email'], sourceId: user['id'] }, user['id'])
+    return await this.communicationService.createJobForBull(QueueActionOptions.CRON_USER_TRACKER_IMPORT, { email: user['email'], sourceId: user['id'], ...(data && data.eventId ? data : {}) }, user['id'])
 
     // this.prisma.requestedJob.create({
     //   data: {
