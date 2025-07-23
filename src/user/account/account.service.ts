@@ -113,9 +113,9 @@ export class AccountService {
       view: View.tracker,
     } as QueryDto;
     const events = await this.eventService.getAllEvents(eventParams, false);
-    const eventsFiltered = events.events.map(val => {
-      return savedEventsIds.find(eventId => eventId === val.basic['id']) ? val : null
-    }).filter(val => val)
+    const eventsFiltered = savedEventsIds.map(id =>
+      events.events.find(event => event.basic['id'] === id)
+    ).filter(event => event);
     console.log({ sadasdas111events: events });
     if (events.events.length === 0) {
       return [];
