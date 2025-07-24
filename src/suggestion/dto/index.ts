@@ -1,14 +1,7 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { LimitSchema } from '../../global_dto';
-
-export const SuggestionSchema = LimitSchema.extend({
-  ids: z
-    .string()
-    .transform((ids) => ids.split(','))
-    .optional(),
-  query: z.string().optional(),
-});
+import { SuggestionSchema } from 'src/utils';
 
 export class SuggestionDto extends createZodDto(SuggestionSchema) { }
 

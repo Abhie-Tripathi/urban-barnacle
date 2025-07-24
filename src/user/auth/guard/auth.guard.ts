@@ -8,8 +8,8 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Cache } from 'cache-manager';
+// import { ConfigService } from '@nestjs/config';
+// import { Cache } from 'cache-manager';
 import { FastifyRequest } from 'fastify';
 import { RedisService } from 'src/redis/redis.service';
 import { TCachedUser } from 'src/utils/types';
@@ -18,9 +18,9 @@ import { TCachedUser } from 'src/utils/types';
 export class AuthGuard implements CanActivate {
   cookiePrefix: string | undefined;
   constructor(
-    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-    @Inject() private readonly redisService: RedisService,
-    private configService: ConfigService,
+    // @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    private readonly redisService: RedisService,
+    // private configService: ConfigService,
   ) {
     this.cookiePrefix = process.env.COOKIE_PREFIX;
   }

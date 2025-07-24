@@ -2,6 +2,8 @@ export * from './sortBy';
 export * from './regions';
 export * from './timezones';
 import * as crypto from 'crypto';
+import { LimitSchema } from 'src/global_dto';
+import { z } from 'zod';
 export function getNonEmptyParams(params: any) {
   return Object.keys(params).reduce(
     (acc, key) => {
@@ -82,3 +84,11 @@ export const TrackerEventStatus = {
   new: 'new',
   all: 'all'
 };
+
+export const SuggestionSchema = LimitSchema.extend({
+  ids: z
+    .string()
+    .transform((ids) => ids.split(','))
+    .optional(),
+  query: z.string().optional(),
+});

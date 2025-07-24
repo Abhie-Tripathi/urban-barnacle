@@ -5,7 +5,7 @@ import {
 } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
 import { ZodValidationPipe } from 'nestjs-zod';
 import fastifyStatic from '@fastify/static';
 import { join } from 'path';
@@ -15,9 +15,9 @@ import multipart from '@fastify/multipart';
 import { CorsGaurd } from './corsgaurd';
 import { AfterResponseInterceptor } from './after-response.interceptor';
 import { PrismaService } from './prisma/prisma.service';
-import { AuthGuard } from './user/auth/guard';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { RedisService } from './redis/redis.service';
+// import { AuthGuard } from './user/auth/guard';
+// import { CACHE_MANAGER } from '@nestjs/cache-manager';
+// import { RedisService } from './redis/redis.service';
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
@@ -40,9 +40,8 @@ async function bootstrap() {
 
   // CORS and Guards
   app.useGlobalGuards(new CorsGaurd(configService));
-  app.useGlobalGuards(
-    new AuthGuard(app.get(CACHE_MANAGER), app.get(RedisService), configService),
-  );
+// app.useGlobalGuards(app.get(AuthGuard));
+
   app.enableCors({
     credentials: true,
     origin,
