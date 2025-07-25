@@ -501,6 +501,7 @@ export class ExportWorkerClass extends WorkerHost {
                 { header: 'Repeat Sentiment (%)', key: 'repeat', width: 20 },
                 { header: 'Estimated Audience', key: 'size', width: 15 },
                 { header: 'Estimated Exhibitors', key: 'exhibitor', width: 20 },
+                { header: 'Entry Type', key: 'entryType', width: 20 },
             ];
             // if (jobData?.searchByEntity) {
             columns.push(...[
@@ -647,6 +648,7 @@ export class ExportWorkerClass extends WorkerHost {
                         size: data.insights?.estimatedAttendance || '',
                         exhibitor: data.insights?.estimatedExhibitors || '',
                         international: data['internationalScore'] || '',
+                        entryType: data.basic.entryType,
                         matched: matched,
                         ...locationPayload,
                         matchScore: matchScore,
