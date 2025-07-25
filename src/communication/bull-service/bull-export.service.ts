@@ -238,7 +238,8 @@ export class ExportWorkerClass extends WorkerHost {
                 // console.log({ bulkUpdateExport });
                 await Promise.all(
                     bulkUpdateExport.map(({ id, status, fileUrl, outputResponse, attachment, fileSize }) => {
-                        attachments.push(attachment);
+                        if (Object.keys(attachment).length > 0)
+                            attachments.push(attachment);
                         return this.prisma.export.update({
                             where: { id },
                             data: { status, fileSize, fileUrl, outputData: outputResponse },
@@ -376,7 +377,8 @@ export class ExportWorkerClass extends WorkerHost {
                 }
                 await Promise.all(
                     bulkUpdateExport.map(({ id, status, fileUrl, outputResponse, attachment, fileSize }) => {
-                        attachments.push(attachment);
+                        if (Object.keys(attachment).length > 0)
+                            attachments.push(attachment);
                         return this.prisma.export.update({
                             where: { id },
                             data: { status, fileUrl, fileSize, outputData: outputResponse },
@@ -504,9 +506,9 @@ export class ExportWorkerClass extends WorkerHost {
                 { header: 'Entry Type', key: 'entryType', width: 20 },
             ];
             if (jobData?.searchByEntity) {
-            columns.push(...[
-                { header: 'Matched', key: 'matched', width: 30 },
-                { header: 'Relevance Score', key: 'matchScore', width: 20 },])
+                columns.push(...[
+                    { header: 'Matched', key: 'matched', width: 30 },
+                    { header: 'Relevance Score', key: 'matchScore', width: 20 },])
             }
             worksheet.columns = columns;
             let offset = 0;
@@ -530,6 +532,7 @@ export class ExportWorkerClass extends WorkerHost {
             // }, email);
             // const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: '', limit: 0, offset: 0, type: type as keyof typeof EventTabs });
             let linesWrittern: number = 0;
+            let attactmentFlag = false;
             while (offset < totalCount) {
                 console.log(`Processing ${offset} to ${offset + limit} records`);
                 const showValues = 'basic,advance,insights,audience';
@@ -653,7 +656,7 @@ export class ExportWorkerClass extends WorkerHost {
                         ...locationPayload,
                         matchScore: matchScore,
                     });
-
+                    attactmentFlag = true;
                     linesWrittern++;
                 }
 
@@ -691,7 +694,7 @@ export class ExportWorkerClass extends WorkerHost {
                 },
             });
             const fileData = fs.readFileSync(excelFilePath);
-            const base64File = fileData.toString('base64');
+            const base64File = attactmentFlag ? fileData.toString('base64') : '';
             const attachment =
             {
                 content: base64File,
@@ -700,7 +703,7 @@ export class ExportWorkerClass extends WorkerHost {
                 disposition: 'attachment',
             };
             return {
-                attachment,
+                attachment: attactmentFlag ? attachment : {},
                 status: "done",
                 fileSizeInKB,
                 fileSizeInMB,
