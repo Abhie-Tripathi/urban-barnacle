@@ -503,11 +503,11 @@ export class ExportWorkerClass extends WorkerHost {
                 { header: 'Estimated Exhibitors', key: 'exhibitor', width: 20 },
                 { header: 'Entry Type', key: 'entryType', width: 20 },
             ];
-            // if (jobData?.searchByEntity) {
+            if (jobData?.searchByEntity) {
             columns.push(...[
                 { header: 'Matched', key: 'matched', width: 30 },
                 { header: 'Relevance Score', key: 'matchScore', width: 20 },])
-            // }
+            }
             worksheet.columns = columns;
             let offset = 0;
             const limit = 30;
