@@ -1,4 +1,10 @@
-import { Currency, EnquiryStatus, Interest, PlanFrequency, SubscriptionPlan } from '@prisma/client';
+import {
+  Currency,
+  EnquiryStatus,
+  Interest,
+  PlanFrequency,
+  SubscriptionPlan,
+} from '@prisma/client';
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { FilterNames } from 'src/events/dto';
@@ -27,7 +33,7 @@ export const InterestConfigurationSchema = z.array(
 
 export class InterestConfigurationDto extends createZodDto(
   InterestConfigurationSchema,
-) { }
+) {}
 
 export const OutreachConfigurationSchema = z.array(
   z.object({
@@ -38,14 +44,14 @@ export const OutreachConfigurationSchema = z.array(
 
 export class OutreachConfigurationDto extends createZodDto(
   OutreachConfigurationSchema,
-) { }
+) {}
 
 // const FilterConfigurationSchema = z.record(z.string(), filterValueSchema);
 const FilterConfigurationSchema = z.record(z.string(), z.any());
 
 export class FilterConfigurationDto extends createZodDto(
   FilterConfigurationSchema,
-) { }
+) {}
 export const membershipSchema = z
   .strictObject({
     token: z.string(),
@@ -79,7 +85,8 @@ export const membershipSchema = z
   .refine((data) => new Date(data.startDate) <= new Date(data.endDate), {
     message: 'startDate must not be later than endDate',
     path: ['startDate'],
-  }).superRefine((data, ctx) => {
+  })
+  .superRefine((data, ctx) => {
     if (data.plan !== 'BASIC') {
       if (!data.subscriptionId) {
         ctx.addIssue({
@@ -110,16 +117,16 @@ export const membershipSchema = z
         });
       }
     }
-  });;
+  });
 
-export class MembershipDto extends createZodDto(membershipSchema) { }
+export class MembershipDto extends createZodDto(membershipSchema) {}
 export const AccountConfigSchema = z.strictObject({
   interest: InterestConfigurationSchema,
   outreach: OutreachConfigurationSchema,
   filter: FilterConfigurationSchema,
 });
 
-export class AccountConfigDto extends createZodDto(AccountConfigSchema) { }
+export class AccountConfigDto extends createZodDto(AccountConfigSchema) {}
 
 export const InterestDefaultConfigurations: Record<
   string,
@@ -140,9 +147,10 @@ export const InterestDefaultConfigurations: Record<
 };
 
 export const InterestDefaultConfigurationsWithIndustry: Record<
-  keyof typeof Industries.gtm,
+  keyof typeof Industries.gtm | keyof typeof Industries.geo,
   InterestConfigurationDto
 > = {
+  // gtm specific and geo common
   Corporate_Brands: InterestDefaultConfigurations.interests,
   Media_Marketing: InterestDefaultConfigurations.leads,
   Event_Planners: InterestDefaultConfigurations.interests,
@@ -150,6 +158,12 @@ export const InterestDefaultConfigurationsWithIndustry: Record<
   Infra_Technology: InterestDefaultConfigurations.leads,
   Venue_Real_Estate: InterestDefaultConfigurations.leads,
   Others: InterestDefaultConfigurations.interests,
+  // geo specific
+  Hospitality: InterestDefaultConfigurations.leads,
+  Local_Commerce: InterestDefaultConfigurations.leads,
+  Transportation_Logistics: InterestDefaultConfigurations.leads,
+  Civic_Commerce_Tourism: InterestDefaultConfigurations.leads,
+  Activity_Planners: InterestDefaultConfigurations.leads,
 };
 
 export const accountConfig: AccountConfigDto = {
