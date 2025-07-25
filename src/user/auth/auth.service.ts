@@ -816,9 +816,13 @@ export class AuthService {
         account = await this.accountDataService.createAccount({
           ...accountDefault,
           currentSubscriptionId: createSubscription.id,
-          interestConfig: data.industry
-            ? InterestDefaultConfigurationsWithIndustry[data.industry]
-            : InterestDefaultConfigurations.interests,
+          interestConfig:
+            data.industry &&
+            data.industry in InterestDefaultConfigurationsWithIndustry
+              ? InterestDefaultConfigurationsWithIndustry[data.industry]
+              : this.configService.get('BACKEND').toLowerCase() === 'gtm'
+                ? InterestDefaultConfigurations.interests
+                : InterestDefaultConfigurations.leads,
         });
         flag = true;
         const updateSubscription =
@@ -886,9 +890,12 @@ export class AuthService {
               token: '',
             },
             'interest',
-            data.industry
+            data.industry &&
+              data.industry in InterestDefaultConfigurationsWithIndustry
               ? InterestDefaultConfigurationsWithIndustry[data.industry]
-              : InterestDefaultConfigurations.interests,
+              : this.configService.get('BACKEND').toLowerCase() === 'gtm'
+                ? InterestDefaultConfigurations.interests
+                : InterestDefaultConfigurations.leads,
           );
         }
       }
