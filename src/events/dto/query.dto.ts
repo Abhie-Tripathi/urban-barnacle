@@ -151,7 +151,7 @@ export const viewBound = z
   .object({
     boundType: z.nativeEnum(BoundType),
     coordinates: z.union([geoCoordinatesSchema, z.array(z.number())]),
-    properties: z.record(z.string(), z.string()),
+    properties: z.record(z.string(), z.string()).optional(),
   })
   .transform((data) => {
     if (!data) return undefined;

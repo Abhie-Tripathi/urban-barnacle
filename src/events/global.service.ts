@@ -93,38 +93,38 @@ export async function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
       const sub = (data.locationIds.enabledValue as any[]).map(d => d.id);
       checkToPassFilter = checkTheValue(main, sub);
       if (!checkToPassFilter) rootTodiscard = 'locationIds';
-        if (query.viewBound) {
-      const venueId = query.viewBound.properties['id'];
-      if (!venueId) {
-        checkToPassFilter = false;
-        rootTodiscard = 'viewBound';
-      } else {
-        const dataForVenue = await fetchDatafromMicroService(microServiceApis['locationSuggestionApi'], { ids: venueId, type: 'VENUE' });
-        const venueLocationIds: string[] = [];
-        const check = dataForVenue.data && dataForVenue.data.formattedLocations ? dataForVenue.data.formattedLocations.map(val => {
-          if (val['city']) {
-            venueLocationIds.push(val['city']['id']);
-          }
-          if (val['state']) {
-            venueLocationIds.push(val['state']['id']);
-          }
-          if (val['country']) {
-            venueLocationIds.push(val['country']['id']);
-          }
-        })
-          : null;
-        checkToPassFilter = false;
-        for (const id of venueLocationIds) {
-          if (sub.includes(id)) {
-            checkToPassFilter = true;
-            break;
-          }
-        }
-        if (checkToPassFilter === false) {
+      if (query.viewBound && query.viewBound.properties) {
+        const venueId = query.viewBound.properties['id'];
+        if (!venueId) {
+          checkToPassFilter = false;
           rootTodiscard = 'viewBound';
+        } else {
+          const dataForVenue = await fetchDatafromMicroService(microServiceApis['locationSuggestionApi'], { ids: venueId, type: 'VENUE' });
+          const venueLocationIds: string[] = [];
+          const check = dataForVenue.data && dataForVenue.data.formattedLocations ? dataForVenue.data.formattedLocations.map(val => {
+            if (val['city']) {
+              venueLocationIds.push(val['city']['id']);
+            }
+            if (val['state']) {
+              venueLocationIds.push(val['state']['id']);
+            }
+            if (val['country']) {
+              venueLocationIds.push(val['country']['id']);
+            }
+          })
+            : null;
+          checkToPassFilter = false;
+          for (const id of venueLocationIds) {
+            if (sub.includes(id)) {
+              checkToPassFilter = true;
+              break;
+            }
+          }
+          if (checkToPassFilter === false) {
+            rootTodiscard = 'viewBound';
+          }
         }
       }
-    }
     } else {
       checkToPassFilter = false;
     }
