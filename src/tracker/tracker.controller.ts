@@ -172,16 +172,16 @@ export class TrackerController {
           HttpStatus.TOO_MANY_REQUESTS,
         );
       }
-      if (
-        membershipLimit[membershipStatus.membership] -
-        ((query.limit || 10) + (query.offset || 0)) <
-        0
-      ) {
-        throw new HttpException(
-          'You have reached the maximum limit to view data. Please get in touch with us.',
-          HttpStatus.TOO_MANY_REQUESTS,
-        );
-      }
+      // if (
+      //   membershipLimit[membershipStatus.membership] -
+      //   ((query.limit || 10) + (query.offset || 0)) <
+      //   0
+      // ) {
+      //   throw new HttpException(
+      //     'You have reached the maximum limit to view data. Please get in touch with us.',
+      //     HttpStatus.TOO_MANY_REQUESTS,
+      //   );
+      // }
       for (const val of query.showValues.split(',')) {
         if (eventAdvanceFields[val] === 'advance') {
           advanceDataFromResponse = true;
@@ -264,16 +264,75 @@ export class TrackerController {
     @GetUser() user: TCachedUser,
     @Query() query: GetTrackerEventsDto,
   ) {
+    let flag = false;
+    let advanceDataFromResponse: boolean = false;
     try {
-      const showValues = 'basic,advance,insights,audience';
+      const [{ point, advancePoint }, membershipStatus] = await Promise.all([
+        this.sharedService.getPointForRequest(
+          PointColumn.pendingRequests,
+          user.accountId,
+          PointColumn.advancePendingRequests,
+        ),
+        this.sharedService.getAccountMemberShipStatus(
+          user.accountId,
+        ),
+      ]);
+      // if (point <= 0) {
+      //   throw new HttpException(
+      //     'You have reached the maximum limit to view data. Please get in touch with us.',
+      //     HttpStatus.TOO_MANY_REQUESTS,
+      //   );
+      // }
+      if (point <= 0 && Math.abs(point) >= (advancePoint * 0.5)) {
+        throw new HttpException(
+          'You have reached the maximum limit to view data. Please get in touch with us.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+      // if (
+      //   membershipLimit[membershipStatus.membership] -
+      //   ((query.limit || 10) + (query.offset || 0)) <
+      //   0
+      // ) {
+      //   throw new HttpException(
+      //     'You have reached the maximum limit to view data. Please get in touch with us.',
+      //     HttpStatus.TOO_MANY_REQUESTS,
+      //   );
+      // }
+      for (const val of query.showValues.split(',')) {
+        if (eventAdvanceFields[val] === 'advance') {
+          advanceDataFromResponse = true;
+          break;
+        }
+      }
+      if (advanceDataFromResponse && advancePoint <= 0) {
+        throw new HttpException(
+          'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
       const events = await this.trackerService.getTrackerSimilarEvents(
         user,
         id,
         query,
-        showValues,
+        query.showValues,
       );
+      await this.sharedService.deductPointForRequest(
+        PointColumn.pendingRequests,
+        user.accountId,
+        point - 1,
+        (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+        (advanceDataFromResponse ? advancePoint - 1 : 0),
+      );
+      flag = true;
       return { data: events };
     } catch (error) {
+      if (flag)
+        this.sharedService.creditPointForRequest(
+          PointColumn.pendingRequests,
+          user.accountId,
+          (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+        );
       return { error: error };
     }
   }
