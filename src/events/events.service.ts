@@ -45,6 +45,7 @@ export class EventsService {
     query: QueryDto,
     validateIds: boolean = true,
     user?: TCachedUser,
+    ignoreRestriction: Boolean = false,
   ) {
     let show = query.show || [];
     if (show.includes(Show.old)) {
@@ -64,7 +65,7 @@ export class EventsService {
         }
       }
     }
-    if (user) {
+    if (user && !ignoreRestriction) {
       const queryParams: QueryDto = Object.assign(nonEmptyParams);
       const configuration =
         await this.eventsDataService.getAccountConfiguration(
