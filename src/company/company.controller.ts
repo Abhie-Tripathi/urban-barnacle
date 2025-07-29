@@ -30,9 +30,10 @@ export class CompanyController {
   ) {
     let flag = false;
     try {
-      const { point, subscriptionId } = await this.sharedService.getPointForRequest(
+      const { point } = await this.sharedService.getPointForRequest(
         PointColumn.pendingCompanySearchRequests,
         userData.accountId,
+        PointColumn.advancePendingRequests
       );
       // console.log(userData.currentSubscriptionId,);
       if (point <= 0) {

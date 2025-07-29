@@ -394,3 +394,10 @@ export const membershipMapForToken: Record<SubscriptionPlan, { pendingRequests: 
 //          10
 //        OFFSET
 //          0;
+export const eventAdvanceFields = {
+  advance: 'advance',
+  insights: 'advance',
+  audience: 'advance',
+  basic: 'basic',
+  suggestion: 'suggestion'
+}

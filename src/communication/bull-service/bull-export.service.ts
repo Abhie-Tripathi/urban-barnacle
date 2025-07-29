@@ -550,7 +550,8 @@ export class ExportWorkerClass extends WorkerHost {
                             'maturity',
                             'frequency',
                             'alerts',
-                        ] as unknown as Show[]
+                        ] as unknown as Show[],
+                        showValues
                     }, showValues) as {
                         count?: number;
                         events: {

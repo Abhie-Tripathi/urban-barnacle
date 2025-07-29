@@ -3,6 +3,7 @@ import { createZodDto } from 'nestjs-zod';
 import { SortByOptions, Regions, timezones, TrackerEventStatus, SearchByEntity } from 'src/utils';
 import {
   defaultEventTypes,
+  eventAdvanceFields,
   EventStatus,
   EventTypeGroup,
   ValidEventTypes,
@@ -704,6 +705,20 @@ export const QueryHttpSchema = LimitSchemaWithoutDefault.extend(
       .refine((val) => val in SearchByEntity)
       .transform((val) => val as keyof typeof SearchByEntity)
       .optional(),
+    showValues: z.string().refine(val => {
+      const keys = Object.keys(eventAdvanceFields);
+      const values = val.split(',').map(v => v.trim());
+
+      // 1. All values must be valid keys
+      const allValid = values.every(subValue => keys.includes(subValue));
+
+      // 2. "basic" must be included
+      const includesBasic = values.includes('basic');
+
+      return allValid && includesBasic;
+    }, {
+      message: 'showValues must include basic and only valid keys.'
+    })
   })
   .transform((data) => {
     data['show'] = (Object.values(Show) as Show[]).filter((item) => {
@@ -747,7 +762,6 @@ export class QueryHttpDto extends createZodDto(
 ) { }
 
 export const QuerySchema = QueryHttpSchema.innerType().extend({
-  showValues: z.string(),
   viewBounds: z.string().optional(),
 });
 

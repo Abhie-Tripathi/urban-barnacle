@@ -30,17 +30,13 @@ export class UserController {
     @GetUser() userData: TCachedUser,
   ) {
     let flag = false;
+    let advanceDataFromResponse: boolean = false;
     try {
-      const { point, subscriptionId } = await this.sharedService.getPointForRequest(
+      const { point, } = await this.sharedService.getPointForRequest(
         PointColumn.pendingCompanySearchRequests,
         userData.accountId,
+        PointColumn.advancePendingRequests,
       );
-      if (point <= 0) {
-        throw new HttpException(
-          'You have reached the maximum limit to view data. Please get in touch with us.',
-          HttpStatus.TOO_MANY_REQUESTS,
-        );
-      }
       const result = await this.userService.getUserProspectData(query);
       await this.sharedService.deductPointForRequest(
         PointColumn.pendingCompanySearchRequests,

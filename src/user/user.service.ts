@@ -89,6 +89,7 @@ export class UserService {
           ? PointColumn.pendingPocUnlockRequests
           : PointColumn.pendingProspectPocUnlockRequests,
         user.accountId,
+        PointColumn.advancePendingRequests
       ),
     ]);
 

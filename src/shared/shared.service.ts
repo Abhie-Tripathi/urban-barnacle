@@ -523,6 +523,7 @@ export class SharedService {
   async getPointForRequest(
     column: PointColumn,
     accountId: string,
+    advanceColumn: PointColumn,
   ) {
     const pointsData = await this.prisma.account.findFirst({
       where: { id: accountId },
@@ -532,12 +533,12 @@ export class SharedService {
           where: {
             deleted: false
           },
-          select: { [column]: true, id: true }
+          select: { plan: true, id: true, updatedAt: true, [advanceColumn]: true, [column]: true, deleted: true, }
         }
       },
     });
 
-    console.log({ pointsData, membership12: pointsData?.subscription });
+    // console.log({ pointsData, membership12: pointsData?.subscription });
     if (
       !pointsData?.subscription ||
       pointsData.subscription[0][column] === null ||
@@ -548,32 +549,127 @@ export class SharedService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+    let basicPoints: number = pointsData.subscription[0][column];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // set time to 00:00:00
 
-    return { point: pointsData.subscription[0][column], subscriptionId: pointsData.currentSubscriptionId };
+    const updatedAt = new Date(pointsData.subscription[0]['updatedAt']);
+    updatedAt.setHours(0, 0, 0, 0); // strip time part
+    if ('BASIC' !== pointsData.subscription[0]['plan'] && today > updatedAt) {
+      const countOfSubscription = await this.prisma.subscription.count({
+        where: {
+          accountId: accountId
+        }
+      });
+      // const createdAt = new Date();
+      // const fourteenDaysAgo = new Date(today);
+      const createdDate = new Date(pointsData.subscription[0]['updatedAt']);
+      createdDate.setHours(0, 0, 0, 0);
+
+      const todayDate = new Date(today);
+      todayDate.setHours(0, 0, 0, 0);
+
+      const fourteenDaysAgo = new Date(todayDate);
+      fourteenDaysAgo.setDate(todayDate.getDate() - 14);
+      fourteenDaysAgo.setDate(today.getDate() - 14);
+      if (Number(countOfSubscription) === 1 && createdDate < fourteenDaysAgo && 'ESSENTIAL' === pointsData.subscription[0]['plan']) {
+        await this.prisma.subscription.update({
+          where: {
+            id: pointsData.currentSubscriptionId
+          },
+          data: {
+            plan: 'BASIC',
+            pendingCompanySearchRequests: 0,
+            pendingPocUnlockRequests: 0,
+            advancePendingRequests: 0, pendingProspectPocUnlockRequests: 0,
+            pendingRequests: 0,
+          }
+        });
+        throw new HttpException(
+          'Your trial period has ended. Please upgrade your plan to continue using Search features.',
+          HttpStatus.FORBIDDEN,
+        );
+
+      } else {
+        const dailyCreaditForBasic = await this.prisma.subscription.update({
+          where: {
+            id: pointsData.currentSubscriptionId
+          },
+          data: {
+            pendingRequests: 20
+          }
+        });
+        basicPoints = dailyCreaditForBasic[column];
+      }
+    }
+    if (pointsData.subscription[0]['plan'] === 'BASIC' && basicPoints === 0) {
+      throw new HttpException(
+        'Your trial period has ended. Please upgrade your plan to continue.',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    const isNotUnlockRequestColumn =
+      column !== PointColumn.pendingPocUnlockRequests &&
+      column !== PointColumn.pendingProspectPocUnlockRequests;
+
+    const isBasicPlan = pointsData.subscription[0]['plan'] === 'BASIC';
+    const advancePoints = pointsData.subscription[0][advanceColumn];
+
+    // Case 1: Advanced search token exhausted
+    if (
+      isNotUnlockRequestColumn &&
+      !isBasicPlan &&
+      basicPoints > 0 &&
+      advancePoints <= 0
+    ) {
+      throw new HttpException(
+        `You’ve exhausted your Advanced Search tokens. You can continue with basic searches or upgrade to a higher plan.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    // Case 2: Daily limit reached
+    if (
+      isNotUnlockRequestColumn &&
+      basicPoints <= 0 &&
+      Math.abs(basicPoints) >= (advancePoints * 0.5)
+    ) {
+      throw new HttpException(
+        'You have reached your daily limit. It will reset tomorrow.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    return { point: basicPoints, subscriptionId: pointsData.currentSubscriptionId, advancePoint: pointsData.subscription[0][advanceColumn] };
   }
   async deductPointForRequest(
     column: PointColumn,
     accountId: string,
     remainingPoints: number,
+    advanceColumn: PointColumn.advancePendingRequests | null = null,
+    remainingPointsOfAadvance: number = 0,
   ) {
-    const { point, subscriptionId } = await this.getPointForRequest(column, accountId);
-    if (point <= 0) {
-      throw new HttpException(
-        `You have reached the maximum limit to view data. Please get in touch with us.`,
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
-    }
+    const { point, subscriptionId } = await this.getPointForRequest(column, accountId, advanceColumn ? advanceColumn : PointColumn.advancePendingRequests);
+    // if (point <= 0) {
+    //   throw new HttpException(
+    //     `You have reached the maximum limit to view data. Please get in touch with us.`,
+    //     HttpStatus.TOO_MANY_REQUESTS,
+    //   );
+    // }
     await this.prisma.subscription.update({
       where: { id: subscriptionId },
-      data: { [column]: remainingPoints },
+      data: { [column]: remainingPoints, ...(advanceColumn ? { [advanceColumn]: remainingPointsOfAadvance } : {}) },
     });
     return { data: { message: 'points updated' } };
   }
-  async creditPointForRequest(column: PointColumn, accountId: string) {
-    const { point, subscriptionId } = await this.getPointForRequest(column, accountId);
+  async creditPointForRequest(column: PointColumn, accountId: string,
+    advanceColumn: PointColumn.advancePendingRequests | null = null,
+    remainingPointsOfAadvance: number = 0,) {
+    const { point, advancePoint, subscriptionId } = await this.getPointForRequest(column, accountId, advanceColumn ?
+      advanceColumn : PointColumn.advancePendingRequests);
     await this.prisma.subscription.update({
       where: { id: subscriptionId },
-      data: { [column]: point + 1 },
+      data: { [column]: point + 1, ...(advanceColumn ? { [advanceColumn]: advancePoint + 1 } : {}) },
     });
     return { data: { message: 'points updated' } };
   }
