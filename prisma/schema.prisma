@@ -82,7 +82,7 @@ model Subscription {
   planEndDate                         DateTime
   purchaseValue                       Float            @default(0)
   pendingRequests                     Int              @default(20)
-  advancePendingRequests              Int              @default(40)
+  advancePendingRequests              Int              @default(20)
   pendingPocUnlockRequests            Int              @default(4400)
   pendingCompanySearchRequests        Int              @default(20)
   // advancePendingCompanySearchRequests Int              @default(20)
