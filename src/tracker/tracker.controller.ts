@@ -252,7 +252,7 @@ export class TrackerController {
         //   user.currentSubscriptionId,
         // ),
         this.sharedService.getAccountMemberShipStatus(
-          user.currentSubscriptionId,
+          user.accountId,
         ),
       ]);
       // if (point <= 0) {

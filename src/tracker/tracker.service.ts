@@ -2560,7 +2560,8 @@ export class TrackerService {
     user: TCachedUser,
     body: CreateTrackerExportsDto,
   ) {
-    const [trackerData, membershipStatus] = await Promise.all([this.getTracker(user, trackerId, {}), this.sharedService.getAccountMemberShipStatus(user.currentSubscriptionId)]);
+    const [trackerData, membershipStatus] = await Promise.all([this.getTracker(user, trackerId, {}), 
+      this.sharedService.getAccountMemberShipStatus(user.accountId)]);
     if (!membershipLimit[membershipStatus.membership].exportAllowed) {
       throw new HttpException(
         `Your current membership (${membershipStatus.membership}) does not allow data export.`,
