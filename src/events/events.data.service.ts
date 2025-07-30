@@ -157,7 +157,7 @@ export class EventsDataService {
     try {
       const { data, error } = await response.json();
       // console.error(data);
-      console.log(data);
+      // console.log(data);
       if (!data || error) {
         console.error(error, data);
         console.log(error, data);
@@ -589,6 +589,7 @@ export class EventsDataService {
 
       throw new HttpException(error, HttpStatus.BAD_REQUEST);
     }
+     console.log(data);
     return data;
   }
 }

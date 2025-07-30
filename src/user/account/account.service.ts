@@ -32,6 +32,7 @@ import {
   AccountConfigKey,
   GetAccountEnquiriesCountDto,
   GetBookmarkedEventDto,
+  UpdateSubscriptionWebhookDto,
 } from './dto';
 import { IntentDataService } from 'src/intent/intent.data.service';
 import {
@@ -402,15 +403,15 @@ export class AccountService {
         ]);
         const owner = enquiry.owner
           ? {
-              id: enquiry.owner.id,
-              name: getNameFromEmail(
-                enquiry.owner.email,
-                enquiry.owner.firstname,
-                enquiry.owner.lastname,
-              ),
-              email: enquiry.owner.email,
-              imageUrl: enquiry.owner.imageUrl,
-            }
+            id: enquiry.owner.id,
+            name: getNameFromEmail(
+              enquiry.owner.email,
+              enquiry.owner.firstname,
+              enquiry.owner.lastname,
+            ),
+            email: enquiry.owner.email,
+            imageUrl: enquiry.owner.imageUrl,
+          }
           : null;
         const interestCounts = {
           total: 0,
@@ -526,14 +527,14 @@ export class AccountService {
       department: user.department,
     }));
   }
-  async getAccountMemberShipStatus(currentSubscriptionId: string) {
+  async getAccountMemberShipStatus(accountId: string) {
     return await this.sharedService.getAccountMemberShipStatus(
-      currentSubscriptionId,
+      accountId,
     );
   }
   async getAccountConfiguration(user: TCachedUser, key: AccountConfigKey) {
     if (key === 'membership') {
-      return await this.getAccountMemberShipStatus(user.currentSubscriptionId);
+      return await this.getAccountMemberShipStatus(user.accountId);
     }
     const configuration = await this.accountDataService.getAccountConfiguration(
       user.accountConfigurationId,
@@ -662,9 +663,9 @@ export class AccountService {
       }),
       params.groupBy === UserInterestsGroupBy.status
         ? this.enquiryService.getEnquiryCount({
-            accountId: user.accountId,
-            groupBy: params.groupBy,
-          })
+          accountId: user.accountId,
+          groupBy: params.groupBy,
+        })
         : null,
     ]);
     let response = {};
@@ -700,11 +701,11 @@ export class AccountService {
         };
         const groupedInterestsByStatus = enquiryCount
           ? (
-              enquiryCount as Array<{ status: string; _count: { id: number } }>
-            ).reduce((acc, curr) => {
-              acc[curr.status.toLowerCase()] = curr._count.id;
-              return acc;
-            }, defaultStatusCount)
+            enquiryCount as Array<{ status: string; _count: { id: number } }>
+          ).reduce((acc, curr) => {
+            acc[curr.status.toLowerCase()] = curr._count.id;
+            return acc;
+          }, defaultStatusCount)
           : null;
         response = {
           ...groupedInterestsByStatus,
@@ -716,5 +717,8 @@ export class AccountService {
       totalEnquiries: totalEnquiries,
       ...response,
     };
+  }
+  async updateMembershipFromWebhook(body: UpdateSubscriptionWebhookDto) {
+    return await this.accountDataService.updateMembershipFromWebhook(body);
   }
 }

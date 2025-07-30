@@ -25,7 +25,8 @@ const presetSchema = LimitSchema.extend({
     return isNaN(start) || isNaN(end) ? undefined : { start, end };
   }),
   sortBy: z.enum(['totalEvent', 'newEventCount']).default('totalEvent'),
-  sortAs: z.enum(['asc', 'desc']).default('desc')
+  sortAs: z.enum(['asc', 'desc']).default('desc'),
+  presetId: z.string().optional(),
 });
 
 export class PresetDto extends createZodDto(presetSchema) { }

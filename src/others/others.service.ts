@@ -26,6 +26,9 @@ export class OthersService {
             if (query.deleted) {
                 andWhereClause.push(` deleted = ${query.deleted}`);
             }
+            if (query.presetId) {
+                andWhereClause.push(` id = '${query.presetId}'`);
+            }
             if (query.keywords) {
                 andWhereClause.push(`(name ILIKE '%${query.keywords}%' OR keywords ILIKE '%${query.keywords}%')`);
             }

@@ -58,7 +58,7 @@ export class UserController {
       const result = await this.userService.getUserProspectData(query);
       await this.sharedService.deductPointForRequest(
         PointColumn.pendingCompanySearchRequests,
-        userData.currentSubscriptionId,
+        userData.accountId,
         point - 1,
       );
       flag = true;
@@ -67,7 +67,7 @@ export class UserController {
       if (flag)
         this.sharedService.creditPointForRequest(
           PointColumn.pendingCompanySearchRequests,
-          userData.currentSubscriptionId,
+          userData.accountId,
         );
       return { error: error };
     }

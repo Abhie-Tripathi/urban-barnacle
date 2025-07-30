@@ -149,13 +149,13 @@ export class TrackerController {
   ) {
     let flag = false;
     try {
-      const [point, membershipStatus] = await Promise.all([
+      const [{ point, subscriptionId }, membershipStatus] = await Promise.all([
         this.sharedService.getPointForRequest(
           PointColumn.pendingRequests,
-          user.currentSubscriptionId,
+          user.accountId,
         ),
         this.sharedService.getAccountMemberShipStatus(
-          user.currentSubscriptionId,
+          user.accountId,
         ),
       ]);
       // if (point <= 0) {
@@ -186,7 +186,7 @@ export class TrackerController {
       );
       await this.sharedService.deductPointForRequest(
         PointColumn.pendingRequests,
-        user.currentSubscriptionId,
+        user.accountId,
         point - 1,
       );
       flag = true;
@@ -195,7 +195,7 @@ export class TrackerController {
       if (flag)
         this.sharedService.creditPointForRequest(
           PointColumn.pendingRequests,
-          user.currentSubscriptionId,
+          user.accountId,
         );
       return { error: error };
     }

@@ -60,7 +60,7 @@ export class CompanyController {
       );
       await this.sharedService.deductPointForRequest(
         PointColumn.pendingCompanySearchRequests,
-        userData.currentSubscriptionId,
+        userData.accountId,
         point - 1,
       );
       flag = true;
@@ -69,7 +69,7 @@ export class CompanyController {
       if (flag)
         this.sharedService.creditPointForRequest(
           PointColumn.pendingCompanySearchRequests,
-          userData.currentSubscriptionId,
+          userData.accountId,
         );
       return { error: error };
     }

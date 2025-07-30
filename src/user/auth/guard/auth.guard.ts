@@ -28,11 +28,14 @@ export class AuthGuard implements CanActivate {
     const request: FastifyRequest = context.switchToHttp().getRequest();
     const path = request.originalUrl.split('?')[0];
     const pathBreakdown = path.split('/').filter((p) => p !== '');
-    console.log(pathBreakdown);
+    // console.log(pathBreakdown, path);
 
     if (
       pathBreakdown.length >= 1 &&
-      (pathBreakdown[0] === 'auth' || pathBreakdown[0] === 'public' || (pathBreakdown[0] === 'others' && pathBreakdown[1] === 'contactMail'))
+      (pathBreakdown[0] === 'auth' ||
+        pathBreakdown[0] === 'public' ||
+        pathBreakdown[0] === 'others' ||
+        path === `/me/account/${process.env.STRIPE_PASS_TOKEN}/membership`)
     ) {
       return true;
     }

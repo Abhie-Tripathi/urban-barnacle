@@ -21,6 +21,7 @@ export class CommunicationService {
     @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}contactProcessor}`) private readonly demoContactQueue: Queue,
     @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}errorProcessor}`) private readonly errorQueue: Queue,
     @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`) private readonly exportQueue: Queue,
+    @InjectQueue(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}userTrackerImportProcessor}`) private readonly userTrackerImportQueue: Queue,
     private email: EmailService,
   ) { }
   async createJobForBull(
@@ -69,6 +70,7 @@ export class CommunicationService {
         SEND_CONTACT_US_EMAIL: 'contactUsMail',
         SEND_CONTACT_ERROR_EMAIL: 'errorContactLimitMessage',
         SEND_TRACKER_EXPORT_MAIL: 'exportTrackerEventData',
+        CRON_USER_TRACKER_IMPORT: "userTrackerImport"
       };
       const processToprocessorMapping: object = {
         shareAccess: 'accessProcessor',
@@ -83,6 +85,7 @@ export class CommunicationService {
         contactUsMail: 'contactProcessor',
         exportTrackerEventData: 'exportProcessor',
         errorContactLimitMessage: 'errorProcessor',
+        userTrackerImport: 'userTrackerImportProcessor'
       };
       const jobSource: object = {
         // SEND_SIGNIN_OTP: 'signUp/InEmail',
@@ -98,6 +101,7 @@ export class CommunicationService {
         SEND_TRACKER_EXPORT_MAIL: 'exportTrackerEventData',
         SEND_CONTACT_US_EMAIL: 'contactUsMail',
         SEND_CONTACT_ERROR_EMAIL: 'errorContactLimitMessage',
+        CRON_USER_TRACKER_IMPORT: 'userTrackerImport'
       };
       const process: string = processEnumObject[processAction];
       const processor: string = processToprocessorMapping[process];
@@ -329,10 +333,24 @@ export class CommunicationService {
           console.log('Call errorProcessor');
           // await this.errorQueue.client.disconnect();
           break;
+        case 'userTrackerImport':
+          jobAdded = await this.userTrackerImportQueue.add(
+            process,
+            {
+              ...validatedPayload,
+              ...requestId,
+            },
+            {
+              priority: priority,
+            },
+          );
+          console.log('Call userTrackerImportProcessor');
+          // await this.errorQueue.client.disconnect();
+          break;
         default:
           console.log('Unknown action');
       }
-      // console.log((JSON.stringify(jobAdded)));
+      // console.log((JSON.stringify(jobAdded)));userTrackerImportQueue
 
       // dir(jobAdded, { depth: null })
       if (jobAdded && jobAdded.id) {
@@ -380,7 +398,7 @@ export class CommunicationService {
     });
     return { jobRequestId: job.id };
   }
-  async emailSernderFoOtp(userData: any, jobdata: any) {
+  private async emailSernderFoOtp(userData: any, jobdata: any) {
     const signUpEmailTemplate = signUpINEmailHtml
       .replace('{to}', userData.email)
       .replace('{from}', emailSenderAddress)

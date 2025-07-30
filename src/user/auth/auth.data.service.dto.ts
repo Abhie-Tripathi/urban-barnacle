@@ -250,4 +250,28 @@ export class AuthDataService {
       return upload;
     }
   }
+  async createjobForUserTrackerImport(user: any) {
+    if (process.env.BACKEND !== 'gtm') {
+      return {};
+    }
+    const chechJobExist = await this.prisma.requestedJob.findMany({
+      where: {
+        userId: user['id'],
+        source: 'CRON_USER_TRACKER_IMPORT'
+      }
+    });
+    if (chechJobExist.length > 0) {
+      return {};
+    }
+    return await this.communicationService.createJobForBull(QueueActionOptions.CRON_USER_TRACKER_IMPORT, { email: user['email'], sourceId: user['id'] }, user['id'])
+
+    // this.prisma.requestedJob.create({
+    //   data: {
+    //     inputData: { ...user },
+    //     source: "CRON_USER_TRACKER_IMPORT",
+    //     sourceId: user['id'],
+    //     userId: user['id']
+    //   }
+    // })
+  }
 }

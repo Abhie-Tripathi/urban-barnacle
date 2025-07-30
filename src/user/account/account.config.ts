@@ -1,4 +1,10 @@
-import { EnquiryStatus, Interest, SubscriptionPlan } from '@prisma/client';
+import {
+  Currency,
+  EnquiryStatus,
+  Interest,
+  PlanFrequency,
+  SubscriptionPlan,
+} from '@prisma/client';
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { FilterNames } from 'src/events/dto';
@@ -46,9 +52,11 @@ const FilterConfigurationSchema = z.record(z.string(), z.any());
 export class FilterConfigurationDto extends createZodDto(
   FilterConfigurationSchema,
 ) {}
-const membershipSchema = z
+export const membershipSchema = z
   .strictObject({
     token: z.string(),
+    subscriptionId: z.string().optional(),
+    subscriptionRenewalId: z.string().optional(),
     plan: z
       .union([
         z.literal(0),
@@ -69,10 +77,46 @@ const membershipSchema = z
       }),
     startDate: z.string(),
     endDate: z.string(),
+    planFrequency: z.nativeEnum(PlanFrequency).optional(),
+    planPurchaseValue: z.number().optional(),
+    planPurchaseCurrency: z.nativeEnum(Currency).optional(),
+    planRenewalDate: z.string().optional(),
   })
   .refine((data) => new Date(data.startDate) <= new Date(data.endDate), {
     message: 'startDate must not be later than endDate',
     path: ['startDate'],
+  })
+  .superRefine((data, ctx) => {
+    if (data.plan !== 'BASIC') {
+      if (!data.subscriptionId) {
+        ctx.addIssue({
+          path: ['subscriptionId'],
+          code: z.ZodIssueCode.custom,
+          message: 'subscriptionId is required for non-BASIC plans',
+        });
+      }
+      if (!data.planFrequency) {
+        ctx.addIssue({
+          path: ['planFrequency'],
+          code: z.ZodIssueCode.custom,
+          message: 'planFrequency is required for non-BASIC plans',
+        });
+      }
+      if (data.planPurchaseValue == null) {
+        ctx.addIssue({
+          path: ['planPurchaseValue'],
+          code: z.ZodIssueCode.custom,
+          message: 'planPurchaseValue is required for non-BASIC plans',
+        });
+      }
+      if (!data.planPurchaseCurrency) {
+        ctx.addIssue({
+          path: ['planPurchaseCurrency'],
+          code: z.ZodIssueCode.custom,
+          message: 'planPurchaseCurrency is required for non-BASIC plans',
+        });
+      }
+    }
   });
 
 export class MembershipDto extends createZodDto(membershipSchema) {}
@@ -103,9 +147,10 @@ export const InterestDefaultConfigurations: Record<
 };
 
 export const InterestDefaultConfigurationsWithIndustry: Record<
-  keyof typeof Industries.gtm,
+  keyof typeof Industries.gtm | keyof typeof Industries.geo,
   InterestConfigurationDto
 > = {
+  // gtm specific and geo common
   Corporate_Brands: InterestDefaultConfigurations.interests,
   Media_Marketing: InterestDefaultConfigurations.leads,
   Event_Planners: InterestDefaultConfigurations.interests,
@@ -113,6 +158,12 @@ export const InterestDefaultConfigurationsWithIndustry: Record<
   Infra_Technology: InterestDefaultConfigurations.leads,
   Venue_Real_Estate: InterestDefaultConfigurations.leads,
   Others: InterestDefaultConfigurations.interests,
+  // geo specific
+  Hospitality: InterestDefaultConfigurations.leads,
+  Local_Commerce: InterestDefaultConfigurations.leads,
+  Transportation_Logistics: InterestDefaultConfigurations.leads,
+  Civic_Commerce_Tourism: InterestDefaultConfigurations.leads,
+  Activity_Planners: InterestDefaultConfigurations.leads,
 };
 
 export const accountConfig: AccountConfigDto = {

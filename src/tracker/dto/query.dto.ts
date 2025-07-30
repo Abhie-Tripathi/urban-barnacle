@@ -6,7 +6,6 @@ import {
   EventTabs,
   ParamsSchema,
   TrackerEventSearchSchema,
-  TrackerEventStatus,
   TrackerParamsSchema,
 } from './create.dto';
 import {
@@ -16,6 +15,7 @@ import {
   Show,
 } from 'src/events/dto';
 import { defaultEventTypes } from 'src/utils/types';
+import { TrackerEventStatus } from 'src/utils';
 
 const GetTrackersHttpSchema = LimitSchema.extend({
   name: z.string().optional(),
@@ -79,7 +79,7 @@ const GetTrackerEventsSchema = TrackerEventSearchSchema.extend({
       }
       return item !== Show.old && item !== Show.isNew;
     });
-    console.log(data.show);
+    // console.log(data.show);
     if (data.view !== 'map' && !data.limit) {
       data.limit = 10;
     }
