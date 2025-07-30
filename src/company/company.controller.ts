@@ -30,13 +30,13 @@ export class CompanyController {
   ) {
     let flag = false;
     try {
-      const [point, membershipStatus] = await Promise.all([
+      const [{ point }, membershipStatus] = await Promise.all([
         this.sharedService.getPointForRequest(
           PointColumn.pendingRequests,
-          userData.currentSubscriptionId,
+          userData.accountId,
         ),
         this.sharedService.getAccountMemberShipStatus(
-          userData.currentSubscriptionId,
+          userData.accountId,
         ),
       ]);
       // if (point <= 0) {
