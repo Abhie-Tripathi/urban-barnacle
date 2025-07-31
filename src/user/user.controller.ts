@@ -14,7 +14,7 @@ import { AuthGuard } from './auth/guard';
 import { SharedService } from 'src/shared/shared.service';
 import { PointColumn } from 'src/shared/types';
 import { GetUser } from './decorator';
-import { TCachedUser } from 'src/utils/types';
+import { membershipLimit, TCachedUser } from 'src/utils/types';
 import { CompanyEventDto } from 'src/company/dto';
 
 @Controller('users')
@@ -32,11 +32,31 @@ export class UserController {
     let flag = false;
     let advanceDataFromResponse: boolean = false;
     try {
-      const { point, } = await this.sharedService.getPointForRequest(
-        PointColumn.pendingCompanySearchRequests,
-        userData.accountId,
-        PointColumn.advancePendingRequests,
-      );
+      const [{ point }, membershipStatus] = await Promise.all([
+        this.sharedService.getPointForRequest(
+          PointColumn.pendingRequests,
+          userData.accountId,
+          PointColumn.advancePendingRequests
+        ),
+        this.sharedService.getAccountMemberShipStatus(
+          userData.accountId,
+        ),
+      ]);
+      // if (point <= 0) {
+      //   throw new HttpException(
+      //     'You have reached the maximum limit to view data. Please get in touch with us.',
+      //     HttpStatus.TOO_MANY_REQUESTS,
+      //   );
+      // }
+      if (query.limit && membershipLimit[membershipStatus.membership].perSearchLimit < query.limit) {
+        query.limit = membershipLimit[membershipStatus.membership].perSearchLimit;
+      }
+      if (point <= 0) {
+        throw new HttpException(
+          'You have reached the maximum limit to view data. Please get in touch with us.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
       const result = await this.userService.getUserProspectData(query);
       await this.sharedService.deductPointForRequest(
         PointColumn.pendingCompanySearchRequests,

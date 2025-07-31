@@ -57,6 +57,15 @@ export class EventsController {
       // }
       if (point <= 0 && Math.abs(point) >= (advancePoint * 0.5)) {
         throw new HttpException(
+          'You have reached the maximum limit to view data. Please get in touch with us.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+      if (query.limit && membershipLimit[membershipStatus.membership].perSearchLimit < query.limit) {
+        query.limit = membershipLimit[membershipStatus.membership].perSearchLimit;
+      }
+      if ((membershipLimit[membershipStatus.membership].upperLimit - ((query.limit || 10) + (query.offset || 0))) < 0) {
+        throw new HttpException(
           'You have reached your daily limit. It will reset tomorrow.',
           HttpStatus.TOO_MANY_REQUESTS,
         );

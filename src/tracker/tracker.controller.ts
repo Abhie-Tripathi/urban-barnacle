@@ -172,6 +172,19 @@ export class TrackerController {
           HttpStatus.TOO_MANY_REQUESTS,
         );
       }
+      if (query.limit && membershipLimit[membershipStatus.membership].perSearchLimit < query.limit) {
+        query.limit = membershipLimit[membershipStatus.membership].perSearchLimit;
+      }
+      if (
+        membershipLimit[membershipStatus.membership].upperLimit -
+        ((query.limit || 10) + (query.offset || 0)) <
+        0
+      ) {
+        throw new HttpException(
+          'You have reached the maximum limit to view data. Please get in touch with us.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
       // if (
       //   membershipLimit[membershipStatus.membership] -
       //   ((query.limit || 10) + (query.offset || 0)) <
@@ -267,6 +280,7 @@ export class TrackerController {
     let flag = false;
     let advanceDataFromResponse: boolean = false;
     try {
+
       const [{ point, advancePoint }, membershipStatus] = await Promise.all([
         this.sharedService.getPointForRequest(
           PointColumn.pendingRequests,
@@ -277,6 +291,19 @@ export class TrackerController {
           user.accountId,
         ),
       ]);
+      if (query.limit && membershipLimit[membershipStatus.membership].perSearchLimit < query.limit) {
+        query.limit = membershipLimit[membershipStatus.membership].perSearchLimit;
+      }
+      if (
+        membershipLimit[membershipStatus.membership].upperLimit -
+        ((query.limit || 10) + (query.offset || 0)) <
+        0
+      ) {
+        throw new HttpException(
+          'You have reached the maximum limit to view data. Please get in touch with us.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
       // if (point <= 0) {
       //   throw new HttpException(
       //     'You have reached the maximum limit to view data. Please get in touch with us.',

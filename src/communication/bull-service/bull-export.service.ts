@@ -238,7 +238,8 @@ export class ExportWorkerClass extends WorkerHost {
                 // console.log({ bulkUpdateExport });
                 await Promise.all(
                     bulkUpdateExport.map(({ id, status, fileUrl, outputResponse, attachment, fileSize }) => {
-                        attachments.push(attachment);
+                        if (Object.keys(attachment).length > 0)
+                            attachments.push(attachment);
                         return this.prisma.export.update({
                             where: { id },
                             data: { status, fileSize, fileUrl, outputData: outputResponse },
@@ -376,7 +377,8 @@ export class ExportWorkerClass extends WorkerHost {
                 }
                 await Promise.all(
                     bulkUpdateExport.map(({ id, status, fileUrl, outputResponse, attachment, fileSize }) => {
-                        attachments.push(attachment);
+                        if (Object.keys(attachment).length > 0)
+                            attachments.push(attachment);
                         return this.prisma.export.update({
                             where: { id },
                             data: { status, fileUrl, fileSize, outputData: outputResponse },
@@ -501,6 +503,7 @@ export class ExportWorkerClass extends WorkerHost {
                 { header: 'Repeat Sentiment (%)', key: 'repeat', width: 20 },
                 { header: 'Estimated Audience', key: 'size', width: 15 },
                 { header: 'Estimated Exhibitors', key: 'exhibitor', width: 20 },
+                { header: 'Entry Type', key: 'entryType', width: 20 },
             ];
             if (jobData?.searchByEntity) {
                 columns.push(...[
@@ -529,6 +532,7 @@ export class ExportWorkerClass extends WorkerHost {
             // }, email);
             // const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: '', limit: 0, offset: 0, type: type as keyof typeof EventTabs });
             let linesWrittern: number = 0;
+            let attactmentFlag = false;
             while (offset < totalCount) {
                 console.log(`Processing ${offset} to ${offset + limit} records`);
                 const showValues = 'basic,advance,insights,audience';
@@ -567,8 +571,11 @@ export class ExportWorkerClass extends WorkerHost {
                 const events = response?.events || [];
                 totalCount = flagforCount ? (response?.count || 0) : totalCount;
                 if (events.length === 0 || linesWrittern === totalCount) break;
-                // const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: events.map(val => val.basic.id).join(','), limit: events.length, offset: 0, type: type as keyof typeof EventTabs, trackerEventStatus: type as any });
-                for (const data of events) {
+                let trackerEventsIntelScore: object[] = [];
+                if (process.env.BACKEND === 'gtm') {
+                    const trackerEventsIntelScoreValue = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: events.map(val => val.basic.id).join(','), limit: events.length, offset: 0, type: type as keyof typeof EventTabs, trackerEventStatus: type as any });
+                    trackerEventsIntelScore = trackerEventsIntelScoreValue.trackerEventsIntelScore;
+                } for (const data of events) {
                     if (linesWrittern === totalCount) break;
                     // const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: events.map(val => val.basic.id).join(','), limit: events.length, offset: 0, type: type as keyof typeof EventTabs, trackerEventStatus: type as any });
                     let eventTYpes: string = (data.basic.eventTypes?.map(val => val.name).join(',')) || '';
@@ -577,12 +584,12 @@ export class ExportWorkerClass extends WorkerHost {
                     }
                     let matched: string = data.basic?.matchedKeywords?.join(',') || '';
                     let matchScore: string = data.basic?.matchedKeywordsPercentage || '';
-                    // const score = (trackerEventsIntelScore.find(val => val['event'] === data.basic.id));
-                    // if (score) {
-                    // matchScore = score['alltrackers_score'];
-                    // } else {
-                    matchScore = '';
-                    // }
+                    const score = (trackerEventsIntelScore.find(val => val['event'] === data.basic.id));
+                    if (score) {
+                        matchScore = score['alltrackers_score'];
+                    } else {
+                        matchScore = '';
+                    }
                     if (jobData?.searchByEntity === 'company' && data.trackerMatchInfo) {
                         matched = (data.trackerMatchInfo['competitorDomainOrName'] as string[]).map(val => {
                             const temp: string[] = val.split('_');
@@ -645,11 +652,12 @@ export class ExportWorkerClass extends WorkerHost {
                         size: data.insights?.estimatedAttendance || '',
                         exhibitor: data.insights?.estimatedExhibitors || '',
                         international: data['internationalScore'] || '',
+                        entryType: data.basic.entryType,
                         matched: matched,
                         ...locationPayload,
                         matchScore: matchScore,
                     });
-
+                    attactmentFlag = true;
                     linesWrittern++;
                 }
 
@@ -687,7 +695,7 @@ export class ExportWorkerClass extends WorkerHost {
                 },
             });
             const fileData = fs.readFileSync(excelFilePath);
-            const base64File = fileData.toString('base64');
+            const base64File = attactmentFlag ? fileData.toString('base64') : '';
             const attachment =
             {
                 content: base64File,
@@ -696,7 +704,7 @@ export class ExportWorkerClass extends WorkerHost {
                 disposition: 'attachment',
             };
             return {
-                attachment,
+                attachment: attactmentFlag ? attachment : {},
                 status: "done",
                 fileSizeInKB,
                 fileSizeInMB,
