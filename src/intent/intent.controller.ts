@@ -110,7 +110,6 @@ export class IntentController {
       };
     }
   }
-
   @UseGuards(AuthGuard)
   @Delete('user-event-interest/:id')
   async deleteUserEventInterest(
@@ -119,7 +118,14 @@ export class IntentController {
   ) {
     return this.intentService.deleteUserEventInterest(user, id);
   }
-
+  @UseGuards(AuthGuard)
+  @Delete('user-prospect-interest/:id')
+  async deleteUserProspectInterest(
+    @Param('id') id: string,
+    @GetUser() user: TCachedUser,
+  ) {
+    return this.intentService.deleteUserEventInterest(user, id);
+  }
   // @UseGuards(AuthGuard)
   // @Post('upvote')
   // async createUpvote(
