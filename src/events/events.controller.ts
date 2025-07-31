@@ -155,15 +155,73 @@ export class EventsController {
   }
   @UseGuards(AuthGuard)
   @Get('similar')
-  async getSimilarEvents(@Query() query: SimilarEventsDto) {
+  async getSimilarEvents(@Query() query: SimilarEventsDto, @GetUser() user: TCachedUser) {
+    let flag = false;
+    let advanceDataFromResponse: boolean = false;
     try {
-      let queryDto = {
-        ...(query),
-        showValues: 'basic,advance,insights,audience',
-      } as any;
+      const [{ point, advancePoint }, membershipStatus] = await Promise.all([this.sharedService.getPointForRequest(
+        PointColumn.pendingRequests,
+        user.accountId,
+        PointColumn.advancePendingRequests
+      ), this.sharedService.
+        getAccountMemberShipStatus(user.accountId)]);
+      // if (point <= 0) {
+      //   throw new HttpException(
+      //     'You have reached the maximum limit to view data. Please get in touch with us.',
+      //     HttpStatus.TOO_MANY_REQUESTS,
+      //   );
+      // }
+      if (point <= 0 && Math.abs(point) >= (advancePoint * 0.5)) {
+        throw new HttpException(
+          'You have reached your daily limit. It will reset tomorrow.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+      // if ((membershipLimit[membershipStatus.membership] - ((query.limit || 10) + (query.offset || 0))) < 0) {
+      //   throw new HttpException(
+      //     'You have reached the maximum limit to view data. Please get in touch with us.',
+      //     HttpStatus.TOO_MANY_REQUESTS,
+      //   );
+      // }
+      const queryDto: any = {
+        ...query,
+        showValues: query.showValues,
+      };
+      for (const val of query.showValues.split(',')) {
+        if (eventAdvanceFields[val] === 'advance') {
+          advanceDataFromResponse = true;
+          break;
+        }
+      }
+      if (advanceDataFromResponse && advancePoint <= 0) {
+        throw new HttpException(
+          'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
       const events = await this.eventsService.getSimilarEvents(queryDto);
+      // console.log("aibuuuuuuuuuuuuuuuuuuusj\n", point, advancePoint);
+
+      await this.sharedService.deductPointForRequest(
+        PointColumn.pendingRequests,
+        user.accountId,
+        point - 1,
+        (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+        (advanceDataFromResponse ? advancePoint - 1 : 0),
+      );
+      flag = true;
+      if (query.view !== 'map' && (query.save === undefined || query.save)) {
+        this.eventsService.createLogForEncryptedQuery(queryDto, user);
+      }
       return { data: events };
     } catch (error) {
+      if (flag) {
+        this.sharedService.creditPointForRequest(
+          PointColumn.pendingRequests,
+          user.accountId,
+          (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+        );
+      }
       return {
         error,
       };
