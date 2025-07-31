@@ -38,7 +38,7 @@ export class IntentDataService {
     if (!data.eventId) {
       throw new HttpException('Event id is required', HttpStatus.BAD_REQUEST);
     }
-    if ((data.sourceModule !== 'RESEARCH' && data.sourceModule !== 'PROMOTED_EVENT') && !data.sourceId) {
+    if ((!data.sourceModule.includes('RESEARCH') && data.sourceModule !== 'PROMOTED_EVENT') && !data.sourceId) {
       throw new HttpException('Source id is required ', HttpStatus.BAD_REQUEST);
     }
     if (data.sourceModule === 'RESEARCH' && data.sourceId) {

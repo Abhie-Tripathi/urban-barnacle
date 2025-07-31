@@ -13,6 +13,7 @@ import { IntentService } from './intent.service';
 import {
   CreateIntentHttpDto,
   CreateUserEventInterestHttpDto,
+  CreateUserProspectInterestHttpDto,
   UpdateUserEventInterestHttpDto,
 } from './dto';
 import { GetUser } from 'src/user/decorator';
@@ -56,7 +57,37 @@ export class IntentController {
       };
     }
   }
-
+  @UseGuards(AuthGuard)
+  @Post('user-prospect-interest')
+  async createUserProspectInterest(
+    @Body() data: CreateUserProspectInterestHttpDto,
+    @GetUser() user: TCachedUser,
+  ) {
+    try {
+      const userEventInterest =
+        await this.intentService.createUserEventInterest(user, {
+          ...data,
+          accountId: user.accountId,
+          interestedUserId: user.id,
+        });
+      return userEventInterest;
+    } catch (error) {
+      console.error(error);
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          return {
+            error: new HttpException(
+              'Interest already exists',
+              HttpStatus.BAD_REQUEST,
+            ),
+          };
+        }
+      }
+      return {
+        error: error,
+      };
+    }
+  }
   @UseGuards(AuthGuard)
   @Patch('user-event-interest/:id')
   async updateUserEventInterest(

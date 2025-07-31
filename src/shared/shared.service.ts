@@ -453,7 +453,7 @@ export class SharedService {
         queryParam,
       );
       const responseData = response;
-      console.log(responseData);
+      // console.log(responseData);
       if (viewAs === 'detail') {
         return responseData?.data?.id
           ? {
@@ -501,7 +501,16 @@ export class SharedService {
           },
         };
       }
-      const [companyData, totalCount] = await callMicroService(query);
+      if (viewAs === 'list' && query.companyId) {
+        query.companyId = query.companyId.split(',').map(val => decrypt(val).replace(
+          process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+          '',
+        )).join(',')
+      }
+      const [companyData, totalCount] = await callMicroService({
+        ...query, viewAs,
+        viewBy
+      });
       return { data: { companyData, totalCount } };
     }
 
@@ -515,7 +524,16 @@ export class SharedService {
           data: { userData: await callMicroService({ userId: query.userId }) },
         };
       }
-      const [userData, totalCount] = await callMicroService(query);
+      if (viewAs === 'list' && query.userId) {
+        query.userId = query.userId.split(',').map(val => decrypt(val).replace(
+          process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+          '',
+        )).join(',')
+      }
+      const [userData, totalCount] = await callMicroService({
+        ...query, viewAs,
+        viewBy
+      });
       return { data: { userData, totalCount } };
     }
     return { data: { message: 'Wrong view selected' } };

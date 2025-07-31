@@ -24,11 +24,16 @@ export async function fetchDatafromMicroService(
   query: any,
 ) {
   try {
-    let { userType, companyId, userId, ...rest } = query;
+    let { userType, companyId, userId, viewAs,
+      viewBy, ...rest } = query;
     if (userType && userType === 'visitor,speaker' && userType === 'speaker,visitor') {
       rest['userType'] = 'all';
-    } else if(userType) {
+    } else if (userType) {
       rest['userType'] = userType;
+    }
+    if (viewAs === 'list' && (companyId ||
+      userId)) {
+      rest[companyId ? 'companyId' : 'userId'] = companyId ? companyId : userId;
     }
     const queryString = new URLSearchParams(rest).toString();
     const url = `${microServiceApis[`${apiToFetch}`].replace(':companyId', companyId || '').replace(':userId', userId || '')}${queryString ? `?${queryString}` : ''}`;
