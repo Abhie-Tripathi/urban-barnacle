@@ -50,9 +50,9 @@ export async function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
       checkToPassFilter = checkTheValue(main, sub);
     }
     if (!checkToPassFilter) rootTodiscard = key;
-    if (key === 'ratings') shows = shows.replace('ratings', '');
-    // if (key === 'top') shows = shows.replace('top', '');
-    if (key === 'maturity') shows = shows.replace('maturity', '');
+    // if (key === 'ratings') shows = shows.replace('ratings', '');
+    // // if (key === 'top') shows = shows.replace('top', '');
+    // if (key === 'maturity') shows = shows.replace('maturity', '');
   }
   if (data.branded && checkToPassFilter) {
     const brandedCheck = query.onlyBranded === true;
@@ -127,6 +127,7 @@ export async function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
       }
     } else {
       checkToPassFilter = false;
+      rootTodiscard = 'viewBound';
     }
   }
 
@@ -140,6 +141,7 @@ export async function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
       if (!checkToPassFilter) rootTodiscard = 'designations';
     } else {
       checkToPassFilter = false;
+      rootTodiscard = 'designations';
     }
   }
   // Category check
@@ -153,6 +155,7 @@ export async function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
       if (!checkToPassFilter) rootTodiscard = 'categories';
     } else {
       checkToPassFilter = false;
+      rootTodiscard = 'categories';
     }
   }
   if (data?.eventRanking && checkToPassFilter) {
@@ -164,6 +167,7 @@ export async function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
       if (!checkToPassFilter) rootTodiscard = 'top';
     } else {
       checkToPassFilter = false;
+      rootTodiscard = 'top';
     }
     if (checkToPassFilter && data.eventRanking.trustScore['isAllowed']) {
       const main_gte = String(query?.trust_score_gte ?? 0);
@@ -174,6 +178,7 @@ export async function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
       if (!checkToPassFilter) rootTodiscard = 'trustScore';
     } else {
       checkToPassFilter = false;
+      rootTodiscard = 'trustScore';
     }
   }
   if (data?.analytics && checkToPassFilter) {
@@ -187,6 +192,7 @@ export async function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
       if (!checkToPassFilter) rootTodiscard = 'internationalScore';
     } else {
       checkToPassFilter = false;
+      rootTodiscard = 'internationalScore';
     }
     if (checkToPassFilter && data.analytics.inboundScore['isAllowed']) {
       const main_gte = String(query?.inbound_score_gte ?? 0);
@@ -197,6 +203,7 @@ export async function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
       if (!checkToPassFilter) rootTodiscard = 'inboundScore';
     } else {
       checkToPassFilter = false;
+      rootTodiscard = 'inboundScore';
     }
   }
   // Duration checks
