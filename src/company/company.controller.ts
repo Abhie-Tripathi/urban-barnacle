@@ -32,7 +32,7 @@ export class CompanyController {
     try {
       const [{ point }, membershipStatus] = await Promise.all([
         this.sharedService.getPointForRequest(
-          PointColumn.pendingRequests,
+          PointColumn.pendingCompanySearchRequests,
           userData.accountId,
         ),
         this.sharedService.getAccountMemberShipStatus(
