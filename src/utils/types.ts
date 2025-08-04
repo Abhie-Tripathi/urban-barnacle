@@ -343,7 +343,7 @@ export const membershipMapForToken: Record<SubscriptionPlan, { pendingRequests: 
     advancePendingRequests: 0
   },
   ESSENTIAL: {
-    pendingCompanySearchRequests: 200,
+    pendingCompanySearchRequests: 40,
     pendingRequests: 20,
     advancePendingRequests: 40
   },
