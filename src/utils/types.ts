@@ -338,8 +338,8 @@ export const membershipLimit: Record<number, { upperLimit: number, perSearchLimi
 };
 export const membershipMapForToken: Record<SubscriptionPlan, { pendingRequests: number, pendingCompanySearchRequests: number }> = {
   BASIC: {
-    pendingCompanySearchRequests: 20,
-    pendingRequests: 200
+    pendingCompanySearchRequests: 40,
+    pendingRequests: 40
   },
   ESSENTIAL: {
     pendingCompanySearchRequests: 200,
