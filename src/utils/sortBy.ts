@@ -41,6 +41,8 @@ export enum SortByOptions {
   '-score' = '-score',
   severity = 'severity',
   '-severity' = '-severity',
+  visitor = 'visitor',
+  '-visitor' = '-visitor',
 }
 
 // export const sortByOptions: Record<SortByOptions, Option> = {

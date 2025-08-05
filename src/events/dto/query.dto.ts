@@ -145,6 +145,7 @@ export const conditionsSchema = z
   );
 export const jobCompositeSchema = z.strictObject({
   designationIds: z.array(z.string()).optional(),
+  logic: z.enum(['AND', 'OR']).default('AND'),
   conditions: conditionsSchema.optional(),
   properties: z.any(),
 });
