@@ -203,5 +203,62 @@ export const accountConfig: AccountConfigDto = {
       status: 'REJECTED',
     },
   ],
-  filter: {},
+  filter: {
+    "maturity": {
+      "isMaturityEnabled": false,
+      "isAllowed": false
+    },
+    "branded": {
+      "enabledValue": {
+        "eventBrand": false,
+        "eventSeries": false
+      },
+      "isAllowed": false
+    },
+    "frequencies": {
+      "isFreqEnabled": false,
+      "isAllowed": false
+    },
+    "eventRanking": {
+      "isRanking": false,
+      "isAllowed": false
+    },
+    "audienceZone": {
+      "isZoneEnabled": false,
+      "isAllowed": false
+    },
+    "estimatedExhibitors": {
+      "isExhibitorsEnabled": false,
+      "isAllowed": false
+    },
+    "estimatedVisitorRangeTag": {
+      "isEstimatedVisitorRangeTag": false,
+      "isAllowed": false
+    },
+    "isForecasted": {
+      "isForecastedEnabled": false,
+    },
+    "audienceSpread": {
+      "isAudienceEnabled": false,
+      "isAllowed": false
+    },
+    "designation": {
+      "isProfileEnabled": false,
+      "isAllowed": false
+    },
+    ...(process.env.BACKEND === 'geo' ? {
+      "economicImpact": {
+        "isEconomicImpactEnabled": false,
+        "isAllowed": false
+      },
+      "analytics": {
+        "isAnalyticsEnabled": false,
+        "isAllowed": false
+      },
+    } : {}),
+    "keywords": {
+      "isKeywordEnabled": false,
+      "isAllowed": false
+    }
+  },
 };

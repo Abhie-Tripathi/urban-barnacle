@@ -411,11 +411,12 @@ export const QueryFilter = z.object({
     .optional(),
   show: z
     .string()
-    .refine((val) => val.split(',').every((item) => item in Show))
+    .optional()
     .transform((val) =>
-      val.split(',').map((item) => item.trim() as unknown as Show),
-    )
-    .optional(),
+      val
+        ? val.split(',').map((item) => item.trim() as unknown as Show)
+        : undefined
+    ),
   ratings: z
     .string()
     .refine((val) => val.split(',').every((item) => item in Rating))
