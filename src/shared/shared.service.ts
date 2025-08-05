@@ -584,11 +584,20 @@ export class SharedService {
             pendingProspectPocUnlockRequests: 0,
             pendingRequests: 0,
             planEndDate: new Date(),
+            accountId: accountId
           },
           select: {
             id: true
           }
         }),
+        this.prisma.subscription.update({
+          where: {
+            id: pointsData.currentSubscriptionId
+          }, data: {
+            deleted: true
+          }
+        })
+          ,
         await this.prisma.$executeRawUnsafe(
           `
               UPDATE "Configuration"
@@ -598,7 +607,7 @@ export class SharedService {
                 $1::jsonb,
                 true
               )
-              WHERE id = $2
+              WHERE id::TEXT = $2
             `,
           JSON.stringify(advanceFilterBlockObject),
           pointsData.configurationId
