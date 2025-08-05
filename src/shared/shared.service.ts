@@ -2,7 +2,7 @@
 
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { JobSource, SubscriptionPlan } from '@prisma/client';
+import { JobSource, Prisma, SubscriptionPlan } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { FeatureCollection } from 'geojson';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -18,6 +18,7 @@ import { TagResponseDto } from 'src/suggestion/dto/tags.dto';
 import { SuggestionService } from 'src/suggestion/suggestion.service';
 import { UserResponseSchema } from 'src/user/me/dto';
 import {
+  advanceFilterBlockObject,
   CachedUserSchema,
   defaultEventTypes,
   SelectedUserDetails,
@@ -529,11 +530,12 @@ export class SharedService {
       where: { id: accountId },
       select: {
         currentSubscriptionId: true,
+        configurationId: true,
         subscription: {
           where: {
             deleted: false
           },
-          select: { plan: true, id: true, updatedAt: true, [advanceColumn]: true, [column]: true, deleted: true, }
+          select: { plan: true, purchaseValue: true, id: true, updatedAt: true, [advanceColumn]: true, [column]: true, deleted: true, }
         }
       },
     });
@@ -556,11 +558,11 @@ export class SharedService {
     const updatedAt = new Date(pointsData.subscription[0]['updatedAt']);
     updatedAt.setHours(0, 0, 0, 0); // strip time part
     if ('BASIC' !== pointsData.subscription[0]['plan'] && today > updatedAt) {
-      const countOfSubscription = await this.prisma.subscription.count({
-        where: {
-          accountId: accountId
-        }
-      });
+      // const countOfSubscription = await this.prisma.subscription.count({
+      //   where: {
+      //     accountId: accountId
+      //   }
+      // });
       // const createdAt = new Date();
       // const fourteenDaysAgo = new Date(today);
       const createdDate = new Date(pointsData.subscription[0]['updatedAt']);
@@ -572,19 +574,32 @@ export class SharedService {
       const fourteenDaysAgo = new Date(todayDate);
       fourteenDaysAgo.setDate(todayDate.getDate() - 14);
       fourteenDaysAgo.setDate(today.getDate() - 14);
-      if (Number(countOfSubscription) === 1 && createdDate < fourteenDaysAgo && 'ESSENTIAL' === pointsData.subscription[0]['plan']) {
-        await this.prisma.subscription.update({
-          where: {
-            id: pointsData.currentSubscriptionId
-          },
+      if (pointsData.subscription[0]['purchaseValue'] === 0 && createdDate < fourteenDaysAgo && 'ESSENTIAL' === pointsData.subscription[0]['plan']) {
+        await Promise.all([this.prisma.subscription.create({
           data: {
             plan: 'BASIC',
             pendingCompanySearchRequests: 0,
             pendingPocUnlockRequests: 0,
-            advancePendingRequests: 0, pendingProspectPocUnlockRequests: 0,
+            advancePendingRequests: 0,
+            pendingProspectPocUnlockRequests: 0,
             pendingRequests: 0,
+            planEndDate: new Date(),
           }
-        });
+        }),
+        await this.prisma.$executeRawUnsafe(
+          `
+              UPDATE "Configuration"
+              SET config = jsonb_set(
+                COALESCE(config, '{}'::jsonb),
+                '{filter}',
+                $1::jsonb,
+                true
+              )
+              WHERE id = $2
+            `,
+          JSON.stringify(advanceFilterBlockObject),
+          pointsData.configurationId
+        )]);
         throw new HttpException(
           'Your trial period has ended. Please upgrade your plan to continue using Search features.',
           HttpStatus.FORBIDDEN,
@@ -645,11 +660,8 @@ export class SharedService {
   async deductPointForRequest(
     column: PointColumn,
     accountId: string,
-    remainingPoints: number,
-    advanceColumn: PointColumn.advancePendingRequests | null = null,
-    remainingPointsOfAadvance: number = 0,
-  ) {
-    const { point, subscriptionId } = await this.getPointForRequest(column, accountId, advanceColumn ? advanceColumn : PointColumn.advancePendingRequests);
+    remainingPoints: number,) {
+    const { point, subscriptionId } = await this.getPointForRequest(column, accountId, PointColumn.advancePendingRequests);
     // if (point <= 0) {
     //   throw new HttpException(
     //     `You have reached the maximum limit to view data. Please get in touch with us.`,
@@ -658,18 +670,15 @@ export class SharedService {
     // }
     await this.prisma.subscription.update({
       where: { id: subscriptionId },
-      data: { [column]: remainingPoints, ...(advanceColumn ? { [advanceColumn]: remainingPointsOfAadvance } : {}) },
+      data: { [column]: remainingPoints },
     });
     return { data: { message: 'points updated' } };
   }
-  async creditPointForRequest(column: PointColumn, accountId: string,
-    advanceColumn: PointColumn.advancePendingRequests | null = null,
-    remainingPointsOfAadvance: number = 0,) {
-    const { point, advancePoint, subscriptionId } = await this.getPointForRequest(column, accountId, advanceColumn ?
-      advanceColumn : PointColumn.advancePendingRequests);
+  async creditPointForRequest(column: PointColumn, accountId: string,) {
+    const { point, advancePoint, subscriptionId } = await this.getPointForRequest(column, accountId, PointColumn.advancePendingRequests);
     await this.prisma.subscription.update({
       where: { id: subscriptionId },
-      data: { [column]: point + 1, ...(advanceColumn ? { [advanceColumn]: advancePoint + 1 } : {}) },
+      data: { [column]: point + 1, },
     });
     return { data: { message: 'points updated' } };
   }

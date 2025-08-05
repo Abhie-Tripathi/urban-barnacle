@@ -104,11 +104,11 @@ export class EventsController {
         // console.log("aibuuuuuuuuuuuuuuuuuuusj\n", point, advancePoint);
 
         await this.sharedService.deductPointForRequest(
-          PointColumn.pendingRequests,
+          advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
           user.accountId,
-          point - 1,
-          (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
-          (advanceDataFromResponse ? advancePoint - 1 : 0),
+          advanceDataFromResponse ? advancePoint - 1 : point - 1,
+          // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+          // (advanceDataFromResponse ? advancePoint - 1 : 0),
         );
         flag = true;
       }
@@ -117,13 +117,12 @@ export class EventsController {
       }
       return { data: events };
     } catch (error) {
-      if (flag) {
+      if (flag)
         this.sharedService.creditPointForRequest(
-          PointColumn.pendingRequests,
+          advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
           user.accountId,
-          (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+          // (advanceDataFromResponse ? : null),
         );
-      }
       return {
         error,
       };
@@ -212,11 +211,11 @@ export class EventsController {
       // console.log("aibuuuuuuuuuuuuuuuuuuusj\n", point, advancePoint);
 
       await this.sharedService.deductPointForRequest(
-        PointColumn.pendingRequests,
+        advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
         user.accountId,
-        point - 1,
-        (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
-        (advanceDataFromResponse ? advancePoint - 1 : 0),
+        advanceDataFromResponse ? advancePoint - 1 : point - 1,
+        // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+        // (advanceDataFromResponse ? advancePoint - 1 : 0),
       );
       flag = true;
       if (query.view !== 'map' && (query.save === undefined || query.save)) {
@@ -224,13 +223,12 @@ export class EventsController {
       }
       return { data: events };
     } catch (error) {
-      if (flag) {
+      if (flag)
         this.sharedService.creditPointForRequest(
-          PointColumn.pendingRequests,
+          advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
           user.accountId,
-          (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+          // (advanceDataFromResponse ? : null),
         );
-      }
       return {
         error,
       };
@@ -386,12 +384,69 @@ export class EventsController {
   }
   @UseGuards(AuthGuard)
   @Get(':id')
-  async getEvent(@Param('id') id: string, @GetUser() user: TCachedUser) {
+  async getEvent(@Param('id') id: string,
+    @GetUser() user: TCachedUser, @Query() query: QueryHttpDto) {
+    let flag = false;
+    let advanceDataFromResponse: boolean = false;
     try {
-      const showValues = 'basic,advance,insights,audience';
-      const event = await this.eventsService.getEvent(id, showValues, user);
+      const [{ point, advancePoint }, membershipStatus] = await Promise.all([
+        this.sharedService.getPointForRequest(
+          PointColumn.pendingRequests,
+          user.accountId,
+          PointColumn.advancePendingRequests,
+        ),
+        this.sharedService.getAccountMemberShipStatus(
+          user.accountId,
+        ),
+      ]);
+      if (point <= 0 && Math.abs(point) >= (advancePoint * 0.5)) {
+        throw new HttpException(
+          'You have reached the maximum limit to view data. Please get in touch with us.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+      if (query.limit && membershipLimit[membershipStatus.membership].perSearchLimit < query.limit) {
+        query.limit = membershipLimit[membershipStatus.membership].perSearchLimit;
+      }
+      if (
+        membershipLimit[membershipStatus.membership].upperLimit -
+        ((query.limit || 10) + (query.offset || 0)) <
+        0
+      ) {
+        throw new HttpException(
+          'You have reached the maximum limit to view data. Please get in touch with us.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+      for (const val of query.showValues.split(',')) {
+        if (eventAdvanceFields[val] === 'advance') {
+          advanceDataFromResponse = true;
+          break;
+        }
+      }
+      if (advanceDataFromResponse && advancePoint <= 0) {
+        throw new HttpException(
+          'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+      const event = await this.eventsService.getEvent(id, query.showValues, user);
+      await this.sharedService.deductPointForRequest(
+        advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
+        user.accountId,
+        advanceDataFromResponse ? advancePoint - 1 : point - 1,
+        // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+        // (advanceDataFromResponse ? advancePoint - 1 : 0),
+      );
+      flag = true;
       return { data: event };
     } catch (error) {
+      if (flag)
+        this.sharedService.creditPointForRequest(
+          advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
+          user.accountId,
+          // (advanceDataFromResponse ? : null),
+        );
       return {
         error,
       };

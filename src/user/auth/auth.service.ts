@@ -109,7 +109,7 @@ export class AuthService {
         }
         const createSubscription =
           await this.accountDataService.createSubscription({
-            planEndDate: new Date('2126-01-01'),
+           planEndDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
           });
         account = await this.accountDataService.createAccount({
           ...accountDefault,

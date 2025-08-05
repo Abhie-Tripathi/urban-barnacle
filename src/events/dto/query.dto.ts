@@ -706,20 +706,21 @@ export const QueryHttpSchema = LimitSchemaWithoutDefault.extend(
       .refine((val) => val in SearchByEntity)
       .transform((val) => val as keyof typeof SearchByEntity)
       .optional(),
-    showValues: z.string().refine(val => {
-      const keys = Object.keys(eventAdvanceFields);
-      const values = val.split(',').map(v => v.trim());
+    showValues: z.string()
+      .default('basic')
+      .optional()
+      .transform(val => val ?? 'basic')
+      .refine(val => {
+        const keys = Object.keys(eventAdvanceFields);
+        const values = val.split(',').map(v => v.trim());
 
-      // 1. All values must be valid keys
-      const allValid = values.every(subValue => keys.includes(subValue));
+        const allValid = values.every(subValue => keys.includes(subValue));
+        const includesBasic = values.includes('basic');
 
-      // 2. "basic" must be included
-      const includesBasic = values.includes('basic');
-
-      return allValid && includesBasic;
-    }, {
-      message: 'showValues must include basic and only valid keys.'
-    })
+        return allValid && includesBasic;
+      }, {
+        message: 'showValues must include "basic" and only contain valid keys.'
+      })
   })
   .transform((data) => {
     data['show'] = (Object.values(Show) as Show[]).filter((item) => {

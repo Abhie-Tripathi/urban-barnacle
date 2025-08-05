@@ -33,7 +33,7 @@ export const InterestConfigurationSchema = z.array(
 
 export class InterestConfigurationDto extends createZodDto(
   InterestConfigurationSchema,
-) {}
+) { }
 
 export const OutreachConfigurationSchema = z.array(
   z.object({
@@ -44,14 +44,14 @@ export const OutreachConfigurationSchema = z.array(
 
 export class OutreachConfigurationDto extends createZodDto(
   OutreachConfigurationSchema,
-) {}
+) { }
 
 // const FilterConfigurationSchema = z.record(z.string(), filterValueSchema);
 const FilterConfigurationSchema = z.record(z.string(), z.any());
 
 export class FilterConfigurationDto extends createZodDto(
   FilterConfigurationSchema,
-) {}
+) { }
 export const membershipSchema = z
   .strictObject({
     token: z.string(),
@@ -131,7 +131,7 @@ export const AccountConfigSchema = z.strictObject({
   filter: FilterConfigurationSchema,
 });
 
-export class AccountConfigDto extends createZodDto(AccountConfigSchema) {}
+export class AccountConfigDto extends createZodDto(AccountConfigSchema) { }
 
 export const InterestDefaultConfigurations: Record<
   string,
@@ -203,62 +203,5 @@ export const accountConfig: AccountConfigDto = {
       status: 'REJECTED',
     },
   ],
-  filter: {
-    "maturity": {
-      "isMaturityEnabled": false,
-      "isAllowed": false
-    },
-    "branded": {
-      "enabledValue": {
-        "eventBrand": false,
-        "eventSeries": false
-      },
-      "isAllowed": false
-    },
-    "frequencies": {
-      "isFreqEnabled": false,
-      "isAllowed": false
-    },
-    "eventRanking": {
-      "isRanking": false,
-      "isAllowed": false
-    },
-    "audienceZone": {
-      "isZoneEnabled": false,
-      "isAllowed": false
-    },
-    "estimatedExhibitors": {
-      "isExhibitorsEnabled": false,
-      "isAllowed": false
-    },
-    "estimatedVisitorRangeTag": {
-      "isEstimatedVisitorRangeTag": false,
-      "isAllowed": false
-    },
-    "isForecasted": {
-      "isForecastedEnabled": false,
-    },
-    "audienceSpread": {
-      "isAudienceEnabled": false,
-      "isAllowed": false
-    },
-    "designation": {
-      "isProfileEnabled": false,
-      "isAllowed": false
-    },
-    ...(process.env.BACKEND === 'geo' ? {
-      "economicImpact": {
-        "isEconomicImpactEnabled": false,
-        "isAllowed": false
-      },
-      "analytics": {
-        "isAnalyticsEnabled": false,
-        "isAllowed": false
-      },
-    } : {}),
-    "keywords": {
-      "isKeywordEnabled": false,
-      "isAllowed": false
-    }
-  },
+  filter: {}
 };

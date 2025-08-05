@@ -214,20 +214,20 @@ export class TrackerController {
         query.showValues,
       );
       await this.sharedService.deductPointForRequest(
-        PointColumn.pendingRequests,
+        advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
         user.accountId,
-        point - 1,
-        (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
-        (advanceDataFromResponse ? advancePoint - 1 : 0),
+        advanceDataFromResponse ? advancePoint - 1 : point - 1,
+        // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+        // (advanceDataFromResponse ? advancePoint - 1 : 0),
       );
       flag = true;
       return { data: events };
     } catch (error) {
       if (flag)
         this.sharedService.creditPointForRequest(
-          PointColumn.pendingRequests,
+          advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
           user.accountId,
-          (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+          // (advanceDataFromResponse ? : null),
         );
       return { error: error };
     }
@@ -344,21 +344,21 @@ export class TrackerController {
         query,
         query.showValues,
       );
-      await this.sharedService.deductPointForRequest(
-        PointColumn.pendingRequests,
+       await this.sharedService.deductPointForRequest(
+        advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
         user.accountId,
-        point - 1,
-        (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
-        (advanceDataFromResponse ? advancePoint - 1 : 0),
+        advanceDataFromResponse ? advancePoint - 1 : point - 1,
+        // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+        // (advanceDataFromResponse ? advancePoint - 1 : 0),
       );
       flag = true;
       return { data: events };
     } catch (error) {
-      if (flag)
+       if (flag)
         this.sharedService.creditPointForRequest(
-          PointColumn.pendingRequests,
+          advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
           user.accountId,
-          (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+          // (advanceDataFromResponse ? : null),
         );
       return { error: error };
     }
