@@ -146,6 +146,7 @@ export const conditionsSchema = z
 export const jobCompositeSchema = z.strictObject({
   designationIds: z.array(z.string()).optional(),
   conditions: conditionsSchema.optional(),
+  properties: z.any(),
 });
 export const viewBound = z
   .object({
