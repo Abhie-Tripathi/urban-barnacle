@@ -708,6 +708,7 @@ export class SharedService {
             planEndDate: true,
             planRenewalDate: true,
             planStartDate: true,
+            purchaseValue: true
           },
           orderBy: { createdAt: 'desc' }
         }
@@ -731,7 +732,7 @@ export class SharedService {
       endDate: membership.planEndDate,
       planRenewalDate: membership.planRenewalDate,
       planStartDate: membership.planStartDate,
-      isTrail: pointsData.subscription.length > 1 ? false : true
+      isTrail: membership.purchaseValue !== 0 && membership.plan !== 'ESSENTIAL' ? false : true
     };
   }
   async getLocationData(locationIds: string[]) {
