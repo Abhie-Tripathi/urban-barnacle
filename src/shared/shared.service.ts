@@ -575,7 +575,7 @@ export class SharedService {
       fourteenDaysAgo.setDate(todayDate.getDate() - 14);
       fourteenDaysAgo.setDate(today.getDate() - 14);
       if (pointsData.subscription[0]['purchaseValue'] === 0 && createdDate < fourteenDaysAgo && 'ESSENTIAL' === pointsData.subscription[0]['plan']) {
-        await Promise.all([this.prisma.subscription.create({
+        const [newSubscription] = await Promise.all([this.prisma.subscription.create({
           data: {
             plan: 'BASIC',
             pendingCompanySearchRequests: 0,
@@ -584,6 +584,9 @@ export class SharedService {
             pendingProspectPocUnlockRequests: 0,
             pendingRequests: 0,
             planEndDate: new Date(),
+          },
+          select: {
+            id: true
           }
         }),
         await this.prisma.$executeRawUnsafe(
@@ -600,6 +603,14 @@ export class SharedService {
           JSON.stringify(advanceFilterBlockObject),
           pointsData.configurationId
         )]);
+        await this.prisma.account.update({
+          where: {
+            id: accountId
+          },
+          data: {
+            currentSubscriptionId: newSubscription.id
+          }
+        })
         throw new HttpException(
           'Your trial period has ended. Please upgrade your plan to continue using Search features.',
           HttpStatus.FORBIDDEN,
@@ -689,7 +700,8 @@ export class SharedService {
         currentSubscriptionId: true,
         subscription: {
           where: {
-            deleted: false
+            deleted: false,
+            accountId: accountId
           },
           select: {
             plan: true,
@@ -719,6 +731,7 @@ export class SharedService {
       endDate: membership.planEndDate,
       planRenewalDate: membership.planRenewalDate,
       planStartDate: membership.planStartDate,
+      isTrail: pointsData.subscription.length > 1 ? false : true
     };
   }
   async getLocationData(locationIds: string[]) {
