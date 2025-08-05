@@ -238,6 +238,7 @@ export enum QueueActionOptions {
   SEND_CONTACT_ERROR_EMAIL = 'SEND_CONTACT_ERROR_EMAIL',
   SEND_TRACKER_EXPORT_MAIL = 'SEND_TRACKER_EXPORT_MAIL',
   CRON_USER_TRACKER_IMPORT = 'CRON_USER_TRACKER_IMPORT',
+  SEND_SUBSCRIPTION_CANCEL_MAIL = 'SEND_SUBSCRIPTION_CANCEL_MAIL',
 }
 
 // export type TrackerParams = {
@@ -328,12 +329,12 @@ export const membershipMap: Record<SubscriptionPlan, number> = {
   ADVANCE: 30,
   ENTERPRISE: 40,
 };
-export const membershipLimit: Record<number, number> = {
-  0: 4000,
-  10: 4000,
-  20: 4000,
-  30: 20000,
-  40: 100000,
+export const membershipLimit: Record<number, { upperLimit: number, perSearchLimit: number, exportAllowed: boolean }> = {
+  0: { upperLimit: 4000, perSearchLimit: 10, exportAllowed: false },
+  10: { upperLimit: 4000, perSearchLimit: 10, exportAllowed: false },
+  20: { upperLimit: 4000, perSearchLimit: 50, exportAllowed: false },
+  30: { upperLimit: 20000, perSearchLimit: 100, exportAllowed: true },
+  40: { upperLimit: 100000, perSearchLimit: 100, exportAllowed: true },
 };
 export const membershipMapForToken: Record<SubscriptionPlan, { pendingRequests: number, pendingCompanySearchRequests: number }> = {
   BASIC: {

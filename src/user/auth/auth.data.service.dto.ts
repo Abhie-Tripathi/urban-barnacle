@@ -251,6 +251,9 @@ export class AuthDataService {
     }
   }
   async createjobForUserTrackerImport(user: any) {
+    if (process.env.BACKEND !== 'gtm') {
+      return {};
+    }
     const chechJobExist = await this.prisma.requestedJob.findMany({
       where: {
         userId: user['id'],

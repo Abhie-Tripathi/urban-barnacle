@@ -8,21 +8,7 @@ import {
   View,
 } from 'src/events/dto';
 import { TrackerType } from '@prisma/client';
-
-export const SearchByEntity = {
-  company: 'company',
-  user: 'user',
-  speaker: 'speaker',
-  event: 'event',
-  recruitment: 'recruitment',
-  keywords: 'keywords',
-};
-
-export const TrackerEventStatus = {
-  past: 'past',
-  active: 'active',
-  new: 'new',
-};
+import { SearchByEntity, TrackerEventStatus } from 'src/utils';
 
 export const TrackerEventTypeGroup = {
   business: 'busniness',

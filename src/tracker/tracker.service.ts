@@ -4,6 +4,7 @@ import {
   blackListDomain,
   defaultEventTypes,
   LastActive,
+  membershipLimit,
   TCachedUser,
 } from 'src/utils/types';
 import {
@@ -1553,7 +1554,7 @@ export class TrackerService {
         ...(tracker.filterValues as Object),
         ...convertedParams,
         limit: params.limit,
-        offset: 0,
+        offset: params.offset,
         view: params.view || View.tracker,
         trackerId: trackerId,
         showValues: showValues,
@@ -1842,7 +1843,7 @@ export class TrackerService {
     let [getJsonForTrackerType, jobsForIntelScore] = await Promise.all([
       this.redisService.jsonGet(
         `${trackerId}-IntelScore`,
-        `$.${query.trackerEventStatus}`,
+        `$.${String(query.trackerEventStatus)}`,
       ),
       this.redisService.jsonGet(`${trackerId}-IntelScore-Job`),
     ]);
@@ -1997,7 +1998,7 @@ export class TrackerService {
       for (const eventId of eventIds) {
         const data = await this.redisService.jsonGet(
           `${trackerId}-IntelScore`,
-          `$.${query.trackerEventStatus}.${eventId}`,
+          `$.${String(query.trackerEventStatus)}.${eventId}`,
         );
         if (!data) {
           continue;
@@ -2064,7 +2065,7 @@ export class TrackerService {
     let [getJsonForTrackerType, jobsForIntelScore] = await Promise.all([
       this.redisService.jsonGet(
         `${trackerId}-IntelScore`,
-        `$.${query.trackerEventStatus}`,
+        `$.${String(query.trackerEventStatus)}`,
       ),
       this.redisService.jsonGet(`${trackerId}-IntelScore-Job`),
     ]);
@@ -2559,7 +2560,14 @@ export class TrackerService {
     user: TCachedUser,
     body: CreateTrackerExportsDto,
   ) {
-    const trackerData = await this.getTracker(user, trackerId, {});
+    const [trackerData, membershipStatus] = await Promise.all([this.getTracker(user, trackerId, {}), 
+      this.sharedService.getAccountMemberShipStatus(user.accountId)]);
+    if (!membershipLimit[membershipStatus.membership].exportAllowed) {
+      throw new HttpException(
+        `Your current membership (${membershipStatus.membership}) does not allow data export.`,
+        HttpStatus.FORBIDDEN,
+      );
+    }
     const allowerUserForExport: string[] = [
       ...JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || ''),
       ...JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || ''),

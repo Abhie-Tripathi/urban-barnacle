@@ -1438,3 +1438,35 @@ export const exportFailMailTemplate: string =
     </body>
     </html>
     `;
+
+export const subscriptionCancelMail: string = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Subscription Cancellation</title>
+  </head>
+  <body>
+    <div class="card">
+      <div class="meta">
+        <div>
+          <span class="label">User Id: </span>
+          <span class="value">{userId}</span>
+        </div>
+        <div>
+          <span class="label">Stripe Subscription ID:</span>
+          <span class="value">{stripeId}</span>
+        </div>
+        <div>
+          <span class="label">WHR Subscription Id: </span>
+          <span class="value">{subscriptionId}</span>
+        </div>
+        <div>
+          <span class="label">Cancelled At: </span>
+          <span class="value">{cancelDate}</span>
+        </div>
+        {qna}
+      </div>
+    </div>
+  </body>
+</html>
+`;
