@@ -336,26 +336,40 @@ export const membershipLimit: Record<number, { upperLimit: number, perSearchLimi
   30: { upperLimit: 20000, perSearchLimit: 100, exportAllowed: true },
   40: { upperLimit: 100000, perSearchLimit: 100, exportAllowed: true },
 };
-export const membershipMapForToken: Record<SubscriptionPlan, { pendingRequests: number, pendingCompanySearchRequests: number }> = {
+export const membershipMapForToken: Record<SubscriptionPlan, {
+  pendingRequests: number, pendingCompanySearchRequests: number,
+  pendingPocUnlockRequests: number,
+  pendingProspectPocUnlockRequests: number,
+}> = {
   BASIC: {
-    pendingCompanySearchRequests: 20,
-    pendingRequests: 200
+    pendingCompanySearchRequests: 40,
+    pendingRequests: 40,
+    pendingPocUnlockRequests: 40,
+    pendingProspectPocUnlockRequests: 40,
   },
   ESSENTIAL: {
-    pendingCompanySearchRequests: 200,
-    pendingRequests: 200
+    pendingCompanySearchRequests: 40,
+    pendingRequests: 40,
+    pendingPocUnlockRequests: 40,
+    pendingProspectPocUnlockRequests: 40,
   },
   SCALE: {
     pendingCompanySearchRequests: 200,
-    pendingRequests: 200
+    pendingRequests: 200,
+    pendingPocUnlockRequests: 40,
+    pendingProspectPocUnlockRequests: 40,
   },
   ADVANCE: {
     pendingCompanySearchRequests: 1000,
-    pendingRequests: 1000
+    pendingRequests: 1000,
+    pendingPocUnlockRequests: 40,
+    pendingProspectPocUnlockRequests: 40,
   },
   ENTERPRISE: {
     pendingCompanySearchRequests: 5000,
-    pendingRequests: 5000
+    pendingRequests: 5000,
+    pendingPocUnlockRequests: 40,
+    pendingProspectPocUnlockRequests: 40,
   },
 };
 // ["a4a3b8d9-e170-4972-8981-0282e58ccb45","e485cdd3-0e61-5f36-b896-aed7ba606697","0ba63d1a-eb97-4587-b1c7-6c79c2948256",1,0]
