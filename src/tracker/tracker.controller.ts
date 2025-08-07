@@ -173,8 +173,8 @@ export class TrackerController {
         0
       ) {
         throw new HttpException(
-          'You have reached the maximum limit to view data. Please get in touch with us.',
-          HttpStatus.TOO_MANY_REQUESTS,
+          'The server couldn’t understand the request due to invalid syntax or parameters.',
+          HttpStatus.BAD_REQUEST,
         );
       }
       const showValues = 'basic,advance,insights,audience';
@@ -270,8 +270,8 @@ export class TrackerController {
         0
       ) {
         throw new HttpException(
-          'You have reached the maximum limit to view data. Please get in touch with us.',
-          HttpStatus.TOO_MANY_REQUESTS,
+          'The server couldn’t understand the request due to invalid syntax or parameters.',
+          HttpStatus.BAD_REQUEST,
         );
       }
       const showValues = 'basic,advance,insights,audience';
