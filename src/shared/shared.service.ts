@@ -205,7 +205,7 @@ export class SharedService {
           if (!params['departments']) {
             params['departments'] = {};
           }
-          params['departments'][val] = find_response['name'];
+          params['departments'][val] = find_response['department'];
         });
       }
       if (jobCompositeDataObj.designationIds) {
@@ -231,7 +231,7 @@ export class SharedService {
           if (!params['seniorities']) {
             params['seniorities'] = {};
           }
-          params['seniorities'][val] = find_response['name'];
+          params['seniorities'][val] = find_response['role'];
         });
       }
     }
