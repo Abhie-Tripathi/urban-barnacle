@@ -16,10 +16,17 @@ export class DecryptQueryInterceptor implements NestInterceptor {
         const request = context.switchToHttp().getRequest();
         const user: TCachedUser = request.user;
 
-        // console.log('User from AdminGuard in Interceptor:', user, request.query);
+        // console.log('User from AdminGuard in Interceptor:', user, request.query, request.url);
 
         const queryObj = { ...request.query };
-        if (Object.keys(queryObj).length > 0) {
+        const baseUrl = (request.url as string).split('?')[0].toLowerCase();
+
+        const isQueryPresent = Object.keys(queryObj).length > 0;
+        const isOthers = baseUrl.includes('others');
+        const isPublic = baseUrl.includes('public');
+        const isMembership = baseUrl.includes(`/me/account/${process.env.STRIPE_PASS_TOKEN}/membership`);
+
+        if (isQueryPresent && !isOthers && !isPublic && !isMembership) {
             const value = Object.keys(queryObj).join('');
             // console.log('Encrypted query value:', value);
 
