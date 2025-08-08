@@ -20,6 +20,7 @@ import {
   RequestWithUser,
   TCachedUser,
 } from './utils/types';
+import { encrypt } from './utils';
 
 @Injectable()
 export class GlobalResponseInterceptor implements NestInterceptor {
@@ -150,8 +151,76 @@ export class GlobalResponseInterceptor implements NestInterceptor {
               },
             });
         } else {
-          // Handle successful responses
-          response.status(HttpStatus.OK).send(data);
+          const queryValues = structuredClone({ ...request.query }) as Record<string, any>;
+          // console.log(queryValues);
+          function findCountValue(data: any): number | undefined {
+            if (typeof data !== 'object' || data === null) {
+              return undefined;
+            }
+            data = data['data'] ? data['data'] : data
+            // 1. Direct "count" key check
+            if (Object.prototype.hasOwnProperty.call(data, 'count')) {
+              return data.count;
+            }
+
+            // 2. Check keys containing "count"
+            for (const key of Object.keys(data)) {
+              if (key.toLowerCase().includes('count')) {
+                return data[key];
+              }
+            }
+
+            return undefined;
+          }
+
+          const countInResponse = findCountValue({ ...data });
+          // console.log('countInResponse:', countInResponse);
+
+          let flagHasNext = false;
+          let flagHasPrevious = false;
+          let flagCreateTheEncryption = true;
+
+          const offsetNum = Number(queryValues.offset ?? 0);
+          const limitNum = Number(queryValues.limit ?? 0);
+          let encryptedQuery: Record<string, string> = {};
+
+          if (Object.keys(queryValues).length > 0 && countInResponse && countInResponse > 0) {
+            // Decide if we have previous/next
+            // console.log(offsetNum + limitNum, 'dfksmdfp');
+
+            if ((offsetNum + limitNum) < countInResponse) {
+              flagHasPrevious = offsetNum > 0;
+              flagHasNext = true;
+              // console.log(flagHasPrevious,
+                // flagHasNext)
+            } else if ((offsetNum + limitNum) >= countInResponse) {
+              flagHasPrevious = offsetNum > 0;
+            } else {
+              flagCreateTheEncryption = false;
+            }
+            // Get the current timestamp in milliseconds
+            const now = Date.now();
+
+            // Add 24 hours in milliseconds (24 hours × 60 min × 60 sec × 1000 ms)
+            const twentyFourHoursLater = now + (24 * 60 * 60 * 1000);
+
+            // console.log("Now (ms):", now);
+            // console.log("24 Hours Later (ms):", twentyFourHoursLater);
+            // Create "previous" link
+            if (flagCreateTheEncryption && flagHasPrevious) {
+              const prevQuery = { ...queryValues, offset: String(Math.max(0, offsetNum - limitNum)) };
+              encryptedQuery['previous'] = encrypt(JSON.stringify(prevQuery) + `<#>${user.id}@${twentyFourHoursLater}@${process.env.BACKEND || ''}`);
+            }
+
+            // Create "next" link
+            if (flagCreateTheEncryption && flagHasNext) {
+              const nextQuery = { ...queryValues, offset: String(offsetNum + limitNum) };
+              encryptedQuery['next'] = encrypt(JSON.stringify(nextQuery) + `<#>${user.id}@${twentyFourHoursLater}@${process.env.BACKEND || ''}`);
+            }
+          }
+
+          request.query = { encryptedQuery: '' }
+          response.status(HttpStatus.OK).send({ ...data, ...(Object.keys(encryptedQuery).length > 0 ? { query: encryptedQuery } : {}) });
         }
       }),
     );
