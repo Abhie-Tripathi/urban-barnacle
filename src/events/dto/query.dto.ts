@@ -654,7 +654,20 @@ export const QueryFilter = z.object({
     .refine((val) => val in TrackerEventStatus)
     .transform((val) => val as keyof typeof TrackerEventStatus)
     .optional(),
+  showValues: z.string()
+    .default('basic')
+    .transform(val => val ?? 'basic')
+    .refine(val => {
+      const keys = Object.keys(eventAdvanceFields);
+      const values = val.split(',').map(v => v.trim());
 
+      const allValid = values.every(subValue => keys.includes(subValue));
+      const includesBasic = values.includes('basic');
+
+      return allValid && includesBasic;
+    }, {
+      message: 'showValues must include "basic" and only contain valid keys.'
+    })
 });
 
 export const FilterNames = Object.keys(QueryFilter.shape);
@@ -706,21 +719,6 @@ export const QueryHttpSchema = LimitSchemaWithoutDefault.extend(
       .refine((val) => val in SearchByEntity)
       .transform((val) => val as keyof typeof SearchByEntity)
       .optional(),
-    showValues: z.string()
-      .default('basic')
-      .optional()
-      .transform(val => val ?? 'basic')
-      .refine(val => {
-        const keys = Object.keys(eventAdvanceFields);
-        const values = val.split(',').map(v => v.trim());
-
-        const allValid = values.every(subValue => keys.includes(subValue));
-        const includesBasic = values.includes('basic');
-
-        return allValid && includesBasic;
-      }, {
-        message: 'showValues must include "basic" and only contain valid keys.'
-      })
   })
   .transform((data) => {
     data['show'] = (Object.values(Show) as Show[]).filter((item) => {

@@ -344,7 +344,7 @@ export class TrackerController {
         query,
         query.showValues,
       );
-       await this.sharedService.deductPointForRequest(
+      await this.sharedService.deductPointForRequest(
         advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
         user.accountId,
         advanceDataFromResponse ? advancePoint - 1 : point - 1,
@@ -354,7 +354,7 @@ export class TrackerController {
       flag = true;
       return { data: events };
     } catch (error) {
-       if (flag)
+      if (flag)
         this.sharedService.creditPointForRequest(
           advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
           user.accountId,
@@ -390,12 +390,11 @@ export class TrackerController {
     @Query() query: GetTrackerEventsDto,
   ) {
     try {
-      const showValues = 'basic,advance,insights,audience';
       const events = await this.trackerService.getTrackerSavedEvents(
         user,
         id,
         query,
-        showValues,
+        query.showValues,
       );
       return { data: events };
     } catch (error) {

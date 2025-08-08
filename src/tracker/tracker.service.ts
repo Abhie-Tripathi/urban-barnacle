@@ -104,7 +104,7 @@ export class TrackerService {
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const nonEmptyParams = getNonEmptyParams(data.filterValues);
-    let convertedParams = {};
+    let convertedParams: any = {};
     let eventInfo: { count: number; events: { basic: object }[] } = {
       count: 0,
       events: [],
@@ -670,6 +670,19 @@ export class TrackerService {
         'USER',
       ]);
       console.log(tracker);
+      const filterShowValues = (tracker.filterValues as any)['showValues'] ? (tracker.filterValues as any)['showValues'].split(',') : [];
+
+      if (Array.isArray(filterShowValues) && filterShowValues.length > 1) {
+        const isSubset = showValues.split(',').every(val => filterShowValues.includes(val));
+
+        if (!isSubset) {
+          throw new HttpException(
+            'Invalid showValues',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
+
       const newParams = getNonEmptyParams(params);
       const convertedParams = await this.sharedService.convertSlugParamsToIds(
         newParams,
@@ -784,6 +797,18 @@ export class TrackerService {
         'SUPER_ADMIN',
         'USER',
       ]);
+      const filterShowValues = (tracker.filterValues as any)['showValues'] ? (tracker.filterValues as any)['showValues'].split(',') : [];
+
+      if (Array.isArray(filterShowValues) && filterShowValues.length > 1) {
+        const isSubset = showValues.split(',').every(val => filterShowValues.includes(val));
+
+        if (!isSubset) {
+          throw new HttpException(
+            'Invalid showValues',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
       const [savedEvents, count] = await Promise.all([
         this.intentDataService.getUserEventInterest({
           interest: ['BOOKMARK'],
@@ -1510,7 +1535,18 @@ export class TrackerService {
         'USER',
       ]);
       console.log(tracker);
+      const filterShowValues = (tracker.filterValues as any)['showValues'] ? (tracker.filterValues as any)['showValues'].split(',') : [];
 
+      if (Array.isArray(filterShowValues) && filterShowValues.length > 1) {
+        const isSubset = showValues.split(',').every(val => filterShowValues.includes(val));
+
+        if (!isSubset) {
+          throw new HttpException(
+            'Invalid showValues',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
       const newParams = getNonEmptyParams(params);
       const convertedParams = await this.sharedService.convertSlugParamsToIds(
         newParams,
@@ -2560,8 +2596,8 @@ export class TrackerService {
     user: TCachedUser,
     body: CreateTrackerExportsDto,
   ) {
-    const [trackerData, membershipStatus] = await Promise.all([this.getTracker(user, trackerId, {}), 
-      this.sharedService.getAccountMemberShipStatus(user.accountId)]);
+    const [trackerData, membershipStatus] = await Promise.all([this.getTracker(user, trackerId, {}),
+    this.sharedService.getAccountMemberShipStatus(user.accountId)]);
     if (!membershipLimit[membershipStatus.membership].exportAllowed) {
       throw new HttpException(
         `Your current membership (${membershipStatus.membership}) does not allow data export.`,
