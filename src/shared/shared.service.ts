@@ -536,10 +536,15 @@ export class SharedService {
             deleted: false
           },
           select: { plan: true, purchaseValue: true, id: true, updatedAt: true, [advanceColumn]: true, [column]: true, deleted: true, }
+        },
+        user: {
+          select: {
+            email: true,
+          },
+          take: 1
         }
       },
     });
-
     // console.log({ pointsData, membership12: pointsData?.subscription });
     if (
       !pointsData?.subscription ||
@@ -631,7 +636,16 @@ export class SharedService {
             id: pointsData.currentSubscriptionId
           },
           data: {
-            pendingRequests: 20
+            ...(pointsData?.user && pointsData?.user[0].email.split('@')[1] === '10times.com' ?
+              {
+                pendingRequests: 20000,
+                advancePendingRequests: 20000,
+                pendingCompanySearchRequests: 20000,
+                pendingPocUnlockRequests: 20000,
+                pendingProspectPocUnlockRequests: 20000,
+              } : {
+                pendingRequests: 20,
+              })
           }
         });
         basicPoints = dailyCreaditForBasic[column];

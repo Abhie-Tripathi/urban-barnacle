@@ -93,9 +93,11 @@ export class TrackerService {
       'active_lte',
       'eventTypes',
       'eventIds',
-      'show'
+      'show',
+      'showValues'
     ];
     Object.keys(filterValue).forEach((val) => {
+      console.log(val)
       if (!allowedFilters.includes(val)) {
         throw new HttpException('filter not allowed', HttpStatus.BAD_REQUEST);
       }
