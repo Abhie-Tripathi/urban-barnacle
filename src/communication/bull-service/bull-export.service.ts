@@ -28,9 +28,9 @@ interface JobDataForExport {
     exportIdSocial?: string,
     exportIdUnattended?: string,
     type: 'all' | 'past' | 'active' | 'new' | 'business' | 'social' | 'unattended',
-    source: 'TRACKER'
+    source: 'TRACKER',
 }
-@Processor(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`)
+@Processor(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`, { concurrency: 5 })
 export class ExportWorkerClass extends WorkerHost {
     constructor(
         private email: EmailService,
@@ -422,7 +422,7 @@ export class ExportWorkerClass extends WorkerHost {
                     emailSenderAddress,
                     'Export Event Data Request Failed',
                     exportFailMail,
-                    attachments.filter(val => val),
+                    // attachments.filter(val => val),
                 );
                 let status = 'COMPLETED' as JobStatus;
                 if (error) {
@@ -461,7 +461,9 @@ export class ExportWorkerClass extends WorkerHost {
             return { done: false };
         }
     }
-    async createTraclerExportForEventData(jobData: any, fileName: string, email: string, type: string, userId: string, sourceId: string, sourceModule: AttachmentSourceModule) {
+    async createTraclerExportForEventData(jobData: JobDataForExport, fileName: string, email: string, type: string, userId: string,
+        sourceId: string, sourceModule: AttachmentSourceModule) {
+        let creditAmountIfFalied: number = 0;
         try {
             const dir = './public/export';
             fileName = fileName.replace(/\.csv$/, '.xlsx').replaceAll(' ', '-').replace(")", `)(${(new Date()).toISOString()})`).replace(")", `)${Math.random()}`).toLowerCase();
@@ -570,6 +572,7 @@ export class ExportWorkerClass extends WorkerHost {
                 // console.log(response);
                 const events = response?.events || [];
                 totalCount = flagforCount ? (response?.count || 0) : totalCount;
+                creditAmountIfFalied = totalCount;
                 if (events.length === 0 || linesWrittern === totalCount) break;
                 let trackerEventsIntelScore: object[] = [];
                 if (process.env.BACKEND === 'gtm') {
@@ -696,13 +699,13 @@ export class ExportWorkerClass extends WorkerHost {
             });
             const fileData = fs.readFileSync(excelFilePath);
             const base64File = attactmentFlag ? fileData.toString('base64') : '';
-            const attachment =
-            {
-                content: base64File,
-                filename: fileName,
-                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                disposition: 'attachment',
-            };
+            const attachment = attactmentFlag ?
+                {
+                    content: base64File,
+                    filename: fileName,
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    disposition: 'attachment',
+                } : {};
             return {
                 attachment: attactmentFlag ? attachment : {},
                 status: "done",
@@ -714,7 +717,23 @@ export class ExportWorkerClass extends WorkerHost {
             console.error(error);
             console.log(error);
             console.log(JSON.stringify(error));
-
+            const accountInfo = await this.prisma.account.findMany({
+                where: {
+                    id: jobData.userData.accountId
+                }
+            })
+            try {
+                await this.prisma.subscription.update({
+                    where: {
+                        id: accountInfo[0].currentSubscriptionId
+                    },
+                    data: {
+                        advancePendingRequests: creditAmountIfFalied * 10,
+                    }
+                });
+            } catch (error) {
+                console.log('failed to credit the point for exports');
+            }
 
             return {
                 status: "error",

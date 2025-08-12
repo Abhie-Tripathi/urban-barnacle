@@ -100,7 +100,7 @@ export class EventsController {
         true,
         user,
       );
-      if (query.view !== 'suggestion') {
+      if (['calendar', 'suggestion', 'map'].includes(query.view)) {
         // console.log("aibuuuuuuuuuuuuuuuuuuusj\n", point, advancePoint);
 
         await this.sharedService.deductPointForRequest(

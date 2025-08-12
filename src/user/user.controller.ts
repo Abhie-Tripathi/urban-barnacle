@@ -87,9 +87,38 @@ export class UserController {
     @Query() query: UserSchemaDto,
     @GetUser() userData: TCachedUser,
   ) {
+    let flag = false;
     try {
-      return await this.userService.getUserData(query, userId, userData);
+      const [{ point }, membershipStatus] = await Promise.all([
+        this.sharedService.getPointForRequest(
+          PointColumn.pendingCompanySearchRequests,
+          userData.accountId,
+          PointColumn.advancePendingRequests
+        ),
+        this.sharedService.getAccountMemberShipStatus(
+          userData.accountId,
+        ),
+      ]);
+      if (point <= 0) {
+        throw new HttpException(
+          'You have reached the maximum limit to view data. Please get in touch with us.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+      const result = await this.userService.getUserData(query, userId, userData);
+      await this.sharedService.deductPointForRequest(
+        PointColumn.pendingCompanySearchRequests,
+        userData.accountId,
+        point - 1,
+      );
+      flag = true;
+      return result;
     } catch (error) {
+      if (flag)
+        this.sharedService.creditPointForRequest(
+          PointColumn.pendingCompanySearchRequests,
+          userData.accountId,
+        );
       return { error: error };
     }
   }

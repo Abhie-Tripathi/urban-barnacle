@@ -213,14 +213,18 @@ export class TrackerController {
         query,
         query.showValues,
       );
-      await this.sharedService.deductPointForRequest(
-        advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
-        user.accountId,
-        advanceDataFromResponse ? advancePoint - 1 : point - 1,
-        // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
-        // (advanceDataFromResponse ? advancePoint - 1 : 0),
-      );
-      flag = true;
+      if (['calendar', 'suggestion', 'map'].includes(query.view)) {
+        // console.log("aibuuuuuuuuuuuuuuuuuuusj\n", point, advancePoint);
+
+        await this.sharedService.deductPointForRequest(
+          advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
+          user.accountId,
+          advanceDataFromResponse ? advancePoint - 1 : point - 1,
+          // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+          // (advanceDataFromResponse ? advancePoint - 1 : 0),
+        );
+        flag = true;
+      }
       return { data: events };
     } catch (error) {
       if (flag)
@@ -344,14 +348,18 @@ export class TrackerController {
         query,
         query.showValues,
       );
-      await this.sharedService.deductPointForRequest(
-        advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
-        user.accountId,
-        advanceDataFromResponse ? advancePoint - 1 : point - 1,
-        // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
-        // (advanceDataFromResponse ? advancePoint - 1 : 0),
-      );
-      flag = true;
+      if (['calendar', 'suggestion', 'map'].includes(query.view)) {
+        // console.log("aibuuuuuuuuuuuuuuuuuuusj\n", point, advancePoint);
+
+        await this.sharedService.deductPointForRequest(
+          advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
+          user.accountId,
+          advanceDataFromResponse ? advancePoint - 1 : point - 1,
+          // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+          // (advanceDataFromResponse ? advancePoint - 1 : 0),
+        );
+        flag = true;
+      }
       return { data: events };
     } catch (error) {
       if (flag)
@@ -461,10 +469,40 @@ export class TrackerController {
     @GetUser() user: TCachedUser,
     @Body() query: CreateTrackerExportsDto,
   ) {
+    let flag = false;
+    let advanceDataFromResponse: boolean = true;
+    let creditAmmount: number = 0;
     try {
-      const tracker = await this.trackerService.createTrackerEventDataExported(id, user, query);
+      const [{ point, advancePoint }, membershipStatus] = await Promise.all([
+        this.sharedService.getPointForRequest(
+          PointColumn.pendingRequests,
+          user.accountId,
+          PointColumn.advancePendingRequests,
+        ),
+        this.sharedService.getAccountMemberShipStatus(
+          user.accountId,
+        ),
+      ]);
+      const tracker = await this.trackerService.createTrackerEventDataExported(id, user, query, point, advancePoint);
+      await this.sharedService.deductPointForRequest(
+        advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
+        user.accountId,
+        advanceDataFromResponse ? advancePoint - tracker.tokenDedcution : point - 1,
+        // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+        // (advanceDataFromResponse ? advancePoint - 1 : 0),
+      );
+      flag = true;
+      creditAmmount = tracker.tokenDedcution;
+      console.log('tracker.tokenDedcution', tracker.tokenDedcution);
+
       return { data: tracker.data };
     } catch (error) {
+      if (flag)
+        this.sharedService.creditPointForRequest(
+          advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
+          user.accountId,
+          creditAmmount
+        );
       return { error: error };
     }
   }

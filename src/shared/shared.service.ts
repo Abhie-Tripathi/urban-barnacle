@@ -599,7 +599,7 @@ export class SharedService {
     accountId: string,
     advanceColumn: PointColumn,
   ) {
-    const pointsData = await this.prisma.account.findFirst({
+    const [pointsData, userData] = await Promise.all([this.prisma.account.findFirst({
       where: { id: accountId },
       select: {
         currentSubscriptionId: true,
@@ -610,14 +610,12 @@ export class SharedService {
           },
           select: { plan: true, purchaseValue: true, id: true, updatedAt: true, [advanceColumn]: true, [column]: true, deleted: true, }
         },
-        user: {
-          select: {
-            email: true,
-          },
-          take: 1
-        }
       },
-    });
+    }), this.prisma.user.findMany({
+      where: {
+        primaryAccountId: accountId
+      }, take: 1
+    })]);
     // console.log({ pointsData, membership12: pointsData?.subscription });
     if (
       !pointsData?.subscription ||
@@ -630,12 +628,13 @@ export class SharedService {
       );
     }
     let basicPoints: number = pointsData.subscription[0][column];
+    let advancePoints: number = pointsData.subscription[0][advanceColumn];
     const today = new Date();
     today.setHours(0, 0, 0, 0); // set time to 00:00:00
 
     const updatedAt = new Date(pointsData.subscription[0]['updatedAt']);
     updatedAt.setHours(0, 0, 0, 0); // strip time part
-    if ('BASIC' !== pointsData.subscription[0]['plan'] && today > updatedAt) {
+    if (('BASIC' !== pointsData.subscription[0]['plan'] && today > updatedAt) || (userData[0].email.split('@')[1] === '10times.com' && (basicPoints <= 0 || advancePoints <= 0))) {
       // const countOfSubscription = await this.prisma.subscription.count({
       //   where: {
       //     accountId: accountId
@@ -709,10 +708,10 @@ export class SharedService {
             id: pointsData.currentSubscriptionId
           },
           data: {
-            ...(pointsData?.user && pointsData?.user[0].email.split('@')[1] === '10times.com' ?
+            ...(userData.length > 0 && userData[0].email.split('@')[1] === '10times.com' ?
               {
-                pendingRequests: 20000,
-                advancePendingRequests: 20000,
+                pendingRequests: 200000,
+                advancePendingRequests: 200000,
                 pendingCompanySearchRequests: 20000,
                 pendingPocUnlockRequests: 20000,
                 pendingProspectPocUnlockRequests: 20000,
@@ -722,6 +721,7 @@ export class SharedService {
           }
         });
         basicPoints = dailyCreaditForBasic[column];
+        advancePoints = dailyCreaditForBasic.advancePendingRequests;
       }
     }
     if (pointsData.subscription[0]['plan'] === 'BASIC' && basicPoints === 0) {
@@ -735,10 +735,11 @@ export class SharedService {
       column !== PointColumn.pendingProspectPocUnlockRequests;
 
     const isBasicPlan = pointsData.subscription[0]['plan'] === 'BASIC';
-    const advancePoints = pointsData.subscription[0][advanceColumn];
+
 
     // Case 1: Advanced search token exhausted
     if (
+      column === PointColumn.advancePendingRequests &&
       isNotUnlockRequestColumn &&
       !isBasicPlan &&
       basicPoints > 0 &&
@@ -762,7 +763,7 @@ export class SharedService {
       );
     }
 
-    return { point: basicPoints, subscriptionId: pointsData.currentSubscriptionId, advancePoint: pointsData.subscription[0][advanceColumn] };
+    return { point: basicPoints, subscriptionId: pointsData.currentSubscriptionId, advancePoint: advancePoints };
   }
   async deductPointForRequest(
     column: PointColumn,
@@ -781,11 +782,11 @@ export class SharedService {
     });
     return { data: { message: 'points updated' } };
   }
-  async creditPointForRequest(column: PointColumn, accountId: string,) {
+  async creditPointForRequest(column: PointColumn, accountId: string, creditAmmount: number = 1) {
     const { point, advancePoint, subscriptionId } = await this.getPointForRequest(column, accountId, PointColumn.advancePendingRequests);
     await this.prisma.subscription.update({
       where: { id: subscriptionId },
-      data: { [column]: point + 1, },
+      data: { [column]: point + creditAmmount, },
     });
     return { data: { message: 'points updated' } };
   }

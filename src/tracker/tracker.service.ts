@@ -2597,6 +2597,8 @@ export class TrackerService {
     trackerId: string,
     user: TCachedUser,
     body: CreateTrackerExportsDto,
+    basicToken: number = 0,
+    advanceToken: number = 0,
   ) {
     const [trackerData, membershipStatus] = await Promise.all([this.getTracker(user, trackerId, {}),
     this.sharedService.getAccountMemberShipStatus(user.accountId)]);
@@ -2606,6 +2608,8 @@ export class TrackerService {
         HttpStatus.FORBIDDEN,
       );
     }
+    console.log(trackerData);
+
     const allowerUserForExport: string[] = [
       ...JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || ''),
       ...JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || ''),
@@ -2616,6 +2620,7 @@ export class TrackerService {
         HttpStatus.FORBIDDEN,
       );
     }
+    const countOfTracker: object = trackerData['groupedEventsCount'] ? trackerData['groupedEventsCount'] : {};
     const trackerEventTypeMappingObj: object = {
       new: 'exportIdNew',
       active: 'exportIdActive',
@@ -2630,6 +2635,12 @@ export class TrackerService {
       exportIdSocial: 'TRACKER_SOCIAL_EVENT',
       exportIdUnattended: 'TRACKER_UNATTENDED_EVENT',
     };
+    let totalTokenNeededForExport: number = body.type !== 'all' ? 10 * (
+      process.env.BACKEND === 'gtm'
+        ? countOfTracker[body.type]
+        : countOfTracker[body.type]['total']
+    ) : 0;
+    const is10TimesUser = user.email.split('@')[1] === '10times.com';
     const trackerTypeGTM: string[] = ['past', 'active', 'new'];
     const trackerTypeGEO: string[] = ['business', 'social', 'unattended'];
     const payload: trackerExportDto = {
@@ -2641,11 +2652,33 @@ export class TrackerService {
       redirectUrl:
         body.redirectUrl + `&targetId=${trackerData.id}&target=tracker`,
     };
+
+    let exportInitiationCount: number = 0;
+
     if (body.type === 'all') {
       if (process.env.BACKEND === 'gtm') {
         for (const val of trackerTypeGTM) {
           const key = trackerEventTypeMappingObj[val];
           const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
+          if (countOfTracker[val] && countOfTracker[val] <= 0) {
+            continue;
+          }
+          totalTokenNeededForExport += 10 * countOfTracker[val];
+        }
+        if (totalTokenNeededForExport > advanceToken && !is10TimesUser) {
+          console.error(totalTokenNeededForExport, advanceToken);
+
+          throw new HttpException(
+            'Export cannot be initiated due to insufficient advance tokens.',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+        for (const val of trackerTypeGTM) {
+          const key = trackerEventTypeMappingObj[val];
+          const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
+          if (countOfTracker[val] && countOfTracker[val] <= 0) {
+            continue;
+          }
           const result = await this.trackerDataService.createExport(
             {
               exportOf,
@@ -2660,6 +2693,23 @@ export class TrackerService {
         for (const val of trackerTypeGEO) {
           const key = trackerEventTypeMappingObj[val];
           const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
+          if (countOfTracker[val] && countOfTracker[val]['total'] <= 0) {
+            continue;
+          }
+          totalTokenNeededForExport += 10 * countOfTracker[val]['total'];
+        }
+        if (totalTokenNeededForExport > advanceToken && !is10TimesUser) {
+          throw new HttpException(
+            'Export cannot be initiated due to insufficient advance tokens.',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+        for (const val of trackerTypeGEO) {
+          const key = trackerEventTypeMappingObj[val];
+          const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
+          if (countOfTracker[val] && countOfTracker[val]['total'] <= 0) {
+            continue;
+          }
           const result = await this.trackerDataService.createExport(
             {
               exportOf,
@@ -2669,9 +2719,31 @@ export class TrackerService {
             user,
           );
           payload[key] = result.id;
+          exportInitiationCount++;
         }
       }
     } else {
+      if (
+        (process.env.BACKEND === 'gtm' &&
+          countOfTracker[body.type] <= 0) ||
+        (process.env.BACKEND === 'geo' &&
+          countOfTracker[body.type] &&
+          countOfTracker[body.type]['total'] <= 0)
+      ) {
+        throw new HttpException(
+          'Export cannot be initiated.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (totalTokenNeededForExport > advanceToken && !is10TimesUser) {
+        throw new HttpException(
+          'Export cannot be initiated due to insufficient advance tokens.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      console.log('countOfTracker[body.type]', countOfTracker[body.type], (process.env.BACKEND === 'gtm' &&
+        countOfTracker[body.type] <= 0));
+
       payload[trackerEventTypeMappingObj[body.type]] = (
         await this.trackerDataService.createExport(
           {
@@ -2685,10 +2757,10 @@ export class TrackerService {
         )
       ).id;
     }
-    // console.log(payload);
+    // console.log(advanceToken, is10TimesUser, advanceToken - (is10TimesUser ? 0 : totalTokenNeededForExport));
 
     await this.trackerDataService.createTrackerExportJob(payload, user.id);
-    return { data: { message: 'Export initiated successfully' } };
+    return { data: { message: 'Export initiated successfully' }, tokenDedcution: advanceToken - (is10TimesUser ? 0 : totalTokenNeededForExport) };
   }
   async getTrackerEventDataExported(
     trackerId: string,
