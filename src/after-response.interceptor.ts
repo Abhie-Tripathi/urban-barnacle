@@ -21,9 +21,9 @@ export class AfterResponseInterceptor implements NestInterceptor {
         const req: RequestWithUser = context.switchToHttp().getRequest();
         const path = req.originalUrl.split('?')[0];
         const pathBreakdown = path.split('/').filter((p) => p !== '');
-        if (pathBreakdown.length >= 1 && pathBreakdown[0] === 'auth') {
-          return;
-        }
+        // if (pathBreakdown.length >= 1 && pathBreakdown[0] === 'auth') {
+        //   return;
+        // }
         const status = res.statusCode;
         const dataToSave = {
           path: '/' + pathBreakdown.join('/'),
@@ -57,6 +57,7 @@ export class AfterResponseInterceptor implements NestInterceptor {
         try {
           await this.prismaService.apiLogs.create({ data: dataToSave });
         } catch (error) {
+          console.log(error);
 
         }
       }),

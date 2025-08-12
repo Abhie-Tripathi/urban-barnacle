@@ -20,10 +20,11 @@ import {
   RequestWithUser,
   TCachedUser,
 } from './utils/types';
+import { encrypt } from './utils';
 
 @Injectable()
 export class GlobalResponseInterceptor implements NestInterceptor {
-  constructor(private readonly communicationService: CommunicationService) {}
+  constructor(private readonly communicationService: CommunicationService) { }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const ctx = context.switchToHttp();
@@ -33,7 +34,7 @@ export class GlobalResponseInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       catchError((err) => {
-        console.log(err);
+        console.log('errorerrorerrorerror00000', err);
         let errorMsg: string = err.message;
         let errorType: string = 'HTTPError';
 
@@ -64,15 +65,15 @@ export class GlobalResponseInterceptor implements NestInterceptor {
               (process.env.NODE_ENV || '').toLowerCase(),
             )
               ? this.communicationService.createJobForBull(
-                  QueueActionOptions.SEND_ERROR_EMAIL,
-                  {
-                    apiName: request.url || 'undefined',
-                    errorType: errorType || 'undefined',
-                    errorMessage: `${errorMsg || JSON.stringify(request.body) || 'undefined'} 
+                QueueActionOptions.SEND_ERROR_EMAIL,
+                {
+                  apiName: request.url || 'undefined',
+                  errorType: errorType || 'undefined',
+                  errorMessage: `${errorMsg || JSON.stringify(request.body) || 'undefined'} 
                       ${JSON.stringify({ userId: user?.id, accountId: user?.accountId })}`,
-                  },
-                  '@10times.com',
-                )
+                },
+                '@10times.com',
+              )
               : '';
           }
         }
@@ -85,7 +86,7 @@ export class GlobalResponseInterceptor implements NestInterceptor {
           let errorResponse: any;
 
           const error = data.error;
-          console.log(error);
+          console.log('errorerrorerrorerro111r', error);
           if (error)
             if (error instanceof PrismaClientValidationError) {
               // console.log({
@@ -120,20 +121,20 @@ export class GlobalResponseInterceptor implements NestInterceptor {
             }
 
           // Send error email only for Internal Server Error (500)
-          if (errorResponse.statusCode === HttpStatus.INTERNAL_SERVER_ERROR) {
+          if ((errorResponse.statusCode ?? HttpStatus.INTERNAL_SERVER_ERROR) === HttpStatus.INTERNAL_SERVER_ERROR) {
             ['production', 'development'].includes(
               (process.env.NODE_ENV || '').toLowerCase(),
             )
               ? this.communicationService.createJobForBull(
-                  QueueActionOptions.SEND_ERROR_EMAIL,
-                  {
-                    apiName: request.url || 'undefined',
-                    errorType: errorType || 'undefined',
-                    errorMessage: `${errorMsg || JSON.stringify(request.body) || 'undefined'} 
+                QueueActionOptions.SEND_ERROR_EMAIL,
+                {
+                  apiName: request.url || 'undefined',
+                  errorType: errorType || 'undefined',
+                  errorMessage: `${errorMsg || JSON.stringify(request.body) || 'undefined'} 
                       ${JSON.stringify({ userId: user?.id, accountId: user?.accountId })}`,
-                  },
-                  '@10times.com',
-                )
+                },
+                '@10times.com',
+              )
               : '';
           }
 
@@ -145,13 +146,74 @@ export class GlobalResponseInterceptor implements NestInterceptor {
               error: {
                 statusCode:
                   errorResponse.statusCode || HttpStatus.INTERNAL_SERVER_ERROR,
-                message: errorResponse.message || errorResponse,
+                message: JSON.stringify(errorResponse.message || errorResponse).toLowerCase().includes('prisma') ? 'Something went wrong.' : (errorResponse.message || errorResponse),
                 issues: errorResponse.issues || [],
               },
             });
         } else {
-          // Handle successful responses
-          response.status(HttpStatus.OK).send(data);
+          const queryValues = structuredClone({ ...request.query }) as Record<string, any>;
+          // console.log(queryValues);
+          function findCountValue(data: any): number | undefined {
+            if (typeof data !== 'object' || data === null) {
+              return undefined;
+            }
+            data = data['data'] ? data['data'] : data
+            // 1. Direct "count" key check
+            if (Object.prototype.hasOwnProperty.call(data, 'count')) {
+              return data.count;
+            }
+
+            // 2. Check keys containing "count"
+            for (const key of Object.keys(data)) {
+              if (key.toLowerCase().includes('count')) {
+                return data[key];
+              }
+            }
+
+            return undefined;
+          }
+
+          const countInResponse = findCountValue({ ...data });
+          // console.log('countInResponse:', countInResponse);
+
+          let flagHasNext = false;
+          let flagHasPrevious = false;
+          let flagCreateTheEncryption = true;
+
+          const offsetNum = Number(queryValues.offset ?? 0);
+          const limitNum = Number(queryValues.limit ?? 10);
+          let encryptedQuery: Record<string, string> = {};
+
+          if (Object.keys(queryValues).length > 0 && countInResponse && countInResponse > 0) {
+            // Decide if we have previous/next
+            // console.log(offsetNum + limitNum, 'dfksmdfp');
+
+            if ((offsetNum + limitNum) < countInResponse) {
+              flagHasPrevious = offsetNum > 0;
+              flagHasNext = true;
+              // console.log(flagHasPrevious,
+              // flagHasNext)
+            } else if ((offsetNum + limitNum) >= countInResponse) {
+              flagHasPrevious = offsetNum > 0;
+            } else {
+              flagCreateTheEncryption = false;
+            }
+            const now = Date.now();
+            const twentyFourHoursLater = now + (24 * 60 * 60 * 1000);
+            if (flagCreateTheEncryption && flagHasPrevious) {
+              const prevQuery = { ...queryValues, offset: String(Math.max(0, offsetNum - limitNum)), limit: String(limitNum) };
+              encryptedQuery['previous'] = encrypt(JSON.stringify(prevQuery) + `<#>${user.id}@${twentyFourHoursLater}@${process.env.BACKEND || ''}`);
+            }
+
+            // Create "next" link
+            if (flagCreateTheEncryption && flagHasNext) {
+              const nextQuery = { ...queryValues, offset: String(offsetNum + limitNum), limit: String(limitNum) };
+              encryptedQuery['next'] = encrypt(JSON.stringify(nextQuery) + `<#>${user.id}@${twentyFourHoursLater}@${process.env.BACKEND || ''}`);
+            }
+          }
+
+          request.query = { encryptedQuery: '' }
+          response.status(HttpStatus.OK).send({ ...data, ...(Object.keys(encryptedQuery).length > 0 ? { query: encryptedQuery } : {}) });
         }
       }),
     );

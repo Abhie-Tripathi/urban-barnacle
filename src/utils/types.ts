@@ -336,7 +336,11 @@ export const membershipLimit: Record<number, { upperLimit: number, perSearchLimi
   30: { upperLimit: 20000, perSearchLimit: 100, exportAllowed: true },
   40: { upperLimit: 100000, perSearchLimit: 100, exportAllowed: true },
 };
-export const membershipMapForToken: Record<SubscriptionPlan, { pendingRequests: number, pendingCompanySearchRequests: number, advancePendingRequests: number }> = {
+export const membershipMapForToken: Record<SubscriptionPlan, {
+  pendingRequests: number, pendingCompanySearchRequests: number, advancePendingRequests: number,
+  pendingPocUnlockRequests: number,
+  pendingProspectPocUnlockRequests: number,
+}> = {
   BASIC: {
     pendingCompanySearchRequests: 0,
     pendingRequests: 0,
