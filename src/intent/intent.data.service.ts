@@ -96,7 +96,7 @@ export class IntentDataService {
     }
     const userEventInterestsCount = await this.prisma.userEventInterest.findMany({
       where: { ...rest, deleted: false },
-      distinct: ['id'],
+      distinct: ['eventId'],
       select: {
         id: true
       }
@@ -119,6 +119,8 @@ export class IntentDataService {
       skip: offset,
       take: limit,
     });
+    console.log(userEventInterests);
+
     return userEventInterests;
   }
 

@@ -32,7 +32,7 @@ export class UserController {
   ) {
     let flag = false;
     try {
-      const [{point}, membershipStatus] = await Promise.all([
+      const [{ point }, membershipStatus] = await Promise.all([
         this.sharedService.getPointForRequest(
           PointColumn.pendingRequests,
           userData.accountId,
@@ -56,7 +56,7 @@ export class UserController {
           HttpStatus.TOO_MANY_REQUESTS,
         );
       }
-      const result = await this.userService.getUserProspectData(query);
+      const result = await this.userService.getUserProspectData(query, userData);
       await this.sharedService.deductPointForRequest(
         PointColumn.pendingCompanySearchRequests,
         userData.accountId,
@@ -77,7 +77,7 @@ export class UserController {
   @Get('saved-users')
   async getSavedUsers(@Query() query: LimitDto, @GetUser() userData: TCachedUser,) {
     try {
-      const result = await this.userService.getSavedUsers(query,userData);
+      const result = await this.userService.getSavedUsers(query, userData);
       return result;
     } catch (error) {
       return { error: error };

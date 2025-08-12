@@ -27,8 +27,7 @@ export class EventsService {
   constructor(
     private readonly eventsDataService: EventsDataService,
     private readonly sharedService: SharedService,
-    private readonly intentDataService: IntentDataService,
-    private readonly enquiryService: EnquiryService
+    private readonly enquiryService: EnquiryService,
   ) { }
 
   async createLogForEncryptedQuery(query: QueryDto, user: TCachedUser) {
@@ -103,7 +102,7 @@ export class EventsService {
         (!query.eventTypes ||
           (query.eventTypes.length > 0 && !query.eventTypes.includes('alert')))
       ) {
-        userInterests = await this.getGroupedEventInterests(
+        userInterests = await this.sharedService.getGroupedEventInterests(
           user,
           events.events.map((event) => event.basic.id),
           query.trackerId,
@@ -178,7 +177,7 @@ export class EventsService {
     const event = data.events[0];
     let userInterests = {};
     if (user) {
-      userInterests = await this.getGroupedEventInterests(
+      userInterests = await this.sharedService.getGroupedEventInterests(
         user,
         [event.basic.id],
         undefined,
@@ -190,62 +189,7 @@ export class EventsService {
     };
     return eventResponse;
   }
-
-  async getGroupedEventInterests(
-    user: TCachedUser,
-    eventIds: string[],
-    trackerId: string | undefined = undefined,
-  ) {
-    const userBookmarks =
-      await this.intentDataService.getAllEventInterestsByUser(
-        user,
-        eventIds,
-        trackerId,
-        ['BOOKMARK'],
-      );
-    const interests = await this.intentDataService.getAllEventInterestsByUser(
-      user,
-      eventIds,
-      undefined,
-      undefined,
-      ['BOOKMARK'],
-    );
-    const userEventInterests = {};
-
-    interests.forEach((interest) => {
-      userEventInterests[interest.eventId] =
-        userEventInterests[interest.eventId] || {};
-      userEventInterests[interest.eventId][interest.interest.toLowerCase()] = {
-        interestId: interest.id,
-      };
-    });
-
-    userBookmarks.forEach((bookmark) => {
-      userEventInterests[bookmark.eventId] =
-        userEventInterests[bookmark.eventId] || {};
-      userEventInterests[bookmark.eventId]['bookmark'] = {
-        interestId: bookmark.id,
-      };
-    });
-
-    // const groupedInterests = interests.reduce((acc, interest) => {
-    //   acc[interest.eventId] = acc[interest.eventId] || {};
-    //   acc[interest.eventId][interest.interest.toLowerCase()] = {
-    //     interestId: interest.id,
-    //   };
-    //   return acc;
-    // }, {});
-    // const groupedBookmarks = userBookmarks.reduce((acc, bookmark) => {
-    //   acc[bookmark.eventId] = acc[bookmark.eventId] || {};
-    //   acc[bookmark.eventId]['bookmark'] = {
-    //     interestId: bookmark.id,
-    //   };
-    //   return acc;
-    // }, {});
-    return userEventInterests;
-  }
-
-  async getEventsCount(query: CountQueryDto, validateIds: boolean = true) {
+  async getEventsCount(query: CountQueryDto, validateIds: boolean = true, user: TCachedUser | null = null) {
     const nonEmptyParams = getNonEmptyParams(query);
     if (
       !nonEmptyParams.eventTypes ||

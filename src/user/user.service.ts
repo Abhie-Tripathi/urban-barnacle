@@ -65,12 +65,26 @@ export class UserService {
       user: signInUser,
     };
   }
-  async getUserProspectData(query: ProspectSchemaDto) {
-    return await this.sharedService.getCompanyAndUserDataForProspect(
+  async getUserProspectData(query: ProspectSchemaDto, userData: TCachedUser) {
+    const result: { data: { totalCount: number, userData: any } } = await this.sharedService.getCompanyAndUserDataForProspect(
       query,
       'list',
       'user',
+    ) as any;
+    let userInterests = await this.sharedService.getGroupedEventInterests(
+      userData,
+      result.data.userData.map((user) => user.user_id),
+      // query.trackerId,
     );
+    result.data.userData = result.data.userData.map((user) => {
+      return {
+        ...user,
+        interests: Object.keys(userInterests).length > 0
+          ? userInterests[user.user_id] : undefined
+      }
+    });
+    return result
+
   }
   async getSavedUsers(query: LimitDto, userData: TCachedUser,) {
     const [savedUsers, count] = await Promise.all([
@@ -89,6 +103,8 @@ export class UserService {
         offset: query.offset,
       }),
     ]);
+    console.log(savedUsers);
+
     const cache: object = {};
     const savedUsersIds = savedUsers.map((item) => {
       cache[item.eventId] = { [item.interest.toLowerCase()]: { interestId: item.id } };
@@ -96,10 +112,10 @@ export class UserService {
     });
 
     if (savedUsersIds.length === 0) {
-      return { data: { count, savedUsers: [] } };
+      return { data: { totalCount: 0, savedUsers: [] } };
     }
     const result: { data: { totalCount: number, userData: any } } =
-      (await this.getUserProspectData({ ...query, userId: savedUsersIds.join(',') })) as any;
+      (await this.getUserProspectData({ ...query, userId: savedUsersIds.join(',') }, userData)) as any;
     console.log(result.data.userData);
 
     return {

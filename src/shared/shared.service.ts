@@ -36,6 +36,8 @@ import {
   microServiceApis,
 } from './microservice.api';
 import { RedisService } from 'src/redis/redis.service';
+import { jobCompositeSchema } from 'src/events/dto';
+import { IntentDataService } from 'src/intent/intent.data.service';
 
 @Injectable()
 export class SharedService {
@@ -44,6 +46,7 @@ export class SharedService {
     private readonly suggestionService: SuggestionService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly redisService: RedisService,
+    private readonly intentDataService: IntentDataService,
   ) { }
 
   async signToken(user: SelectedUserDetails, token: string) {
@@ -644,6 +647,60 @@ export class SharedService {
     )) as LocationResponseDto;
     return locations;
   }
+  async getGroupedEventInterests(
+    user: TCachedUser,
+    eventIds: string[],
+    trackerId: string | undefined = undefined,
+  ) {
+    const userBookmarks =
+      await this.intentDataService.getAllEventInterestsByUser(
+        user,
+        eventIds,
+        trackerId,
+        ['BOOKMARK'],
+      );
+    const interests = await this.intentDataService.getAllEventInterestsByUser(
+      user,
+      eventIds,
+      undefined,
+      undefined,
+      ['BOOKMARK'],
+    );
+    const userEventInterests = {};
+
+    interests.forEach((interest) => {
+      userEventInterests[interest.eventId] =
+        userEventInterests[interest.eventId] || {};
+      userEventInterests[interest.eventId][interest.interest.toLowerCase()] = {
+        interestId: interest.id,
+      };
+    });
+
+    userBookmarks.forEach((bookmark) => {
+      userEventInterests[bookmark.eventId] =
+        userEventInterests[bookmark.eventId] || {};
+      userEventInterests[bookmark.eventId]['bookmark'] = {
+        interestId: bookmark.id,
+      };
+    });
+
+    // const groupedInterests = interests.reduce((acc, interest) => {
+    //   acc[interest.eventId] = acc[interest.eventId] || {};
+    //   acc[interest.eventId][interest.interest.toLowerCase()] = {
+    //     interestId: interest.id,
+    //   };
+    //   return acc;
+    // }, {});
+    // const groupedBookmarks = userBookmarks.reduce((acc, bookmark) => {
+    //   acc[bookmark.eventId] = acc[bookmark.eventId] || {};
+    //   acc[bookmark.eventId]['bookmark'] = {
+    //     interestId: bookmark.id,
+    //   };
+    //   return acc;
+    // }, {});
+    return userEventInterests;
+  }
+
 }
 
 export interface Country {

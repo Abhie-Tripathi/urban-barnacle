@@ -14,12 +14,25 @@ export class CompanyService {
   constructor(private readonly sharedService: SharedService,
     private readonly intentDataService: IntentDataService,
   ) { }
-  async getCompanyProspectData(query: ProspectSchemaDto, viewAs: string) {
-    return await this.sharedService.getCompanyAndUserDataForProspect(
+  async getCompanyProspectData(query: ProspectSchemaDto, viewAs: string, userData: TCachedUser) {
+    const result: { data: { totalCount: number, companyData: any } } = await this.sharedService.getCompanyAndUserDataForProspect(
       query,
       viewAs,
       'company',
+    ) as any;
+    let userInterests = await this.sharedService.getGroupedEventInterests(
+      userData,
+      result.data.companyData.map((company) => company.id),
+      // query.trackerId,
     );
+    result.data.companyData = result.data.companyData.map((company) => {
+      return {
+        ...company,
+        interests: Object.keys(userInterests).length > 0
+          ? userInterests[company.id] : undefined
+      }
+    });
+    return result;
   }
   async getSavedCompanies(query: LimitDto, userData: TCachedUser,) {
     const [savedCompanies, count] = await Promise.all([
@@ -46,10 +59,10 @@ export class CompanyService {
     });
 
     if (savedCompaniesIds.length === 0) {
-      return { data: { count, savedUsers: [] } };
+      return { data: { totalCount: 0, savedUsers: [] } };
     }
     const result: { data: { totalCount: number, companyData: any } } =
-      (await this.getCompanyProspectData({ ...query, userId: savedCompaniesIds.join(',') }, 'list')) as any;
+      (await this.getCompanyProspectData({ ...query, companyId: savedCompaniesIds.join(',') }, 'list', userData)) as any;
     return {
       data: {
         totalCount: count.length, companyData: result.data.companyData?.map(val => {

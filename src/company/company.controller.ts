@@ -58,6 +58,7 @@ export class CompanyController {
       const result = await this.companyService.getCompanyProspectData(
         query,
         'list',
+        userData
       );
       await this.sharedService.deductPointForRequest(
         PointColumn.pendingCompanySearchRequests,
@@ -133,6 +134,7 @@ export class CompanyController {
       const result = await this.companyService.getCompanyProspectData(
         { companyId: compnayId, limit: 10, offset: 0 },
         'detail',
+        userData
       );
       // await this.sharedService.deductPointForRequest(PointColumn.pendingCompanySearchRequests, userData.accountId, point - 1)
       // flag = true;
