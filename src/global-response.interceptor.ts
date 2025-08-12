@@ -181,7 +181,7 @@ export class GlobalResponseInterceptor implements NestInterceptor {
           let flagCreateTheEncryption = true;
 
           const offsetNum = Number(queryValues.offset ?? 0);
-          const limitNum = Number(queryValues.limit ?? 0);
+          const limitNum = Number(queryValues.limit ?? 10);
           let encryptedQuery: Record<string, string> = {};
 
           if (Object.keys(queryValues).length > 0 && countInResponse && countInResponse > 0) {
@@ -192,29 +192,22 @@ export class GlobalResponseInterceptor implements NestInterceptor {
               flagHasPrevious = offsetNum > 0;
               flagHasNext = true;
               // console.log(flagHasPrevious,
-                // flagHasNext)
+              // flagHasNext)
             } else if ((offsetNum + limitNum) >= countInResponse) {
               flagHasPrevious = offsetNum > 0;
             } else {
               flagCreateTheEncryption = false;
             }
-            // Get the current timestamp in milliseconds
             const now = Date.now();
-
-            // Add 24 hours in milliseconds (24 hours × 60 min × 60 sec × 1000 ms)
             const twentyFourHoursLater = now + (24 * 60 * 60 * 1000);
-
-            // console.log("Now (ms):", now);
-            // console.log("24 Hours Later (ms):", twentyFourHoursLater);
-            // Create "previous" link
             if (flagCreateTheEncryption && flagHasPrevious) {
-              const prevQuery = { ...queryValues, offset: String(Math.max(0, offsetNum - limitNum)) };
+              const prevQuery = { ...queryValues, offset: String(Math.max(0, offsetNum - limitNum)), limit: String(limitNum) };
               encryptedQuery['previous'] = encrypt(JSON.stringify(prevQuery) + `<#>${user.id}@${twentyFourHoursLater}@${process.env.BACKEND || ''}`);
             }
 
             // Create "next" link
             if (flagCreateTheEncryption && flagHasNext) {
-              const nextQuery = { ...queryValues, offset: String(offsetNum + limitNum) };
+              const nextQuery = { ...queryValues, offset: String(offsetNum + limitNum), limit: String(limitNum) };
               encryptedQuery['next'] = encrypt(JSON.stringify(nextQuery) + `<#>${user.id}@${twentyFourHoursLater}@${process.env.BACKEND || ''}`);
             }
           }
