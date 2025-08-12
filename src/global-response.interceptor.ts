@@ -153,6 +153,11 @@ export class GlobalResponseInterceptor implements NestInterceptor {
         } else {
           const queryValues = structuredClone({ ...request.query }) as Record<string, any>;
           // console.log(queryValues);
+          const baseUrl = (request.url as string).split('?')[0].toLowerCase();
+          const isOthers = baseUrl.includes('others');
+          const isPublic = baseUrl.includes('public');
+          const isMembership = baseUrl.includes(`/me/account/${process.env.STRIPE_PASS_TOKEN}/membership`);
+
           function findCountValue(data: any): number | undefined {
             if (typeof data !== 'object' || data === null) {
               return undefined;
@@ -184,7 +189,7 @@ export class GlobalResponseInterceptor implements NestInterceptor {
           const limitNum = Number(queryValues.limit ?? 10);
           let encryptedQuery: Record<string, string> = {};
 
-          if (Object.keys(queryValues).length > 0 && countInResponse && countInResponse > 0) {
+          if (Object.keys(queryValues).length > 0 && countInResponse && countInResponse > 0 && !isOthers && !isPublic && !isMembership) {
             // Decide if we have previous/next
             // console.log(offsetNum + limitNum, 'dfksmdfp');
 

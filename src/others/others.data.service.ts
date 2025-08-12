@@ -13,10 +13,11 @@ export class OthersDataService {
         private readonly userDataService: UserDataService
     ) { }
     async getPresetData(sqlBody: string) {
+        const schemaName = process.env.NODE_ENV === 'development' ? 'temp_migration' : 'public';
         const [count, data] = await Promise.all([
             this.prismaService.$queryRaw<{ count: number }[]>(Prisma.raw(`
                  SELECT count(*)  count
-                    FROM "Preset"
+                    FROM "${schemaName}"."Preset"
                       ${sqlBody.replace('ORDER', '-- ORDER')}`)),
             this.prismaService.$queryRaw<{
                 id: string;
@@ -31,7 +32,7 @@ export class OthersDataService {
                 filterValue: any;
             }[]>(Prisma.raw(`
                         SELECT *
-                           FROM "Preset"
+                           FROM "${schemaName}"."Preset"
                              ${sqlBody}`))
         ]);
         return { data: { count: Number(count[0].count), trackers: data } };
