@@ -22,7 +22,8 @@ export class CompanyService {
     ) as any;
     let userInterests = await this.sharedService.getGroupedEventInterests(
       userData,
-      result.data.companyData.map((company) => company.id),
+      Array.isArray(result.data.companyData) ?
+        result.data.companyData.map((company) => company.id) : [result.data.companyData.id],
       // query.trackerId,
     );
     if (Array.isArray(result.data.companyData)) {

@@ -73,7 +73,8 @@ export class UserService {
     ) as any;
     let userInterests = await this.sharedService.getGroupedEventInterests(
       userData,
-      result.data.userData.map((user) => user.user_id),
+      Array.isArray(result.data.userData) ? result.data.userData.map((user) => user.user_id) :
+        [result.data.userData.user_id],
       // query.trackerId,
     );
     if (Array.isArray(result.data.userData)) {
