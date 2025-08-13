@@ -25,13 +25,20 @@ export class CompanyService {
       result.data.companyData.map((company) => company.id),
       // query.trackerId,
     );
-    result.data.companyData = result.data.companyData.map((company) => {
-      return {
-        ...company,
-        interests: Object.keys(userInterests).length > 0
-          ? userInterests[company.id] : undefined
+    if (Array.isArray(result.data.companyData)) {
+      result.data.companyData = result.data.companyData.map((company) => {
+        return {
+          ...company,
+          interests: Object.keys(userInterests).length > 0
+            ? userInterests[company.id] : undefined
+        }
+      });
+    } else {
+      result.data.companyData = {
+        ...result.data.companyData, interests: Object.keys(userInterests).length > 0
+          ? userInterests[result.data.companyData.id ?? ''] : undefined
       }
-    });
+    }
     return result;
   }
   async getSavedCompanies(query: LimitDto, userData: TCachedUser,) {

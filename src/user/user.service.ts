@@ -76,13 +76,20 @@ export class UserService {
       result.data.userData.map((user) => user.user_id),
       // query.trackerId,
     );
-    result.data.userData = result.data.userData.map((user) => {
-      return {
-        ...user,
-        interests: Object.keys(userInterests).length > 0
-          ? userInterests[user.user_id] : undefined
+    if (Array.isArray(result.data.userData)) {
+      result.data.userData = result.data.userData.map((user) => {
+        return {
+          ...user,
+          interests: Object.keys(userInterests).length > 0
+            ? userInterests[user.user_id] : undefined
+        }
+      });
+    } else {
+      result.data.userData = {
+        ...result.data.userData, interests: Object.keys(userInterests).length > 0
+          ? userInterests[result.data.userData.user_id ?? ''] : undefined
       }
-    });
+    }
     return result
 
   }
