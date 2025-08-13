@@ -1,10 +1,15 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { OthersDataService } from './others.data.service';
-import { ContactUsDto, DemoContactDto, PresetDto } from './dto';
+import { ContactUsDto, DemoContactDto, PresetDto, TrackerShareAccessDto } from './dto';
+import { UserDataService } from 'src/user/user.data.service';
+import { AccessDataService } from 'src/access/access.data.service';
 
 @Injectable()
 export class OthersService {
-    constructor(private readonly othersDataService: OthersDataService) { }
+    constructor(private readonly othersDataService: OthersDataService,
+        private readonly userDataService: UserDataService,
+        private readonly accessDataService: AccessDataService
+    ) { }
     async getPresetData(query: PresetDto) {
         try {
             const whereClause: string[] = [];
@@ -105,5 +110,39 @@ export class OthersService {
             data: data,
         })).id
         return await this.othersDataService.sendDemoContactEmail(source, data, sourceId);
+    }
+    async createTrackerAccess(body: TrackerShareAccessDto) {
+        const userdataArray = await this.userDataService.getUsers({ email: [body.accessReceiverEmail], limit: 1, offset: 0 });
+        // console.log(userdataArray);
+        const userData = userdataArray[0]
+        const dataOfAccessArray = await this.accessDataService.getAccess({ limit: 1, offset: 0, sourceEntity: 'TRACKER', accessTypes: ['SUPER_ADMIN'] });
+        const dataOfAccess = dataOfAccessArray[0];
+        // console.log(dataOfAccess);
+        const dataOfAccessExistArray = await this.accessDataService.getAccess({ limit: 1, offset: 0, sourceEntity: 'TRACKER', accessTypes: ['ADMIN'], accessReceiverId: userData.id });
+        if (dataOfAccessExistArray.length > 0) {
+            throw new HttpException(
+                'access is already provided.',
+                HttpStatus.BAD_REQUEST,
+            );
+        }
+        if ((body.accessReceiverEmail === (dataOfAccess.accessProvider.email))
+        ) {
+            throw new HttpException(
+                'Can not invite yourself',
+                HttpStatus.BAD_REQUEST,
+            );
+        }
+        if (dataOfAccess.accessProviderId !== dataOfAccess.accessProviderId) {
+            throw new HttpException(
+                'access not found',
+                HttpStatus.BAD_REQUEST,
+            );
+        }
+        const createAccess = await this.accessDataService.createAccess({
+            accessProviderId: dataOfAccess.accessProviderId, accessType: 'ADMIN',
+            accountId: dataOfAccess.accountId || '', flagForEmail: false, sourceEntity: 'TRACKER',
+            sourceEntityId: body.trackerId, accessReceiverId: userData.id
+        });
+        return { data: { message: 'access created', createAccess } }
     }
 }

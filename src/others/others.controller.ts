@@ -1,13 +1,13 @@
-import { BadRequestException, Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpException, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { OthersService } from './others.service';
-import { ContactUsDto, contactUsSchema, DemoContactDto, demoContactSchema, PresetDto } from './dto';
+import { ContactUsDto, contactUsSchema, DemoContactDto, demoContactSchema, PresetDto, TrackerShareAccessDto } from './dto';
 import { ZodError } from 'zod';
 import { AuthGuard } from 'src/user/auth/guard';
 
 @Controller('others')
 export class OthersController {
   constructor(private readonly othersService: OthersService) { }
-  
+
   @Get('preset')
   async getPresetData(@Query() query: PresetDto) {
     try {
@@ -42,6 +42,17 @@ export class OthersController {
       return await this.othersService.sendDemoContactEmail(source, parsedData);
     } catch (error) {
       return error;
+    }
+  }
+  @Post('share-tracker-access/:token')
+  async createTrackerAccess(@Body() body: TrackerShareAccessDto, @Param('token') token: string) {
+    try {
+      if (process.env.TRACKER_ACCESS_SHARE_TOKEN !== token) {
+        throw new HttpException('token not fount/matched', HttpStatus.FORBIDDEN);
+      }
+      return await this.othersService.createTrackerAccess(body);
+    } catch (error) {
+      return { error };
     }
   }
 }
