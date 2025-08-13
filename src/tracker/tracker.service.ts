@@ -5,6 +5,7 @@ import {
   defaultEventTypes,
   LastActive,
   membershipLimit,
+  membershipReverseMap,
   TCachedUser,
 } from 'src/utils/types';
 import {
@@ -35,6 +36,7 @@ import {
   AccessType,
   ExportSubSource,
   Prisma,
+  SubscriptionPlan,
   Tracker,
   TrackerTypeTag,
   User,
@@ -2604,11 +2606,11 @@ export class TrackerService {
     this.sharedService.getAccountMemberShipStatus(user.accountId)]);
     if (!membershipLimit[membershipStatus.membership].exportAllowed) {
       throw new HttpException(
-        `Your current membership (${membershipStatus.membership}) does not allow data export.`,
+        `Your current membership (${membershipReverseMap[membershipStatus.membership]}) does not allow data export.`,
         HttpStatus.FORBIDDEN,
       );
     }
-    console.log(trackerData);
+    // console.log(trackerData);
 
     const allowerUserForExport: string[] = [
       ...JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || ''),
@@ -2635,12 +2637,12 @@ export class TrackerService {
       exportIdSocial: 'TRACKER_SOCIAL_EVENT',
       exportIdUnattended: 'TRACKER_UNATTENDED_EVENT',
     };
-    let totalTokenNeededForExport: number = body.type !== 'all' ? 10 * (
+    let totalTokenNeededForExport: number = Math.min(membershipLimit[membershipStatus.membership].upperLimit, body.type !== 'all' ? (
       process.env.BACKEND === 'gtm'
         ? countOfTracker[body.type]
         : countOfTracker[body.type]['total']
-    ) : 0;
-    const is10TimesUser = user.email.split('@')[1] === '10times.com';
+    ) : 0);
+    const is10TimesUser = false//user.email.split('@')[1] === '10times.com';
     const trackerTypeGTM: string[] = ['past', 'active', 'new'];
     const trackerTypeGEO: string[] = ['business', 'social', 'unattended'];
     const payload: trackerExportDto = {
@@ -2651,6 +2653,7 @@ export class TrackerService {
       trackerId: trackerData.id,
       redirectUrl:
         body.redirectUrl + `&targetId=${trackerData.id}&target=tracker`,
+      plan: Number(membershipStatus.membership)
     };
 
     let exportInitiationCount: number = 0;
@@ -2663,7 +2666,9 @@ export class TrackerService {
           if (countOfTracker[val] && countOfTracker[val] <= 0) {
             continue;
           }
-          totalTokenNeededForExport += 10 * countOfTracker[val];
+          totalTokenNeededForExport += Math.min
+            (membershipLimit[membershipStatus.membership].upperLimit,
+              countOfTracker[val]);
         }
         if (totalTokenNeededForExport > advanceToken && !is10TimesUser) {
           console.error(totalTokenNeededForExport, advanceToken);
@@ -2696,7 +2701,9 @@ export class TrackerService {
           if (countOfTracker[val] && countOfTracker[val]['total'] <= 0) {
             continue;
           }
-          totalTokenNeededForExport += 10 * countOfTracker[val]['total'];
+          totalTokenNeededForExport += Math.min
+            (membershipLimit[membershipStatus.membership].upperLimit,
+              countOfTracker[val]['total']);
         }
         if (totalTokenNeededForExport > advanceToken && !is10TimesUser) {
           throw new HttpException(
@@ -2741,8 +2748,8 @@ export class TrackerService {
           HttpStatus.BAD_REQUEST,
         );
       }
-      console.log('countOfTracker[body.type]', countOfTracker[body.type], (process.env.BACKEND === 'gtm' &&
-        countOfTracker[body.type] <= 0));
+      // console.log('countOfTracker[body.type]', countOfTracker[body.type], (process.env.BACKEND === 'gtm' &&
+      //   countOfTracker[body.type] <= 0));
 
       payload[trackerEventTypeMappingObj[body.type]] = (
         await this.trackerDataService.createExport(
@@ -2757,10 +2764,13 @@ export class TrackerService {
         )
       ).id;
     }
-    // console.log(advanceToken, is10TimesUser, advanceToken - (is10TimesUser ? 0 : totalTokenNeededForExport));
+    console.log(advanceToken, is10TimesUser, totalTokenNeededForExport, advanceToken - (is10TimesUser ? 0 : totalTokenNeededForExport));
 
     await this.trackerDataService.createTrackerExportJob(payload, user.id);
-    return { data: { message: 'Export initiated successfully' }, tokenDedcution: advanceToken - (is10TimesUser ? 0 : totalTokenNeededForExport) };
+    return {
+      data: { message: 'Export initiated successfully' },
+      tokenDedcution: advanceToken - (is10TimesUser ? 0 : totalTokenNeededForExport)
+    };
   }
   async getTrackerEventDataExported(
     trackerId: string,

@@ -21,6 +21,7 @@ import {
   advanceFilterBlockObject,
   CachedUserSchema,
   defaultEventTypes,
+  membershipMap,
   SelectedUserDetails,
   TCachedUser,
 } from 'src/utils/types';
@@ -516,7 +517,7 @@ export class SharedService {
     viewAs: string,
     viewBy: string,
   ) {
-    query.limit = Math.min(query.limit, 10);
+    // query.limit = Math.min(query.limit, 10);
     const callMicroService = async (queryParam: any) => {
       const response = await fetchDatafromMicroService(
         viewBy === 'company'
@@ -529,7 +530,7 @@ export class SharedService {
         queryParam,
       );
       const responseData = response;
-      console.log(responseData);
+      // console.log(responseData);
       if (viewAs === 'detail') {
         return responseData?.data?.id
           ? {
@@ -712,13 +713,13 @@ export class SharedService {
           data: {
             ...(userData.length > 0 && userData[0].email.split('@')[1] === '10times.com' ?
               {
-                pendingRequests: 200000,
-                advancePendingRequests: 200000,
-                pendingCompanySearchRequests: 20000,
+                pendingRequests: 2000000,
+                advancePendingRequests: 2000000,
+                pendingCompanySearchRequests: 200000,
                 pendingPocUnlockRequests: 20000,
                 pendingProspectPocUnlockRequests: 20000,
               } : {
-                pendingRequests: 20,
+                pendingRequests: 400,
               })
           }
         });
@@ -819,13 +820,7 @@ export class SharedService {
     if (!membership) {
       throw new HttpException('membership not found', HttpStatus.NOT_FOUND);
     }
-    const membershipMap: Record<SubscriptionPlan, number> = {
-      BASIC: 0,
-      ESSENTIAL: 10,
-      SCALE: 20,
-      ADVANCE: 30,
-      ENTERPRISE: 40,
-    };
+
     return {
       membership: membershipMap[membership.plan],
       endDate: membership.planEndDate,

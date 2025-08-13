@@ -12,7 +12,7 @@ import * as ExcelJS from 'exceljs';
 import { TrackerService } from 'src/tracker/tracker.service';
 import { Show, View } from 'src/events/dto';
 import { EventTabs } from 'src/tracker/dto';
-import { TCachedUser } from 'src/utils/types';
+import { membershipLimit, TCachedUser } from 'src/utils/types';
 import { TrackerEventStatus } from 'src/utils';
 
 interface JobDataForExport {
@@ -29,6 +29,7 @@ interface JobDataForExport {
     exportIdUnattended?: string,
     type: 'all' | 'past' | 'active' | 'new' | 'business' | 'social' | 'unattended',
     source: 'TRACKER',
+    plan: number
 }
 @Processor(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`, { concurrency: 5 })
 export class ExportWorkerClass extends WorkerHost {
@@ -526,7 +527,7 @@ export class ExportWorkerClass extends WorkerHost {
             } else if (limitedAccessUsers.includes(email)) {
                 totalCount = 1000;
             } else {
-                totalCount = 0;
+                totalCount = 10;
             }
             // console.log({ totalCount }, {
             //     fullAccessUsers,
@@ -571,7 +572,9 @@ export class ExportWorkerClass extends WorkerHost {
 
                 // console.log(response);
                 const events = response?.events || [];
-                totalCount = flagforCount ? (response?.count || 0) : totalCount;
+                totalCount = Math.min
+                    (membershipLimit[jobData.plan].upperLimit,
+                        flagforCount ? (response?.count || 0) : 0);
                 creditAmountIfFalied = totalCount;
                 if (events.length === 0 || linesWrittern === totalCount) break;
                 let trackerEventsIntelScore: object[] = [];
@@ -665,6 +668,7 @@ export class ExportWorkerClass extends WorkerHost {
                 }
 
                 offset += limit;
+                                // break;
             }
 
             await workbook.xlsx.writeFile(excelFilePath);

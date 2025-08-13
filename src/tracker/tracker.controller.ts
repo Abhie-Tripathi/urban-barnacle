@@ -149,6 +149,7 @@ export class TrackerController {
   ) {
     let flag = false;
     let advanceDataFromResponse: boolean = false;
+    let totalpointsToDeduct: number = 0;
     try {
       const [{ point, advancePoint }, membershipStatus] = await Promise.all([
         this.sharedService.getPointForRequest(
@@ -213,13 +214,14 @@ export class TrackerController {
         query,
         query.showValues,
       );
-      if (['calendar', 'suggestion', 'map'].includes(query.view)) {
+      totalpointsToDeduct = Array.isArray(events.events) ? events.events.length : 1;
+      if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
         // console.log("aibuuuuuuuuuuuuuuuuuuusj\n", point, advancePoint);
 
         await this.sharedService.deductPointForRequest(
           advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
           user.accountId,
-          advanceDataFromResponse ? advancePoint - 1 : point - 1,
+          advanceDataFromResponse ? advancePoint - totalpointsToDeduct : point - totalpointsToDeduct,
           // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
           // (advanceDataFromResponse ? advancePoint - 1 : 0),
         );
@@ -231,6 +233,7 @@ export class TrackerController {
         this.sharedService.creditPointForRequest(
           advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
           user.accountId,
+          totalpointsToDeduct
           // (advanceDataFromResponse ? : null),
         );
       return { error: error };
@@ -283,6 +286,7 @@ export class TrackerController {
   ) {
     let flag = false;
     let advanceDataFromResponse: boolean = false;
+    let totalpointsToDeduct: number = 0;
     try {
 
       const [{ point, advancePoint }, membershipStatus] = await Promise.all([
@@ -348,13 +352,14 @@ export class TrackerController {
         query,
         query.showValues,
       );
-      if (['calendar', 'suggestion', 'map'].includes(query.view)) {
+      totalpointsToDeduct = Array.isArray(events.events) ? events.events.length : 1;
+      if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
         // console.log("aibuuuuuuuuuuuuuuuuuuusj\n", point, advancePoint);
 
         await this.sharedService.deductPointForRequest(
           advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
           user.accountId,
-          advanceDataFromResponse ? advancePoint - 1 : point - 1,
+          advanceDataFromResponse ? advancePoint - totalpointsToDeduct : point - totalpointsToDeduct,
           // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
           // (advanceDataFromResponse ? advancePoint - 1 : 0),
         );
@@ -366,6 +371,7 @@ export class TrackerController {
         this.sharedService.creditPointForRequest(
           advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
           user.accountId,
+          totalpointsToDeduct
           // (advanceDataFromResponse ? : null),
         );
       return { error: error };
@@ -487,7 +493,7 @@ export class TrackerController {
       await this.sharedService.deductPointForRequest(
         advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
         user.accountId,
-        advanceDataFromResponse ? advancePoint - tracker.tokenDedcution : point - 1,
+        advanceDataFromResponse ? tracker.tokenDedcution : point - 1,
         // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
         // (advanceDataFromResponse ? advancePoint - 1 : 0),
       );
@@ -533,28 +539,29 @@ export class TrackerController {
     } catch (error) {
       return { error: error };
     }
-  } @UseGuards(AuthGuard)
-  @Get(':id/intelScore/:passKey/cron')
-  async getTrackerIntelScoreForCron(
-    @Param('id') id: string,
-    @Param('passKey') passKey: string,
-    @GetUser() user: TCachedUser,
-    @Query() query: GetTrackerIntelScoreDto,
-  ) {
-    try {
-      if (process.env.CRON_PASSKEY !== passKey) {
-        throw new HttpException('Not Allowed', HttpStatus.FORBIDDEN);
-      }
-      const events = await this.trackerService.getTrackerIntelScoreForCron(
-        user,
-        id,
-        query,
-      );
-      return { data: events };
-    } catch (error) {
-      return { error: error };
-    }
   }
+  // @UseGuards(AuthGuard)
+  // @Get(':id/intelScore/:passKey/cron')
+  // async getTrackerIntelScoreForCron(
+  //   @Param('id') id: string,
+  //   @Param('passKey') passKey: string,
+  //   @GetUser() user: TCachedUser,
+  //   @Query() query: GetTrackerIntelScoreDto,
+  // ) {
+  //   try {
+  //     if (process.env.CRON_PASSKEY !== passKey) {
+  //       throw new HttpException('Not Allowed', HttpStatus.FORBIDDEN);
+  //     }
+  //     const events = await this.trackerService.getTrackerIntelScoreForCron(
+  //       user,
+  //       id,
+  //       query,
+  //     );
+  //     return { data: events };
+  //   } catch (error) {
+  //     return { error: error };
+  //   }
+  // }
   @UseGuards(AuthGuard)
   @Get(':id')
   async getTracker(

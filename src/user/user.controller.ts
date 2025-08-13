@@ -31,6 +31,7 @@ export class UserController {
   ) {
     let flag = false;
     let advanceDataFromResponse: boolean = false;
+    let totalpointsToDeduct: number = 0;
     try {
       const [{ point }, membershipStatus] = await Promise.all([
         this.sharedService.getPointForRequest(
@@ -64,10 +65,11 @@ export class UserController {
         );
       }
       const result = await this.userService.getUserProspectData(query);
+      totalpointsToDeduct = Array.isArray(result.data.userData) ? result.data.userData.length : 1;
       await this.sharedService.deductPointForRequest(
         PointColumn.pendingCompanySearchRequests,
         userData.accountId,
-        point - 1,
+        point - totalpointsToDeduct,
       );
       flag = true;
       return result;
@@ -76,6 +78,7 @@ export class UserController {
         this.sharedService.creditPointForRequest(
           PointColumn.pendingCompanySearchRequests,
           userData.accountId,
+          totalpointsToDeduct
         );
       return { error: error };
     }

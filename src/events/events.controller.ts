@@ -42,6 +42,7 @@ export class EventsController {
   ) {
     let flag = false;
     let advanceDataFromResponse: boolean = false;
+    let totalpointsToDeduct: number = 0;
     try {
       const [{ point, advancePoint }, membershipStatus] = await Promise.all([this.sharedService.getPointForRequest(
         PointColumn.pendingRequests,
@@ -100,13 +101,14 @@ export class EventsController {
         true,
         user,
       );
-      if (['calendar', 'suggestion', 'map'].includes(query.view)) {
+      totalpointsToDeduct = Array.isArray(events.events) ? events.events.length : 1;
+      if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
         // console.log("aibuuuuuuuuuuuuuuuuuuusj\n", point, advancePoint);
 
         await this.sharedService.deductPointForRequest(
           advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
           user.accountId,
-          advanceDataFromResponse ? advancePoint - 1 : point - 1,
+          advanceDataFromResponse ? advancePoint - totalpointsToDeduct : point - totalpointsToDeduct,
           // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
           // (advanceDataFromResponse ? advancePoint - 1 : 0),
         );
@@ -121,6 +123,7 @@ export class EventsController {
         this.sharedService.creditPointForRequest(
           advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
           user.accountId,
+          totalpointsToDeduct
           // (advanceDataFromResponse ? : null),
         );
       return {
@@ -209,15 +212,16 @@ export class EventsController {
       }
       const events = await this.eventsService.getSimilarEvents(queryDto);
       // console.log("aibuuuuuuuuuuuuuuuuuuusj\n", point, advancePoint);
-
-      await this.sharedService.deductPointForRequest(
-        advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
-        user.accountId,
-        advanceDataFromResponse ? advancePoint - 1 : point - 1,
-        // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
-        // (advanceDataFromResponse ? advancePoint - 1 : 0),
-      );
-      flag = true;
+      if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
+        await this.sharedService.deductPointForRequest(
+          advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
+          user.accountId,
+          advanceDataFromResponse ? advancePoint - 1 : point - 1,
+          // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+          // (advanceDataFromResponse ? advancePoint - 1 : 0),
+        );
+        flag = true;
+      }
       if (query.view !== 'map' && (query.save === undefined || query.save)) {
         this.eventsService.createLogForEncryptedQuery(queryDto, user);
       }

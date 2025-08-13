@@ -29,6 +29,7 @@ export class CompanyController {
     @GetUser() userData: TCachedUser,
   ) {
     let flag = false;
+    let totalpointsToDeduct: number = 0;
     try {
       const [{ point }, membershipStatus] = await Promise.all([
         this.sharedService.getPointForRequest(
@@ -65,10 +66,11 @@ export class CompanyController {
         query,
         'list',
       );
+      totalpointsToDeduct = Array.isArray(result.data.companyData) ? result.data.companyData.length : 1;
       await this.sharedService.deductPointForRequest(
         PointColumn.pendingCompanySearchRequests,
         userData.accountId,
-        point - 1,
+        point - totalpointsToDeduct,
       );
       flag = true;
       return result;
@@ -77,6 +79,7 @@ export class CompanyController {
         this.sharedService.creditPointForRequest(
           PointColumn.pendingCompanySearchRequests,
           userData.accountId,
+          totalpointsToDeduct
         );
       return { error: error };
     }
@@ -154,6 +157,7 @@ export class CompanyController {
         { companyId: compnayId, limit: 10, offset: 0 },
         'detail',
       );
+      const totalpointsToDeduct: number = Array.isArray(result.data.companyData) ? result.data.companyData.length : 1;
       // await this.sharedService.deductPointForRequest(PointColumn.pendingCompanySearchRequests, userData.accountId, point - 1)
       // flag = true;
       await this.sharedService.deductPointForRequest(
