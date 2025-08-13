@@ -148,8 +148,7 @@ export class GlobalResponseInterceptor implements NestInterceptor {
                 statusCode:
                   errorResponse.statusCode || HttpStatus.INTERNAL_SERVER_ERROR,
                 message: JSON.stringify(errorResponse.message || errorResponse).toLowerCase().includes('prisma') ? 'Something went wrong.' : (errorResponse.message || errorResponse),
-                issues: errorResponse.issues || [],
-                ...(errorResponse['cause'] ? { cause: errorResponse['cause'] } : {})
+                issues: (errorResponse['cause'] ? [JSON.parse(errorResponse['cause'])] : errorResponse.issues || []),
               },
             });
         } else {
