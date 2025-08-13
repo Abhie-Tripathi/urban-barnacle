@@ -45,6 +45,7 @@ import { ExportWorkerClass } from './communication/bull-service/bull-export.serv
 import { RedisModule } from './redis/redis.module';
 import { AuthGuard } from './user/auth/guard';
 import { APP_GUARD } from '@nestjs/core';
+import { SubscriptionEmailWorkerClass } from './communication/bull-service/bull-subscription.service';
 @Module({
   imports: [
     // ConfigModule to manage environment variables
@@ -123,6 +124,7 @@ import { APP_GUARD } from '@nestjs/core';
     ErrorWorkerClass,
     ContactWorkerClass,
     ExportWorkerClass,
+    SubscriptionEmailWorkerClass,
     AuthGuard,
     {
       provide: APP_GUARD,

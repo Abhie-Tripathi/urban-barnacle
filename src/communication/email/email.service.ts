@@ -46,6 +46,7 @@ export class EmailService {
       return { data: { message: 'OTP send' } };
     } catch (error) {
       console.error('Error sending email:', error);
+      console.error("SendGrid Error:", error.response?.body?.errors || error);
       return { error: JSON.stringify(error) };
     }
   }

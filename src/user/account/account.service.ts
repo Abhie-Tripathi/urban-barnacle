@@ -26,6 +26,7 @@ import {
   InterestConfigurationDto,
   MembershipDto,
   OutreachConfigurationDto,
+  UpdateCurrentMembershipDto,
 } from './account.config';
 import { UserDataSchema } from '../me/dto';
 import {
@@ -625,6 +626,9 @@ export class AccountService {
   }
   async updateAccountMembership(user: TCachedUser, data: MembershipDto) {
     return await this.accountDataService.updateAccountMembership(user, data);
+  } //cancelMembershipRenewal
+  async cancelMembershipRenewal(user: TCachedUser, data: UpdateCurrentMembershipDto) {
+    return await this.accountDataService.updateCurrentMemberShip(user, data);
   }
   async createMembershipToken(user: TCachedUser) {
     return this.accountDataService.createMembershipToken(user);

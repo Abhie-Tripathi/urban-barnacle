@@ -23,7 +23,7 @@ import {
 
 @Injectable()
 export class GlobalResponseInterceptor implements NestInterceptor {
-  constructor(private readonly communicationService: CommunicationService) {}
+  constructor(private readonly communicationService: CommunicationService) { }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const ctx = context.switchToHttp();
@@ -33,7 +33,7 @@ export class GlobalResponseInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       catchError((err) => {
-        console.log(err);
+        console.log('errorerrorerrorerror00000', err);
         let errorMsg: string = err.message;
         let errorType: string = 'HTTPError';
 
@@ -64,15 +64,15 @@ export class GlobalResponseInterceptor implements NestInterceptor {
               (process.env.NODE_ENV || '').toLowerCase(),
             )
               ? this.communicationService.createJobForBull(
-                  QueueActionOptions.SEND_ERROR_EMAIL,
-                  {
-                    apiName: request.url || 'undefined',
-                    errorType: errorType || 'undefined',
-                    errorMessage: `${errorMsg || JSON.stringify(request.body) || 'undefined'} 
+                QueueActionOptions.SEND_ERROR_EMAIL,
+                {
+                  apiName: request.url || 'undefined',
+                  errorType: errorType || 'undefined',
+                  errorMessage: `${errorMsg || JSON.stringify(request.body) || 'undefined'} 
                       ${JSON.stringify({ userId: user?.id, accountId: user?.accountId })}`,
-                  },
-                  '@10times.com',
-                )
+                },
+                '@10times.com',
+              )
               : '';
           }
         }
@@ -85,7 +85,7 @@ export class GlobalResponseInterceptor implements NestInterceptor {
           let errorResponse: any;
 
           const error = data.error;
-          console.log(error);
+          console.log('errorerrorerrorerro111r', error);
           if (error)
             if (error instanceof PrismaClientValidationError) {
               // console.log({
@@ -120,20 +120,20 @@ export class GlobalResponseInterceptor implements NestInterceptor {
             }
 
           // Send error email only for Internal Server Error (500)
-          if (errorResponse.statusCode === HttpStatus.INTERNAL_SERVER_ERROR) {
+          if ((errorResponse.statusCode ?? HttpStatus.INTERNAL_SERVER_ERROR) === HttpStatus.INTERNAL_SERVER_ERROR) {
             ['production', 'development'].includes(
               (process.env.NODE_ENV || '').toLowerCase(),
             )
               ? this.communicationService.createJobForBull(
-                  QueueActionOptions.SEND_ERROR_EMAIL,
-                  {
-                    apiName: request.url || 'undefined',
-                    errorType: errorType || 'undefined',
-                    errorMessage: `${errorMsg || JSON.stringify(request.body) || 'undefined'} 
+                QueueActionOptions.SEND_ERROR_EMAIL,
+                {
+                  apiName: request.url || 'undefined',
+                  errorType: errorType || 'undefined',
+                  errorMessage: `${errorMsg || JSON.stringify(request.body) || 'undefined'} 
                       ${JSON.stringify({ userId: user?.id, accountId: user?.accountId })}`,
-                  },
-                  '@10times.com',
-                )
+                },
+                '@10times.com',
+              )
               : '';
           }
 
@@ -145,7 +145,7 @@ export class GlobalResponseInterceptor implements NestInterceptor {
               error: {
                 statusCode:
                   errorResponse.statusCode || HttpStatus.INTERNAL_SERVER_ERROR,
-                message: errorResponse.message || errorResponse,
+                message: JSON.stringify(errorResponse.message || errorResponse).toLowerCase().includes('prisma') ? 'Something went wrong.' : (errorResponse.message || errorResponse),
                 issues: errorResponse.issues || [],
               },
             });

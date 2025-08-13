@@ -24,7 +24,10 @@ import {
   FilterConfigurationDto,
   InterestConfigurationDto,
   MembershipDto,
+  membershipSchema,
   OutreachConfigurationDto,
+  UpdateCurrentMembershipDto,
+  updateMembershipSchema,
 } from './account.config';
 import {
   AccountConfigKey,
@@ -32,6 +35,7 @@ import {
   GetBookmarkedEventDto,
   UpdateSubscriptionWebhookDto,
 } from './dto';
+import { ZodError } from 'zod';
 
 @Controller('me/account')
 export class AccountController {
@@ -195,23 +199,53 @@ export class AccountController {
     }
   }
   @UseGuards(AuthGuard)
-  @Put('membership')
+  @Patch('membership/:action')
   async updateAccountMembership(
+    @Param('action') currentAction: 'create' | 'cancel',
     @GetUser() user: TCachedUser,
-    @Body() data: MembershipDto
+    @Body() data: MembershipDto | UpdateCurrentMembershipDto
   ) {
     try {
-      const configuration = await this.accountService.updateAccountMembership(
-        user,
-        data
-      );
-      return { data: configuration };
+      switch (currentAction) {
+        case 'create': {
+          const configuration = await this.accountService.updateAccountMembership(
+            user,
+            membershipSchema.parse(data)
+          );
+          return { data: configuration };
+        }
+
+        case 'cancel': {
+          const cancelPayload = updateMembershipSchema.parse(data);
+          const result = await this.accountService.cancelMembershipRenewal(user, cancelPayload);
+          return { data: result };
+        }
+
+        default:
+          return {
+            error: 'Invalid action provided',
+            statusCode: HttpStatus.BAD_REQUEST,
+          };
+      }
     } catch (error) {
-      return { error: error };
+      if (error instanceof ZodError) {
+        return {
+          error: 'Validation failed',
+          details: error.errors,
+          statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        };
+      }
+
+      return {
+        error: error?.message || 'Something went wrong',
+        statusCode: error?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      };
     }
   }
+
+
   @UseGuards(AuthGuard)
-  @Post('membership')
+  @Post('membership-token')
   async createMembershipToken(@GetUser() user: TCachedUser) {
     try {
       console.log(user);
