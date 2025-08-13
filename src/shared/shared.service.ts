@@ -751,6 +751,7 @@ export class SharedService {
       throw new HttpException(
         `You’ve exhausted your Advanced Search tokens. You can continue with basic searches or upgrade to a higher plan.`,
         HttpStatus.TOO_MANY_REQUESTS,
+        { cause: `{"advanceToken":false,"basicToken":true}` }
       );
     }
 

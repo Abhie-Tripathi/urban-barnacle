@@ -206,6 +206,7 @@ export class TrackerController {
         throw new HttpException(
           'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
           HttpStatus.TOO_MANY_REQUESTS,
+          { cause: `{"advanceToken":false,"basicToken":true}` }
         );
       }
       const events = await this.trackerService.getTrackerEvents(
@@ -344,6 +345,7 @@ export class TrackerController {
         throw new HttpException(
           'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
           HttpStatus.TOO_MANY_REQUESTS,
+          { cause: `{"advanceToken":false,"basicToken":true}` }
         );
       }
       const events = await this.trackerService.getTrackerSimilarEvents(

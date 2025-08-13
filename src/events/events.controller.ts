@@ -94,6 +94,7 @@ export class EventsController {
         throw new HttpException(
           'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
           HttpStatus.TOO_MANY_REQUESTS,
+          { cause: `{"advanceToken":false,"basicToken":true}` }
         );
       }
       const events = await this.eventsService.getAllEvents(
@@ -208,6 +209,7 @@ export class EventsController {
         throw new HttpException(
           'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
           HttpStatus.TOO_MANY_REQUESTS,
+          { cause: `{"advanceToken":false,"basicToken":true}` }
         );
       }
       const events = await this.eventsService.getSimilarEvents(queryDto);
@@ -432,6 +434,7 @@ export class EventsController {
         throw new HttpException(
           'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
           HttpStatus.TOO_MANY_REQUESTS,
+          { cause: `{"advanceToken":false,"basicToken":true}` }
         );
       }
       const event = await this.eventsService.getEvent(id, query.showValues, user);
