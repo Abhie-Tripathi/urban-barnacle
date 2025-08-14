@@ -2642,7 +2642,7 @@ export class TrackerService {
         ? countOfTracker[body.type]
         : countOfTracker[body.type]['total']
     ) : 0);
-    const is10TimesUser = false//user.email.split('@')[1] === '10times.com';
+    const is10TimesUser = user.email.split('@')[1] === '10times.com';
     const trackerTypeGTM: string[] = ['past', 'active', 'new'];
     const trackerTypeGEO: string[] = ['business', 'social', 'unattended'];
     const payload: trackerExportDto = {

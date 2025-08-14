@@ -678,8 +678,8 @@ export class SharedService {
           }
         })
           ,
-        await this.prisma.$executeRawUnsafe(
-          `
+        await this.prisma.$executeRaw(
+          Prisma.sql`
               UPDATE "Configuration"
               SET config = jsonb_set(
                 COALESCE(config, '{}'::jsonb),
@@ -758,15 +758,27 @@ export class SharedService {
     // Case 2: Daily limit reached
     if (
       isNotUnlockRequestColumn &&
-      basicPoints <= 0 &&
+      basicPoints <= 0 && advancePoints !== 0 &&
       Math.abs(basicPoints) >= (advancePoints * 0.5)
     ) {
       throw new HttpException(
         'You have reached your daily limit. It will reset tomorrow.',
         HttpStatus.TOO_MANY_REQUESTS,
+        { cause: `{"advanceToken":true,"basicToken":false}` }
       );
     }
-
+    // Case 3: Advanced and basic search token exhausted
+    if (
+      isNotUnlockRequestColumn &&
+      basicPoints <= 0 &&
+      advancePoints <= 0
+    ) {
+      throw new HttpException(
+        `You’ve exhausted your search tokens. Please upgrade to a higher plan to continue.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+        { cause: `{"advanceToken":false,"basicToken":false}` }
+      );
+    }
     return { point: basicPoints, subscriptionId: pointsData.currentSubscriptionId, advancePoint: advancePoints };
   }
   async deductPointForRequest(

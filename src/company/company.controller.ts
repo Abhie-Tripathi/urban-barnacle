@@ -59,7 +59,7 @@ export class CompanyController {
       if ((membershipLimit[membershipStatus.membership].upperLimit - ((query.limit || 10) + (query.offset || 0))) < 0) {
         throw new HttpException(
           'The server couldn’t understand the request due to invalid syntax or parameters.',
-          HttpStatus.BAD_REQUEST,
+          HttpStatus.FORBIDDEN,
         );
       }
       const result = await this.companyService.getCompanyProspectData(

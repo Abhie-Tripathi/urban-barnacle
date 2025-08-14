@@ -167,10 +167,11 @@ export class TrackerController {
       //     HttpStatus.TOO_MANY_REQUESTS,
       //   );
       // }
-      if (point <= 0 && Math.abs(point) >= (advancePoint * 0.5)) {
+      if (point <= 0 && advancePoint !== 0 && Math.abs(point) >= (advancePoint * 0.5)) {
         throw new HttpException(
           'You have reached the maximum limit to view data. Please get in touch with us.',
           HttpStatus.TOO_MANY_REQUESTS,
+          { cause: `{"advanceToken":true,"basicToken":false}` }
         );
       }
       if (query.limit && membershipLimit[membershipStatus.membership].perSearchLimit < query.limit) {
@@ -186,16 +187,12 @@ export class TrackerController {
           HttpStatus.BAD_REQUEST,
         );
       }
-      // if (
-      //   membershipLimit[membershipStatus.membership] -
-      //   ((query.limit || 10) + (query.offset || 0)) <
-      //   0
-      // ) {
-      //   throw new HttpException(
-      //     'You have reached the maximum limit to view data. Please get in touch with us.',
-      //     HttpStatus.TOO_MANY_REQUESTS,
-      //   );
-      // }
+      if ((membershipLimit[membershipStatus.membership].upperLimit - ((query.limit || 10) + (query.offset || 0))) < 0) {
+        throw new HttpException(
+          'The server couldn’t understand the request due to invalid syntax or parameters.',
+          HttpStatus.FORBIDDEN,
+        );
+      }
       for (const val of query.showValues.split(',')) {
         if (eventAdvanceFields[val] === 'advance') {
           advanceDataFromResponse = true;
@@ -319,22 +316,19 @@ export class TrackerController {
       //     HttpStatus.TOO_MANY_REQUESTS,
       //   );
       // }
-      if (point <= 0 && Math.abs(point) >= (advancePoint * 0.5)) {
+      if (point <= 0 && advancePoint !== 0 && Math.abs(point) >= (advancePoint * 0.5)) {
         throw new HttpException(
           'You have reached the maximum limit to view data. Please get in touch with us.',
           HttpStatus.TOO_MANY_REQUESTS,
+          { cause: `{"advanceToken":true,"basicToken":false}` }
         );
       }
-      // if (
-      //   membershipLimit[membershipStatus.membership] -
-      //   ((query.limit || 10) + (query.offset || 0)) <
-      //   0
-      // ) {
-      //   throw new HttpException(
-      //     'You have reached the maximum limit to view data. Please get in touch with us.',
-      //     HttpStatus.TOO_MANY_REQUESTS,
-      //   );
-      // }
+      if ((membershipLimit[membershipStatus.membership].upperLimit - ((query.limit || 10) + (query.offset || 0))) < 0) {
+        throw new HttpException(
+          'The server couldn’t understand the request due to invalid syntax or parameters.',
+          HttpStatus.FORBIDDEN,
+        );
+      }
       for (const val of query.showValues.split(',')) {
         if (eventAdvanceFields[val] === 'advance') {
           advanceDataFromResponse = true;

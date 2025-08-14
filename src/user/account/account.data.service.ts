@@ -218,7 +218,7 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
         deleted: true
       }
     })]);
-    await this.prisma.account.update({
+    const accountData = await this.prisma.account.update({
       where: {
         id: user['accountId']
       },
@@ -226,6 +226,22 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
         currentSubscriptionId: create.id
       }
     });
+    if (create.plan !== 'BASIC')
+      await this.prisma.$executeRaw(
+        Prisma.sql`
+    UPDATE "Configuration"
+    SET config = jsonb_set(
+      COALESCE(config, '{}'::jsonb),
+      '{filter}',
+      $1::jsonb,
+      true
+    )
+    WHERE id::TEXT = $2
+  `,
+        JSON.stringify({}),
+        accountData.configurationId
+      );
+
     return create;
   }
   async addAccountUser(accountId: string, userId: string) {

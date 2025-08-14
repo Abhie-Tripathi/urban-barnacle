@@ -61,7 +61,7 @@ export class UserController {
       if ((membershipLimit[membershipStatus.membership].upperLimit - ((query.limit || 10) + (query.offset || 0))) < 0) {
         throw new HttpException(
           'The server couldn’t understand the request due to invalid syntax or parameters.',
-          HttpStatus.BAD_REQUEST,
+          HttpStatus.FORBIDDEN,
         );
       }
       const result = await this.userService.getUserProspectData(query);
@@ -92,32 +92,38 @@ export class UserController {
   ) {
     let flag = false;
     try {
-      const [{ point }, membershipStatus] = await Promise.all([
-        this.sharedService.getPointForRequest(
-          PointColumn.pendingCompanySearchRequests,
-          userData.accountId,
-          PointColumn.advancePendingRequests
-        ),
-        this.sharedService.getAccountMemberShipStatus(
-          userData.accountId,
-        ),
-      ]);
-      if (point <= 0) {
-        throw new HttpException(
-          'You have reached the maximum limit to view data. Please get in touch with us.',
-          HttpStatus.TOO_MANY_REQUESTS,
-        );
+      let points: number = 0;
+      if (!query.unmask && !query.target && !query.source) {
+        const [{ point }, membershipStatus] = await Promise.all([
+          this.sharedService.getPointForRequest(
+            PointColumn.pendingCompanySearchRequests,
+            userData.accountId,
+            PointColumn.advancePendingRequests
+          ),
+          this.sharedService.getAccountMemberShipStatus(
+            userData.accountId,
+          ),
+        ]);
+        if (point <= 0) {
+          throw new HttpException(
+            'You have reached the maximum limit to view data. Please get in touch with us.',
+            HttpStatus.TOO_MANY_REQUESTS,
+          );
+        }
+        points = point
       }
       const result = await this.userService.getUserData(query, userId, userData);
-      await this.sharedService.deductPointForRequest(
-        PointColumn.pendingCompanySearchRequests,
-        userData.accountId,
-        point - 1,
-      );
-      flag = true;
+      if (!query.unmask && !query.target && !query.source) {
+        await this.sharedService.deductPointForRequest(
+          PointColumn.pendingCompanySearchRequests,
+          userData.accountId,
+          points - 1,
+        );
+        flag = true;
+      }
       return result;
     } catch (error) {
-      if (flag)
+      if (flag && !query.unmask && !query.target && !query.source)
         this.sharedService.creditPointForRequest(
           PointColumn.pendingCompanySearchRequests,
           userData.accountId,
