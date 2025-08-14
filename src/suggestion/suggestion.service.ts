@@ -23,7 +23,7 @@ type SuggestionType =
 
 @Injectable()
 export class SuggestionService {
-  constructor(private readonly suggestionDataService: SuggestionDataService) {}
+  constructor(private readonly suggestionDataService: SuggestionDataService) { }
 
   async getSuggestions(suggestionType: SuggestionType, dto: any): Promise<any> {
     switch (suggestionType) {
@@ -38,7 +38,7 @@ export class SuggestionService {
       case 'designations':
         return (await this.suggestionDataService.getDesignations(
           dto,
-        )) as CategoryResponseDto[];
+        )) as any;
       case 'companies':
         return (await this.suggestionDataService.getCompanies(
           dto,

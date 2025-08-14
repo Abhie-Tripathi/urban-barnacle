@@ -43,6 +43,7 @@ import { CommunicationService } from './communication/communication.service';
 import { ContactWorkerClass } from './communication/bull-service/bull-contact.service';
 import { ExportWorkerClass } from './communication/bull-service/bull-export.service';
 import { RedisModule } from './redis/redis.module';
+import { SubscriptionEmailWorkerClass } from './communication/bull-service/bull-subscription.service';
 @Module({
   imports: [
     // ConfigModule to manage environment variables
@@ -70,12 +71,12 @@ import { RedisModule } from './redis/redis.module';
             port: parseInt(process.env.REDIS_PORT || '6379'),
             tls:
               process.env.NODE_ENV &&
-              process.env.NODE_ENV.toLowerCase() === 'production'
+                process.env.NODE_ENV.toLowerCase() === 'production'
                 ? true
                 : false,
           },
           ...(process.env.NODE_ENV &&
-          process.env.NODE_ENV.toLowerCase() !== 'production'
+            process.env.NODE_ENV.toLowerCase() !== 'production'
             ? { password: process.env.REDIS_PASSWORD }
             : {}),
         }),
@@ -120,7 +121,8 @@ import { RedisModule } from './redis/redis.module';
     AfterResponseInterceptor,
     ErrorWorkerClass,
     ContactWorkerClass,
-    ExportWorkerClass
+    ExportWorkerClass,
+    SubscriptionEmailWorkerClass
     // CommunicationService,
   ],
 })
