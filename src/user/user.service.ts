@@ -123,7 +123,7 @@ export class UserService {
       return { data: { totalCount: 0, savedUsers: [] } };
     }
     const result: { data: { totalCount: number, userData: any } } =
-      (await this.getUserProspectData({ ...query, userId: savedUsersIds.join(',') }, userData)) as any;
+      (await this.getUserProspectData({ ...query, userId: savedUsersIds.join(','), offset: 0 }, userData)) as any;
     console.log(result.data.userData);
 
     return {

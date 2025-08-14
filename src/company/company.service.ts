@@ -70,7 +70,7 @@ export class CompanyService {
       return { data: { totalCount: 0, savedUsers: [] } };
     }
     const result: { data: { totalCount: number, companyData: any } } =
-      (await this.getCompanyProspectData({ ...query, companyId: savedCompaniesIds.join(',') }, 'list', userData)) as any;
+      (await this.getCompanyProspectData({ ...query, companyId: savedCompaniesIds.join(','), offset: 0 }, 'list', userData)) as any;
     return {
       data: {
         totalCount: count.length, companyData: result.data.companyData?.map(val => {
