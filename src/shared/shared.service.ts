@@ -839,7 +839,7 @@ export class SharedService {
       endDate: membership.planEndDate,
       planRenewalDate: membership.planRenewalDate,
       planStartDate: membership.planStartDate,
-      isTrial: membership.purchaseValue === 0 && membership.plan !== 'ESSENTIAL' ? false : true
+      isTrial: membership.purchaseValue === 0 && membership.plan === 'ESSENTIAL' ? false : true
     };
   }
   async getLocationData(locationIds: string[]) {
