@@ -58,7 +58,7 @@ export class EventsController {
       // }
       if (point <= 0 && advancePoint !== 0 && Math.abs(point) >= (advancePoint * 0.5)) {
         throw new HttpException(
-          'The server couldn’t understand the request due to invalid syntax or parameters.',
+          'You have reached your daily limit. It will reset tomorrow.',
           HttpStatus.BAD_REQUEST,
           { cause: `{"advanceToken":true,"basicToken":false}` }
         );
@@ -409,7 +409,7 @@ export class EventsController {
       ]);
       if (point <= 0 && advancePoint !== 0 && Math.abs(point) >= (advancePoint * 0.5)) {
         throw new HttpException(
-          'You have reached the maximum limit to view data. Please get in touch with us.',
+          'You have reached your daily limit. It will reset tomorrow.',
           HttpStatus.TOO_MANY_REQUESTS,
           { cause: `{"advanceToken":true,"basicToken":false}` }
         );
