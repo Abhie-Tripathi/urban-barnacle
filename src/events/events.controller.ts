@@ -433,12 +433,15 @@ export class EventsController {
           break;
         }
       }
-      if (advanceDataFromResponse && advancePoint <= 0) {
+      if (advanceDataFromResponse && advancePoint <= 0 && point < 0) {
         throw new HttpException(
           'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
           HttpStatus.TOO_MANY_REQUESTS,
           { cause: `{"advanceToken":false,"basicToken":true}` }
         );
+      } else if (advanceDataFromResponse && advancePoint <= 0 && point > 0) {
+        advanceDataFromResponse = false;
+        query.showValues = 'basic';
       }
       const event = await this.eventsService.getEvent(id, query.showValues, user);
       await this.sharedService.deductPointForRequest(
