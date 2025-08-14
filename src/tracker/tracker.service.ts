@@ -662,6 +662,7 @@ export class TrackerService {
     trackerId: string,
     params: GetTrackerEventsDto,
     showValues: string,
+    isExport: boolean | undefined = undefined
   ) {
     try {
       const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
@@ -739,6 +740,7 @@ export class TrackerService {
         ...convertedParams,
         trackerId: trackerId,
         showValues: showValues,
+        isExport
       } as QueryDto;
       if (searchByEntity) {
         eventParams['searchByEntity'] = searchByEntity;
@@ -2560,8 +2562,8 @@ export class TrackerService {
     user: TCachedUser,
     body: CreateTrackerExportsDto,
   ) {
-    const [trackerData, membershipStatus] = await Promise.all([this.getTracker(user, trackerId, {}), 
-      this.sharedService.getAccountMemberShipStatus(user.accountId)]);
+    const [trackerData, membershipStatus] = await Promise.all([this.getTracker(user, trackerId, {}),
+    this.sharedService.getAccountMemberShipStatus(user.accountId)]);
     if (!membershipLimit[membershipStatus.membership].exportAllowed) {
       throw new HttpException(
         `Your current membership (${membershipStatus.membership}) does not allow data export.`,
