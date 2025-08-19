@@ -21,6 +21,7 @@ import {
   advanceFilterBlockObject,
   CachedUserSchema,
   defaultEventTypes,
+  membershipLimit,
   membershipMap,
   SelectedUserDetails,
   TCachedUser,
@@ -457,9 +458,9 @@ export class SharedService {
     return Number(totalArea.toFixed(2));
   }
   async getProspectEventAndMap(id: string, query: any) {
-    if (query.limit > 20) {
-      query.limit = 20;
-    }
+    // if (query.limit > 20) {
+    //   query.limit = 20;
+    // }
     const { type, ...rest } = query;
     id = decrypt(id).replace(
       process.env.TEN_TIMES_ID_ENCRYPT_KEY as string,
@@ -601,6 +602,7 @@ export class SharedService {
     column: PointColumn,
     accountId: string,
     advanceColumn: PointColumn,
+    isBasic: boolean = true
   ) {
     const [pointsData, userData] = await Promise.all([this.prisma.account.findFirst({
       where: { id: accountId },
@@ -655,6 +657,7 @@ export class SharedService {
       fourteenDaysAgo.setDate(todayDate.getDate() - 14);
       fourteenDaysAgo.setDate(today.getDate() - 14);
       if (pointsData.subscription[0]['purchaseValue'] === 0 && createdDate < fourteenDaysAgo && 'ESSENTIAL' === pointsData.subscription[0]['plan']) {
+        const schemaName = process.env.NODE_ENV === 'development' ? 'temp_migration' : 'public';
         const [newSubscription] = await Promise.all([this.prisma.subscription.create({
           data: {
             plan: 'BASIC',
@@ -680,17 +683,15 @@ export class SharedService {
           ,
         await this.prisma.$executeRaw(
           Prisma.sql`
-              UPDATE "Configuration"
+              UPDATE ${Prisma.raw(`${schemaName}`)}."Configuration"
               SET config = jsonb_set(
                 COALESCE(config, '{}'::jsonb),
                 '{filter}',
-                $1::jsonb,
+                ${JSON.stringify(advanceFilterBlockObject)}::jsonb,
                 true
               )
-              WHERE id::TEXT = $2
-            `,
-          JSON.stringify(advanceFilterBlockObject),
-          pointsData.configurationId
+              WHERE id::TEXT = ${pointsData.configurationId}
+            `
         )]);
         await this.prisma.account.update({
           where: {
@@ -727,7 +728,7 @@ export class SharedService {
         advancePoints = dailyCreaditForBasic.advancePendingRequests;
       }
     }
-    if (pointsData.subscription[0]['plan'] === 'BASIC' && basicPoints === 0) {
+    if (pointsData.subscription[0]['plan'] === 'BASIC') {
       throw new HttpException(
         'Your trial period has ended. Please upgrade your plan to continue.',
         HttpStatus.FORBIDDEN,
@@ -745,26 +746,34 @@ export class SharedService {
       column === PointColumn.advancePendingRequests &&
       isNotUnlockRequestColumn &&
       !isBasicPlan &&
-      basicPoints > 0 &&
+      Math.abs(basicPoints) > 0 &&
       advancePoints <= 0
     ) {
       throw new HttpException(
         `You’ve exhausted your Advanced Search tokens. You can continue with basic searches or upgrade to a higher plan.`,
         HttpStatus.TOO_MANY_REQUESTS,
-        { cause: `{"advanceToken":false,"basicToken":true}` }
+        {
+          cause: (column as string) === 'pendingRequests' && (column as string) === 'advancePendingRequests' ? `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) >= (advancePoints * 0.5)}}` :
+            `{"basicToken":${(basicPoints) > 0}}`
+        }
       );
     }
 
     // Case 2: Daily limit reached
     if (
+      isBasic &&
       isNotUnlockRequestColumn &&
       basicPoints <= 0 && advancePoints !== 0 &&
-      Math.abs(basicPoints) >= (advancePoints * 0.5)
+      Math.abs(basicPoints) > (advancePoints * 0.5)
     ) {
       throw new HttpException(
         'You have reached your daily limit. It will reset tomorrow.',
         HttpStatus.TOO_MANY_REQUESTS,
-        { cause: `{"advanceToken":true,"basicToken":false}` }
+        {
+          cause: (column as string) === 'pendingRequests' && (column as string) === 'advancePendingRequests' ?
+            `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) <= (advancePoints * 0.5)}}` :
+            `{"basicToken":${(basicPoints) > 0}}`
+        }
       );
     }
     // Case 3: Advanced and basic search token exhausted
@@ -776,7 +785,11 @@ export class SharedService {
       throw new HttpException(
         `You’ve exhausted your search tokens. Please upgrade to a higher plan to continue.`,
         HttpStatus.TOO_MANY_REQUESTS,
-        { cause: `{"advanceToken":false,"basicToken":false}` }
+        {
+          cause: (column as string) === 'pendingRequests' && (column as string) === 'advancePendingRequests' ?
+            `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) <= (advancePoints * 0.5)}}` :
+            `{"basicToken":${(basicPoints) > 0}}`
+        }
       );
     }
     return { point: basicPoints, subscriptionId: pointsData.currentSubscriptionId, advancePoint: advancePoints };
@@ -839,7 +852,7 @@ export class SharedService {
       endDate: membership.planEndDate,
       planRenewalDate: membership.planRenewalDate,
       planStartDate: membership.planStartDate,
-      isTrial: membership.purchaseValue === 0 && membership.plan === 'ESSENTIAL' ? false : true
+      isTrial: membership.purchaseValue === 0 && membership.plan === 'ESSENTIAL',
     };
   }
   async getLocationData(locationIds: string[]) {
@@ -904,6 +917,48 @@ export class SharedService {
     //   return acc;
     // }, {});
     return userEventInterests;
+  }
+  async getTokenDetails(user: TCachedUser, query: any, isBasic: boolean = true) {
+    const [{ point, advancePoint }, membershipStatus] = await Promise.all([this.getPointForRequest(
+      PointColumn.pendingRequests,
+      user.accountId,
+      PointColumn.advancePendingRequests, isBasic
+    ), this.getAccountMemberShipStatus(user.accountId)]);
+    // if (point <= 0) {
+    //   throw new HttpException(
+    //     'You have reached the maximum limit to view data. Please get in touch with us.',
+    //     HttpStatus.TOO_MANY_REQUESTS,
+    //   );
+    // }
+    if (isBasic && point <= 0 && advancePoint !== 0 && Math.abs(point) > (advancePoint * 0.5)) {
+      throw new HttpException(
+        'You have reached your daily limit. It will reset tomorrow.',
+        HttpStatus.BAD_REQUEST,
+        { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) < (advancePoint * 0.5)}}` }
+      );
+    }
+    if (query.limit && membershipLimit[membershipStatus.membership].perSearchLimit < query.limit) {
+      query.limit = membershipLimit[membershipStatus.membership].perSearchLimit;
+    }
+    if ((membershipLimit[membershipStatus.membership].upperLimit - ((query.limit || 10) + (query.offset || 0))) < 0) {
+      throw new HttpException(
+        'The server couldn’t understand the request due to invalid syntax or parameters.',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    if (query.limit && isBasic && query.limit > point) {
+      query.limit = point;
+    } else if (query.limit && !isBasic && query.limit > advancePoint) {
+      query.limit = advancePoint;
+    }
+
+    // if ((membershipLimit[membershipStatus.membership] - ((query.limit || 10) + (query.offset || 0))) < 0) {
+    //   throw new HttpException(
+    //     'You have reached the maximum limit to view data. Please get in touch with us.',
+    //     HttpStatus.TOO_MANY_REQUESTS,
+    //   );
+    // }
+    return { point, advancePoint, query: { ...query } };
   }
 }
 

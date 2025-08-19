@@ -85,7 +85,7 @@ export class UserService {
         pocId,
       ),
       this.sharedService.getPointForRequest(
-        query.target === 'COMPANY' || query.target === 'EVENT'
+        query.target === 'EVENT'
           ? PointColumn.pendingPocUnlockRequests
           : PointColumn.pendingProspectPocUnlockRequests,
         user.accountId,

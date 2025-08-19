@@ -150,60 +150,26 @@ export class TrackerController {
     let flag = false;
     let advanceDataFromResponse: boolean = false;
     let totalpointsToDeduct: number = 0;
+    let point: number = 0;
+    let advancePoint: number = 0;
     try {
-      const [{ point, advancePoint }, membershipStatus] = await Promise.all([
-        this.sharedService.getPointForRequest(
-          PointColumn.pendingRequests,
-          user.accountId,
-          PointColumn.advancePendingRequests,
-        ),
-        this.sharedService.getAccountMemberShipStatus(
-          user.accountId,
-        ),
-      ]);
-      // if (point <= 0) {
-      //   throw new HttpException(
-      //     'You have reached the maximum limit to view data. Please get in touch with us.',
-      //     HttpStatus.TOO_MANY_REQUESTS,
-      //   );
-      // }
-      if (point <= 0 && advancePoint !== 0 && Math.abs(point) >= (advancePoint * 0.5)) {
-        throw new HttpException(
-          'You have reached your daily limit. It will reset tomorrow.',
-          HttpStatus.TOO_MANY_REQUESTS,
-          { cause: `{"advanceToken":true,"basicToken":false}` }
-        );
-      }
-      if (query.limit && membershipLimit[membershipStatus.membership].perSearchLimit < query.limit) {
-        query.limit = membershipLimit[membershipStatus.membership].perSearchLimit;
-      }
-      if (
-        membershipLimit[membershipStatus.membership].upperLimit -
-        ((query.limit || 10) + (query.offset || 0)) <
-        0
-      ) {
-        throw new HttpException(
-          'The server couldn’t understand the request due to invalid syntax or parameters.',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      if ((membershipLimit[membershipStatus.membership].upperLimit - ((query.limit || 10) + (query.offset || 0))) < 0) {
-        throw new HttpException(
-          'The server couldn’t understand the request due to invalid syntax or parameters.',
-          HttpStatus.FORBIDDEN,
-        );
-      }
       for (const val of query.showValues.split(',')) {
         if (eventAdvanceFields[val] === 'advance') {
           advanceDataFromResponse = true;
           break;
         }
       }
+      if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
+        const tokens = await this.sharedService.getTokenDetails(user, query, !advanceDataFromResponse);
+        point = tokens.point;
+        advancePoint = tokens.advancePoint;
+        query = tokens.query;
+      }
       if (advanceDataFromResponse && advancePoint <= 0) {
         throw new HttpException(
           'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
           HttpStatus.TOO_MANY_REQUESTS,
-          { cause: `{"advanceToken":false,"basicToken":true}` }
+          { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) < (advancePoint * 0.5)}}` }
         );
       }
       const events = await this.trackerService.getTrackerEvents(
@@ -285,50 +251,9 @@ export class TrackerController {
     let flag = false;
     let advanceDataFromResponse: boolean = false;
     let totalpointsToDeduct: number = 0;
+    let point: number = 0;
+    let advancePoint: number = 0;
     try {
-
-      const [{ point, advancePoint }, membershipStatus] = await Promise.all([
-        this.sharedService.getPointForRequest(
-          PointColumn.pendingRequests,
-          user.accountId,
-          PointColumn.advancePendingRequests,
-        ),
-        this.sharedService.getAccountMemberShipStatus(
-          user.accountId,
-        ),
-      ]);
-      if (query.limit && membershipLimit[membershipStatus.membership].perSearchLimit < query.limit) {
-        query.limit = membershipLimit[membershipStatus.membership].perSearchLimit;
-      }
-      if (
-        membershipLimit[membershipStatus.membership].upperLimit -
-        ((query.limit || 10) + (query.offset || 0)) <
-        0
-      ) {
-        throw new HttpException(
-          'The server couldn’t understand the request due to invalid syntax or parameters.',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      // if (point <= 0) {
-      //   throw new HttpException(
-      //     'You have reached the maximum limit to view data. Please get in touch with us.',
-      //     HttpStatus.TOO_MANY_REQUESTS,
-      //   );
-      // }
-      if (point <= 0 && advancePoint !== 0 && Math.abs(point) >= (advancePoint * 0.5)) {
-        throw new HttpException(
-          'You have reached your daily limit. It will reset tomorrow.',
-          HttpStatus.TOO_MANY_REQUESTS,
-          { cause: `{"advanceToken":true,"basicToken":false}` }
-        );
-      }
-      if ((membershipLimit[membershipStatus.membership].upperLimit - ((query.limit || 10) + (query.offset || 0))) < 0) {
-        throw new HttpException(
-          'The server couldn’t understand the request due to invalid syntax or parameters.',
-          HttpStatus.FORBIDDEN,
-        );
-      }
       for (const val of query.showValues.split(',')) {
         if (eventAdvanceFields[val] === 'advance') {
           advanceDataFromResponse = true;
@@ -339,8 +264,15 @@ export class TrackerController {
         throw new HttpException(
           'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
           HttpStatus.TOO_MANY_REQUESTS,
-          { cause: `{"advanceToken":false,"basicToken":true}` }
+          { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) < (advancePoint * 0.5)}}` }
         );
+      }
+
+      if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
+        const tokens = await this.sharedService.getTokenDetails(user, query, !advanceDataFromResponse);
+        point = tokens.point;
+        advancePoint = tokens.advancePoint;
+        query = tokens.query;
       }
       const events = await this.trackerService.getTrackerSimilarEvents(
         user,

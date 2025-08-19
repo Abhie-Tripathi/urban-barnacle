@@ -43,41 +43,28 @@ export class EventsController {
     let flag = false;
     let advanceDataFromResponse: boolean = false;
     let totalpointsToDeduct: number = 0;
+    let point: number = 0;
+    let advancePoint: number = 0;
     try {
-      const [{ point, advancePoint }, membershipStatus] = await Promise.all([this.sharedService.getPointForRequest(
-        PointColumn.pendingRequests,
-        user.accountId,
-        PointColumn.advancePendingRequests
-      ), this.sharedService.
-        getAccountMemberShipStatus(user.accountId)]);
-      // if (point <= 0) {
-      //   throw new HttpException(
-      //     'You have reached the maximum limit to view data. Please get in touch with us.',
-      //     HttpStatus.TOO_MANY_REQUESTS,
-      //   );
-      // }
-      if (point <= 0 && advancePoint !== 0 && Math.abs(point) >= (advancePoint * 0.5)) {
+      for (const val of query.showValues.split(',')) {
+        if (eventAdvanceFields[val] === 'advance') {
+          advanceDataFromResponse = true;
+          break;
+        }
+      }
+      if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
+        const tokens = await this.sharedService.getTokenDetails(user, query, !advanceDataFromResponse);
+        point = tokens.point;
+        advancePoint = tokens.advancePoint;
+        query = tokens.query;
+      }
+      if (advanceDataFromResponse && advancePoint <= 0) {
         throw new HttpException(
-          'You have reached your daily limit. It will reset tomorrow.',
-          HttpStatus.BAD_REQUEST,
-          { cause: `{"advanceToken":true,"basicToken":false}` }
+          'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
+          HttpStatus.TOO_MANY_REQUESTS,
+          { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) < (advancePoint * 0.5)}}` }
         );
       }
-      if (query.limit && membershipLimit[membershipStatus.membership].perSearchLimit < query.limit) {
-        query.limit = membershipLimit[membershipStatus.membership].perSearchLimit;
-      }
-      if ((membershipLimit[membershipStatus.membership].upperLimit - ((query.limit || 10) + (query.offset || 0))) < 0) {
-        throw new HttpException(
-          'The server couldn’t understand the request due to invalid syntax or parameters.',
-          HttpStatus.FORBIDDEN,
-        );
-      }
-      // if ((membershipLimit[membershipStatus.membership] - ((query.limit || 10) + (query.offset || 0))) < 0) {
-      //   throw new HttpException(
-      //     'You have reached the maximum limit to view data. Please get in touch with us.',
-      //     HttpStatus.TOO_MANY_REQUESTS,
-      //   );
-      // }
       const queryDto: QueryDto = {
         ...query,
         showValues:
@@ -85,19 +72,6 @@ export class EventsController {
             ? 'suggestion'
             : query.showValues,
       };
-      for (const val of query.showValues.split(',')) {
-        if (eventAdvanceFields[val] === 'advance') {
-          advanceDataFromResponse = true;
-          break;
-        }
-      }
-      if (advanceDataFromResponse && advancePoint <= 0) {
-        throw new HttpException(
-          'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
-          HttpStatus.TOO_MANY_REQUESTS,
-          { cause: `{"advanceToken":false,"basicToken":true}` }
-        );
-      }
       const events = await this.eventsService.getAllEvents(
         queryDto,
         true,
@@ -171,32 +145,16 @@ export class EventsController {
   async getSimilarEvents(@Query() query: SimilarEventsDto, @GetUser() user: TCachedUser) {
     let flag = false;
     let advanceDataFromResponse: boolean = false;
+    let totalpointsToDeduct: number = 0;
+    let point: number = 0;
+    let advancePoint: number = 0;
     try {
-      const [{ point, advancePoint }, membershipStatus] = await Promise.all([this.sharedService.getPointForRequest(
-        PointColumn.pendingRequests,
-        user.accountId,
-        PointColumn.advancePendingRequests
-      ), this.sharedService.
-        getAccountMemberShipStatus(user.accountId)]);
-      // if (point <= 0) {
-      //   throw new HttpException(
-      //     'You have reached the maximum limit to view data. Please get in touch with us.',
-      //     HttpStatus.TOO_MANY_REQUESTS,
-      //   );
-      // }
-      if (point <= 0 && advancePoint !== 0 && Math.abs(point) >= (advancePoint * 0.5)) {
-        throw new HttpException(
-          'You have reached your daily limit. It will reset tomorrow.',
-          HttpStatus.TOO_MANY_REQUESTS,
-          { cause: `{"advanceToken":true,"basicToken":false}` }
-        );
+      if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
+        const tokens = await this.sharedService.getTokenDetails(user, query);
+        point = tokens.point;
+        advancePoint = tokens.advancePoint;
+        query = tokens.query;
       }
-      // if ((membershipLimit[membershipStatus.membership] - ((query.limit || 10) + (query.offset || 0))) < 0) {
-      //   throw new HttpException(
-      //     'You have reached the maximum limit to view data. Please get in touch with us.',
-      //     HttpStatus.TOO_MANY_REQUESTS,
-      //   );
-      // }
       const queryDto: any = {
         ...query,
         showValues: query.showValues,
@@ -211,16 +169,17 @@ export class EventsController {
         throw new HttpException(
           'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
           HttpStatus.TOO_MANY_REQUESTS,
-          { cause: `{"advanceToken":false,"basicToken":true}` }
+          { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) < (advancePoint * 0.5)}}` }
         );
       }
       const events = await this.eventsService.getSimilarEvents(queryDto);
+      totalpointsToDeduct = Array.isArray(events.events) ? events.events.length : 1;
       // console.log("aibuuuuuuuuuuuuuuuuuuusj\n", point, advancePoint);
       if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
         await this.sharedService.deductPointForRequest(
           advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
           user.accountId,
-          advanceDataFromResponse ? advancePoint - 1 : point - 1,
+          advanceDataFromResponse ? advancePoint - totalpointsToDeduct : point - totalpointsToDeduct,
           // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
           // (advanceDataFromResponse ? advancePoint - 1 : 0),
         );
@@ -235,6 +194,7 @@ export class EventsController {
         this.sharedService.creditPointForRequest(
           advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
           user.accountId,
+          totalpointsToDeduct,
           // (advanceDataFromResponse ? : null),
         );
       return {
@@ -396,48 +356,27 @@ export class EventsController {
     @GetUser() user: TCachedUser, @Query() query: QueryHttpDto) {
     let flag = false;
     let advanceDataFromResponse: boolean = false;
+    let point: number = 0;
+    let advancePoint: number = 0;
     try {
-      const [{ point, advancePoint }, membershipStatus] = await Promise.all([
-        this.sharedService.getPointForRequest(
-          PointColumn.pendingRequests,
-          user.accountId,
-          PointColumn.advancePendingRequests,
-        ),
-        this.sharedService.getAccountMemberShipStatus(
-          user.accountId,
-        ),
-      ]);
-      if (point <= 0 && advancePoint !== 0 && Math.abs(point) >= (advancePoint * 0.5)) {
-        throw new HttpException(
-          'You have reached your daily limit. It will reset tomorrow.',
-          HttpStatus.TOO_MANY_REQUESTS,
-          { cause: `{"advanceToken":true,"basicToken":false}` }
-        );
-      }
-      if (query.limit && membershipLimit[membershipStatus.membership].perSearchLimit < query.limit) {
-        query.limit = membershipLimit[membershipStatus.membership].perSearchLimit;
-      }
-      if (
-        membershipLimit[membershipStatus.membership].upperLimit -
-        ((query.limit || 10) + (query.offset || 0)) <
-        0
-      ) {
-        throw new HttpException(
-          'You have reached the maximum limit to view data. Please get in touch with us.',
-          HttpStatus.TOO_MANY_REQUESTS,
-        );
-      }
       for (const val of query.showValues.split(',')) {
         if (eventAdvanceFields[val] === 'advance') {
           advanceDataFromResponse = true;
           break;
         }
       }
+      if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
+        const tokens = await this.sharedService.getTokenDetails(user, query, !advanceDataFromResponse);
+        point = tokens.point;
+        advancePoint = tokens.advancePoint;
+        query = tokens.query;
+      }
+
       if (advanceDataFromResponse && advancePoint <= 0 && point < 0) {
         throw new HttpException(
           'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
           HttpStatus.TOO_MANY_REQUESTS,
-          { cause: `{"advanceToken":false,"basicToken":true}` }
+          { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) < (advancePoint * 0.5)}}` }
         );
       } else if (advanceDataFromResponse && advancePoint <= 0 && point > 0) {
         advanceDataFromResponse = false;
