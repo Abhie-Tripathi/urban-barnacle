@@ -765,7 +765,7 @@ export class SharedService {
       isBasic &&
       isNotUnlockRequestColumn &&
       basicPoints <= 0 && advancePoints !== 0 &&
-      Math.abs(basicPoints) > (advancePoints * 0.5)
+      Math.abs(basicPoints) >= (advancePoints * 0.5)
     ) {
       throw new HttpException(
         'You have reached your daily limit. It will reset tomorrow.',
@@ -931,7 +931,7 @@ export class SharedService {
     //     HttpStatus.TOO_MANY_REQUESTS,
     //   );
     // }
-    if (isBasic && point <= 0 && advancePoint !== 0 && Math.abs(point) > (advancePoint * 0.5)) {
+    if (isBasic && point <= 0 && advancePoint !== 0 && Math.abs(point) >= (advancePoint * 0.5)) {
       throw new HttpException(
         'You have reached your daily limit. It will reset tomorrow.',
         HttpStatus.BAD_REQUEST,
