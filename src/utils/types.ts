@@ -356,28 +356,28 @@ export const membershipMapForToken: Record<SubscriptionPlan, {
   },
   ESSENTIAL: {
     pendingCompanySearchRequests: 400,
-    pendingRequests: 400,
+    pendingRequests: 200,
     advancePendingRequests: 400,
     pendingPocUnlockRequests: 0,
     pendingProspectPocUnlockRequests: 0
   },
   SCALE: {
     pendingCompanySearchRequests: 4000,
-    pendingRequests: 400,
+    pendingRequests: 200,
     advancePendingRequests: 4000,
     pendingPocUnlockRequests: 100,
     pendingProspectPocUnlockRequests: 100
   },
   ADVANCE: {
     pendingCompanySearchRequests: 20000,
-    pendingRequests: 400,
+    pendingRequests: 200,
     advancePendingRequests: 20000,
     pendingPocUnlockRequests: 1000,
     pendingProspectPocUnlockRequests: 1000
   },
   ENTERPRISE: {
     pendingCompanySearchRequests: 100000,
-    pendingRequests: 400,
+    pendingRequests: 200,
     advancePendingRequests: 100000,
     pendingPocUnlockRequests: 1000,
     pendingProspectPocUnlockRequests: 1000

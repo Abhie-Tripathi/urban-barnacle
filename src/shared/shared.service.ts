@@ -714,13 +714,13 @@ export class SharedService {
           data: {
             ...(userData.length > 0 && userData[0].email.split('@')[1] === '10times.com' ?
               {
-                pendingRequests: 2000000,
-                advancePendingRequests: 2000000,
-                pendingCompanySearchRequests: 200000,
+                pendingRequests: 800000,
+                advancePendingRequests: 1800000,
+                pendingCompanySearchRequests: 800000,
                 pendingPocUnlockRequests: 20000,
                 pendingProspectPocUnlockRequests: 20000,
               } : {
-                pendingRequests: 400,
+                pendingRequests: 200,
               })
           }
         });
