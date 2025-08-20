@@ -947,8 +947,8 @@ export class SharedService {
         HttpStatus.FORBIDDEN,
       );
     }
-    if (query.limit && isBasic && query.limit > point) {
-      query.limit = point;
+    if (query.limit && isBasic && query.limit > Math.abs(point)) {
+      query.limit = Math.abs(point);
     } else if (query.limit && !isBasic && query.limit > advancePoint) {
       query.limit = advancePoint;
     }
