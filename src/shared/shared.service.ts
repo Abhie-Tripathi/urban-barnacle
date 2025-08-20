@@ -753,7 +753,8 @@ export class SharedService {
         `You’ve exhausted your Advanced Search tokens. You can continue with basic searches or upgrade to a higher plan.`,
         HttpStatus.TOO_MANY_REQUESTS,
         {
-          cause: (column as string) === 'pendingRequests' && (advanceColumn as string) === 'advancePendingRequests' ? `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) >= (advancePoints * 0.5)}}` :
+          cause: (column as string) === 'pendingRequests' && (advanceColumn as string) === 'advancePendingRequests' ?
+            `{"advanceToken":${advancePoints > 0},"basicToken":${(basicPoints) > 0}}` :
             `{"basicToken":${(basicPoints) > 0}}`
         }
       );
@@ -771,7 +772,7 @@ export class SharedService {
         HttpStatus.TOO_MANY_REQUESTS,
         {
           cause: (column as string) === 'pendingRequests' && (advanceColumn as string) === 'advancePendingRequests' ?
-            `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) <= (advancePoints * 0.5)}}` :
+            `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) < (advancePoints * 0.5)}}` :
             `{"basicToken":${(basicPoints) > 0}}`
         }
       );
@@ -779,7 +780,7 @@ export class SharedService {
     // Case 3: Advanced and basic search token exhausted
     if (
       isNotUnlockRequestColumn &&
-      basicPoints <= 0 &&
+      (basicPoints) <= 0 &&
       advancePoints <= 0
     ) {
       throw new HttpException(
@@ -787,7 +788,7 @@ export class SharedService {
         HttpStatus.TOO_MANY_REQUESTS,
         {
           cause: (column as string) === 'pendingRequests' && (advanceColumn as string) === 'advancePendingRequests' ?
-            `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) <= (advancePoints * 0.5)}}` :
+            `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) < (advancePoints * 0.5)}}` :
             `{"basicToken":${(basicPoints) > 0}}`
         }
       );
