@@ -151,7 +151,7 @@ export class UserService {
 
     if (remainingUnmask.length > 0) {
       await this.sharedService.deductPointForRequest(
-        query.target === 'COMPANY' || query.target === 'EVENT'
+        query.target === 'EVENT'
           ? PointColumn.pendingPocUnlockRequests
           : PointColumn.pendingProspectPocUnlockRequests,
         user.accountId,
