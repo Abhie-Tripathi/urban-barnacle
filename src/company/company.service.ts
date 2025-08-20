@@ -67,7 +67,7 @@ export class CompanyService {
     });
 
     if (savedCompaniesIds.length === 0) {
-      return { data: { totalCount: 0, savedUsers: [] } };
+      return { data: { totalCount: count.length, savedUsers: [] } };
     }
     const result: { data: { totalCount: number, companyData: any } } =
       (await this.getCompanyProspectData({ ...query, companyId: savedCompaniesIds.join(','), offset: 0 }, 'list', userData)) as any;

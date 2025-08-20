@@ -120,7 +120,7 @@ export class UserService {
     });
 
     if (savedUsersIds.length === 0) {
-      return { data: { totalCount: 0, savedUsers: [] } };
+      return { data: { totalCount: count.length, savedUsers: [] } };
     }
     const result: { data: { totalCount: number, userData: any } } =
       (await this.getUserProspectData({ ...query, userId: savedUsersIds.join(','), offset: 0 }, userData)) as any;
