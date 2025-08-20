@@ -186,7 +186,7 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
     return create;
   }
   async createMembeShip(currentSubscriptionId: string, user: any, data: MembershipDto, checkPaymentInfo: object | null = {}) {
-
+    const schemaName = process.env.NODE_ENV === 'development' ? 'temp_migration' : 'public';
     const [create] = await Promise.all([this.prisma.subscription.create({
       data: {
         accountId: user.accountId,
@@ -229,7 +229,7 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
     if (create.plan !== 'BASIC')
       await this.prisma.$executeRaw(
         Prisma.sql`
-    UPDATE "Configuration"
+    UPDATE ${Prisma.raw(`${schemaName}`)}."Configuration"
     SET config = jsonb_set(
       COALESCE(config, '{}'::jsonb),
       '{filter}',
