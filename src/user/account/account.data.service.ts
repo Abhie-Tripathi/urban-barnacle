@@ -233,10 +233,10 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
     SET config = jsonb_set(
       COALESCE(config, '{}'::jsonb),
       '{filter}',
-      JSON.stringify({})::jsonb,
+      ${JSON.stringify({})}::jsonb,
       true
     )
-    WHERE id::TEXT =  accountData.configurationId
+    WHERE id::TEXT =  ${accountData.configurationId}
   `
       );
 

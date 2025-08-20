@@ -369,9 +369,9 @@ export const membershipMapForToken: Record<SubscriptionPlan, {
     pendingProspectPocUnlockRequests: 100
   },
   ADVANCE: {
-    pendingCompanySearchRequests: 1000,
+    pendingCompanySearchRequests: 20000,
     pendingRequests: 400,
-    advancePendingRequests: 1000,
+    advancePendingRequests: 20000,
     pendingPocUnlockRequests: 1000,
     pendingProspectPocUnlockRequests: 1000
   },

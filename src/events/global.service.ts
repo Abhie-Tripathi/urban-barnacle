@@ -125,10 +125,11 @@ export async function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
           }
         }
       }
-    } else {
-      checkToPassFilter = false;
-      rootTodiscard = 'viewBound';
-    }
+    } 
+    // else {
+    //   checkToPassFilter = false;
+    //   rootTodiscard = 'viewBound';
+    // }
   }
 
   if (data?.designation && checkToPassFilter) {
@@ -139,11 +140,13 @@ export async function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
       const ids = (data.designation.enabledValue as any[]).map(d => d.id);
       checkToPassFilter = checkTheValue(main, slugs) || checkTheValue(main, ids);
       if (!checkToPassFilter) rootTodiscard = 'designations';
-    } else {
-      checkToPassFilter = false;
-      rootTodiscard = 'designations';
-    }
+    } 
+    // else {
+    //   checkToPassFilter = false;
+    //   rootTodiscard = 'designations';
+    // }
   }
+
   // Category check
   if (data?.categories && checkToPassFilter) {
     checkToPassFilter = checkAdvancedConditions(data, 'categories');
@@ -153,10 +156,11 @@ export async function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
       const ids = (data.categories.enabledValue as any[]).map(d => d.id);
       checkToPassFilter = checkTheValue(main, slugs) || checkTheValue(main, ids);
       if (!checkToPassFilter) rootTodiscard = 'categories';
-    } else {
-      checkToPassFilter = false;
-      rootTodiscard = 'categories';
     }
+    //  else {
+    //   checkToPassFilter = false;
+    //   rootTodiscard = 'categories';
+    // }
   }
   if (data?.eventRanking && checkToPassFilter) {
     checkToPassFilter = checkAdvancedConditions(data, 'eventRanking');
@@ -165,10 +169,11 @@ export async function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
       const sub = (data.eventRanking.top?.enabledValue as any[]) || [];
       checkToPassFilter = checkTheValue(main, sub);
       if (!checkToPassFilter) rootTodiscard = 'top';
-    } else {
-      checkToPassFilter = false;
-      rootTodiscard = 'top';
     }
+    //  else {
+    //   checkToPassFilter = false;
+    //   rootTodiscard = 'top';
+    // }
     if (checkToPassFilter && data.eventRanking.trustScore['isAllowed']) {
       const main_gte = String(query?.trust_score_gte ?? 0);
       const main_lte = String(query?.trust_score_lte ?? 100);
@@ -176,10 +181,11 @@ export async function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
       const sub_lte = (data.eventRanking.trustScore?.trust_score_lte);
       checkToPassFilter = sub_gte >= main_gte && sub_lte >= main_lte;
       if (!checkToPassFilter) rootTodiscard = 'trustScore';
-    } else {
-      checkToPassFilter = false;
-      rootTodiscard = 'trustScore';
     }
+    //  else {
+    //   checkToPassFilter = false;
+    //   rootTodiscard = 'trustScore';
+    // }
   }
   if (data?.analytics && checkToPassFilter) {
     checkToPassFilter = checkAdvancedConditions(data, 'analytics');
@@ -190,10 +196,11 @@ export async function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
       const sub_lte = (data.analytics.trustScore?.international_score_lte);
       checkToPassFilter = sub_gte >= main_gte && sub_lte >= main_lte;
       if (!checkToPassFilter) rootTodiscard = 'internationalScore';
-    } else {
-      checkToPassFilter = false;
-      rootTodiscard = 'internationalScore';
-    }
+    } 
+    // else {
+    //   checkToPassFilter = false;
+    //   rootTodiscard = 'internationalScore';
+    // }
     if (checkToPassFilter && data.analytics.inboundScore['isAllowed']) {
       const main_gte = String(query?.inbound_score_gte ?? 0);
       const main_lte = String(query?.inbound_score_lte ?? 100);
@@ -201,10 +208,11 @@ export async function eventSearchFilterCheck(dataFilter: any, query: QueryDto) {
       const sub_lte = (data.analytics.trustScore?.inbound_score_lte);
       checkToPassFilter = sub_gte >= main_gte && sub_lte >= main_lte;
       if (!checkToPassFilter) rootTodiscard = 'inboundScore';
-    } else {
-      checkToPassFilter = false;
-      rootTodiscard = 'inboundScore';
-    }
+    } 
+    // else {
+    //   checkToPassFilter = false;
+    //   rootTodiscard = 'inboundScore';
+    // }
   }
   // Duration checks
   if (data?.durations?.active_gte && checkToPassFilter) {
