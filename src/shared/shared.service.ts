@@ -753,7 +753,7 @@ export class SharedService {
         `You’ve exhausted your Advanced Search tokens. You can continue with basic searches or upgrade to a higher plan.`,
         HttpStatus.TOO_MANY_REQUESTS,
         {
-          cause: (column as string) === 'pendingRequests' && (column as string) === 'advancePendingRequests' ? `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) >= (advancePoints * 0.5)}}` :
+          cause: (column as string) === 'pendingRequests' && (advanceColumn as string) === 'advancePendingRequests' ? `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) >= (advancePoints * 0.5)}}` :
             `{"basicToken":${(basicPoints) > 0}}`
         }
       );
@@ -770,7 +770,7 @@ export class SharedService {
         'You have reached your daily limit. It will reset tomorrow.',
         HttpStatus.TOO_MANY_REQUESTS,
         {
-          cause: (column as string) === 'pendingRequests' && (column as string) === 'advancePendingRequests' ?
+          cause: (column as string) === 'pendingRequests' && (advanceColumn as string) === 'advancePendingRequests' ?
             `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) <= (advancePoints * 0.5)}}` :
             `{"basicToken":${(basicPoints) > 0}}`
         }
@@ -786,7 +786,7 @@ export class SharedService {
         `You’ve exhausted your search tokens. Please upgrade to a higher plan to continue.`,
         HttpStatus.TOO_MANY_REQUESTS,
         {
-          cause: (column as string) === 'pendingRequests' && (column as string) === 'advancePendingRequests' ?
+          cause: (column as string) === 'pendingRequests' && (advanceColumn as string) === 'advancePendingRequests' ?
             `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) <= (advancePoints * 0.5)}}` :
             `{"basicToken":${(basicPoints) > 0}}`
         }
