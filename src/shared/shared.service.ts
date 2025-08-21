@@ -29,13 +29,11 @@ import { ProspectSchemaDto } from './shared.dto';
 import { decrypt, encrypt, REDIS_TTL } from 'src/utils';
 import { PointColumn } from './types';
 import { microserviceEndpoints } from 'src/utils/endpoints';
-import { EventDataDto } from 'src/events/dto';
-import { transformEventData } from 'src/events/global.service';
 import {
   fetchDatafromMicroService,
-  microServiceApis,
 } from './microservice.api';
 import { RedisService } from 'src/redis/redis.service';
+import { jobCompositeSchema } from 'src/events/dto';
 
 @Injectable()
 export class SharedService {
@@ -161,7 +159,82 @@ export class SharedService {
         (designation) => designation.id,
       );
     }
+    if (params.jobComposite) {
+      const jobCompositeData = JSON.parse(params.jobComposite);
+      const jobCompositeDataObj: { designationIds: string[] | undefined, departmentIds: string[] | undefined, role: string[] | undefined } = {
+        departmentIds: jobCompositeData.conditions?.departmentIds,
+        designationIds: jobCompositeData?.designationIds,
+        role: jobCompositeData.conditions?.seniorityIds
+      };
+      const designationsIds = [...(jobCompositeDataObj.departmentIds && jobCompositeDataObj.departmentIds.length > 0
+        ? jobCompositeDataObj.departmentIds : []),
+      ...(jobCompositeDataObj.designationIds && jobCompositeDataObj.designationIds.length > 0
+        ? jobCompositeDataObj.designationIds : []),
+      ...(jobCompositeDataObj.role && jobCompositeDataObj.role.length > 0
+        ? jobCompositeDataObj.role : [])];
 
+      // console.log(jobCompositeData, jobCompositeDataObj, designationsIds);
+
+      const designations = (await this.suggestionService.getSuggestions(
+        'designations',
+        {
+          isDesignation: true,
+          isRole: true,
+          isDepartment: true,
+          limit: designationsIds.length,
+          offset: 0,
+          ids: designationsIds.join(',')
+        },
+      )) as { id: string, name: string, role: string, department: string, }[];
+      // console.log("designationsdesignationsdesignations", designations);
+
+      if (
+        designations &&
+        (designations.length === 0 ||
+          designations.length !== designationsIds.length)
+      ) {
+        throw new HttpException('Invalid designation', 400);
+      }
+
+      if (jobCompositeDataObj.departmentIds) {
+        jobCompositeDataObj.departmentIds.forEach(val => {
+          const find_response = designations.find(value => val === value['id']);
+          if (!find_response) {
+            return;
+          }
+          if (!params['departments']) {
+            params['departments'] = {};
+          }
+          params['departments'][val] = find_response['department'];
+        });
+      }
+      if (jobCompositeDataObj.designationIds) {
+        jobCompositeDataObj.designationIds.forEach(val => {
+          const find_response = designations.find(value => val === value['id']);
+          if (!find_response) {
+            return;
+          }
+          if (!params['designations']) {
+            params['designations'] = {};
+          }
+          params['designations'][val] = find_response['name'];
+        });
+        console.log("paramsparamsparams", params, designations, jobCompositeDataObj);
+
+      }
+      if (jobCompositeDataObj.role) {
+        jobCompositeDataObj.role.forEach(val => {
+          const find_response = designations.find(value => val === value['id']);
+          if (!find_response) {
+            return;
+          }
+          if (!params['seniorities']) {
+            params['seniorities'] = {};
+          }
+          params['seniorities'][val] = find_response['role'];
+        });
+      }
+    }
     const tagsSlug = params.tags as string[];
     if (tagsSlug && tagsSlug.length > 0 && validateIds) {
       const tags = (await this.suggestionService.getSuggestions('tags', {
@@ -589,6 +662,8 @@ export class SharedService {
           select: {
             plan: true,
             planEndDate: true,
+            planRenewalDate: true,
+            planStartDate: true,
           },
           orderBy: { createdAt: 'desc' }
         }
@@ -610,6 +685,8 @@ export class SharedService {
     return {
       membership: membershipMap[membership.plan],
       endDate: membership.planEndDate,
+      planRenewalDate: membership.planRenewalDate,
+      planStartDate: membership.planStartDate,
     };
   }
   async getLocationData(locationIds: string[]) {
