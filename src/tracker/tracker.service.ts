@@ -805,6 +805,7 @@ export class TrackerService {
         eventParams,
         false,
         user,
+        tracker.source?.includes('import_10t') ? true : false
       );
       return events;
     } catch (error) {
