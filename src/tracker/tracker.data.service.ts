@@ -66,7 +66,7 @@ export class TrackerDataService {
     offset: number,
   ) {
     type TrackerWithAccessDate = Tracker & { accesscreatedAt: Date };
-    const schema: string = process.env.NODE_ENV === 'development' ? 'temp_migartion' : 'public';
+    const schema: string = process.env.NODE_ENV === 'development' ? 'temp_migration' : 'public';
     const trackers: TrackerWithAccessDate[] = await this.prisma.$queryRaw`
       SELECT
         T.*,
@@ -114,7 +114,7 @@ export class TrackerDataService {
     where: Prisma.Sql[],
     groupBy: string | null = null,
   ) {
-    const schema: string = process.env.NODE_ENV === 'development' ? 'temp_migartion' : 'public';
+    const schema: string = process.env.NODE_ENV === 'development' ? 'temp_migration' : 'public';
     const trackerCount:
       | { count: number }[]
       | { count: number; type: TrackerType }[] = await this.prisma.$queryRaw`
@@ -287,7 +287,7 @@ export class TrackerDataService {
     limit: number,
     offset: number,
   ) {
-    const schema: string = process.env.NODE_ENV === 'development' ? 'temp_migartion' : 'public';
+    const schema: string = process.env.NODE_ENV === 'development' ? 'temp_migration' : 'public';
     return await Promise.all([this.prisma.$queryRaw<
       {
         sourceId: string;
