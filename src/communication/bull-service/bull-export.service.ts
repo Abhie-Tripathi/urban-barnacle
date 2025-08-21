@@ -633,7 +633,7 @@ export class ExportWorkerClass extends WorkerHost {
                         worksheet.addRow({
                             id: data.basic.id,
                             name: data.basic.name,
-                            page: 'https://10times.com/' + data.basic['10timesEventPageUrl'],
+                            page: data.basic['10timesEventPageUrl'] ? 'https://10times.com/' + data.basic['10timesEventPageUrl'] : '',
                             website: data.basic.website,
                             startDate: data.basic.startDateTime,
                             futureExpectedStartDate: data.basic.futureExpectedStartDate || '',
