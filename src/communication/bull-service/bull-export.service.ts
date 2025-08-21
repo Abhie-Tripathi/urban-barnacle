@@ -536,6 +536,7 @@ export class ExportWorkerClass extends WorkerHost {
             // const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: '', limit: 0, offset: 0, type: type as keyof typeof EventTabs });
             let linesWrittern: number = 0;
             let attactmentFlag = false;
+            const myMap = new Map<string, number>();
             while (offset < totalCount) {
                 console.log(`Processing ${offset} to ${offset + limit} records`);
                 const showValues = 'basic,advance,insights,audience';
@@ -629,42 +630,46 @@ export class ExportWorkerClass extends WorkerHost {
                         online: 'Online',
                         hybrid: "Hybrid"
                     }
-                    worksheet.addRow({
-                        id: data.basic.id,
-                        name: data.basic.name,
-                        page: 'https://10times.com/' + data.basic['10timesEventPageUrl'],
-                        website: data.basic.website,
-                        startDate: data.basic.startDateTime,
-                        futureExpectedStartDate: data.basic.futureExpectedStartDate || '',
-                        futureExpectedEndDate: data.basic.futureExpectedEndDate || '',
-                        endDate: data.basic.endDateTime,
-                        frequency: data.advance?.frequency || '',
-                        editions: data?.advance?.editions || '',
-                        format: eventFormat[(data.basic.format as string)],
-                        series: (data?.advance?.isSeries ? `TRUE` : 'FALSE') + '',
-                        eventType: eventTYpes,
-                        categories: data.basic.categories?.map((item) => item.name).join(','),
-                        keywords: data.basic.tags?.map((item) => item.name.trim()).join(','),
-                        organizer: data.basic.organizer?.name || '',
-                        rating: data.basic.rating || "",
-                        rank: data.insights?.rankings?.rank || '',
-                        trust: data.insights?.trustScore + '',
-                        growth: data.insights?.yoyGrowth || '',
-                        repeat: data.insights?.reputationChangePercentage || '',
-                        impactScore: data.insights?.scores?.impactScore || '',
-                        internationalScore: data.insights?.scores?.internationalScore || '',
-                        inboundScore: data.insights?.scores?.inboundScore || '',
-                        audienceZone: data.audience?.audienceZone || '',
-                        size: data.insights?.estimatedAttendance || '',
-                        exhibitor: data.insights?.estimatedExhibitors || '',
-                        international: data['internationalScore'] || '',
-                        entryType: data.basic.entryType,
-                        matched: matched,
-                        ...locationPayload,
-                        matchScore: matchScore,
-                    });
-                    attactmentFlag = true;
-                    linesWrittern++;
+                    if (!myMap.has(data.basic.id)) {
+
+                        worksheet.addRow({
+                            id: data.basic.id,
+                            name: data.basic.name,
+                            page: 'https://10times.com/' + data.basic['10timesEventPageUrl'],
+                            website: data.basic.website,
+                            startDate: data.basic.startDateTime,
+                            futureExpectedStartDate: data.basic.futureExpectedStartDate || '',
+                            futureExpectedEndDate: data.basic.futureExpectedEndDate || '',
+                            endDate: data.basic.endDateTime,
+                            frequency: data.advance?.frequency || '',
+                            editions: data?.advance?.editions || '',
+                            format: eventFormat[(data.basic.format as string)],
+                            series: (data?.advance?.isSeries ? `TRUE` : 'FALSE') + '',
+                            eventType: eventTYpes,
+                            categories: data.basic.categories?.map((item) => item.name).join(','),
+                            keywords: data.basic.tags?.map((item) => item.name.trim()).join(','),
+                            organizer: data.basic.organizer?.name || '',
+                            rating: data.basic.rating || "",
+                            rank: data.insights?.rankings?.rank || '',
+                            trust: data.insights?.trustScore + '',
+                            growth: data.insights?.yoyGrowth || '',
+                            repeat: data.insights?.reputationChangePercentage || '',
+                            impactScore: data.insights?.scores?.impactScore || '',
+                            internationalScore: data.insights?.scores?.internationalScore || '',
+                            inboundScore: data.insights?.scores?.inboundScore || '',
+                            audienceZone: data.audience?.audienceZone || '',
+                            size: data.insights?.estimatedAttendance || '',
+                            exhibitor: data.insights?.estimatedExhibitors || '',
+                            international: data['internationalScore'] || '',
+                            entryType: data.basic.entryType,
+                            matched: matched,
+                            ...locationPayload,
+                            matchScore: matchScore,
+                        });
+                        attactmentFlag = true;
+                        linesWrittern++;
+                        myMap.set(data.basic.id, 1)
+                    }
                 }
 
                 offset += limit;
