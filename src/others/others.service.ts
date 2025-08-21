@@ -118,7 +118,7 @@ export class OthersService {
         const dataOfAccessArray = await this.accessDataService.getAccess({ limit: 1, offset: 0, sourceEntity: 'TRACKER', accessTypes: ['SUPER_ADMIN'] });
         const dataOfAccess = dataOfAccessArray[0];
         // console.log(dataOfAccess);
-        const dataOfAccessExistArray = await this.accessDataService.getAccess({ limit: 1, offset: 0, sourceEntity: 'TRACKER', accessTypes: ['ADMIN'], accessReceiverId: userData.id });
+        const dataOfAccessExistArray = await this.accessDataService.getAccess({ limit: 1, offset: 0, sourceEntity: 'TRACKER', sourceEntityId: body.trackerId, accessTypes: ['ADMIN'], accessReceiverId: userData.id });
         if (dataOfAccessExistArray.length > 0) {
             throw new HttpException(
                 'access is already provided.',
