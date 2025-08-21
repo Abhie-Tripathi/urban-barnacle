@@ -573,9 +573,7 @@ export class ExportWorkerClass extends WorkerHost {
 
                 // console.log(response);
                 const events = response?.events || [];
-                totalCount = Math.min
-                    (membershipLimit[jobData.plan].upperLimit,
-                        flagforCount ? (response?.count || 0) : 0);
+                totalCount = membershipLimit[jobData.plan].upperLimit;
                 creditAmountIfFalied = totalCount;
                 if (events.length === 0 || linesWrittern === totalCount) break;
                 let trackerEventsIntelScore: object[] = [];
