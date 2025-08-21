@@ -86,10 +86,10 @@ export class TrackerDataService {
           'imageUrl', U2."imageUrl"
         ) as "modifiedByUser"
       FROM
-        ${Prisma.sql`${schema}.`}"Tracker" T
-        JOIN  ${Prisma.sql`${schema}.`}"User" U ON T."createdBy" = U.ID
-        LEFT JOIN  ${Prisma.sql`${schema}.`}"User" U2 ON T."lastModifiedBy" = U2.ID
-        JOIN  ${Prisma.sql`${schema}.`}"Access" A ON T.ID = A."sourceEntityId"::UUID
+        ${Prisma.raw(`${schema}.`)}"Tracker" T
+        JOIN  ${Prisma.raw(`${schema}.`)}"User" U ON T."createdBy" = U.ID
+        LEFT JOIN  ${Prisma.raw(`${schema}.`)}"User" U2 ON T."lastModifiedBy" = U2.ID
+        JOIN  ${Prisma.raw(`${schema}.`)}"Access" A ON T.ID = A."sourceEntityId"::UUID
         AND A."sourceEntity" = 'TRACKER'
         AND A."accessReceiverId" = ${Prisma.sql`${user.id}::UUID`}
         AND A."accountId" = ${Prisma.sql`${user.accountId}::UUID`}
@@ -114,15 +114,15 @@ export class TrackerDataService {
     where: Prisma.Sql[],
     groupBy: string | null = null,
   ) {
-     const schema: string = process.env.NODE_ENV === 'development' ? 'temp_migartion' : 'public';
+    const schema: string = process.env.NODE_ENV === 'development' ? 'temp_migartion' : 'public';
     const trackerCount:
       | { count: number }[]
       | { count: number; type: TrackerType }[] = await this.prisma.$queryRaw`
       SELECT
         count(*) ${groupBy ? Prisma.sql`, "type"` : Prisma.sql``}
       FROM
-         ${Prisma.sql`${schema}.`}"Tracker" T
-        INNER JOIN  ${Prisma.sql`${schema}.`}"Access" A ON T.ID = A."sourceEntityId"::UUID
+         ${Prisma.raw(`${schema}.`)}"Tracker" T
+        INNER JOIN  ${Prisma.raw(`${schema}.`)}"Access" A ON T.ID = A."sourceEntityId"::UUID
         AND A."sourceEntity" = 'TRACKER'
         AND A."accessReceiverId" = ${Prisma.sql`${user.id}::UUID`}
         AND A."accountId" = ${Prisma.sql`${user.accountId}::UUID`}
@@ -287,7 +287,7 @@ export class TrackerDataService {
     limit: number,
     offset: number,
   ) {
-     const schema: string = process.env.NODE_ENV === 'development' ? 'temp_migartion' : 'public';
+    const schema: string = process.env.NODE_ENV === 'development' ? 'temp_migartion' : 'public';
     return await Promise.all([this.prisma.$queryRaw<
       {
         sourceId: string;
