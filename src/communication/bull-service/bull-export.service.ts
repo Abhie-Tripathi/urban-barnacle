@@ -668,7 +668,7 @@ export class ExportWorkerClass extends WorkerHost {
                 }
 
                 offset += limit;
-                                // break;
+                // break;
             }
 
             await workbook.xlsx.writeFile(excelFilePath);
@@ -702,8 +702,8 @@ export class ExportWorkerClass extends WorkerHost {
                 },
             });
             const fileData = fs.readFileSync(excelFilePath);
-            const base64File = attactmentFlag ? fileData.toString('base64') : '';
-            const attachment = attactmentFlag ?
+            const base64File = linesWrittern > 0 ? fileData.toString('base64') : '';
+            const attachment = linesWrittern > 0 ?
                 {
                     content: base64File,
                     filename: fileName,
@@ -711,7 +711,7 @@ export class ExportWorkerClass extends WorkerHost {
                     disposition: 'attachment',
                 } : {};
             return {
-                attachment: attactmentFlag ? attachment : {},
+                attachment: linesWrittern > 0 ? attachment : {},
                 status: "done",
                 fileSizeInKB,
                 fileSizeInMB,
