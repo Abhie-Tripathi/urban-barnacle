@@ -767,7 +767,7 @@ export class SharedService {
       isNotUnlockRequestColumn &&
       basicPoints <= 0 && advancePoints !== 0 &&
       (Math.abs(basicPoints) >= (advancePoints * 0.5)
-        || Math.abs(basicPoints) >= 50)
+        || Math.abs(basicPoints) >= 0)
     ) {
       throw new HttpException(
         'You have reached your daily limit. It will reset tomorrow.',
@@ -775,7 +775,7 @@ export class SharedService {
         {
           cause: (column as string) === 'pendingRequests' && (advanceColumn as string) === 'advancePendingRequests' ?
             `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) <= (advancePoints * 0.5)
-            && Math.abs(basicPoints) < 50}}` :
+            && Math.abs(basicPoints) < 0}}` :
             `{"basicToken":${(basicPoints) > 0}}`
         }
       );
@@ -792,7 +792,7 @@ export class SharedService {
         {
           cause: (column as string) === 'pendingRequests' && (advanceColumn as string) === 'advancePendingRequests' ?
             `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) <= (advancePoints * 0.5)
-            && Math.abs(basicPoints) < 50}}` :
+            && Math.abs(basicPoints) < 0}}` :
             `{"basicToken":${(basicPoints) > 0}}`
         }
       );
@@ -937,11 +937,11 @@ export class SharedService {
     //     HttpStatus.TOO_MANY_REQUESTS,
     //   );
     // }
-    if (isBasic && point <= 0 && advancePoint !== 0 && (Math.abs(point) >= (advancePoint * 0.5) || Math.abs(point) >= 50)) {
+    if (isBasic && point <= 0 && advancePoint !== 0 && (Math.abs(point) >= (advancePoint * 0.5) || Math.abs(point) >= 0)) {
       throw new HttpException(
         'You have reached your daily limit. It will reset tomorrow.',
         HttpStatus.BAD_REQUEST,
-        { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${(Math.abs(point) <= (advancePoint * 0.5) && Math.abs(point) < 50)}}` }
+        { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${(Math.abs(point) <= (advancePoint * 0.5) && Math.abs(point) < 0)}}` }
       );
     }
     if (query.limit && membershipLimit[membershipStatus.membership].perSearchLimit < query.limit) {
