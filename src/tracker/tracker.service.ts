@@ -666,6 +666,7 @@ export class TrackerService {
     trackerId: string,
     params: GetTrackerEventsDto,
     showValues: string,
+    isExport: boolean | undefined = undefined
   ) {
     try {
       const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
@@ -756,6 +757,7 @@ export class TrackerService {
         ...convertedParams,
         trackerId: trackerId,
         showValues: showValues,
+        isExport
       } as QueryDto;
       if (searchByEntity) {
         eventParams['searchByEntity'] = searchByEntity;

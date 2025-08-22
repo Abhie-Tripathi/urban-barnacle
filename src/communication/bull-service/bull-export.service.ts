@@ -40,7 +40,7 @@ export class ExportWorkerClass extends WorkerHost {
 
         @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
         private configService: ConfigService,
-        private readonly trackerService: TrackerService
+        private trackerService: TrackerService
     ) {
         super();
         console.log(JSON.stringify(jobRef));
@@ -558,9 +558,10 @@ export class ExportWorkerClass extends WorkerHost {
                             'maturity',
                             'frequency',
                             'alerts',
-                        ] as unknown as Show[],
-                        showValues
-                    }, showValues) as {
+                        ] as unknown as Show[]
+                    },
+                    showValues,
+                    true) as {
                         count?: number;
                         events: {
                             basic: Record<string, any>;
