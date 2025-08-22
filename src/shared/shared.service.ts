@@ -930,7 +930,7 @@ export class SharedService {
       user.accountId,
       PointColumn.advancePendingRequests, isBasic
     ), this.getAccountMemberShipStatus(user.accountId)]);
-    console.log({ point, advancePoint, query, membershipStatus, isBasic });
+    // console.log({ point, advancePoint, query, membershipStatus, isBasic });
     // if (point <= 0) {
     //   throw new HttpException(
     //     'You have reached the maximum limit to view data. Please get in touch with us.',
