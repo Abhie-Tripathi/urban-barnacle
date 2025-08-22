@@ -3,6 +3,7 @@ import { OthersDataService } from './others.data.service';
 import { ContactUsDto, DemoContactDto, PresetDto, TrackerShareAccessDto } from './dto';
 import { UserDataService } from 'src/user/user.data.service';
 import { AccessDataService } from 'src/access/access.data.service';
+import { blackListDomain } from 'src/utils/types';
 
 @Injectable()
 export class OthersService {
@@ -112,6 +113,13 @@ export class OthersService {
         return await this.othersDataService.sendDemoContactEmail(source, data, sourceId);
     }
     async createTrackerAccess(body: TrackerShareAccessDto) {
+        const domain: string = body.accessReceiverEmail.split('@')[1];
+        if (domain && blackListDomain.includes(domain)) {
+            throw new HttpException(
+                'Can not invite user to this account',
+                HttpStatus.BAD_REQUEST,
+            );
+        }
         const userdataArray = await this.userDataService.getUsers({ email: [body.accessReceiverEmail], limit: 1, offset: 0 });
         // console.log(userdataArray);
         const userData = userdataArray[0]
