@@ -2,7 +2,7 @@
 
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { JobSource, SubscriptionPlan } from '@prisma/client';
+import { JobSource, Prisma, SubscriptionPlan } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { FeatureCollection } from 'geojson';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -18,8 +18,11 @@ import { TagResponseDto } from 'src/suggestion/dto/tags.dto';
 import { SuggestionService } from 'src/suggestion/suggestion.service';
 import { UserResponseSchema } from 'src/user/me/dto';
 import {
+  advanceFilterBlockObject,
   CachedUserSchema,
   defaultEventTypes,
+  membershipLimit,
+  membershipMap,
   SelectedUserDetails,
   TCachedUser,
 } from 'src/utils/types';
@@ -34,6 +37,7 @@ import {
 } from './microservice.api';
 import { RedisService } from 'src/redis/redis.service';
 import { jobCompositeSchema } from 'src/events/dto';
+import { IntentDataService } from 'src/intent/intent.data.service';
 
 @Injectable()
 export class SharedService {
@@ -42,6 +46,7 @@ export class SharedService {
     private readonly suggestionService: SuggestionService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly redisService: RedisService,
+    private readonly intentDataService: IntentDataService,
   ) { }
 
   async signToken(user: SelectedUserDetails, token: string) {
@@ -453,9 +458,9 @@ export class SharedService {
     return Number(totalArea.toFixed(2));
   }
   async getProspectEventAndMap(id: string, query: any) {
-    if (query.limit > 20) {
-      query.limit = 20;
-    }
+    // if (query.limit > 20) {
+    //   query.limit = 20;
+    // }
     const { type, ...rest } = query;
     id = decrypt(id).replace(
       process.env.TEN_TIMES_ID_ENCRYPT_KEY as string,
@@ -513,7 +518,7 @@ export class SharedService {
     viewAs: string,
     viewBy: string,
   ) {
-    query.limit = Math.min(query.limit, 10);
+    // query.limit = Math.min(query.limit, 10);
     const callMicroService = async (queryParam: any) => {
       const response = await fetchDatafromMicroService(
         viewBy === 'company'
@@ -526,7 +531,7 @@ export class SharedService {
         queryParam,
       );
       const responseData = response;
-      console.log(responseData);
+      // console.log(responseData);
       if (viewAs === 'detail') {
         return responseData?.data?.id
           ? {
@@ -596,21 +601,27 @@ export class SharedService {
   async getPointForRequest(
     column: PointColumn,
     accountId: string,
+    advanceColumn: PointColumn,
+    isBasic: boolean = true
   ) {
-    const pointsData = await this.prisma.account.findFirst({
+    const [pointsData, userData] = await Promise.all([this.prisma.account.findFirst({
       where: { id: accountId },
       select: {
         currentSubscriptionId: true,
+        configurationId: true,
         subscription: {
           where: {
             deleted: false
           },
-          select: { [column]: true, id: true }
-        }
+          select: { plan: true, purchaseValue: true, id: true, updatedAt: true, [advanceColumn]: true, [column]: true, deleted: true, }
+        },
       },
-    });
-
-    console.log({ pointsData, membership12: pointsData?.subscription });
+    }), this.prisma.user.findMany({
+      where: {
+        primaryAccountId: accountId
+      }, take: 1
+    })]);
+    // console.log({ pointsData, membership12: pointsData?.subscription });
     if (
       !pointsData?.subscription ||
       pointsData.subscription[0][column] === null ||
@@ -621,32 +632,191 @@ export class SharedService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+    let basicPoints: number = pointsData.subscription[0][column];
+    let advancePoints: number = pointsData.subscription[0][advanceColumn];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // set time to 00:00:00
 
-    return { point: pointsData.subscription[0][column], subscriptionId: pointsData.currentSubscriptionId };
+    const updatedAt = new Date(pointsData.subscription[0]['updatedAt']);
+    updatedAt.setHours(0, 0, 0, 0); // strip time part
+    if (('BASIC' !== pointsData.subscription[0]['plan'] && today > updatedAt) || (userData[0].email.split('@')[1] === '10times.com' && (basicPoints <= 0 || advancePoints <= 0))) {
+      // const countOfSubscription = await this.prisma.subscription.count({
+      //   where: {
+      //     accountId: accountId
+      //   }
+      // });
+      // const createdAt = new Date();
+      // const fourteenDaysAgo = new Date(today);
+      const createdDate = new Date(pointsData.subscription[0]['updatedAt']);
+      createdDate.setHours(0, 0, 0, 0);
+
+      const todayDate = new Date(today);
+      todayDate.setHours(0, 0, 0, 0);
+
+      const fourteenDaysAgo = new Date(todayDate);
+      fourteenDaysAgo.setDate(todayDate.getDate() - 14);
+      fourteenDaysAgo.setDate(today.getDate() - 14);
+      if (pointsData.subscription[0]['purchaseValue'] === 0 && createdDate < fourteenDaysAgo && 'ESSENTIAL' === pointsData.subscription[0]['plan']) {
+        const schemaName = process.env.NODE_ENV === 'development' ? 'temp_migration' : 'public';
+        const [newSubscription] = await Promise.all([this.prisma.subscription.create({
+          data: {
+            plan: 'BASIC',
+            pendingCompanySearchRequests: 0,
+            pendingPocUnlockRequests: 0,
+            advancePendingRequests: 0,
+            pendingProspectPocUnlockRequests: 0,
+            pendingRequests: 0,
+            planEndDate: new Date(),
+            accountId: accountId
+          },
+          select: {
+            id: true
+          }
+        }),
+        this.prisma.subscription.update({
+          where: {
+            id: pointsData.currentSubscriptionId
+          }, data: {
+            deleted: true
+          }
+        })
+          ,
+        await this.prisma.$executeRaw(
+          Prisma.sql`
+              UPDATE ${Prisma.raw(`${schemaName}`)}."Configuration"
+              SET config = jsonb_set(
+                COALESCE(config, '{}'::jsonb),
+                '{filter}',
+                ${JSON.stringify(advanceFilterBlockObject)}::jsonb,
+                true
+              )
+              WHERE id::TEXT = ${pointsData.configurationId}
+            `
+        )]);
+        await this.prisma.account.update({
+          where: {
+            id: accountId
+          },
+          data: {
+            currentSubscriptionId: newSubscription.id
+          }
+        })
+        throw new HttpException(
+          'Your trial period has ended. Please upgrade your plan to continue using Search features.',
+          HttpStatus.FORBIDDEN,
+        );
+
+      } else {
+        const dailyCreaditForBasic = await this.prisma.subscription.update({
+          where: {
+            id: pointsData.currentSubscriptionId
+          },
+          data: {
+            ...(userData.length > 0 && userData[0].email.split('@')[1] === '10times.com' ?
+              {
+                pendingRequests: 800000,
+                advancePendingRequests: 1800000,
+                pendingCompanySearchRequests: 800000,
+                pendingPocUnlockRequests: 20000,
+                pendingProspectPocUnlockRequests: 20000,
+              } : {
+                pendingRequests: 200,
+              })
+          }
+        });
+        basicPoints = dailyCreaditForBasic[column];
+        advancePoints = dailyCreaditForBasic.advancePendingRequests;
+      }
+    }
+    if (pointsData.subscription[0]['plan'] === 'BASIC') {
+      throw new HttpException(
+        'Your trial period has ended. Please upgrade your plan to continue.',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    const isNotUnlockRequestColumn =
+      column !== PointColumn.pendingPocUnlockRequests &&
+      column !== PointColumn.pendingProspectPocUnlockRequests;
+
+    const isBasicPlan = pointsData.subscription[0]['plan'] === 'BASIC';
+
+
+    // Case 1: Advanced search token exhausted
+    if (
+      column === PointColumn.advancePendingRequests &&
+      isNotUnlockRequestColumn &&
+      !isBasicPlan &&
+      Math.abs(basicPoints) > 0 &&
+      advancePoints <= 0
+    ) {
+      throw new HttpException(
+        `You’ve exhausted your Advanced Search tokens. You can continue with basic searches or upgrade to a higher plan.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+        {
+          cause: (column as string) === 'pendingRequests' && (advanceColumn as string) === 'advancePendingRequests' ?
+            `{"advanceToken":${advancePoints > 0},"basicToken":${(basicPoints) > 0}}` :
+            `{"basicToken":${(basicPoints) > 0}}`
+        }
+      );
+    }
+
+    // Case 2: Daily limit reached
+    if (
+      isBasic &&
+      isNotUnlockRequestColumn &&
+      basicPoints <= 0 && advancePoints !== 0 &&
+      Math.abs(basicPoints) >= (advancePoints * 0.5)
+    ) {
+      throw new HttpException(
+        'You have reached your daily limit. It will reset tomorrow.',
+        HttpStatus.TOO_MANY_REQUESTS,
+        {
+          cause: (column as string) === 'pendingRequests' && (advanceColumn as string) === 'advancePendingRequests' ?
+            `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) < (advancePoints * 0.5)}}` :
+            `{"basicToken":${(basicPoints) > 0}}`
+        }
+      );
+    }
+    // Case 3: Advanced and basic search token exhausted
+    if (
+      isNotUnlockRequestColumn &&
+      (basicPoints) <= 0 &&
+      advancePoints <= 0
+    ) {
+      throw new HttpException(
+        `You’ve exhausted your search tokens. Please upgrade to a higher plan to continue.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+        {
+          cause: (column as string) === 'pendingRequests' && (advanceColumn as string) === 'advancePendingRequests' ?
+            `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) < (advancePoints * 0.5)}}` :
+            `{"basicToken":${(basicPoints) > 0}}`
+        }
+      );
+    }
+    return { point: basicPoints, subscriptionId: pointsData.currentSubscriptionId, advancePoint: advancePoints };
   }
   async deductPointForRequest(
     column: PointColumn,
     accountId: string,
-    remainingPoints: number,
-  ) {
-    const { point, subscriptionId } = await this.getPointForRequest(column, accountId);
-    if (point <= 0) {
-      throw new HttpException(
-        `You have reached the maximum limit to view data. Please get in touch with us.`,
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
-    }
+    remainingPoints: number,) {
+    const { point, subscriptionId } = await this.getPointForRequest(column, accountId, PointColumn.advancePendingRequests);
+    // if (point <= 0) {
+    //   throw new HttpException(
+    //     `You have reached the maximum limit to view data. Please get in touch with us.`,
+    //     HttpStatus.TOO_MANY_REQUESTS,
+    //   );
+    // }
     await this.prisma.subscription.update({
       where: { id: subscriptionId },
       data: { [column]: remainingPoints },
     });
     return { data: { message: 'points updated' } };
   }
-  async creditPointForRequest(column: PointColumn, accountId: string) {
-    const { point, subscriptionId } = await this.getPointForRequest(column, accountId);
+  async creditPointForRequest(column: PointColumn, accountId: string, creditAmmount: number = 1) {
+    const { point, advancePoint, subscriptionId } = await this.getPointForRequest(column, accountId, PointColumn.advancePendingRequests);
     await this.prisma.subscription.update({
       where: { id: subscriptionId },
-      data: { [column]: point + 1 },
+      data: { [column]: point + creditAmmount, },
     });
     return { data: { message: 'points updated' } };
   }
@@ -657,13 +827,15 @@ export class SharedService {
         currentSubscriptionId: true,
         subscription: {
           where: {
-            deleted: false
+            deleted: false,
+            accountId: accountId
           },
           select: {
             plan: true,
             planEndDate: true,
             planRenewalDate: true,
             planStartDate: true,
+            purchaseValue: true
           },
           orderBy: { createdAt: 'desc' }
         }
@@ -675,18 +847,13 @@ export class SharedService {
     if (!membership) {
       throw new HttpException('membership not found', HttpStatus.NOT_FOUND);
     }
-    const membershipMap: Record<SubscriptionPlan, number> = {
-      BASIC: 0,
-      ESSENTIAL: 10,
-      SCALE: 20,
-      ADVANCE: 30,
-      ENTERPRISE: 40,
-    };
+
     return {
       membership: membershipMap[membership.plan],
       endDate: membership.planEndDate,
       planRenewalDate: membership.planRenewalDate,
       planStartDate: membership.planStartDate,
+      isTrial: membership.purchaseValue === 0 && membership.plan === 'ESSENTIAL',
     };
   }
   async getLocationData(locationIds: string[]) {
@@ -698,6 +865,101 @@ export class SharedService {
       } as LocationDto,
     )) as LocationResponseDto;
     return locations;
+  }
+  async getGroupedEventInterests(
+    user: TCachedUser,
+    eventIds: string[],
+    trackerId: string | undefined = undefined,
+  ) {
+    const userBookmarks =
+      await this.intentDataService.getAllEventInterestsByUser(
+        user,
+        eventIds,
+        trackerId,
+        ['BOOKMARK'],
+      );
+    const interests = await this.intentDataService.getAllEventInterestsByUser(
+      user,
+      eventIds,
+      undefined,
+      undefined,
+      ['BOOKMARK'],
+    );
+    const userEventInterests = {};
+
+    interests.forEach((interest) => {
+      userEventInterests[interest.eventId] =
+        userEventInterests[interest.eventId] || {};
+      userEventInterests[interest.eventId][interest.interest.toLowerCase()] = {
+        interestId: interest.id,
+      };
+    });
+
+    userBookmarks.forEach((bookmark) => {
+      userEventInterests[bookmark.eventId] =
+        userEventInterests[bookmark.eventId] || {};
+      userEventInterests[bookmark.eventId]['bookmark'] = {
+        interestId: bookmark.id,
+      };
+    });
+
+    // const groupedInterests = interests.reduce((acc, interest) => {
+    //   acc[interest.eventId] = acc[interest.eventId] || {};
+    //   acc[interest.eventId][interest.interest.toLowerCase()] = {
+    //     interestId: interest.id,
+    //   };
+    //   return acc;
+    // }, {});
+    // const groupedBookmarks = userBookmarks.reduce((acc, bookmark) => {
+    //   acc[bookmark.eventId] = acc[bookmark.eventId] || {};
+    //   acc[bookmark.eventId]['bookmark'] = {
+    //     interestId: bookmark.id,
+    //   };
+    //   return acc;
+    // }, {});
+    return userEventInterests;
+  }
+  async getTokenDetails(user: TCachedUser, query: any, isBasic: boolean = true) {
+    const [{ point, advancePoint }, membershipStatus] = await Promise.all([this.getPointForRequest(
+      PointColumn.pendingRequests,
+      user.accountId,
+      PointColumn.advancePendingRequests, isBasic
+    ), this.getAccountMemberShipStatus(user.accountId)]);
+    // if (point <= 0) {
+    //   throw new HttpException(
+    //     'You have reached the maximum limit to view data. Please get in touch with us.',
+    //     HttpStatus.TOO_MANY_REQUESTS,
+    //   );
+    // }
+    if (isBasic && point <= 0 && advancePoint !== 0 && Math.abs(point) >= (advancePoint * 0.5)) {
+      throw new HttpException(
+        'You have reached your daily limit. It will reset tomorrow.',
+        HttpStatus.BAD_REQUEST,
+        { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) < (advancePoint * 0.5)}}` }
+      );
+    }
+    if (query.limit && membershipLimit[membershipStatus.membership].perSearchLimit < query.limit) {
+      query.limit = membershipLimit[membershipStatus.membership].perSearchLimit;
+    }
+    if ((membershipLimit[membershipStatus.membership].upperLimit - ((query.limit || 10) + (query.offset || 0))) < 0) {
+      throw new HttpException(
+        'The server couldn’t understand the request due to invalid syntax or parameters.',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    if (query.limit && isBasic && query.limit > Math.abs(point)) {
+      query.limit = Math.abs(point);
+    } else if (query.limit && !isBasic && query.limit > advancePoint) {
+      query.limit = advancePoint;
+    }
+
+    // if ((membershipLimit[membershipStatus.membership] - ((query.limit || 10) + (query.offset || 0))) < 0) {
+    //   throw new HttpException(
+    //     'You have reached the maximum limit to view data. Please get in touch with us.',
+    //     HttpStatus.TOO_MANY_REQUESTS,
+    //   );
+    // }
+    return { point, advancePoint, query: { ...query } };
   }
 }
 

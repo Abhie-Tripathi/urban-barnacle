@@ -141,6 +141,8 @@ const trackerExportInputSchema = z.object({
   exportIdUnattended: z.string().optional(),
   type: z.enum(['all', 'past', 'active', 'new', 'business', 'social', 'unattended']),
   source: z.literal('TRACKER').default('TRACKER'),
+  plan: z.number(),
+  totalTokenNeededForExport: z.number().optional(),
 });
 
 export class trackerExportDto extends createZodDto(trackerExportInputSchema) { }

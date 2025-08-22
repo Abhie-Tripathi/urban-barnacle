@@ -33,7 +33,7 @@ export const InterestConfigurationSchema = z.array(
 
 export class InterestConfigurationDto extends createZodDto(
   InterestConfigurationSchema,
-) {}
+) { }
 
 export const OutreachConfigurationSchema = z.array(
   z.object({
@@ -44,14 +44,14 @@ export const OutreachConfigurationSchema = z.array(
 
 export class OutreachConfigurationDto extends createZodDto(
   OutreachConfigurationSchema,
-) {}
+) { }
 
 // const FilterConfigurationSchema = z.record(z.string(), filterValueSchema);
 const FilterConfigurationSchema = z.record(z.string(), z.any());
 
 export class FilterConfigurationDto extends createZodDto(
   FilterConfigurationSchema,
-) {}
+) { }
 export const membershipSchema = z
   .strictObject({
     token: z.string(),
@@ -131,7 +131,7 @@ export const AccountConfigSchema = z.strictObject({
   filter: FilterConfigurationSchema,
 });
 
-export class AccountConfigDto extends createZodDto(AccountConfigSchema) {}
+export class AccountConfigDto extends createZodDto(AccountConfigSchema) { }
 
 export const InterestDefaultConfigurations: Record<
   string,
@@ -203,5 +203,5 @@ export const accountConfig: AccountConfigDto = {
       status: 'REJECTED',
     },
   ],
-  filter: {},
+  filter: {}
 };
