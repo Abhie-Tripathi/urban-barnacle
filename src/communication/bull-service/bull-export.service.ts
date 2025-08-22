@@ -468,7 +468,7 @@ export class ExportWorkerClass extends WorkerHost {
         try {
             const dir = './public/export';
             fileName = fileName.replace(/\.csv$/, '.xlsx').replaceAll(' ', '-').replace(")", `)(${(new Date()).toISOString()})`).replace(")", `)${Math.random()}`).toLowerCase();
-            const excelFilePath = `${dir}/${fileName.replace(/\.csv$/, '.xlsx').replaceAll(' ', '-')}`;
+            const excelFilePath = `${dir}/${fileName.replace(/\.csv$/, '.xlsx').replaceAll(' ', '-').replaceAll('www.', '').replaceAll('https://', '').replaceAll('http://', '')}`;
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet('Events');
             const mediaHost: string = process.env.MEDIA_STORAGE_DOMAIN || '';
@@ -542,7 +542,8 @@ export class ExportWorkerClass extends WorkerHost {
                 const showValues = 'basic,advance,insights,audience';
                 const response = await this.trackerService.getTrackerEvents(jobData['userData'], jobData['trackerId'],
                     {
-                        limit, offset, view: View.tracker, ...(process.env.BACKEND === 'gtm' ? { trackerEventStatus: type as keyof typeof TrackerEventStatus } : { eventTypeGroup: type })
+                        limit, offset, view: View.tracker, ...(process.env.BACKEND === 'gtm' ?
+                            { trackerEventStatus: type as keyof typeof TrackerEventStatus } : { eventTypeGroup: type })
                         , sortBy: ['-score', 'title'], show: [
                             'branded',
                             'series',
@@ -558,7 +559,8 @@ export class ExportWorkerClass extends WorkerHost {
                             'maturity',
                             'frequency',
                             'alerts',
-                        ] as unknown as Show[]
+                        ] as unknown as Show[],
+                        showValues
                     },
                     showValues,
                     true) as {
