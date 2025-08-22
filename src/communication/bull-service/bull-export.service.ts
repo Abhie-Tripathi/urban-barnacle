@@ -597,7 +597,8 @@ export class ExportWorkerClass extends WorkerHost {
                                 'maturity',
                                 'frequency',
                                 'alerts',
-                            ] as unknown as Show[]
+                            ] as unknown as Show[],
+                            showValues
                         }, showValues) as {
                             count?: number;
                             events: {
@@ -674,7 +675,7 @@ export class ExportWorkerClass extends WorkerHost {
                             name: data.basic.name,
                             page: data.basic['10timesEventPageUrl'] ? 'https://10times.com/' + data.basic['10timesEventPageUrl'] : '',
                             website: data.basic.website,
-                        status: data.basic.status || '',
+                            status: data.basic.status || '',
                             startDate: data.basic.startDateTime,
                             futureExpectedStartDate: data.basic.futureExpectedStartDate || '',
                             futureExpectedEndDate: data.basic.futureExpectedEndDate || '',

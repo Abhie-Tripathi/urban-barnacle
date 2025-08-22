@@ -2665,7 +2665,7 @@ export class TrackerService {
         for (const val of trackerTypeGTM) {
           const key = trackerEventTypeMappingObj[val];
           const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
-          if (countOfTracker[val] && countOfTracker[val] <= 0) {
+          if (!isNaN(Number(countOfTracker[val])) && countOfTracker[val] <= 0) {
             continue;
           }
           totalTokenNeededForExport += Math.min
@@ -2683,7 +2683,7 @@ export class TrackerService {
         for (const val of trackerTypeGTM) {
           const key = trackerEventTypeMappingObj[val];
           const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
-          if (countOfTracker[val] && countOfTracker[val] <= 0) {
+          if ((!isNaN(Number(countOfTracker[val]))) && countOfTracker[val] <= 0) {
             continue;
           }
           const result = await this.trackerDataService.createExport(
@@ -2701,7 +2701,7 @@ export class TrackerService {
         for (const val of trackerTypeGEO) {
           const key = trackerEventTypeMappingObj[val];
           const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
-          if (countOfTracker[val] && countOfTracker[val]['total'] <= 0) {
+          if ((!isNaN(Number(countOfTracker[val]))) && countOfTracker[val]['total'] <= 0) {
             continue;
           }
           totalTokenNeededForExport += Math.min
@@ -2717,7 +2717,7 @@ export class TrackerService {
         for (const val of trackerTypeGEO) {
           const key = trackerEventTypeMappingObj[val];
           const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
-          if (countOfTracker[val] && countOfTracker[val]['total'] <= 0) {
+          if (!isNaN(Number(countOfTracker[val])) && countOfTracker[val]['total'] <= 0) {
             continue;
           }
           const result = await this.trackerDataService.createExport(
