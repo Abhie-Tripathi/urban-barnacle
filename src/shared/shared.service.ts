@@ -38,6 +38,7 @@ import {
 import { RedisService } from 'src/redis/redis.service';
 import { jobCompositeSchema } from 'src/events/dto';
 import { IntentDataService } from 'src/intent/intent.data.service';
+import { log } from 'console';
 
 @Injectable()
 export class SharedService {
@@ -765,14 +766,16 @@ export class SharedService {
       isBasic &&
       isNotUnlockRequestColumn &&
       basicPoints <= 0 && advancePoints !== 0 &&
-      Math.abs(basicPoints) >= (advancePoints * 0.5)
+      (Math.abs(basicPoints) >= (advancePoints * 0.5)
+        || Math.abs(basicPoints) >= 50)
     ) {
       throw new HttpException(
         'You have reached your daily limit. It will reset tomorrow.',
         HttpStatus.TOO_MANY_REQUESTS,
         {
           cause: (column as string) === 'pendingRequests' && (advanceColumn as string) === 'advancePendingRequests' ?
-            `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) < (advancePoints * 0.5)}}` :
+            `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) <= (advancePoints * 0.5)
+            && Math.abs(basicPoints) < 50}}` :
             `{"basicToken":${(basicPoints) > 0}}`
         }
       );
@@ -788,11 +791,13 @@ export class SharedService {
         HttpStatus.TOO_MANY_REQUESTS,
         {
           cause: (column as string) === 'pendingRequests' && (advanceColumn as string) === 'advancePendingRequests' ?
-            `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) < (advancePoints * 0.5)}}` :
+            `{"advanceToken":${advancePoints > 0},"basicToken":${Math.abs(basicPoints) <= (advancePoints * 0.5)
+            && Math.abs(basicPoints) < 50}}` :
             `{"basicToken":${(basicPoints) > 0}}`
         }
       );
     }
+
     return { point: basicPoints, subscriptionId: pointsData.currentSubscriptionId, advancePoint: advancePoints };
   }
   async deductPointForRequest(
@@ -925,17 +930,18 @@ export class SharedService {
       user.accountId,
       PointColumn.advancePendingRequests, isBasic
     ), this.getAccountMemberShipStatus(user.accountId)]);
+    console.log({ point, advancePoint, query, membershipStatus, isBasic });
     // if (point <= 0) {
     //   throw new HttpException(
     //     'You have reached the maximum limit to view data. Please get in touch with us.',
     //     HttpStatus.TOO_MANY_REQUESTS,
     //   );
     // }
-    if (isBasic && point <= 0 && advancePoint !== 0 && Math.abs(point) >= (advancePoint * 0.5)) {
+    if (isBasic && point <= 0 && advancePoint !== 0 && (Math.abs(point) >= (advancePoint * 0.5) || Math.abs(point) >= 50)) {
       throw new HttpException(
         'You have reached your daily limit. It will reset tomorrow.',
         HttpStatus.BAD_REQUEST,
-        { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) < (advancePoint * 0.5)}}` }
+        { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${(Math.abs(point) <= (advancePoint * 0.5) && Math.abs(point) < 50)}}` }
       );
     }
     if (query.limit && membershipLimit[membershipStatus.membership].perSearchLimit < query.limit) {
