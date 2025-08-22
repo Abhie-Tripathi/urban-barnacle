@@ -242,8 +242,12 @@ export class ExportWorkerClass extends WorkerHost {
                 // console.log({ bulkUpdateExport });
                 await Promise.all(
                     bulkUpdateExport.map(({ id, status, fileUrl, outputResponse, attachment, fileSize }) => {
+                        if (!id) return;
                         if (Object.keys(attachment).length > 0)
                             attachments.push(attachment);
+                        if (outputResponse && outputResponse['attachment']) {
+                            outputResponse['attachment'] = null;
+                        }
                         return this.prisma.export.update({
                             where: { id },
                             data: { status, fileSize, fileUrl, outputData: outputResponse },
@@ -381,8 +385,12 @@ export class ExportWorkerClass extends WorkerHost {
                 }
                 await Promise.all(
                     bulkUpdateExport.map(({ id, status, fileUrl, outputResponse, attachment, fileSize }) => {
+                        if (!id) return;
                         if (Object.keys(attachment).length > 0)
                             attachments.push(attachment);
+                        if (outputResponse && outputResponse['attachment']) {
+                            outputResponse['attachment'] = null;
+                        }
                         return this.prisma.export.update({
                             where: { id },
                             data: { status, fileUrl, fileSize, outputData: outputResponse },
@@ -765,27 +773,29 @@ export class ExportWorkerClass extends WorkerHost {
             console.error(error);
             console.log(error);
             console.log(JSON.stringify(error));
-            const accountInfo = await this.prisma.account.findMany({
-                where: {
-                    id: jobData.userData.accountId
-                }
-            })
-            try {
-                await this.prisma.subscription.update({
+            if (email.split('@')[1] !== '10times.com') {
+                const accountInfo = await this.prisma.account.findMany({
                     where: {
-                        id: accountInfo[0].currentSubscriptionId
-                    },
-                    data: {
-                        advancePendingRequests: creditAmountIfFalied * 10,
+                        id: jobData.userData.accountId
                     }
-                });
-            } catch (error) {
-                console.log('failed to credit the point for exports');
+                })
+                try {
+                    await this.prisma.subscription.update({
+                        where: {
+                            id: accountInfo[0].currentSubscriptionId
+                        },
+                        data: {
+                            advancePendingRequests: creditAmountIfFalied * 10,
+                        }
+                    });
+                } catch (error) {
+                    console.log('failed to credit the point for exports');
+                }
             }
-
             return {
                 status: "error",
-                ...error
+                ...error,
+                attachment: {}
             }
         }
     }
