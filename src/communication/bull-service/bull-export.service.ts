@@ -29,7 +29,8 @@ interface JobDataForExport {
     exportIdUnattended?: string,
     type: 'all' | 'past' | 'active' | 'new' | 'business' | 'social' | 'unattended',
     source: 'TRACKER',
-    plan: number
+    plan: number,
+    totalTokenNeededForExport: number,
 }
 @Processor(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`, { concurrency: 5 })
 export class ExportWorkerClass extends WorkerHost {
@@ -576,7 +577,7 @@ export class ExportWorkerClass extends WorkerHost {
 
                 // console.log(response);
                 const events = response?.events || [];
-                totalCount = membershipLimit[jobData.plan].upperLimit;
+                totalCount = email.split('@')[1] === '10times.com' ? (response.count || 0) : jobData.totalTokenNeededForExport;
                 creditAmountIfFalied = totalCount;
                 if (events.length === 0 || linesWrittern === totalCount) break;
                 let trackerEventsIntelScore: object[] = [];

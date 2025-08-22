@@ -2639,7 +2639,7 @@ export class TrackerService {
       exportIdSocial: 'TRACKER_SOCIAL_EVENT',
       exportIdUnattended: 'TRACKER_UNATTENDED_EVENT',
     };
-    let totalTokenNeededForExport: number = Math.min(membershipLimit[membershipStatus.membership].upperLimit, body.type !== 'all' ? (
+    let totalTokenNeededForExport: number = Math.min(Math.min(membershipLimit[membershipStatus.membership].upperLimit, advanceToken), body.type !== 'all' ? (
       process.env.BACKEND === 'gtm'
         ? countOfTracker[body.type]
         : countOfTracker[body.type]['total']
@@ -2669,7 +2669,7 @@ export class TrackerService {
             continue;
           }
           totalTokenNeededForExport += Math.min
-            (membershipLimit[membershipStatus.membership].upperLimit,
+            (Math.min(membershipLimit[membershipStatus.membership].upperLimit, advanceToken),
               countOfTracker[val]);
         }
         if (totalTokenNeededForExport > advanceToken && !is10TimesUser) {
@@ -2696,6 +2696,7 @@ export class TrackerService {
           );
           payload[key] = result.id;
         }
+        payload.totalTokenNeededForExport = totalTokenNeededForExport;
       } else {
         for (const val of trackerTypeGEO) {
           const key = trackerEventTypeMappingObj[val];
@@ -2704,7 +2705,7 @@ export class TrackerService {
             continue;
           }
           totalTokenNeededForExport += Math.min
-            (membershipLimit[membershipStatus.membership].upperLimit,
+            (Math.min(membershipLimit[membershipStatus.membership].upperLimit, advanceToken),
               countOfTracker[val]['total']);
         }
         if (totalTokenNeededForExport > advanceToken && !is10TimesUser) {
@@ -2731,6 +2732,7 @@ export class TrackerService {
           exportInitiationCount++;
         }
       }
+      payload.totalTokenNeededForExport = totalTokenNeededForExport;
     } else {
       if (
         (process.env.BACKEND === 'gtm' &&
@@ -2765,6 +2767,7 @@ export class TrackerService {
           user,
         )
       ).id;
+      payload.totalTokenNeededForExport = totalTokenNeededForExport;
     }
     console.log(advanceToken, is10TimesUser, totalTokenNeededForExport, advanceToken - (is10TimesUser ? 0 : totalTokenNeededForExport));
 
