@@ -152,74 +152,74 @@ export class GlobalResponseInterceptor implements NestInterceptor {
               },
             });
         } else {
-          const queryValues = structuredClone({ ...request.query }) as Record<string, any>;
-          // console.log(queryValues);
-          const baseUrl = (request.url as string).split('?')[0].toLowerCase();
-          const isOthers = baseUrl.includes('others');
-          const isPublic = baseUrl.includes('public');
-          const isMembership = baseUrl.includes(`/me/account/${process.env.STRIPE_PASS_TOKEN}/membership`);
+          // const queryValues = structuredClone({ ...request.query }) as Record<string, any>;
+          // // console.log(queryValues);
+          // const baseUrl = (request.url as string).split('?')[0].toLowerCase();
+          // const isOthers = baseUrl.includes('others');
+          // const isPublic = baseUrl.includes('public');
+          // const isMembership = baseUrl.includes(`/me/account/${process.env.STRIPE_PASS_TOKEN}/membership`);
 
-          function findCountValue(data: any): number | undefined {
-            if (typeof data !== 'object' || data === null) {
-              return undefined;
-            }
-            data = data['data'] ? data['data'] : data
-            // 1. Direct "count" key check
-            if (Object.prototype.hasOwnProperty.call(data, 'count')) {
-              return data.count;
-            }
+          // function findCountValue(data: any): number | undefined {
+          //   if (typeof data !== 'object' || data === null) {
+          //     return undefined;
+          //   }
+          //   data = data['data'] ? data['data'] : data
+          //   // 1. Direct "count" key check
+          //   if (Object.prototype.hasOwnProperty.call(data, 'count')) {
+          //     return data.count;
+          //   }
 
-            // 2. Check keys containing "count"
-            for (const key of Object.keys(data)) {
-              if (key.toLowerCase().includes('count')) {
-                return data[key];
-              }
-            }
+          //   // 2. Check keys containing "count"
+          //   for (const key of Object.keys(data)) {
+          //     if (key.toLowerCase().includes('count')) {
+          //       return data[key];
+          //     }
+          //   }
 
-            return undefined;
-          }
+          //   return undefined;
+          // }
 
-          const countInResponse = findCountValue({ ...data });
-          // console.log('countInResponse:', countInResponse);
+          // const countInResponse = findCountValue({ ...data });
+          // // console.log('countInResponse:', countInResponse);
 
-          let flagHasNext = false;
-          let flagHasPrevious = false;
-          let flagCreateTheEncryption = true;
+          // let flagHasNext = false;
+          // let flagHasPrevious = false;
+          // let flagCreateTheEncryption = true;
 
-          const offsetNum = Number(queryValues.offset ?? 0);
-          const limitNum = Number(queryValues.limit ?? 10);
-          let encryptedQuery: Record<string, string> = {};
+          // const offsetNum = Number(queryValues.offset ?? 0);
+          // const limitNum = Number(queryValues.limit ?? 10);
+          // let encryptedQuery: Record<string, string> = {};
 
-          if (Object.keys(queryValues).length > 0 && countInResponse && countInResponse > 0 && !isOthers && !isPublic && !isMembership) {
-            // Decide if we have previous/next
-            // console.log(offsetNum + limitNum, 'dfksmdfp');
+          // if (Object.keys(queryValues).length > 0 && countInResponse && countInResponse > 0 && !isOthers && !isPublic && !isMembership) {
+          //   // Decide if we have previous/next
+          //   // console.log(offsetNum + limitNum, 'dfksmdfp');
 
-            if ((offsetNum + limitNum) < countInResponse) {
-              flagHasPrevious = offsetNum > 0;
-              flagHasNext = true;
-              // console.log(flagHasPrevious,
-              // flagHasNext)
-            } else if ((offsetNum + limitNum) >= countInResponse) {
-              flagHasPrevious = offsetNum > 0;
-            } else {
-              flagCreateTheEncryption = false;
-            }
-            const now = Date.now();
-            const twentyFourHoursLater = now + (24 * 60 * 60 * 1000);
-            if (flagCreateTheEncryption && flagHasPrevious) {
-              const prevQuery = { ...queryValues, offset: String(Math.max(0, offsetNum - limitNum)), limit: String(limitNum) };
-              encryptedQuery['previous'] = encrypt(JSON.stringify(prevQuery) + `<#>${user.id}@${twentyFourHoursLater}@${process.env.BACKEND || ''}`);
-            }
+          //   if ((offsetNum + limitNum) < countInResponse) {
+          //     flagHasPrevious = offsetNum > 0;
+          //     flagHasNext = true;
+          //     // console.log(flagHasPrevious,
+          //     // flagHasNext)
+          //   } else if ((offsetNum + limitNum) >= countInResponse) {
+          //     flagHasPrevious = offsetNum > 0;
+          //   } else {
+          //     flagCreateTheEncryption = false;
+          //   }
+          //   const now = Date.now();
+          //   const twentyFourHoursLater = now + (24 * 60 * 60 * 1000);
+          //   if (flagCreateTheEncryption && flagHasPrevious) {
+          //     const prevQuery = { ...queryValues, offset: String(Math.max(0, offsetNum - limitNum)), limit: String(limitNum) };
+          //     encryptedQuery['previous'] = encrypt(JSON.stringify(prevQuery) + `<#>${user.id}@${twentyFourHoursLater}@${process.env.BACKEND || ''}`);
+          //   }
 
-            // Create "next" link
-            if (flagCreateTheEncryption && flagHasNext) {
-              const nextQuery = { ...queryValues, offset: String(offsetNum + limitNum), limit: String(limitNum) };
-              encryptedQuery['next'] = encrypt(JSON.stringify(nextQuery) + `<#>${user.id}@${twentyFourHoursLater}@${process.env.BACKEND || ''}`);
-            }
-          }
+          //   // Create "next" link
+          //   if (flagCreateTheEncryption && flagHasNext) {
+          //     const nextQuery = { ...queryValues, offset: String(offsetNum + limitNum), limit: String(limitNum) };
+          //     encryptedQuery['next'] = encrypt(JSON.stringify(nextQuery) + `<#>${user.id}@${twentyFourHoursLater}@${process.env.BACKEND || ''}`);
+          //   }
+          // }
 
-          request.query = { encryptedQuery: '' }
-          response.status(HttpStatus.OK).send({ ...data, ...(Object.keys(encryptedQuery).length > 0 ? { query: encryptedQuery } : {}) });
+          // request.query = { encryptedQuery: '' }
+          response.status(HttpStatus.OK).send({ ...data, }); ///...(Object.keys(encryptedQuery).length > 0 ? { query: encryptedQuery } : {}) });
         }
       }),
     );
