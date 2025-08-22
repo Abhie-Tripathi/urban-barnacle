@@ -85,7 +85,7 @@ export class AccountService {
     const [savedEvents, count] = await Promise.all([
       this.intentDataService.getUserEventInterest({
         interest: ['BOOKMARK'],
-        sourceModule: { in: ['TRACKER'] },
+        sourceModule: { in: ['TRACKER', 'RESEARCH'] },
         // interestedUserId: user.id,
         accountId: user.accountId,
         limit: query.limit,
@@ -93,7 +93,7 @@ export class AccountService {
       }),
       this.intentDataService.getUserEventInterestCountForBookmark({
         interest: ['BOOKMARK'],
-        sourceModule: { in: ['TRACKER'] },
+        sourceModule: { in: ['TRACKER', 'RESEARCH'] },
         // interestedUserId: user.id,
         accountId: user.accountId,
         limit: query.limit,

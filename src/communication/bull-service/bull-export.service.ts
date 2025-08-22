@@ -12,7 +12,7 @@ import * as ExcelJS from 'exceljs';
 import { TrackerService } from 'src/tracker/tracker.service';
 import { Show, View } from 'src/events/dto';
 import { EventTabs } from 'src/tracker/dto';
-import { TCachedUser } from 'src/utils/types';
+import { membershipLimit, TCachedUser } from 'src/utils/types';
 import { TrackerEventStatus } from 'src/utils';
 
 interface JobDataForExport {
@@ -28,9 +28,11 @@ interface JobDataForExport {
     exportIdSocial?: string,
     exportIdUnattended?: string,
     type: 'all' | 'past' | 'active' | 'new' | 'business' | 'social' | 'unattended',
-    source: 'TRACKER'
+    source: 'TRACKER',
+    plan: number,
+    totalTokenNeededForExport: number,
 }
-@Processor(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`)
+@Processor(`{${(process.env.BACKEND || 'gtm') + (process.env.TEMP_REDIS_KEY || '')}exportProcessor}`, { concurrency: 5 })
 export class ExportWorkerClass extends WorkerHost {
     constructor(
         private email: EmailService,
@@ -424,7 +426,7 @@ export class ExportWorkerClass extends WorkerHost {
                     emailSenderAddress,
                     'Export Event Data Request Failed',
                     exportFailMail,
-                    attachments.filter(val => val),
+                    // attachments.filter(val => val),
                 );
                 let status = 'COMPLETED' as JobStatus;
                 if (error) {
@@ -463,12 +465,13 @@ export class ExportWorkerClass extends WorkerHost {
             return { done: false };
         }
     }
-    async createTraclerExportForEventData(jobData: any, fileName: string, email: string,
-        type: string, userId: string, sourceId: string, sourceModule: AttachmentSourceModule) {
+    async createTraclerExportForEventData(jobData: JobDataForExport, fileName: string, email: string, type: string, userId: string,
+        sourceId: string, sourceModule: AttachmentSourceModule) {
+        let creditAmountIfFalied: number = 0;
         try {
             const dir = './public/export';
             fileName = fileName.replace(/\.csv$/, '.xlsx').replaceAll(' ', '-').replace(")", `)(${(new Date()).toISOString()})`).replace(")", `)${Math.random()}`).toLowerCase();
-            const excelFilePath = `${dir}/${fileName.replace(/\.csv$/, '.xlsx').replaceAll(' ', '-')}`;
+            const excelFilePath = `${dir}/${fileName.replace(/\.csv$/, '.xlsx').replaceAll(' ', '-').replaceAll('www.', '').replaceAll('https://', '').replaceAll('http://', '')}`;
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet('Events');
             const mediaHost: string = process.env.MEDIA_STORAGE_DOMAIN || '';
@@ -528,7 +531,7 @@ export class ExportWorkerClass extends WorkerHost {
             } else if (limitedAccessUsers.includes(email)) {
                 totalCount = 1000;
             } else {
-                totalCount = 0;
+                totalCount = 10;
             }
             // console.log({ totalCount }, {
             //     fullAccessUsers,
@@ -537,6 +540,7 @@ export class ExportWorkerClass extends WorkerHost {
             // const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: '', limit: 0, offset: 0, type: type as keyof typeof EventTabs });
             let linesWrittern: number = 0;
             let attactmentFlag = false;
+            const myMap = new Map<string, number>();
             while (offset < totalCount) {
                 console.log(`Processing ${offset} to ${offset + limit} records`);
                 const showValues = 'basic,advance,insights,audience';
@@ -561,7 +565,8 @@ export class ExportWorkerClass extends WorkerHost {
                             'maturity',
                             'frequency',
                             'alerts',
-                        ] as unknown as Show[]
+                        ] as unknown as Show[],
+                        showValues
                     },
                     showValues,
                     true) as {
@@ -606,7 +611,8 @@ export class ExportWorkerClass extends WorkerHost {
 
                 // console.log(response);
                 const events = response?.events || [];
-                totalCount = flagforCount ? (response?.count || 0) : totalCount;
+                totalCount = email.split('@')[1] === '10times.com' ? (response.count || 0) : jobData.totalTokenNeededForExport;
+                creditAmountIfFalied = totalCount;
                 if (events.length === 0 || linesWrittern === totalCount) break;
                 let trackerEventsIntelScore: object[] = [];
                 if (process.env.BACKEND === 'gtm' && jobData['searchByEntity'] !== 'event') {
@@ -661,46 +667,51 @@ export class ExportWorkerClass extends WorkerHost {
                         online: 'Online',
                         hybrid: "Hybrid"
                     }
-                    worksheet.addRow({
-                        id: data.basic.id,
-                        name: data.basic.name,
-                        page: 'https://10times.com/' + data.basic['10timesEventPageUrl'],
-                        website: data.basic.website,
+                    if (!myMap.has(data.basic.id)) {
+
+                        worksheet.addRow({
+                            id: data.basic.id,
+                            name: data.basic.name,
+                            page: data.basic['10timesEventPageUrl'] ? 'https://10times.com/' + data.basic['10timesEventPageUrl'] : '',
+                            website: data.basic.website,
                         status: data.basic.status || '',
-                        startDate: data.basic.startDateTime,
-                        futureExpectedStartDate: data.basic.futureExpectedStartDate || '',
-                        futureExpectedEndDate: data.basic.futureExpectedEndDate || '',
-                        endDate: data.basic.endDateTime,
-                        frequency: data.advance?.frequency || '',
-                        editions: data?.advance?.editions || '',
-                        format: eventFormat[(data.basic.format as string)],
-                        series: (data?.advance?.isSeries ? `TRUE` : 'FALSE') + '',
-                        eventType: eventTYpes,
-                        categories: data.basic.categories?.map((item) => item.name).join(','),
-                        keywords: data.basic.tags?.map((item) => item.name.trim()).join(','),
-                        organizer: data.basic.organizer?.name || '',
-                        rating: data.basic.rating || "",
-                        rank: data.insights?.rankings?.rank || '',
-                        trust: data.insights?.trustScore + '',
-                        growth: data.insights?.yoyGrowth || '',
-                        repeat: data.insights?.reputationChangePercentage || '',
-                        impactScore: data.insights?.scores?.impactScore || '',
-                        internationalScore: data.insights?.scores?.internationalScore || '',
-                        inboundScore: data.insights?.scores?.inboundScore || '',
-                        audienceZone: data.audience?.audienceZone || '',
-                        size: data.insights?.estimatedAttendance || '',
-                        exhibitor: data.insights?.estimatedExhibitors || '',
-                        international: data['internationalScore'] || '',
-                        entryType: data.basic.entryType,
-                        matched: matched,
-                        ...locationPayload,
-                        matchScore: matchScore,
-                    });
-                    attactmentFlag = true;
-                    linesWrittern++;
+                            startDate: data.basic.startDateTime,
+                            futureExpectedStartDate: data.basic.futureExpectedStartDate || '',
+                            futureExpectedEndDate: data.basic.futureExpectedEndDate || '',
+                            endDate: data.basic.endDateTime,
+                            frequency: data.advance?.frequency || '',
+                            editions: data?.advance?.editions || '',
+                            format: eventFormat[(data.basic.format as string)],
+                            series: (data?.advance?.isSeries ? `TRUE` : 'FALSE') + '',
+                            eventType: eventTYpes,
+                            categories: data.basic.categories?.map((item) => item.name).join(','),
+                            keywords: data.basic.tags?.map((item) => item.name.trim()).join(','),
+                            organizer: data.basic.organizer?.name || '',
+                            rating: data.basic.rating || "",
+                            rank: data.insights?.rankings?.rank || '',
+                            trust: data.insights?.trustScore + '',
+                            growth: data.insights?.yoyGrowth || '',
+                            repeat: data.insights?.reputationChangePercentage || '',
+                            impactScore: data.insights?.scores?.impactScore || '',
+                            internationalScore: data.insights?.scores?.internationalScore || '',
+                            inboundScore: data.insights?.scores?.inboundScore || '',
+                            audienceZone: data.audience?.audienceZone || '',
+                            size: data.insights?.estimatedAttendance || '',
+                            exhibitor: data.insights?.estimatedExhibitors || '',
+                            international: data['internationalScore'] || '',
+                            entryType: data.basic.entryType,
+                            matched: matched,
+                            ...locationPayload,
+                            matchScore: matchScore,
+                        });
+                        attactmentFlag = true;
+                        linesWrittern++;
+                        myMap.set(data.basic.id, 1)
+                    }
                 }
 
                 offset += limit;
+                // break;
             }
 
             await workbook.xlsx.writeFile(excelFilePath);
@@ -734,16 +745,16 @@ export class ExportWorkerClass extends WorkerHost {
                 },
             });
             const fileData = fs.readFileSync(excelFilePath);
-            const base64File = attactmentFlag ? fileData.toString('base64') : '';
-            const attachment =
-            {
-                content: base64File,
-                filename: fileName,
-                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                disposition: 'attachment',
-            };
+            const base64File = linesWrittern > 0 ? fileData.toString('base64') : '';
+            const attachment = linesWrittern > 0 ?
+                {
+                    content: base64File,
+                    filename: fileName,
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    disposition: 'attachment',
+                } : {};
             return {
-                attachment: attactmentFlag ? attachment : {},
+                attachment: linesWrittern > 0 ? attachment : {},
                 status: "done",
                 fileSizeInKB,
                 fileSizeInMB,
@@ -753,7 +764,23 @@ export class ExportWorkerClass extends WorkerHost {
             console.error(error);
             console.log(error);
             console.log(JSON.stringify(error));
-
+            const accountInfo = await this.prisma.account.findMany({
+                where: {
+                    id: jobData.userData.accountId
+                }
+            })
+            try {
+                await this.prisma.subscription.update({
+                    where: {
+                        id: accountInfo[0].currentSubscriptionId
+                    },
+                    data: {
+                        advancePendingRequests: creditAmountIfFalied * 10,
+                    }
+                });
+            } catch (error) {
+                console.log('failed to credit the point for exports');
+            }
 
             return {
                 status: "error",

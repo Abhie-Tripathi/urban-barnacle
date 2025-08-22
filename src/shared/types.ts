@@ -181,5 +181,6 @@ export enum PointColumn {
   pendingRequests = "pendingRequests",
   pendingPocUnlockRequests = "pendingPocUnlockRequests",
   pendingCompanySearchRequests = "pendingCompanySearchRequests",
-  pendingProspectPocUnlockRequests = "pendingProspectPocUnlockRequests"
+  pendingProspectPocUnlockRequests = "pendingProspectPocUnlockRequests",
+  advancePendingRequests = 'advancePendingRequests',
 }
