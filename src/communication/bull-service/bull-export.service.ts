@@ -510,8 +510,6 @@ export class ExportWorkerClass extends WorkerHost {
                 { header: 'Global Rank', key: 'rank', width: 15 },
                 { header: 'Rating', key: 'rating', width: 20 },
                 { header: 'Impact Score', key: 'impactScore', width: 20 },
-                { header: 'International Score', key: 'internationalScore', width: 20 },
-                { header: 'Inbound Score', key: 'inboundScore', width: 20 },
                 { header: 'Audience Zone', key: 'audienceZone', width: 30 },
                 { header: 'Trust Score', key: 'trust', width: 20 },
                 { header: 'Interests Growth (%)', key: 'growth', width: 20 },
@@ -524,6 +522,10 @@ export class ExportWorkerClass extends WorkerHost {
                 columns.push(...[
                     { header: 'Matched', key: 'matched', width: 30 },
                     { header: 'Relevance Score', key: 'matchScore', width: 20 },])
+            }
+            if (process.env.BACKEND === 'geo') {
+                columns.push(...[{ header: 'International Score', key: 'internationalScore', width: 20 },
+                { header: 'Inbound Score', key: 'inboundScore', width: 20 },])
             }
             worksheet.columns = columns;
             let offset = 0;
