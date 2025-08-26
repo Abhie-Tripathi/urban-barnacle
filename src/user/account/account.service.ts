@@ -114,11 +114,22 @@ export class AccountService {
       view: View.tracker,
     } as QueryDto;
     const events = await this.eventService.getAllEvents(eventParams, false);
-    console.log({ sadasdas111events: events });
+    const userInterests = await this.eventService.getGroupedEventInterests(user, savedEventsIds);
+    const eventsFiltered = savedEventsIds.map(id =>
+      events.events.find(event => event.basic['id'] === id)
+    ).filter(event => event).map(event => {
+      return {
+        ...event, interests:
+          Object.keys(userInterests).length > 0
+            ? userInterests[event?.basic?.id]
+            : undefined,
+      }
+    });
+    // console.log({ sadasdas111events: events });
     if (events.events.length === 0) {
       return [];
     }
-    return { ...events, count: count.length };
+    return { events: eventsFiltered, count: count.length };
   }
   async getEventFromProductDb(
     user: TCachedUser,
