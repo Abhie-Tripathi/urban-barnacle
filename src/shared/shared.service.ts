@@ -805,12 +805,12 @@ export class SharedService {
     accountId: string,
     remainingPoints: number,) {
     const { point, subscriptionId } = await this.getPointForRequest(column, accountId, PointColumn.advancePendingRequests);
-    // if (point <= 0) {
-    //   throw new HttpException(
-    //     `You have reached the maximum limit to view data. Please get in touch with us.`,
-    //     HttpStatus.TOO_MANY_REQUESTS,
-    //   );
-    // }
+    if (point <= 0) {
+      throw new HttpException(
+        `You have reached the maximum limit to view data. Please get in touch with us.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
     await this.prisma.subscription.update({
       where: { id: subscriptionId },
       data: { [column]: remainingPoints },
