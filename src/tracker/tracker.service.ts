@@ -762,12 +762,15 @@ export class TrackerService {
       if (searchByEntity) {
         eventParams['searchByEntity'] = searchByEntity;
       }
+      let isAdvanceFilterUsed: boolean = false;
+      const tokens = await this.sharedService.getTokenDetails(user, eventParams, false);
+      isAdvanceFilterUsed = tokens.isAdvanceFilterUsed;
       const events = await this.eventService.getAllEvents(
         eventParams,
         false,
         user,
       );
-      return events;
+      return { events, isAdvanceFilterUsed };
     } catch (error) {
       if (
         error instanceof HttpException &&
@@ -1541,18 +1544,6 @@ export class TrackerService {
         'USER',
       ]);
       console.log(tracker);
-      const filterShowValues = (tracker.filterValues as any)['showValues'] ? (tracker.filterValues as any)['showValues'].split(',') : [];
-
-      if (Array.isArray(filterShowValues) && filterShowValues.length > 1) {
-        const isSubset = showValues.split(',').every(val => filterShowValues.includes(val));
-
-        if (!isSubset) {
-          throw new HttpException(
-            'Invalid showValues',
-            HttpStatus.BAD_REQUEST,
-          );
-        }
-      }
       const newParams = getNonEmptyParams(params);
       const convertedParams = await this.sharedService.convertSlugParamsToIds(
         newParams,
@@ -1601,6 +1592,9 @@ export class TrackerService {
         trackerId: trackerId,
         showValues: showValues,
       };
+      let isAdvanceFilterUsed: boolean = false;
+      const tokens = await this.sharedService.getTokenDetails(user, eventParams, false);
+      isAdvanceFilterUsed = tokens.isAdvanceFilterUsed;
       const [dataFromDB, countFromDB] =
         await this.trackerDataService.getSimilarTrackerEvent(
           trackerId,
@@ -1638,7 +1632,7 @@ export class TrackerService {
 
         // console.dir(events, { depth: null });
         if (params.view === View.calendar || params.view === View.map) {
-          return events;
+          return { events, isAdvanceFilterUsed };
         }
         let dataForResponse: object[] = [];
         dataFromDB.map((val) => {
@@ -1650,7 +1644,7 @@ export class TrackerService {
         dataForResponse = dataForResponse.filter((val) => val);
         // console.log(events);
 
-        return { events: dataForResponse, count: events['count'] || 0 };
+        return { events: dataForResponse, count: events['count'] || 0, isAdvanceFilterUsed };
       } else {
         await this.trackerDataService.bulkDeleteToSimilarTrackerEvent(
           tracker.id,
@@ -1668,7 +1662,7 @@ export class TrackerService {
         eventParams['searchByEntity'] = searchByEntity;
       }
       const events = await this.eventService.getSimilarEvents(eventParams);
-      return events;
+      return { events, isAdvanceFilterUsed };
     } catch (error) {
       if (
         error instanceof HttpException &&

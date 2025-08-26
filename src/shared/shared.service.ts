@@ -925,6 +925,19 @@ export class SharedService {
     return userEventInterests;
   }
   async getTokenDetails(user: TCachedUser, query: any, isBasic: boolean = true) {
+    const advanceFilter: string[] = ["audienceSpread", "designations", "trust_score_gte", "trust_score_lte",
+      "top", "estimatedExhibitors", "estimatedVisitorRangeTag",
+      "excludeKeywords", "includeKeywords", "frequencies", "onlyBranded", "onlySeries",
+      "maturity", "inbound_score_gte", "inbound_score_lte",
+      "international_score_gte", "international_score_lte"];
+    let isAdvanceFilterUsed = false;
+    for (const filter of advanceFilter) {
+      if (query[filter] !== undefined) {
+        isAdvanceFilterUsed = true;
+        break
+      }
+    }
+    isBasic = isAdvanceFilterUsed;
     const [{ point, advancePoint }, membershipStatus] = await Promise.all([this.getPointForRequest(
       PointColumn.pendingRequests,
       user.accountId,
@@ -965,7 +978,7 @@ export class SharedService {
     //     HttpStatus.TOO_MANY_REQUESTS,
     //   );
     // }
-    return { point, advancePoint, query: { ...query } };
+    return { point, advancePoint, query: { ...query }, isAdvanceFilterUsed };
   }
 }
 
