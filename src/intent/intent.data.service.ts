@@ -120,6 +120,9 @@ export class IntentDataService {
       include,
       skip: offset,
       take: limit,
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
     return userEventInterests;
   }
