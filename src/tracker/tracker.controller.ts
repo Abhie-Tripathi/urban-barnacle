@@ -195,7 +195,7 @@ export class TrackerController {
         );
         flag = true;
       }
-      return { data: events };
+      return { data: events['events'] ? events['events'] : events };
     } catch (error) {
       if (flag)
         this.sharedService.creditPointForRequest(
@@ -302,7 +302,7 @@ export class TrackerController {
         );
         flag = true;
       }
-      return { data: events };
+      return { data: events['events'] ? events['events'] : events };
     } catch (error) {
       if (flag)
         this.sharedService.creditPointForRequest(
