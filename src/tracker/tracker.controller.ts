@@ -182,6 +182,7 @@ export class TrackerController {
       );
       totalpointsToDeduct = Array.isArray(events.events) ? events.events.length : 1;
       advanceDataFromResponse = events.isAdvanceFilterUsed ?? false;
+      delete events['isAdvanceFilterUsed'];
       if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
         // console.log("aibuuuuuuuuuuuuuuuuuuusj\n", point, advancePoint);
 
@@ -288,6 +289,7 @@ export class TrackerController {
       );
       totalpointsToDeduct = Array.isArray(events.events) ? events.events.length : 1;
       advanceDataFromResponse = events.isAdvanceFilterUsed ?? false;
+      delete events['isAdvanceFilterUsed'];
       if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
         // console.log("aibuuuuuuuuuuuuuuuuuuusj\n", point, advancePoint);
 
