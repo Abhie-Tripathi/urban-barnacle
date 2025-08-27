@@ -658,7 +658,9 @@ export class TrackerService {
       'ADMIN',
       'SUPER_ADMIN',
     ]);
-
+    if (tracker.source && tracker.source.toLowerCase().includes('import_10t')) {
+      throw new HttpException('Invalid Request', HttpStatus.BAD_REQUEST);
+    }
     const updateParams = {
       ...data,
       id: tracker.id,
@@ -831,7 +833,7 @@ export class TrackerService {
         eventParams,
         false,
         user,
-        tracker.source?.includes('import_10t') ? true : false
+        tracker.source?.toLowerCase()?.includes('import_10t') ? true : false
       );
       return events;
     } catch (error) {
