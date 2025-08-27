@@ -92,3 +92,19 @@ export const SuggestionSchema = LimitSchema.extend({
     .optional(),
   query: z.string().optional(),
 });
+
+
+export function deleteKeyDeep(obj: any, keyToDelete: string): any {
+  if (Array.isArray(obj)) {
+    return obj.map(item => deleteKeyDeep(item, keyToDelete));
+  } else if (obj !== null && typeof obj === "object") {
+    const newObj: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (key !== keyToDelete) {
+        newObj[key] = deleteKeyDeep(value, keyToDelete);
+      }
+    }
+    return newObj;
+  }
+  return obj;
+}

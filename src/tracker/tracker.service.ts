@@ -24,6 +24,7 @@ import {
 import { AccessService } from 'src/access/access.service';
 import { AccessDataService } from 'src/access/access.data.service';
 import {
+  deleteKeyDeep,
   getNameFromEmail,
   getNonEmptyParams,
   TrackerIntelScoreJson,
@@ -140,6 +141,7 @@ export class TrackerService {
       //   };
       // });
     }
+    delete convertedParams['searchByEntity'];
     const tracker = await this.trackerDataService.createTracker(user, {
       ...data,
       filterValues: convertedParams,
@@ -231,7 +233,7 @@ export class TrackerService {
       });
 
     const groupBy =
-      (searchByEntity && !['event', 'company'].includes(searchByEntity)) || this.configService.get('BACKEND') === 'gtm'
+      (this.configService.get('BACKEND') === 'gtm')
         ? CountGroup.status
         : this.configService.get('BACKEND') === 'geo'
           ? CountGroup.eventTypeGroup
@@ -309,85 +311,90 @@ export class TrackerService {
                   });
                 }
               }
-              if (groupedEventsCount!['social']['total_event_ids']
-                && groupedEventsCount!['social']['similarEventCache']) {
-                similarEventCache = groupedEventsCount!['social']['similarEventCache'];
-                payloadConstruct(groupedEventsCount!['social']['total_event_ids'] as string, 'SOCIAL')
-                delete groupedEventsCount!['social']['total_event_ids'];
-                delete groupedEventsCount!['social']['similarEventCache'];
+              if (process.env.BACKEND === 'geo') {
+                if (groupedEventsCount!['social']['total_event_ids']
+                  && groupedEventsCount!['social']['similarEventCache']) {
+                  similarEventCache = groupedEventsCount!['social']['similarEventCache'];
+                  payloadConstruct(groupedEventsCount!['social']['total_event_ids'] as string, 'SOCIAL')
+                  delete groupedEventsCount!['social']['total_event_ids'];
+                  delete groupedEventsCount!['social']['similarEventCache'];
+                }
+                if (groupedEventsCount!['business']['total_event_ids']
+                  && groupedEventsCount!['business']['similarEventCache']) {
+                  similarEventCache = groupedEventsCount!['business']['similarEventCache'];
+                  payloadConstruct(groupedEventsCount!['business']['total_event_ids'] as string, 'BUSINESS')
+                  delete groupedEventsCount!['business']['total_event_ids'];
+                  delete groupedEventsCount!['business']['similarEventCache'];
+                }
+                if (groupedEventsCount!['unattended']['total_event_ids']
+                  && groupedEventsCount!['unattended']['similarEventCache']) {
+                  similarEventCache = groupedEventsCount!['unattended']['similarEventCache'];
+                  payloadConstruct(groupedEventsCount!['unattended']['total_event_ids'] as string, 'UNATTENTED')
+                  delete groupedEventsCount!['unattended']['total_event_ids'];
+                  delete groupedEventsCount!['unattended']['similarEventCache'];
+                }
               }
-              if (groupedEventsCount!['business']['total_event_ids']
-                && groupedEventsCount!['business']['similarEventCache']) {
-                similarEventCache = groupedEventsCount!['business']['similarEventCache'];
-                payloadConstruct(groupedEventsCount!['business']['total_event_ids'] as string, 'BUSINESS')
-                delete groupedEventsCount!['business']['total_event_ids'];
-                delete groupedEventsCount!['business']['similarEventCache'];
-              }
-              if (groupedEventsCount!['unattended']['total_event_ids']
-                && groupedEventsCount!['unattended']['similarEventCache']) {
-                similarEventCache = groupedEventsCount!['unattended']['similarEventCache'];
-                payloadConstruct(groupedEventsCount!['unattended']['total_event_ids'] as string, 'UNATTENTED')
-                delete groupedEventsCount!['unattended']['total_event_ids'];
-                delete groupedEventsCount!['unattended']['similarEventCache'];
-              }
-              if (groupedEventsCount!['past_ids']) {
-                // const pastData = (
-                //   groupedEventsCount!['past_ids'] as string
-                // ).split(',');
-                // const pastCount: number = pastData.length;
-                // for (const eachPastData of pastData) {
-                //   const eventIds: string[] = eachPastData.split('#');
+              if (process.env.BACKEND === 'gtm') {
+                if (groupedEventsCount!['past_ids']) {
+                  // const pastData = (
+                  //   groupedEventsCount!['past_ids'] as string
+                  // ).split(',');
+                  // const pastCount: number = pastData.length;
+                  // for (const eachPastData of pastData) {
+                  //   const eventIds: string[] = eachPastData.split('#');
 
-                //   trackerSimilarEventPauload.push({
-                //     trackerId: tracker.id,
-                //     count: pastCount,
-                //     eventId: eventIds[0],
-                //     sourceId: Number(eventIds[1]),
-                //     tag: 'PAST',
-                //     score: similarEventCache[eventIds[1]] || 0,
-                //   });
-                // }
-                payloadConstruct(groupedEventsCount!['past_ids'] as string, 'PAST')
+                  //   trackerSimilarEventPauload.push({
+                  //     trackerId: tracker.id,
+                  //     count: pastCount,
+                  //     eventId: eventIds[0],
+                  //     sourceId: Number(eventIds[1]),
+                  //     tag: 'PAST',
+                  //     score: similarEventCache[eventIds[1]] || 0,
+                  //   });
+                  // }
+                  payloadConstruct(groupedEventsCount!['past_ids'] as string, 'PAST')
+                }
+                delete groupedEventsCount!['past_ids'];
+                if (groupedEventsCount!['active_ids']) {
+                  // const activeData = (
+                  //   groupedEventsCount!['active_ids'] as string
+                  // ).split(',');
+                  // const activeCount: number = activeData.length;
+                  // for (const eachActiveData of activeData) {
+                  //   const eventIds: string[] = eachActiveData.split('#');
+                  //   trackerSimilarEventPauload.push({
+                  //     trackerId: tracker.id,
+                  //     count: activeCount,
+                  //     eventId: eventIds[0],
+                  //     sourceId: Number(eventIds[1]),
+                  //     tag: 'ACTIVE',
+                  //     score: similarEventCache[eventIds[1]] || 0,
+                  //   });
+                  // }
+                  payloadConstruct(groupedEventsCount!['active_ids'] as string, 'ACTIVE')
+                }
+                delete groupedEventsCount!['active_ids'];
+                if (groupedEventsCount!['new_ids']) {
+                  // const newData = (
+                  //   groupedEventsCount!['new_ids'] as string
+                  // ).split(',');
+                  // const newCount: number = newData.length;
+                  // for (const eachNewData of newData) {
+                  //   const eventIds: string[] = eachNewData.split('#');
+                  //   trackerSimilarEventPauload.push({
+                  //     trackerId: tracker.id,
+                  //     count: newCount,
+                  //     eventId: eventIds[0],
+                  //     sourceId: Number(eventIds[1]),
+                  //     tag: 'NEW',
+                  //     score: similarEventCache[eventIds[1]] || 0,
+                  //   });
+                  // }
+                  payloadConstruct(groupedEventsCount!['new_ids'] as string, 'NEW')
+                }
+                delete groupedEventsCount!['new_ids'];
               }
-              delete groupedEventsCount!['past_ids'];
-              if (groupedEventsCount!['active_ids']) {
-                // const activeData = (
-                //   groupedEventsCount!['active_ids'] as string
-                // ).split(',');
-                // const activeCount: number = activeData.length;
-                // for (const eachActiveData of activeData) {
-                //   const eventIds: string[] = eachActiveData.split('#');
-                //   trackerSimilarEventPauload.push({
-                //     trackerId: tracker.id,
-                //     count: activeCount,
-                //     eventId: eventIds[0],
-                //     sourceId: Number(eventIds[1]),
-                //     tag: 'ACTIVE',
-                //     score: similarEventCache[eventIds[1]] || 0,
-                //   });
-                // }
-                payloadConstruct(groupedEventsCount!['active_ids'] as string, 'ACTIVE')
-              }
-              delete groupedEventsCount!['active_ids'];
-              if (groupedEventsCount!['new_ids']) {
-                // const newData = (
-                //   groupedEventsCount!['new_ids'] as string
-                // ).split(',');
-                // const newCount: number = newData.length;
-                // for (const eachNewData of newData) {
-                //   const eventIds: string[] = eachNewData.split('#');
-                //   trackerSimilarEventPauload.push({
-                //     trackerId: tracker.id,
-                //     count: newCount,
-                //     eventId: eventIds[0],
-                //     sourceId: Number(eventIds[1]),
-                //     tag: 'NEW',
-                //     score: similarEventCache[eventIds[1]] || 0,
-                //   });
-                // }
-                payloadConstruct(groupedEventsCount!['new_ids'] as string, 'NEW')
-              }
-              delete groupedEventsCount!['new_ids'];
+              groupedEventsCount = deleteKeyDeep(groupedEventsCount, 'similarEventCache')
               if (trackerSimilarEventPauload.length > 0) {
                 await this.trackerDataService.bulkInsertToSimilarTrackerEvent(
                   trackerSimilarEventPauload,
@@ -395,7 +402,7 @@ export class TrackerService {
               }
 
             }
-            if (!groupedEventsCount) {
+            if (!groupedEventsCount && process.env.BACKEND === 'gtm') {
               groupedEventsCount = {
                 active: 0,
                 new: 0,

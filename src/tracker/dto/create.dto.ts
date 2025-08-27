@@ -83,6 +83,7 @@ export class CreateTrackerDto extends createZodDto(CreateTrackerSchema) { }
 
 const UpdateTrackerHttpSchema = CreateTrackerSchema.partial().omit({
   type: true,
+  source: true
 });
 
 export class UpdateTrackerHttpDto extends createZodDto(
