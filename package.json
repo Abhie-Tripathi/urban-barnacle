@@ -13,6 +13,8 @@
     "redis:rm": "docker compose rm eventeli-redis -s -f -v",
     "redis:up": "docker compose up eventeli-redis -d",
     "build": "nest build",
+    "build:swc": "nest build --builder swc",
+    "build:time": "node -e \"console.time('Build Time'); require('child_process').execSync('nest build', { stdio: 'inherit' }); console.timeEnd('Build Time');\"",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start -b swc -w",
