@@ -64,7 +64,7 @@ export class EventsController {
         throw new HttpException(
           'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
           HttpStatus.TOO_MANY_REQUESTS,
-          { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) < (advancePoint * 0.5)}}` }
+          { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) >0}}` }
         );
       }
       const queryDto: QueryDto = {
@@ -173,7 +173,7 @@ export class EventsController {
         throw new HttpException(
           'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
           HttpStatus.TOO_MANY_REQUESTS,
-          { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) < (advancePoint * 0.5)}}` }
+          { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) >0}}` }
         );
       }
       const events = await this.eventsService.getSimilarEvents(queryDto);
@@ -382,7 +382,7 @@ export class EventsController {
         throw new HttpException(
           'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
           HttpStatus.TOO_MANY_REQUESTS,
-          { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) < (advancePoint * 0.5)}}` }
+          { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) >0}}` }
         );
       } else if ((advanceDataFromResponse || isAdvanceFilterUsed) && advancePoint <= 0 && point > 0) {
         advanceDataFromResponse = false;
