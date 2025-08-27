@@ -77,14 +77,16 @@ model Company {
 
 model Subscription {
   id                               String           @id @default(uuid()) @db.Uuid
-  plan                             SubscriptionPlan @default(BASIC)
+  plan                             SubscriptionPlan @default(ESSENTIAL)
   planStartDate                    DateTime         @default(now())
   planEndDate                      DateTime
   purchaseValue                    Float            @default(0)
-  pendingRequests                  Int              @default(40)
-  pendingPocUnlockRequests         Int              @default(40)
-  pendingCompanySearchRequests     Int              @default(40)
-  pendingProspectPocUnlockRequests Int              @default(40)
+  pendingRequests                  Int              @default(200)
+  advancePendingRequests           Int              @default(400)
+  pendingPocUnlockRequests         Int              @default(0)
+  pendingCompanySearchRequests     Int              @default(400)
+  // advancePendingCompanySearchRequests Int              @default(20)
+  pendingProspectPocUnlockRequests Int              @default(0)
   accountId                        String?          @db.Uuid
   createdAt                        DateTime         @default(now())
   updatedAt                        DateTime         @updatedAt
@@ -750,6 +752,7 @@ enum JobSource {
   SEND_CONTACT_ERROR_EMAIL
   CRON_USER_TRACKER_IMPORT
   SEND_SUBSCRIPTION_CANCEL_MAIL
+  CRON_COLLECTION_SCRIPT
 }
 
 enum JobStatus {

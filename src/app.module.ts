@@ -46,6 +46,8 @@ import { RedisModule } from './redis/redis.module';
 import { AuthGuard } from './user/auth/guard';
 import { APP_GUARD } from '@nestjs/core';
 import { SubscriptionEmailWorkerClass } from './communication/bull-service/bull-subscription.service';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { DecryptQueryInterceptor } from './decrypt-query.interceptor';
 @Module({
   imports: [
     // ConfigModule to manage environment variables
@@ -112,6 +114,10 @@ import { SubscriptionEmailWorkerClass } from './communication/bull-service/bull-
   ],
   controllers: [AppController],
   providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: DecryptQueryInterceptor,
+    },
     AppService,
     GlobalResponseInterceptor,
     EmailService,
