@@ -106,7 +106,9 @@ export class ExportWorkerClass extends WorkerHost {
                             ? 'recruitment'
                             : trackerData.type === 'T_PRODUCT_KEYWORDS'
                                 ? 'keywords'
-                                : undefined;
+                                : trackerData.type === 'T_EVENT_PARTICIPATION'
+                                    ? 'event'
+                                    : undefined;
             jobData['searchByEntity'] = searchByEntity;
             let flagForExportStatus: number = 0;
             if (process.env.BACKEND === 'gtm') {
@@ -240,8 +242,12 @@ export class ExportWorkerClass extends WorkerHost {
                 // console.log({ bulkUpdateExport });
                 await Promise.all(
                     bulkUpdateExport.map(({ id, status, fileUrl, outputResponse, attachment, fileSize }) => {
+                        if (!id) return;
                         if (Object.keys(attachment).length > 0)
                             attachments.push(attachment);
+                        if (outputResponse && outputResponse['attachment']) {
+                            outputResponse['attachment'] = null;
+                        }
                         return this.prisma.export.update({
                             where: { id },
                             data: { status, fileSize, fileUrl, outputData: outputResponse },
@@ -379,8 +385,12 @@ export class ExportWorkerClass extends WorkerHost {
                 }
                 await Promise.all(
                     bulkUpdateExport.map(({ id, status, fileUrl, outputResponse, attachment, fileSize }) => {
+                        if (!id) return;
                         if (Object.keys(attachment).length > 0)
                             attachments.push(attachment);
+                        if (outputResponse && outputResponse['attachment']) {
+                            outputResponse['attachment'] = null;
+                        }
                         return this.prisma.export.update({
                             where: { id },
                             data: { status, fileUrl, fileSize, outputData: outputResponse },
@@ -479,6 +489,7 @@ export class ExportWorkerClass extends WorkerHost {
                 { header: 'TenTimes Page', key: 'page', width: 30 },
                 { header: 'Event Website', key: 'website', width: 30 },
                 { header: 'Venue Name', key: 'venueName', width: 30 },
+                { header: 'Event Status', key: 'status', width: 30 },
                 { header: 'Venue Address', key: 'venueAddress', width: 30 },
                 { header: 'Geo-Coordinates', key: 'geo', width: 30 },
                 { header: 'City', key: 'city', width: 20 },
@@ -499,8 +510,6 @@ export class ExportWorkerClass extends WorkerHost {
                 { header: 'Global Rank', key: 'rank', width: 15 },
                 { header: 'Rating', key: 'rating', width: 20 },
                 { header: 'Impact Score', key: 'impactScore', width: 20 },
-                { header: 'International Score', key: 'internationalScore', width: 20 },
-                { header: 'Inbound Score', key: 'inboundScore', width: 20 },
                 { header: 'Audience Zone', key: 'audienceZone', width: 30 },
                 { header: 'Trust Score', key: 'trust', width: 20 },
                 { header: 'Interests Growth (%)', key: 'growth', width: 20 },
@@ -509,10 +518,14 @@ export class ExportWorkerClass extends WorkerHost {
                 { header: 'Estimated Exhibitors', key: 'exhibitor', width: 20 },
                 { header: 'Entry Type', key: 'entryType', width: 20 },
             ];
-            if (jobData?.searchByEntity) {
+            if (jobData?.searchByEntity && jobData['searchByEntity'] !== 'event') {
                 columns.push(...[
                     { header: 'Matched', key: 'matched', width: 30 },
                     { header: 'Relevance Score', key: 'matchScore', width: 20 },])
+            }
+            if (process.env.BACKEND === 'geo') {
+                columns.push(...[{ header: 'International Score', key: 'internationalScore', width: 20 },
+                { header: 'Inbound Score', key: 'inboundScore', width: 20 },])
             }
             worksheet.columns = columns;
             let offset = 0;
@@ -541,7 +554,9 @@ export class ExportWorkerClass extends WorkerHost {
             while (offset < totalCount) {
                 console.log(`Processing ${offset} to ${offset + limit} records`);
                 const showValues = 'basic,advance,insights,audience';
-                const response = await this.trackerService.getTrackerEvents(jobData['userData'], jobData['trackerId'],
+                // console.log(`jobData['searchByEntity'] `, jobData['searchByEntity']);
+
+                const response = jobData['searchByEntity'] !== 'event' ? await this.trackerService.getTrackerEvents(jobData['userData'], jobData['trackerId'],
                     {
                         limit, offset, view: View.tracker, ...(process.env.BACKEND === 'gtm' ?
                             { trackerEventStatus: type as keyof typeof TrackerEventStatus } : { eventTypeGroup: type })
@@ -573,7 +588,37 @@ export class ExportWorkerClass extends WorkerHost {
                             trackerMatchInfo?: Record<string, any>;
                             audience: Record<string, any>;
                         }[];
-                    };
+                    } : await this.trackerService.getTrackerSimilarEvents(jobData['userData'], jobData['trackerId'],
+                        {
+                            limit, offset, view: View.tracker, ...(process.env.BACKEND === 'gtm' ?
+                                { trackerEventStatus: type as keyof typeof TrackerEventStatus } : { eventTypeGroup: type })
+                            , sortBy: ['-score', 'title'], show: [
+                                'branded',
+                                'series',
+                                'forecasted',
+                                'rating',
+                                'estimatedExhibitors',
+                                'trustScore',
+                                'audienceSpread',
+                                'audienceZone',
+                                'economicImpact',
+                                'rankings',
+                                'scores',
+                                'maturity',
+                                'frequency',
+                                'alerts',
+                            ] as unknown as Show[],
+                            showValues
+                        }, showValues) as {
+                            count?: number;
+                            events: {
+                                basic: Record<string, any>;
+                                advance: Record<string, any>;
+                                insights: Record<string, any>;
+                                trackerMatchInfo?: Record<string, any>;
+                                audience: Record<string, any>;
+                            }[];
+                        };
 
                 // console.log(response);
                 const events = response?.events || [];
@@ -581,10 +626,11 @@ export class ExportWorkerClass extends WorkerHost {
                 creditAmountIfFalied = totalCount;
                 if (events.length === 0 || linesWrittern === totalCount) break;
                 let trackerEventsIntelScore: object[] = [];
-                if (process.env.BACKEND === 'gtm') {
+                if (process.env.BACKEND === 'gtm' && jobData['searchByEntity'] !== 'event') {
                     const trackerEventsIntelScoreValue = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: events.map(val => val.basic.id).join(','), limit: events.length, offset: 0, type: type as keyof typeof EventTabs, trackerEventStatus: type as any });
                     trackerEventsIntelScore = trackerEventsIntelScoreValue.trackerEventsIntelScore;
-                } for (const data of events) {
+                }
+                for (const data of events) {
                     if (linesWrittern === totalCount) break;
                     // const { trackerEventsIntelScore } = await this.trackerService.getTrackerIntelScore(jobData['userData'], jobData['trackerId'], { eventIds: events.map(val => val.basic.id).join(','), limit: events.length, offset: 0, type: type as keyof typeof EventTabs, trackerEventStatus: type as any });
                     let eventTYpes: string = (data.basic.eventTypes?.map(val => val.name).join(',')) || '';
@@ -639,6 +685,7 @@ export class ExportWorkerClass extends WorkerHost {
                             name: data.basic.name,
                             page: data.basic['10timesEventPageUrl'] ? 'https://10times.com/' + data.basic['10timesEventPageUrl'] : '',
                             website: data.basic.website,
+                            status: data.basic.status || '',
                             startDate: data.basic.startDateTime,
                             futureExpectedStartDate: data.basic.futureExpectedStartDate || '',
                             futureExpectedEndDate: data.basic.futureExpectedEndDate || '',
@@ -728,27 +775,29 @@ export class ExportWorkerClass extends WorkerHost {
             console.error(error);
             console.log(error);
             console.log(JSON.stringify(error));
-            const accountInfo = await this.prisma.account.findMany({
-                where: {
-                    id: jobData.userData.accountId
-                }
-            })
-            try {
-                await this.prisma.subscription.update({
+            if (email.split('@')[1] !== '10times.com') {
+                const accountInfo = await this.prisma.account.findMany({
                     where: {
-                        id: accountInfo[0].currentSubscriptionId
-                    },
-                    data: {
-                        advancePendingRequests: creditAmountIfFalied * 10,
+                        id: jobData.userData.accountId
                     }
-                });
-            } catch (error) {
-                console.log('failed to credit the point for exports');
+                })
+                try {
+                    await this.prisma.subscription.update({
+                        where: {
+                            id: accountInfo[0].currentSubscriptionId
+                        },
+                        data: {
+                            advancePendingRequests: creditAmountIfFalied * 10,
+                        }
+                    });
+                } catch (error) {
+                    console.log('failed to credit the point for exports');
+                }
             }
-
             return {
                 status: "error",
-                ...error
+                ...error,
+                attachment: {}
             }
         }
     }
@@ -776,8 +825,8 @@ export class ExportWorkerClass extends WorkerHost {
         const lon = data.basic.eventLocation?.longitude;
 
         return {
-            venueName: data.basic.eventLocation.locationType === 'VENUE' ? data.basic.eventLocation?.name || '' : '',
-            venueAddress: data.basic.eventLocation.locationType === 'VENUE' ? data.basic.eventLocation?.address || '' : '',
+            venueName: data.basic.eventLocation.locationType === 'VENUE' ? data.basic.eventLocation?.name || 'tba' : 'tba',
+            venueAddress: data.basic.eventLocation.locationType === 'VENUE' ? data.basic.eventLocation?.address || 'tba' : 'tba',
             geo: `Latitude:${lat}, Longitude:${lon}`,
             city: data.basic.eventLocation.locationType === 'CITY' ? data.basic.eventLocation?.name || '' : data.basic.eventLocation?.cityName || '',
             country: data.basic.eventLocation?.countryName || '',
@@ -789,8 +838,8 @@ export class ExportWorkerClass extends WorkerHost {
         const lat = data.basic.eventLocation?.venue?.latitude;
         const lon = data.basic.eventLocation?.venue?.longitude;
         return {
-            venueName: data.basic.eventLocation?.venue?.name || '',
-            venueAddress: data.basic.eventLocation?.venue?.address || '',
+            venueName: data.basic.eventLocation?.venue?.name || 'tba',
+            venueAddress: data.basic.eventLocation?.venue?.address || 'tba',
             geo: `Latitude:${lat}, Longitude:${lon}`,
             city: data.basic.eventLocation?.city?.name || '',
             country: data.basic.eventLocation?.country?.name || '',
