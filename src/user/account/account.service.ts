@@ -114,7 +114,7 @@ export class AccountService {
       view: View.tracker,
     } as QueryDto;
     const events = await this.eventService.getAllEvents(eventParams, false);
-    const userInterests = await this.eventService.getGroupedEventInterests(user, savedEventsIds);
+    const userInterests = await this.sharedService.getGroupedEventInterests(user, savedEventsIds);
     const eventsFiltered = savedEventsIds.map(id =>
       events.events.find(event => event.basic['id'] === id)
     ).filter(event => event).map(event => {
