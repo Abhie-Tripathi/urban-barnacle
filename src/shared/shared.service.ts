@@ -937,7 +937,8 @@ export class SharedService {
         break
       }
     }
-    isBasic = !isAdvanceFilterUsed;
+    if (isAdvanceFilterUsed)
+      isBasic = !isAdvanceFilterUsed;
     const [{ point, advancePoint }, membershipStatus] = await Promise.all([this.getPointForRequest(
       PointColumn.pendingRequests,
       user.accountId,
