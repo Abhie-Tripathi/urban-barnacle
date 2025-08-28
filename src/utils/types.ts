@@ -329,6 +329,13 @@ export const membershipMap: Record<SubscriptionPlan, number> = {
   ADVANCE: 30,
   ENTERPRISE: 40,
 };
+export const membershipReverseMap: Record<number, SubscriptionPlan> = {
+  0: 'BASIC',
+  10: 'ESSENTIAL',
+  20: 'SCALE',
+  30: 'ADVANCE',
+  40: 'ENTERPRISE',
+};
 export const membershipLimit: Record<number, { upperLimit: number, perSearchLimit: number, exportAllowed: boolean }> = {
   0: { upperLimit: 4000, perSearchLimit: 10, exportAllowed: false },
   10: { upperLimit: 4000, perSearchLimit: 10, exportAllowed: false },
@@ -337,39 +344,43 @@ export const membershipLimit: Record<number, { upperLimit: number, perSearchLimi
   40: { upperLimit: 100000, perSearchLimit: 100, exportAllowed: true },
 };
 export const membershipMapForToken: Record<SubscriptionPlan, {
-  pendingRequests: number, pendingCompanySearchRequests: number,
-  pendingPocUnlockRequests: number,
+  pendingRequests: number, pendingCompanySearchRequests: number, advancePendingRequests: number, pendingPocUnlockRequests: number,
   pendingProspectPocUnlockRequests: number,
 }> = {
   BASIC: {
-    pendingCompanySearchRequests: 40,
-    pendingRequests: 40,
-    pendingPocUnlockRequests: 40,
-    pendingProspectPocUnlockRequests: 40,
+    pendingCompanySearchRequests: 0,
+    pendingRequests: 0,
+    advancePendingRequests: 0,
+    pendingPocUnlockRequests: 0,
+    pendingProspectPocUnlockRequests: 0
   },
   ESSENTIAL: {
-    pendingCompanySearchRequests: 40,
-    pendingRequests: 40,
-    pendingPocUnlockRequests: 40,
-    pendingProspectPocUnlockRequests: 40,
+    pendingCompanySearchRequests: 400,
+    pendingRequests: 200,
+    advancePendingRequests: 400,
+    pendingPocUnlockRequests: 0,
+    pendingProspectPocUnlockRequests: 0
   },
   SCALE: {
-    pendingCompanySearchRequests: 200,
+    pendingCompanySearchRequests: 4000,
     pendingRequests: 200,
-    pendingPocUnlockRequests: 40,
-    pendingProspectPocUnlockRequests: 40,
+    advancePendingRequests: 4000,
+    pendingPocUnlockRequests: 100,
+    pendingProspectPocUnlockRequests: 100
   },
   ADVANCE: {
-    pendingCompanySearchRequests: 1000,
-    pendingRequests: 1000,
-    pendingPocUnlockRequests: 40,
-    pendingProspectPocUnlockRequests: 40,
+    pendingCompanySearchRequests: 20000,
+    pendingRequests: 200,
+    advancePendingRequests: 20000,
+    pendingPocUnlockRequests: 1000,
+    pendingProspectPocUnlockRequests: 1000
   },
   ENTERPRISE: {
-    pendingCompanySearchRequests: 5000,
-    pendingRequests: 5000,
-    pendingPocUnlockRequests: 40,
-    pendingProspectPocUnlockRequests: 40,
+    pendingCompanySearchRequests: 100000,
+    pendingRequests: 200,
+    advancePendingRequests: 100000,
+    pendingPocUnlockRequests: 1000,
+    pendingProspectPocUnlockRequests: 1000
   },
 };
 // ["a4a3b8d9-e170-4972-8981-0282e58ccb45","e485cdd3-0e61-5f36-b896-aed7ba606697","0ba63d1a-eb97-4587-b1c7-6c79c2948256",1,0]
@@ -409,3 +420,72 @@ export const membershipMapForToken: Record<SubscriptionPlan, {
 //          10
 //        OFFSET
 //          0;
+export const eventAdvanceFields = {
+  advance: 'advance',
+  insights: 'advance',
+  audience: 'advance',
+  basic: 'basic',
+  suggestion: 'suggestion'
+}
+
+
+
+
+export const advanceFilterBlockObject = {
+  "maturity": {
+    "isMaturityEnabled": false,
+    "isAllowed": false
+  },
+  "branded": {
+    "enabledValue": {
+      "eventBrand": false,
+      "eventSeries": false
+    },
+    "isAllowed": false
+  },
+  "frequencies": {
+    "isFreqEnabled": false,
+    "isAllowed": false
+  },
+  "eventRanking": {
+    "isRanking": false,
+    "isAllowed": false
+  },
+  "audienceZone": {
+    "isZoneEnabled": false,
+    "isAllowed": false
+  },
+  "estimatedExhibitors": {
+    "isExhibitorsEnabled": false,
+    "isAllowed": false
+  },
+  "estimatedVisitorRangeTag": {
+    "isEstimatedVisitorRangeTag": false,
+    "isAllowed": false
+  },
+  "isForecasted": {
+    "isForecastedEnabled": false,
+  },
+  "audienceSpread": {
+    "isAudienceEnabled": false,
+    "isAllowed": false
+  },
+  "designation": {
+    "isProfileEnabled": false,
+    "isAllowed": false
+  },
+  ...(process.env.BACKEND === 'geo' ? {
+    "economicImpact": {
+      "isEconomicImpactEnabled": false,
+      "isAllowed": false
+    },
+    "analytics": {
+      "isAnalyticsEnabled": false,
+      "isAllowed": false
+    },
+  } : {}),
+  "keywords": {
+    "isKeywordEnabled": false,
+    "isAllowed": false
+  }
+};

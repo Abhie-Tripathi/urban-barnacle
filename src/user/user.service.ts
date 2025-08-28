@@ -150,10 +150,11 @@ export class UserService {
         pocId,
       ),
       this.sharedService.getPointForRequest(
-        query.target === 'COMPANY' || query.target === 'EVENT'
+        query.target === 'EVENT'
           ? PointColumn.pendingPocUnlockRequests
           : PointColumn.pendingProspectPocUnlockRequests,
         user.accountId,
+        PointColumn.advancePendingRequests
       ),
     ]);
 
@@ -173,7 +174,7 @@ export class UserService {
       countForSeenUnlockValue = point;
     }
 
-    const remainingUnmask: string[] = [];
+    let remainingUnmask: string[] = [];
 
     for (const val of query.unmask.toUpperCase().split(',')) {
       if (unlockedValues.has(val)) {
@@ -200,9 +201,22 @@ export class UserService {
     if (countForSeenUnlockValue === 0) {
       query.unmask = query.unmask.replace('email', '').replace(',', '');
     }
+    const pocUnlockedData = await this.userDataService.getPocsunlocked(
+      pocId,
+      query.unmask.toUpperCase().split(',') as UnlockValue[],
+    );
+    console.log(pocUnlockedData);
+    if (pocUnlockedData && (!pocUnlockedData['email'] || pocUnlockedData['email'].length < 1)) {
+      remainingUnmask = remainingUnmask.filter(val => val !== 'EMAIL');
+    }
+    if (pocUnlockedData && (!pocUnlockedData['phoneNumber'] || pocUnlockedData['phoneNumber'].length < 1)) {
+      remainingUnmask = remainingUnmask.filter(val => val !== 'PHONE');
+    }
+    console.log(remainingUnmask);
+
     if (remainingUnmask.length > 0) {
       await this.sharedService.deductPointForRequest(
-        query.target === 'COMPANY' || query.target === 'EVENT'
+        query.target === 'EVENT'
           ? PointColumn.pendingPocUnlockRequests
           : PointColumn.pendingProspectPocUnlockRequests,
         user.accountId,
@@ -211,10 +225,7 @@ export class UserService {
     }
 
     return {
-      data: await this.userDataService.getPocsunlocked(
-        pocId,
-        query.unmask.toUpperCase().split(',') as UnlockValue[],
-      ),
+      data: pocUnlockedData
     };
   }
   async getUserData(

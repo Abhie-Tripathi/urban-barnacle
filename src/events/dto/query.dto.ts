@@ -3,6 +3,7 @@ import { createZodDto } from 'nestjs-zod';
 import { SortByOptions, Regions, timezones, TrackerEventStatus, SearchByEntity } from 'src/utils';
 import {
   defaultEventTypes,
+  eventAdvanceFields,
   EventStatus,
   EventTypeGroup,
   ValidEventTypes,
@@ -412,11 +413,12 @@ export const QueryFilter = z.object({
     .optional(),
   show: z
     .string()
-    .refine((val) => val.split(',').every((item) => item in Show))
+    .optional()
     .transform((val) =>
-      val.split(',').map((item) => item.trim() as unknown as Show),
-    )
-    .optional(),
+      val
+        ? val.split(',').map((item) => item.trim() as unknown as Show)
+        : undefined
+    ),
   ratings: z
     .string()
     .refine((val) => val.split(',').every((item) => item in Rating))
@@ -654,7 +656,20 @@ export const QueryFilter = z.object({
     .refine((val) => val in TrackerEventStatus)
     .transform((val) => val as keyof typeof TrackerEventStatus)
     .optional(),
+  showValues: z.string()
+    .default('basic')
+    .transform(val => val ?? 'basic')
+    .refine(val => {
+      const keys = Object.keys(eventAdvanceFields);
+      const values = val.split(',').map(v => v.trim());
 
+      const allValid = values.every(subValue => keys.includes(subValue));
+      const includesBasic = values.includes('basic');
+
+      return allValid && includesBasic;
+    }, {
+      message: 'showValues must include "basic" and only contain valid keys.'
+    })
 });
 
 export const FilterNames = Object.keys(QueryFilter.shape);
@@ -749,7 +764,6 @@ export class QueryHttpDto extends createZodDto(
 ) { }
 
 export const QuerySchema = QueryHttpSchema.innerType().extend({
-  showValues: z.string(),
   viewBounds: z.string().optional(),
 });
 
