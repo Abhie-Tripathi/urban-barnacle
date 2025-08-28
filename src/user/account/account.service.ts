@@ -26,6 +26,7 @@ import {
   InterestConfigurationDto,
   MembershipDto,
   OutreachConfigurationDto,
+  UpdateCurrentMembershipDto,
 } from './account.config';
 import { UserDataSchema } from '../me/dto';
 import {
@@ -84,7 +85,7 @@ export class AccountService {
     const [savedEvents, count] = await Promise.all([
       this.intentDataService.getUserEventInterest({
         interest: ['BOOKMARK'],
-        sourceModule: { in: ['TRACKER'] },
+        sourceModule: { in: ['TRACKER', 'RESEARCH'] },
         // interestedUserId: user.id,
         accountId: user.accountId,
         limit: query.limit,
@@ -92,7 +93,7 @@ export class AccountService {
       }),
       this.intentDataService.getUserEventInterestCountForBookmark({
         interest: ['BOOKMARK'],
-        sourceModule: { in: ['TRACKER'] },
+        sourceModule: { in: ['TRACKER', 'RESEARCH'] },
         // interestedUserId: user.id,
         accountId: user.accountId,
         limit: query.limit,
@@ -113,11 +114,22 @@ export class AccountService {
       view: View.tracker,
     } as QueryDto;
     const events = await this.eventService.getAllEvents(eventParams, false);
-    console.log({ sadasdas111events: events });
+    const userInterests = await this.eventService.getGroupedEventInterests(user, savedEventsIds);
+    const eventsFiltered = savedEventsIds.map(id =>
+      events.events.find(event => event.basic['id'] === id)
+    ).filter(event => event).map(event => {
+      return {
+        ...event, interests:
+          Object.keys(userInterests).length > 0
+            ? userInterests[event?.basic?.id]
+            : undefined,
+      }
+    });
+    // console.log({ sadasdas111events: events });
     if (events.events.length === 0) {
       return [];
     }
-    return { ...events, count: count.length };
+    return { events: eventsFiltered, count: count.length };
   }
   async getEventFromProductDb(
     user: TCachedUser,
@@ -625,6 +637,9 @@ export class AccountService {
   }
   async updateAccountMembership(user: TCachedUser, data: MembershipDto) {
     return await this.accountDataService.updateAccountMembership(user, data);
+  } //cancelMembershipRenewal
+  async cancelMembershipRenewal(user: TCachedUser, data: UpdateCurrentMembershipDto) {
+    return await this.accountDataService.updateCurrentMemberShip(user, data);
   }
   async createMembershipToken(user: TCachedUser) {
     return this.accountDataService.createMembershipToken(user);

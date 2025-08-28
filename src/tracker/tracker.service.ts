@@ -4,6 +4,8 @@ import {
   blackListDomain,
   defaultEventTypes,
   LastActive,
+  membershipLimit,
+  membershipReverseMap,
   TCachedUser,
 } from 'src/utils/types';
 import {
@@ -34,6 +36,7 @@ import {
   AccessType,
   ExportSubSource,
   Prisma,
+  SubscriptionPlan,
   Tracker,
   TrackerTypeTag,
   User,
@@ -92,9 +95,11 @@ export class TrackerService {
       'active_lte',
       'eventTypes',
       'eventIds',
-      'show'
+      'show',
+      'showValues'
     ];
     Object.keys(filterValue).forEach((val) => {
+      console.log(val)
       if (!allowedFilters.includes(val)) {
         throw new HttpException('filter not allowed', HttpStatus.BAD_REQUEST);
       }
@@ -103,7 +108,7 @@ export class TrackerService {
 
   async createTracker(user: TCachedUser, data: CreateTrackerDto) {
     const nonEmptyParams = getNonEmptyParams(data.filterValues);
-    let convertedParams = {};
+    let convertedParams: any = {};
     let eventInfo: { count: number; events: { basic: object }[] } = {
       count: 0,
       events: [],
@@ -661,6 +666,7 @@ export class TrackerService {
     trackerId: string,
     params: GetTrackerEventsDto,
     showValues: string,
+    isExport: boolean | undefined = undefined
   ) {
     try {
       const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
@@ -669,6 +675,19 @@ export class TrackerService {
         'USER',
       ]);
       console.log(tracker);
+      const filterShowValues = (tracker.filterValues as any)['showValues'] ? (tracker.filterValues as any)['showValues'].split(',') : [];
+
+      if (Array.isArray(filterShowValues) && filterShowValues.length > 1) {
+        const isSubset = showValues.split(',').every(val => filterShowValues.includes(val));
+
+        if (!isSubset) {
+          throw new HttpException(
+            'Invalid showValues',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
+
       const newParams = getNonEmptyParams(params);
       const convertedParams = await this.sharedService.convertSlugParamsToIds(
         newParams,
@@ -738,6 +757,7 @@ export class TrackerService {
         ...convertedParams,
         trackerId: trackerId,
         showValues: showValues,
+        isExport
       } as QueryDto;
       if (searchByEntity) {
         eventParams['searchByEntity'] = searchByEntity;
@@ -783,6 +803,18 @@ export class TrackerService {
         'SUPER_ADMIN',
         'USER',
       ]);
+      const filterShowValues = (tracker.filterValues as any)['showValues'] ? (tracker.filterValues as any)['showValues'].split(',') : [];
+
+      if (Array.isArray(filterShowValues) && filterShowValues.length > 1) {
+        const isSubset = showValues.split(',').every(val => filterShowValues.includes(val));
+
+        if (!isSubset) {
+          throw new HttpException(
+            'Invalid showValues',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
       const [savedEvents, count] = await Promise.all([
         this.intentDataService.getUserEventInterest({
           interest: ['BOOKMARK'],
@@ -1509,7 +1541,18 @@ export class TrackerService {
         'USER',
       ]);
       console.log(tracker);
+      const filterShowValues = (tracker.filterValues as any)['showValues'] ? (tracker.filterValues as any)['showValues'].split(',') : [];
 
+      if (Array.isArray(filterShowValues) && filterShowValues.length > 1) {
+        const isSubset = showValues.split(',').every(val => filterShowValues.includes(val));
+
+        if (!isSubset) {
+          throw new HttpException(
+            'Invalid showValues',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
       const newParams = getNonEmptyParams(params);
       const convertedParams = await this.sharedService.convertSlugParamsToIds(
         newParams,
@@ -1842,7 +1885,7 @@ export class TrackerService {
     let [getJsonForTrackerType, jobsForIntelScore] = await Promise.all([
       this.redisService.jsonGet(
         `${trackerId}-IntelScore`,
-        `$.${query.trackerEventStatus}`,
+        `$.${String(query.trackerEventStatus)}`,
       ),
       this.redisService.jsonGet(`${trackerId}-IntelScore-Job`),
     ]);
@@ -1997,7 +2040,7 @@ export class TrackerService {
       for (const eventId of eventIds) {
         const data = await this.redisService.jsonGet(
           `${trackerId}-IntelScore`,
-          `$.${query.trackerEventStatus}.${eventId}`,
+          `$.${String(query.trackerEventStatus)}.${eventId}`,
         );
         if (!data) {
           continue;
@@ -2064,7 +2107,7 @@ export class TrackerService {
     let [getJsonForTrackerType, jobsForIntelScore] = await Promise.all([
       this.redisService.jsonGet(
         `${trackerId}-IntelScore`,
-        `$.${query.trackerEventStatus}`,
+        `$.${String(query.trackerEventStatus)}`,
       ),
       this.redisService.jsonGet(`${trackerId}-IntelScore-Job`),
     ]);
@@ -2558,8 +2601,19 @@ export class TrackerService {
     trackerId: string,
     user: TCachedUser,
     body: CreateTrackerExportsDto,
+    basicToken: number = 0,
+    advanceToken: number = 0,
   ) {
-    const trackerData = await this.getTracker(user, trackerId, {});
+    const [trackerData, membershipStatus] = await Promise.all([this.getTracker(user, trackerId, {}),
+    this.sharedService.getAccountMemberShipStatus(user.accountId)]);
+    if (!membershipLimit[membershipStatus.membership].exportAllowed) {
+      throw new HttpException(
+        `Your current membership (${membershipReverseMap[membershipStatus.membership]}) does not allow data export.`,
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    // console.log(trackerData);
+
     const allowerUserForExport: string[] = [
       ...JSON.parse(process.env.TRACKER_EXPORT_USERS_FULL_ACCESS || ''),
       ...JSON.parse(process.env.TRACKER_EXPORT_USERS_LIMITED_ACCESS || ''),
@@ -2570,6 +2624,7 @@ export class TrackerService {
         HttpStatus.FORBIDDEN,
       );
     }
+    const countOfTracker: object = trackerData['groupedEventsCount'] ? trackerData['groupedEventsCount'] : {};
     const trackerEventTypeMappingObj: object = {
       new: 'exportIdNew',
       active: 'exportIdActive',
@@ -2584,6 +2639,12 @@ export class TrackerService {
       exportIdSocial: 'TRACKER_SOCIAL_EVENT',
       exportIdUnattended: 'TRACKER_UNATTENDED_EVENT',
     };
+    let totalTokenNeededForExport: number = Math.min(Math.min(membershipLimit[membershipStatus.membership].upperLimit, advanceToken), body.type !== 'all' ? (
+      process.env.BACKEND === 'gtm'
+        ? countOfTracker[body.type]
+        : countOfTracker[body.type]['total']
+    ) : 0);
+    const is10TimesUser = user.email.split('@')[1] === '10times.com';
     const trackerTypeGTM: string[] = ['past', 'active', 'new'];
     const trackerTypeGEO: string[] = ['business', 'social', 'unattended'];
     const payload: trackerExportDto = {
@@ -2594,12 +2655,37 @@ export class TrackerService {
       trackerId: trackerData.id,
       redirectUrl:
         body.redirectUrl + `&targetId=${trackerData.id}&target=tracker`,
+      plan: Number(membershipStatus.membership)
     };
+
+    let exportInitiationCount: number = 0;
+
     if (body.type === 'all') {
       if (process.env.BACKEND === 'gtm') {
         for (const val of trackerTypeGTM) {
           const key = trackerEventTypeMappingObj[val];
           const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
+          if (countOfTracker[val] && countOfTracker[val] <= 0) {
+            continue;
+          }
+          totalTokenNeededForExport += Math.min
+            (Math.min(membershipLimit[membershipStatus.membership].upperLimit, advanceToken),
+              countOfTracker[val]);
+        }
+        if (totalTokenNeededForExport > advanceToken && !is10TimesUser) {
+          console.error(totalTokenNeededForExport, advanceToken);
+
+          throw new HttpException(
+            'Export cannot be initiated due to insufficient advance tokens.',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+        for (const val of trackerTypeGTM) {
+          const key = trackerEventTypeMappingObj[val];
+          const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
+          if (countOfTracker[val] && countOfTracker[val] <= 0) {
+            continue;
+          }
           const result = await this.trackerDataService.createExport(
             {
               exportOf,
@@ -2610,10 +2696,30 @@ export class TrackerService {
           );
           payload[key] = result.id;
         }
+        payload.totalTokenNeededForExport = totalTokenNeededForExport;
       } else {
         for (const val of trackerTypeGEO) {
           const key = trackerEventTypeMappingObj[val];
           const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
+          if (countOfTracker[val] && countOfTracker[val]['total'] <= 0) {
+            continue;
+          }
+          totalTokenNeededForExport += Math.min
+            (Math.min(membershipLimit[membershipStatus.membership].upperLimit, advanceToken),
+              countOfTracker[val]['total']);
+        }
+        if (totalTokenNeededForExport > advanceToken && !is10TimesUser) {
+          throw new HttpException(
+            'Export cannot be initiated due to insufficient advance tokens.',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+        for (const val of trackerTypeGEO) {
+          const key = trackerEventTypeMappingObj[val];
+          const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
+          if (countOfTracker[val] && countOfTracker[val]['total'] <= 0) {
+            continue;
+          }
           const result = await this.trackerDataService.createExport(
             {
               exportOf,
@@ -2623,9 +2729,32 @@ export class TrackerService {
             user,
           );
           payload[key] = result.id;
+          exportInitiationCount++;
         }
       }
+      payload.totalTokenNeededForExport = totalTokenNeededForExport;
     } else {
+      if (
+        (process.env.BACKEND === 'gtm' &&
+          countOfTracker[body.type] <= 0) ||
+        (process.env.BACKEND === 'geo' &&
+          countOfTracker[body.type] &&
+          countOfTracker[body.type]['total'] <= 0)
+      ) {
+        throw new HttpException(
+          'Export cannot be initiated.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (totalTokenNeededForExport > advanceToken && !is10TimesUser) {
+        throw new HttpException(
+          'Export cannot be initiated due to insufficient advance tokens.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      // console.log('countOfTracker[body.type]', countOfTracker[body.type], (process.env.BACKEND === 'gtm' &&
+      //   countOfTracker[body.type] <= 0));
+
       payload[trackerEventTypeMappingObj[body.type]] = (
         await this.trackerDataService.createExport(
           {
@@ -2638,11 +2767,15 @@ export class TrackerService {
           user,
         )
       ).id;
+      payload.totalTokenNeededForExport = totalTokenNeededForExport;
     }
-    // console.log(payload);
+    console.log(advanceToken, is10TimesUser, totalTokenNeededForExport, advanceToken - (is10TimesUser ? 0 : totalTokenNeededForExport));
 
     await this.trackerDataService.createTrackerExportJob(payload, user.id);
-    return { data: { message: 'Export initiated successfully' } };
+    return {
+      data: { message: 'Export initiated successfully' },
+      tokenDedcution: advanceToken - (is10TimesUser ? 0 : totalTokenNeededForExport)
+    };
   }
   async getTrackerEventDataExported(
     trackerId: string,

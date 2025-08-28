@@ -169,6 +169,8 @@ export class SuggestionDataService {
         throw new HttpException(error, HttpStatus.BAD_REQUEST);
       }
       if (dto.isDepartment || dto.isRole || dto.isDesignation) {
+        // console.log("datadatadatadata", data);
+
         return data;
       }
       return data.map((designation: any) =>

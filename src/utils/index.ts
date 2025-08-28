@@ -65,3 +65,20 @@ export interface TrackerIntelScoreJson {
 }
 
 export const REDIS_TTL = 1000 * 60 * 60 * 24 * 365;
+
+
+export const SearchByEntity = {
+  company: 'company',
+  user: 'user',
+  speaker: 'speaker',
+  event: 'event',
+  recruitment: 'recruitment',
+  keywords: 'keywords',
+};
+
+export const TrackerEventStatus = {
+  past: 'past',
+  active: 'active',
+  new: 'new',
+  all: 'all'
+};

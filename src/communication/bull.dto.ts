@@ -141,6 +141,8 @@ const trackerExportInputSchema = z.object({
   exportIdUnattended: z.string().optional(),
   type: z.enum(['all', 'past', 'active', 'new', 'business', 'social', 'unattended']),
   source: z.literal('TRACKER').default('TRACKER'),
+  plan: z.number(),
+  totalTokenNeededForExport: z.number().optional(),
 });
 
 export class trackerExportDto extends createZodDto(trackerExportInputSchema) { }
@@ -150,6 +152,17 @@ const usertrackerImportchema = z.object({
   sourceId: z.string()
 })
 export class UserTrackerImportDto extends createZodDto(usertrackerImportchema) { }
+const subscriptionCancel = z.strictObject({
+  userId: z.string(),
+  stripeId: z.string(),
+  cancelDate: z.string(),
+  subscriptionId: z.string(),
+  qna: z.record(z.string(), z.string()).optional(),
+  feedback: z.string(),
+  sourceId: z.string(),
+  userEmail: z.string(),
+});
+export class SubscriptionCancelDto extends createZodDto(subscriptionCancel) { }
 // Union of all DTO schemas
 export const PayloadDTO = z.union([
   AccessEmailDataSchema,
@@ -165,4 +178,5 @@ export const PayloadDTO = z.union([
   ErrorContactSchema,
   trackerExportInputSchema,
   usertrackerImportchema,
+  subscriptionCancel,
 ]);

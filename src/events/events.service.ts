@@ -50,6 +50,7 @@ export class EventsService {
     if (show.includes(Show.old)) {
       show = show.filter((item) => item !== Show.old);
     }
+
     const nonEmptyParams = getNonEmptyParams({ ...query, show });
     if (
       !nonEmptyParams.eventTypes ||
@@ -75,7 +76,7 @@ export class EventsService {
         configuration['filter'] &&
         Object.keys(configuration['filter']).length > 0
       ) {
-        const { result, rootTodiscard } = eventSearchFilterCheck(
+        const { result, rootTodiscard } = await eventSearchFilterCheck(
           configuration,
           queryParams,
         );
@@ -94,7 +95,7 @@ export class EventsService {
     // console.log({ convertedParams }, { nonEmptyParams });
     const fetchedEvents =
       await this.eventsDataService.getEvents(convertedParams);
-    // console.log({ convertedParams }, { nonEmptyParams });
+    // console.log(fetchedEvents);
     let events = fetchedEvents;
     if (['list', 'tracker'].includes(query.view)) {
       let userInterests = {};

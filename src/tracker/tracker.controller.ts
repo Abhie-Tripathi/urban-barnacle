@@ -25,7 +25,7 @@ import {
   UpdateTrackerHttpDto,
 } from './dto';
 import { GetUser } from 'src/user/decorator';
-import { membershipLimit, TCachedUser } from 'src/utils/types';
+import { eventAdvanceFields, membershipLimit, TCachedUser } from 'src/utils/types';
 import { AuthGuard } from 'src/user/auth/guard';
 import { GetCommentsDto } from 'src/comment/dto';
 import { CreateAccessHttpDto, UpdateAccessHttpDto } from 'src/access/dto';
@@ -148,51 +148,57 @@ export class TrackerController {
     @Query() query: GetTrackerEventsDto,
   ) {
     let flag = false;
+    let advanceDataFromResponse: boolean = false;
+    let totalpointsToDeduct: number = 0;
+    let point: number = 0;
+    let advancePoint: number = 0;
     try {
-      const [{ point, subscriptionId }, membershipStatus] = await Promise.all([
-        this.sharedService.getPointForRequest(
-          PointColumn.pendingRequests,
-          user.accountId,
-        ),
-        this.sharedService.getAccountMemberShipStatus(
-          user.accountId,
-        ),
-      ]);
-      // if (point <= 0) {
-      //   throw new HttpException(
-      //     'You have reached the maximum limit to view data. Please get in touch with us.',
-      //     HttpStatus.TOO_MANY_REQUESTS,
-      //   );
-      // }
-      if (
-        membershipLimit[membershipStatus.membership] -
-        ((query.limit || 10) + (query.offset || 0)) <
-        0
-      ) {
+      for (const val of query.showValues.split(',')) {
+        if (eventAdvanceFields[val] === 'advance') {
+          advanceDataFromResponse = true;
+          break;
+        }
+      }
+      if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
+        const tokens = await this.sharedService.getTokenDetails(user, query, !advanceDataFromResponse);
+        point = tokens.point;
+        advancePoint = tokens.advancePoint;
+        query = tokens.query;
+      }
+      if (advanceDataFromResponse && advancePoint <= 0) {
         throw new HttpException(
-          'You have reached the maximum limit to view data. Please get in touch with us.',
+          'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
           HttpStatus.TOO_MANY_REQUESTS,
+          { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) < (advancePoint * 0.5)}}` }
         );
       }
-      const showValues = 'basic,advance,insights,audience';
       const events = await this.trackerService.getTrackerEvents(
         user,
         id,
         query,
-        showValues,
+        query.showValues,
       );
-      await this.sharedService.deductPointForRequest(
-        PointColumn.pendingRequests,
-        user.accountId,
-        point - 1,
-      );
-      flag = true;
+      totalpointsToDeduct = Array.isArray(events.events) ? events.events.length : 1;
+      if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
+        // console.log("aibuuuuuuuuuuuuuuuuuuusj\n", point, advancePoint);
+
+        await this.sharedService.deductPointForRequest(
+          advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
+          user.accountId,
+          advanceDataFromResponse ? advancePoint - totalpointsToDeduct : point - totalpointsToDeduct,
+          // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+          // (advanceDataFromResponse ? advancePoint - 1 : 0),
+        );
+        flag = true;
+      }
       return { data: events };
     } catch (error) {
       if (flag)
         this.sharedService.creditPointForRequest(
-          PointColumn.pendingRequests,
+          advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
           user.accountId,
+          totalpointsToDeduct
+          // (advanceDataFromResponse ? : null),
         );
       return { error: error };
     }
@@ -242,16 +248,60 @@ export class TrackerController {
     @GetUser() user: TCachedUser,
     @Query() query: GetTrackerEventsDto,
   ) {
+    let flag = false;
+    let advanceDataFromResponse: boolean = false;
+    let totalpointsToDeduct: number = 0;
+    let point: number = 0;
+    let advancePoint: number = 0;
     try {
-      const showValues = 'basic,advance,insights,audience';
+      for (const val of query.showValues.split(',')) {
+        if (eventAdvanceFields[val] === 'advance') {
+          advanceDataFromResponse = true;
+          break;
+        }
+      }
+      if (advanceDataFromResponse && advancePoint <= 0) {
+        throw new HttpException(
+          'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
+          HttpStatus.TOO_MANY_REQUESTS,
+          { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) < (advancePoint * 0.5)}}` }
+        );
+      }
+
+      if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
+        const tokens = await this.sharedService.getTokenDetails(user, query, !advanceDataFromResponse);
+        point = tokens.point;
+        advancePoint = tokens.advancePoint;
+        query = tokens.query;
+      }
       const events = await this.trackerService.getTrackerSimilarEvents(
         user,
         id,
         query,
-        showValues,
+        query.showValues,
       );
+      totalpointsToDeduct = Array.isArray(events.events) ? events.events.length : 1;
+      if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
+        // console.log("aibuuuuuuuuuuuuuuuuuuusj\n", point, advancePoint);
+
+        await this.sharedService.deductPointForRequest(
+          advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
+          user.accountId,
+          advanceDataFromResponse ? advancePoint - totalpointsToDeduct : point - totalpointsToDeduct,
+          // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+          // (advanceDataFromResponse ? advancePoint - 1 : 0),
+        );
+        flag = true;
+      }
       return { data: events };
     } catch (error) {
+      if (flag)
+        this.sharedService.creditPointForRequest(
+          advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
+          user.accountId,
+          totalpointsToDeduct
+          // (advanceDataFromResponse ? : null),
+        );
       return { error: error };
     }
   }
@@ -282,12 +332,11 @@ export class TrackerController {
     @Query() query: GetTrackerEventsDto,
   ) {
     try {
-      const showValues = 'basic,advance,insights,audience';
       const events = await this.trackerService.getTrackerSavedEvents(
         user,
         id,
         query,
-        showValues,
+        query.showValues,
       );
       return { data: events };
     } catch (error) {
@@ -354,10 +403,40 @@ export class TrackerController {
     @GetUser() user: TCachedUser,
     @Body() query: CreateTrackerExportsDto,
   ) {
+    let flag = false;
+    let advanceDataFromResponse: boolean = true;
+    let creditAmmount: number = 0;
     try {
-      const tracker = await this.trackerService.createTrackerEventDataExported(id, user, query);
+      const [{ point, advancePoint }, membershipStatus] = await Promise.all([
+        this.sharedService.getPointForRequest(
+          PointColumn.pendingRequests,
+          user.accountId,
+          PointColumn.advancePendingRequests,
+        ),
+        this.sharedService.getAccountMemberShipStatus(
+          user.accountId,
+        ),
+      ]);
+      const tracker = await this.trackerService.createTrackerEventDataExported(id, user, query, point, advancePoint);
+      await this.sharedService.deductPointForRequest(
+        advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
+        user.accountId,
+        advanceDataFromResponse ? tracker.tokenDedcution : point - 1,
+        // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
+        // (advanceDataFromResponse ? advancePoint - 1 : 0),
+      );
+      flag = true;
+      creditAmmount = tracker.tokenDedcution;
+      console.log('tracker.tokenDedcution', tracker.tokenDedcution);
+
       return { data: tracker.data };
     } catch (error) {
+      if (flag)
+        this.sharedService.creditPointForRequest(
+          advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
+          user.accountId,
+          creditAmmount
+        );
       return { error: error };
     }
   }
@@ -388,28 +467,29 @@ export class TrackerController {
     } catch (error) {
       return { error: error };
     }
-  } @UseGuards(AuthGuard)
-  @Get(':id/intelScore/:passKey/cron')
-  async getTrackerIntelScoreForCron(
-    @Param('id') id: string,
-    @Param('passKey') passKey: string,
-    @GetUser() user: TCachedUser,
-    @Query() query: GetTrackerIntelScoreDto,
-  ) {
-    try {
-      if (process.env.CRON_PASSKEY !== passKey) {
-        throw new HttpException('Not Allowed', HttpStatus.FORBIDDEN);
-      }
-      const events = await this.trackerService.getTrackerIntelScoreForCron(
-        user,
-        id,
-        query,
-      );
-      return { data: events };
-    } catch (error) {
-      return { error: error };
-    }
   }
+  // @UseGuards(AuthGuard)
+  // @Get(':id/intelScore/:passKey/cron')
+  // async getTrackerIntelScoreForCron(
+  //   @Param('id') id: string,
+  //   @Param('passKey') passKey: string,
+  //   @GetUser() user: TCachedUser,
+  //   @Query() query: GetTrackerIntelScoreDto,
+  // ) {
+  //   try {
+  //     if (process.env.CRON_PASSKEY !== passKey) {
+  //       throw new HttpException('Not Allowed', HttpStatus.FORBIDDEN);
+  //     }
+  //     const events = await this.trackerService.getTrackerIntelScoreForCron(
+  //       user,
+  //       id,
+  //       query,
+  //     );
+  //     return { data: events };
+  //   } catch (error) {
+  //     return { error: error };
+  //   }
+  // }
   @UseGuards(AuthGuard)
   @Get(':id')
   async getTracker(

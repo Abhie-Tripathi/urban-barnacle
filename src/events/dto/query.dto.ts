@@ -1,14 +1,16 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { SortByOptions, Regions, timezones } from 'src/utils';
+import { SortByOptions, Regions, timezones, TrackerEventStatus, SearchByEntity } from 'src/utils';
 import {
   defaultEventTypes,
+  eventAdvanceFields,
   EventStatus,
   EventTypeGroup,
   ValidEventTypes,
   VisitorRangeTag,
 } from 'src/utils/types';
 import { LimitSchema, LimitSchemaWithoutDefault } from 'src/global_dto';
+// import { SearchByEntity, TrackerEventStatus } from 'src/tracker/dto';
 
 const scoreRange = {
   lte: 100,
@@ -21,7 +23,6 @@ const refineScore = {
     message: `score should be between ${scoreRange.gte} and ${scoreRange.lte}`,
   },
 };
-
 const Range = {
   gte: 0,
 };
@@ -124,7 +125,7 @@ export enum AudienceZone {
   regional,
   global,
 }
-const conditionsSchema = z
+export const conditionsSchema = z
   .strictObject({
     logic: z.enum(['AND', 'OR']).optional(),
     departmentIds: z.array(z.string()).optional(),
@@ -143,9 +144,11 @@ const conditionsSchema = z
       path: ['logic'], // Apply the error to the `logic` key
     }
   );
-const jobCompositeSchema = z.strictObject({
+export const jobCompositeSchema = z.strictObject({
   designationIds: z.array(z.string()).optional(),
+  logic: z.enum(['AND', 'OR']).default('AND'),
   conditions: conditionsSchema.optional(),
+  properties: z.any(),
 });
 export const viewBound = z
   .object({
@@ -410,11 +413,12 @@ export const QueryFilter = z.object({
     .optional(),
   show: z
     .string()
-    .refine((val) => val.split(',').every((item) => item in Show))
+    .optional()
     .transform((val) =>
-      val.split(',').map((item) => item.trim() as unknown as Show),
-    )
-    .optional(),
+      val
+        ? val.split(',').map((item) => item.trim() as unknown as Show)
+        : undefined
+    ),
   ratings: z
     .string()
     .refine((val) => val.split(',').every((item) => item in Rating))
@@ -633,6 +637,39 @@ export const QueryFilter = z.object({
       if (!val) return undefined;
       return JSON.stringify(val);
     }),
+  orgName: z.string().optional(),
+  // orgId: z.string().optional(),
+  orgWebsite: z.string().optional(),
+  userName: z.string().optional(),
+  userOrgWebsite: z.string().optional(),
+  // userSocialLink: z.string().optional(),
+  // userDepartment: z.string().optional(),
+  // userRole: z.string().optional(),
+  // userDesignation: z.string().optional(),
+  searchByEntity: z
+    .string()
+    .refine((val) => val in SearchByEntity)
+    .transform((val) => val as keyof typeof SearchByEntity)
+    .optional(),
+  trackerEventStatus: z
+    .string()
+    .refine((val) => val in TrackerEventStatus)
+    .transform((val) => val as keyof typeof TrackerEventStatus)
+    .optional(),
+  showValues: z.string()
+    .default('basic')
+    .transform(val => val ?? 'basic')
+    .refine(val => {
+      const keys = Object.keys(eventAdvanceFields);
+      const values = val.split(',').map(v => v.trim());
+
+      const allValid = values.every(subValue => keys.includes(subValue));
+      const includesBasic = values.includes('basic');
+
+      return allValid && includesBasic;
+    }, {
+      message: 'showValues must include "basic" and only contain valid keys.'
+    })
 });
 
 export const FilterNames = Object.keys(QueryFilter.shape);
@@ -673,6 +710,16 @@ export const QueryHttpSchema = LimitSchemaWithoutDefault.extend(
         message: 'Invalid request source',
         params: { validOptions: ['research', 'trends'].join(', ') },
       })
+      .optional(),
+    // trackerEventStatus: z
+    //   .string()
+    //   .refine((val) => val in TrackerEventStatus)
+    //   .transform((val) => val as keyof typeof TrackerEventStatus)
+    //   .optional(),
+    searchByEntity: z
+      .string()
+      .refine((val) => val in SearchByEntity)
+      .transform((val) => val as keyof typeof SearchByEntity)
       .optional(),
   })
   .transform((data) => {
@@ -717,7 +764,6 @@ export class QueryHttpDto extends createZodDto(
 ) { }
 
 export const QuerySchema = QueryHttpSchema.innerType().extend({
-  showValues: z.string(),
   viewBounds: z.string().optional(),
 });
 
@@ -786,7 +832,7 @@ export const CountQuerySchema = QueryFilter.extend({
   return data;
 });
 
-export class CountQueryDto extends createZodDto(CountQuerySchema) {  }
+export class CountQueryDto extends createZodDto(CountQuerySchema) { }
 const similarEventsSchema = QuerySchema.omit({ showValues: true })
   .extend({
     showValues: z.string().default('basic,advance,insights,audience'),
