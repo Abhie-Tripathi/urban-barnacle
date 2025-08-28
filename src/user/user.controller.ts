@@ -68,7 +68,7 @@ export class UserController {
       if (query.limit && query.limit > point) {
         query.limit = point;
       }
-      const result = await this.userService.getUserProspectData(query);
+      const result = await this.userService.getUserProspectData(query, userData);
       totalpointsToDeduct = Array.isArray(result.data.userData) ? result.data.userData.length : 1;
       await this.sharedService.deductPointForRequest(
         PointColumn.pendingCompanySearchRequests,
