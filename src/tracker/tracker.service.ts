@@ -24,6 +24,7 @@ import {
 import { AccessService } from 'src/access/access.service';
 import { AccessDataService } from 'src/access/access.data.service';
 import {
+  deleteKeyDeep,
   getNameFromEmail,
   getNonEmptyParams,
   TrackerIntelScoreJson,
@@ -140,6 +141,7 @@ export class TrackerService {
       //   };
       // });
     }
+    delete convertedParams['searchByEntity'];
     const tracker = await this.trackerDataService.createTracker(user, {
       ...data,
       filterValues: convertedParams,
@@ -219,6 +221,7 @@ export class TrackerService {
           showValues: 'basic',
         }) as unknown as { count: number; events: { basic: object }[] },
       ]);
+      tracker.filterValues['isSimilar'] = true;
     }
     const savedEventsCount =
       await this.intentDataService.getUserEventInterestCount({
@@ -230,7 +233,7 @@ export class TrackerService {
       });
 
     const groupBy =
-      searchByEntity || this.configService.get('BACKEND') === 'gtm'
+      (this.configService.get('BACKEND') === 'gtm')
         ? CountGroup.status
         : this.configService.get('BACKEND') === 'geo'
           ? CountGroup.eventTypeGroup
@@ -260,14 +263,14 @@ export class TrackerService {
             groupBy ? groupBy : undefined,
           )) ||
             (this.configService.get('BACKEND') && this.configService.get('BACKEND') === 'gtm'
-              ? ({ active: 0, new: 0, past: 0 }) : ({ social: 0, business: 0, unattended: 0 }))
+              ? ({ active: 0, new: 0, past: 0 }) :
+              ({ social: { total: 0, new: 0 }, business: { total: 0, new: 0 }, unattended: { total: 0, new: 0 } }))
             ;
-          console.log(groupedEventsCount);
+          // console.log("sdasd", groupedEventsCount);
 
-          if (
-            this.configService.get('BACKEND') &&
-            this.configService.get('BACKEND').toLowerCase() === 'gtm' && groupedEventsCount
-            && (groupedEventsCount['active'] !== 0 || groupedEventsCount['new'] !== 0 || groupedEventsCount['past'] !== 0)
+          if (groupedEventsCount
+            && ((process.env.BACKEND === 'gtm' && (groupedEventsCount['active'] !== 0 || groupedEventsCount['new'] !== 0 || groupedEventsCount['past'] !== 0))
+              || (process.env.BACKEND === 'geo' && (groupedEventsCount['social']['total'] !== 0 || groupedEventsCount['business']['total'] !== 0 || groupedEventsCount['unattended']['total'] !== 0)))
           ) {
 
             if (searchByEntity && searchByEntity === 'event') {
@@ -275,84 +278,131 @@ export class TrackerService {
               await this.trackerDataService.bulkDeleteToSimilarTrackerEvent(
                 tracker.id,
               );
-              const similarEventCache = {
-                ...groupedEventsCount!['similarEventCache'],
-              };
-              delete groupedEventsCount!['similarEventCache'];
-              groupedEventsCount = groupedEventsCount!['count'];
-              if (searchByEntity && searchByEntity === 'event') {
-                const trackerSimilarEventPauload: {
-                  trackerId: string;
-                  eventId: string;
-                  count: number;
-                  tag: TrackerTypeTag;
-                  sourceId: number;
-                  score: number;
-                }[] = [];
+              let similarEventCache =
 
+                {};
+              if (process.env.BACKEND === 'gtm') {
+                similarEventCache = {
+                  ...groupedEventsCount!['similarEventCache'],
+                };
+                delete groupedEventsCount!['similarEventCache'];
+                groupedEventsCount = groupedEventsCount!['count'];
+              }
+              const trackerSimilarEventPauload: {
+                trackerId: string;
+                eventId: string;
+                count: number;
+                tag: TrackerTypeTag;
+                sourceId: number;
+                score: number;
+              }[] = [];
+              const payloadConstruct = (eventUuids: string, tag: TrackerTypeTag) => {
+                const dataOfEvent = eventUuids.split(',');
+                const countOfEvents = dataOfEvent.length;
+                for (const eachPastData of dataOfEvent) {
+                  const eventIds: string[] = eachPastData.split('#');
+                  trackerSimilarEventPauload.push({
+                    trackerId: tracker.id,
+                    count: countOfEvents,
+                    eventId: eventIds[0],
+                    sourceId: Number(eventIds[1]),
+                    tag: tag,
+                    score: similarEventCache[eventIds[1]] || 0,
+                  });
+                }
+              }
+              if (process.env.BACKEND === 'geo') {
+                if (groupedEventsCount!['social']['total_event_ids']
+                  && groupedEventsCount!['social']['similarEventCache']) {
+                  similarEventCache = groupedEventsCount!['social']['similarEventCache'];
+                  payloadConstruct(groupedEventsCount!['social']['total_event_ids'] as string, 'SOCIAL')
+                  delete groupedEventsCount!['social']['total_event_ids'];
+                  delete groupedEventsCount!['social']['similarEventCache'];
+                }
+                if (groupedEventsCount!['business']['total_event_ids']
+                  && groupedEventsCount!['business']['similarEventCache']) {
+                  similarEventCache = groupedEventsCount!['business']['similarEventCache'];
+                  payloadConstruct(groupedEventsCount!['business']['total_event_ids'] as string, 'BUSINESS')
+                  delete groupedEventsCount!['business']['total_event_ids'];
+                  delete groupedEventsCount!['business']['similarEventCache'];
+                }
+                if (groupedEventsCount!['unattended']['total_event_ids']
+                  && groupedEventsCount!['unattended']['similarEventCache']) {
+                  similarEventCache = groupedEventsCount!['unattended']['similarEventCache'];
+                  payloadConstruct(groupedEventsCount!['unattended']['total_event_ids'] as string, 'UNATTENTED')
+                  delete groupedEventsCount!['unattended']['total_event_ids'];
+                  delete groupedEventsCount!['unattended']['similarEventCache'];
+                }
+              }
+              if (process.env.BACKEND === 'gtm') {
                 if (groupedEventsCount!['past_ids']) {
-                  const pastData = (
-                    groupedEventsCount!['past_ids'] as string
-                  ).split(',');
-                  const pastCount: number = pastData.length;
-                  for (const eachPastData of pastData) {
-                    const eventIds: string[] = eachPastData.split('#');
+                  // const pastData = (
+                  //   groupedEventsCount!['past_ids'] as string
+                  // ).split(',');
+                  // const pastCount: number = pastData.length;
+                  // for (const eachPastData of pastData) {
+                  //   const eventIds: string[] = eachPastData.split('#');
 
-                    trackerSimilarEventPauload.push({
-                      trackerId: tracker.id,
-                      count: pastCount,
-                      eventId: eventIds[0],
-                      sourceId: Number(eventIds[1]),
-                      tag: 'PAST',
-                      score: similarEventCache[eventIds[1]] || 0,
-                    });
-                  }
+                  //   trackerSimilarEventPauload.push({
+                  //     trackerId: tracker.id,
+                  //     count: pastCount,
+                  //     eventId: eventIds[0],
+                  //     sourceId: Number(eventIds[1]),
+                  //     tag: 'PAST',
+                  //     score: similarEventCache[eventIds[1]] || 0,
+                  //   });
+                  // }
+                  payloadConstruct(groupedEventsCount!['past_ids'] as string, 'PAST')
                 }
                 delete groupedEventsCount!['past_ids'];
                 if (groupedEventsCount!['active_ids']) {
-                  const activeData = (
-                    groupedEventsCount!['active_ids'] as string
-                  ).split(',');
-                  const activeCount: number = activeData.length;
-                  for (const eachActiveData of activeData) {
-                    const eventIds: string[] = eachActiveData.split('#');
-                    trackerSimilarEventPauload.push({
-                      trackerId: tracker.id,
-                      count: activeCount,
-                      eventId: eventIds[0],
-                      sourceId: Number(eventIds[1]),
-                      tag: 'ACTIVE',
-                      score: similarEventCache[eventIds[1]] || 0,
-                    });
-                  }
+                  // const activeData = (
+                  //   groupedEventsCount!['active_ids'] as string
+                  // ).split(',');
+                  // const activeCount: number = activeData.length;
+                  // for (const eachActiveData of activeData) {
+                  //   const eventIds: string[] = eachActiveData.split('#');
+                  //   trackerSimilarEventPauload.push({
+                  //     trackerId: tracker.id,
+                  //     count: activeCount,
+                  //     eventId: eventIds[0],
+                  //     sourceId: Number(eventIds[1]),
+                  //     tag: 'ACTIVE',
+                  //     score: similarEventCache[eventIds[1]] || 0,
+                  //   });
+                  // }
+                  payloadConstruct(groupedEventsCount!['active_ids'] as string, 'ACTIVE')
                 }
                 delete groupedEventsCount!['active_ids'];
                 if (groupedEventsCount!['new_ids']) {
-                  const newData = (
-                    groupedEventsCount!['new_ids'] as string
-                  ).split(',');
-                  const newCount: number = newData.length;
-                  for (const eachNewData of newData) {
-                    const eventIds: string[] = eachNewData.split('#');
-                    trackerSimilarEventPauload.push({
-                      trackerId: tracker.id,
-                      count: newCount,
-                      eventId: eventIds[0],
-                      sourceId: Number(eventIds[1]),
-                      tag: 'NEW',
-                      score: similarEventCache[eventIds[1]] || 0,
-                    });
-                  }
+                  // const newData = (
+                  //   groupedEventsCount!['new_ids'] as string
+                  // ).split(',');
+                  // const newCount: number = newData.length;
+                  // for (const eachNewData of newData) {
+                  //   const eventIds: string[] = eachNewData.split('#');
+                  //   trackerSimilarEventPauload.push({
+                  //     trackerId: tracker.id,
+                  //     count: newCount,
+                  //     eventId: eventIds[0],
+                  //     sourceId: Number(eventIds[1]),
+                  //     tag: 'NEW',
+                  //     score: similarEventCache[eventIds[1]] || 0,
+                  //   });
+                  // }
+                  payloadConstruct(groupedEventsCount!['new_ids'] as string, 'NEW')
                 }
                 delete groupedEventsCount!['new_ids'];
-                if (trackerSimilarEventPauload.length > 0) {
-                  await this.trackerDataService.bulkInsertToSimilarTrackerEvent(
-                    trackerSimilarEventPauload,
-                  );
-                }
               }
+              groupedEventsCount = deleteKeyDeep(groupedEventsCount, 'similarEventCache')
+              if (trackerSimilarEventPauload.length > 0) {
+                await this.trackerDataService.bulkInsertToSimilarTrackerEvent(
+                  trackerSimilarEventPauload,
+                );
+              }
+
             }
-            if (!groupedEventsCount) {
+            if (!groupedEventsCount && process.env.BACKEND === 'gtm') {
               groupedEventsCount = {
                 active: 0,
                 new: 0,
@@ -554,18 +604,33 @@ export class TrackerService {
           false,
         ),
       ]);
+      // console.log(business);
+      //  console.log(" console.log console.logsocial")
+      // console.log(social);
+      // console.log(" console.log console.logunattended")
+      // console.log(unattended);
+
       return {
         social: {
-          total: social.count,
+          total: social.count ?? 0,
           new: social.new ?? 0,
+          new_event_ids: social.new_event_ids || undefined,
+          total_event_ids: social.total_event_ids || undefined,
+          similarEventCache: social.similarEventCache || undefined,
         },
         business: {
-          total: business.count,
+          total: business.count ?? 0,
           new: business.new ?? 0,
+          new_event_ids: business.new_event_ids || undefined,
+          total_event_ids: business.total_event_ids || undefined,
+          similarEventCache: business.similarEventCache || undefined,
         },
         unattended: {
-          total: unattended.count,
+          total: unattended.count ?? 0,
           new: unattended.new ?? 0,
+          new_event_ids: unattended.new_event_ids || undefined,
+          total_event_ids: unattended.total_event_ids || undefined,
+          similarEventCache: unattended.similarEventCache || undefined,
         },
       };
     }
@@ -593,7 +658,9 @@ export class TrackerService {
       'ADMIN',
       'SUPER_ADMIN',
     ]);
-
+    if (tracker.source && tracker.source.toLowerCase().includes('import_10t')) {
+      throw new HttpException('Invalid Request', HttpStatus.BAD_REQUEST);
+    }
     const updateParams = {
       ...data,
       id: tracker.id,
@@ -766,6 +833,7 @@ export class TrackerService {
         eventParams,
         false,
         user,
+        tracker.source?.toLowerCase()?.includes('import_10t') ? true : false
       );
       return events;
     } catch (error) {
@@ -822,7 +890,7 @@ export class TrackerService {
           sourceId: tracker.id,
           // interestedUserId: user.id,
           accountId: user.accountId,
-          limit: params.limit,
+          limit: params.view === View.calendar ? 10000 : params.limit,
           offset: params.offset,
         }),
         this.intentDataService.getUserEventInterestCountForBookmark({
@@ -876,10 +944,10 @@ export class TrackerService {
 
       const eventParams = {
         eventIds: savedEventsIds,
+        view: View.tracker,
         ...convertedParams,
         limit: params.limit,
         offset: 0,
-        view: View.tracker,
         showValues: showValues,
       } as QueryDto;
 
@@ -1610,7 +1678,7 @@ export class TrackerService {
                 'trackerEventStatus'
               ]?.toUpperCase() as TrackerTypeTag,
             ]
-            : ['NEW', 'ACTIVE', 'PAST'],
+            : process.env.BACKEND === 'gtm' ? ['NEW', 'ACTIVE', 'PAST'] : ['BUSINESS', 'SOCIAL', 'UNATTENTED'],
           1000,
           0,
         );
@@ -1758,7 +1826,7 @@ export class TrackerService {
                 'trackerEventStatus'
               ]?.toUpperCase() as TrackerTypeTag,
             ]
-            : ['NEW', 'ACTIVE', 'PAST'],
+            : process.env.BACKEND === 'gtm' ? ['NEW', 'ACTIVE', 'PAST'] : ['BUSINESS', 'SOCIAL', 'UNATTENTED'],
           1000,
           0,
         );
@@ -2665,7 +2733,7 @@ export class TrackerService {
         for (const val of trackerTypeGTM) {
           const key = trackerEventTypeMappingObj[val];
           const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
-          if (countOfTracker[val] && countOfTracker[val] <= 0) {
+          if (!isNaN(Number(countOfTracker[val])) && countOfTracker[val] <= 0) {
             continue;
           }
           totalTokenNeededForExport += Math.min
@@ -2683,7 +2751,7 @@ export class TrackerService {
         for (const val of trackerTypeGTM) {
           const key = trackerEventTypeMappingObj[val];
           const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
-          if (countOfTracker[val] && countOfTracker[val] <= 0) {
+          if ((!isNaN(Number(countOfTracker[val]))) && countOfTracker[val] <= 0) {
             continue;
           }
           const result = await this.trackerDataService.createExport(
@@ -2701,7 +2769,7 @@ export class TrackerService {
         for (const val of trackerTypeGEO) {
           const key = trackerEventTypeMappingObj[val];
           const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
-          if (countOfTracker[val] && countOfTracker[val]['total'] <= 0) {
+          if ((!isNaN(Number(countOfTracker[val]))) && countOfTracker[val]['total'] <= 0) {
             continue;
           }
           totalTokenNeededForExport += Math.min
@@ -2717,7 +2785,7 @@ export class TrackerService {
         for (const val of trackerTypeGEO) {
           const key = trackerEventTypeMappingObj[val];
           const exportOf = trackerEventTypeMappingObj[key] as ExportSubSource;
-          if (countOfTracker[val] && countOfTracker[val]['total'] <= 0) {
+          if (!isNaN(Number(countOfTracker[val])) && countOfTracker[val]['total'] <= 0) {
             continue;
           }
           const result = await this.trackerDataService.createExport(

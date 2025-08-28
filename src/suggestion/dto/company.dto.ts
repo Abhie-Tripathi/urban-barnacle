@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { SuggestionSchema } from '.';
 import { createZodDto } from 'nestjs-zod';
 
 export const CompanySchema = z.object({

@@ -38,7 +38,6 @@ import {
 import { RedisService } from 'src/redis/redis.service';
 import { jobCompositeSchema } from 'src/events/dto';
 import { IntentDataService } from 'src/intent/intent.data.service';
-import { log } from 'console';
 
 @Injectable()
 export class SharedService {
@@ -580,7 +579,16 @@ export class SharedService {
           },
         };
       }
-      const [companyData, totalCount] = await callMicroService(query);
+      if (viewAs === 'list' && query.companyId) {
+        query.companyId = query.companyId.split(',').map(val => decrypt(val).replace(
+          process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+          '',
+        )).join(',')
+      }
+      const [companyData, totalCount] = await callMicroService({
+        ...query, viewAs,
+        viewBy
+      });
       return { data: { companyData, totalCount } };
     }
 
@@ -594,7 +602,16 @@ export class SharedService {
           data: { userData: await callMicroService({ userId: query.userId }) },
         };
       }
-      const [userData, totalCount] = await callMicroService(query);
+      if (viewAs === 'list' && query.userId) {
+        query.userId = query.userId.split(',').map(val => decrypt(val).replace(
+          process.env.TEN_TIMES_ID_ENCRYPT_KEY!,
+          '',
+        )).join(',')
+      }
+      const [userData, totalCount] = await callMicroService({
+        ...query, viewAs,
+        viewBy
+      });
       return { data: { userData, totalCount } };
     }
     return { data: { message: 'Wrong view selected' } };
@@ -678,7 +695,8 @@ export class SharedService {
           where: {
             id: pointsData.currentSubscriptionId
           }, data: {
-            deleted: true
+            deleted: true,
+            updatedAt: new Date(),
           }
         })
           ,
@@ -722,7 +740,8 @@ export class SharedService {
                 pendingProspectPocUnlockRequests: 20000,
               } : {
                 pendingRequests: 200,
-              })
+              }),
+            updatedAt: new Date(),
           }
         });
         basicPoints = dailyCreaditForBasic[column];
@@ -805,15 +824,15 @@ export class SharedService {
     accountId: string,
     remainingPoints: number,) {
     const { point, subscriptionId } = await this.getPointForRequest(column, accountId, PointColumn.advancePendingRequests);
-    // if (point <= 0) {
-    //   throw new HttpException(
-    //     `You have reached the maximum limit to view data. Please get in touch with us.`,
-    //     HttpStatus.TOO_MANY_REQUESTS,
-    //   );
-    // }
+    if (point <= 0) {
+      throw new HttpException(
+        `You have reached the maximum limit to view data. Please get in touch with us.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
     await this.prisma.subscription.update({
       where: { id: subscriptionId },
-      data: { [column]: remainingPoints },
+      data: { [column]: remainingPoints,updatedAt: new Date(), },
     });
     return { data: { message: 'points updated' } };
   }
@@ -821,7 +840,7 @@ export class SharedService {
     const { point, advancePoint, subscriptionId } = await this.getPointForRequest(column, accountId, PointColumn.advancePendingRequests);
     await this.prisma.subscription.update({
       where: { id: subscriptionId },
-      data: { [column]: point + creditAmmount, },
+      data: { [column]: point + creditAmmount, updatedAt: new Date(), },
     });
     return { data: { message: 'points updated' } };
   }

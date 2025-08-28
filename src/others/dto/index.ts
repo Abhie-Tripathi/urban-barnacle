@@ -56,3 +56,8 @@ export const contactUsSchema = demoContactSchema.omit({
   subscribe: true,
 }).extend({ message: z.string() })
 export class ContactUsDto extends createZodDto(contactUsSchema) { }
+export const trackerShareAccess = z.strictObject({
+  trackerId: z.string().uuid(),
+  accessReceiverEmail: z.string().email()
+})
+export class TrackerShareAccessDto extends createZodDto(trackerShareAccess) { }

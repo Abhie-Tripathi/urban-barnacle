@@ -2,7 +2,7 @@ import { createZodDto } from "nestjs-zod";
 import { jobCompositeSchema, Show, View } from "src/events/dto";
 import { LimitDto, LimitSchema } from "src/global_dto";
 import { SearchByEntity, TrackerEventStatus } from "src/utils";
-import { VisitorRangeTag } from "src/utils/types";
+import { EventTypeGroup, VisitorRangeTag } from "src/utils/types";
 import { z } from "zod";
 
 const QueryFilter = LimitSchema.extend({
@@ -415,13 +415,13 @@ const QueryFilter = LimitSchema.extend({
     //     )
     //     .transform((val) => val.split(','))
     //     .optional(),
-    //   eventTypeGroup: z
-    //     .string()
-    //     .refine((val) => val in EventTypeGroup, {
-    //       message: 'Invalid eventTypeGroup',
-    //       params: { validOptions: Object.keys(EventTypeGroup).join(', ') },
-    //     })
-    //     .optional(),
+      eventTypeGroup: z
+        .string()
+        .refine((val) => val in EventTypeGroup, {
+          message: 'Invalid eventTypeGroup',
+          params: { validOptions: Object.keys(EventTypeGroup).join(', ') },
+        })
+        .optional(),
     createdAt: z
         .string()
         .refine(

@@ -15,6 +15,7 @@ import { GetUser } from 'src/user/decorator';
 import { membershipLimit, TCachedUser } from 'src/utils/types';
 import { AuthGuard } from 'src/user/auth/guard';
 import { CompanyEventDto } from './dto';
+import { LimitDto } from 'src/global_dto';
 
 @Controller('companies')
 export class CompanyController {
@@ -68,6 +69,7 @@ export class CompanyController {
       const result = await this.companyService.getCompanyProspectData(
         query,
         'list',
+        userData
       );
       totalpointsToDeduct = Array.isArray(result.data.companyData) ? result.data.companyData.length : 1;
       await this.sharedService.deductPointForRequest(
@@ -190,6 +192,17 @@ export class CompanyController {
     }
   }
   @UseGuards(AuthGuard)
+  @Get('saved-companies')
+  async getSavedCompanies(@Query() query: LimitDto, @GetUser() userData: TCachedUser,) {
+    try {
+      const result = await this.companyService.getSavedCompanies(query, userData);
+      return result;
+    } catch (error) {
+      return { error: error };
+    }
+  }
+
+  @UseGuards(AuthGuard)
   @Get(':companyId')
   async getCompanyDetails(
     @Param('companyId') compnayId: string,
@@ -230,6 +243,7 @@ export class CompanyController {
       const result = await this.companyService.getCompanyProspectData(
         { companyId: compnayId, limit: 10, offset: 0 },
         'detail',
+        userData
       );
       const totalpointsToDeduct: number = Array.isArray(result.data.companyData) ? result.data.companyData.length : 1;
       // await this.sharedService.deductPointForRequest(PointColumn.pendingCompanySearchRequests, userData.accountId, point - 1)

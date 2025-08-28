@@ -38,7 +38,7 @@ export class IntentDataService {
     if (!data.eventId) {
       throw new HttpException('Event id is required', HttpStatus.BAD_REQUEST);
     }
-    if ((data.sourceModule !== 'RESEARCH' && data.sourceModule !== 'PROMOTED_EVENT') && !data.sourceId) {
+    if ((!data.sourceModule.includes('RESEARCH') && data.sourceModule !== 'PROMOTED_EVENT') && !data.sourceId) {
       throw new HttpException('Source id is required ', HttpStatus.BAD_REQUEST);
     }
     if (data.sourceModule === 'RESEARCH' && data.sourceId) {
@@ -96,7 +96,7 @@ export class IntentDataService {
     }
     const userEventInterestsCount = await this.prisma.userEventInterest.findMany({
       where: { ...rest, deleted: false },
-      distinct: ['id'],
+      distinct: ['eventId'],
       select: {
         id: true
       }
@@ -121,6 +121,8 @@ export class IntentDataService {
       skip: offset,
       take: limit,
     });
+    console.log(userEventInterests);
+
     return userEventInterests;
   }
 
