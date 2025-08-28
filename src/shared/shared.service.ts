@@ -695,7 +695,8 @@ export class SharedService {
           where: {
             id: pointsData.currentSubscriptionId
           }, data: {
-            deleted: true
+            deleted: true,
+            updatedAt: new Date(),
           }
         })
           ,
@@ -739,7 +740,8 @@ export class SharedService {
                 pendingProspectPocUnlockRequests: 20000,
               } : {
                 pendingRequests: 200,
-              })
+              }),
+            updatedAt: new Date(),
           }
         });
         basicPoints = dailyCreaditForBasic[column];
@@ -822,15 +824,15 @@ export class SharedService {
     accountId: string,
     remainingPoints: number,) {
     const { point, subscriptionId } = await this.getPointForRequest(column, accountId, PointColumn.advancePendingRequests);
-    // if (point <= 0) {
-    //   throw new HttpException(
-    //     `You have reached the maximum limit to view data. Please get in touch with us.`,
-    //     HttpStatus.TOO_MANY_REQUESTS,
-    //   );
-    // }
+    if (point <= 0) {
+      throw new HttpException(
+        `You have reached the maximum limit to view data. Please get in touch with us.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
     await this.prisma.subscription.update({
       where: { id: subscriptionId },
-      data: { [column]: remainingPoints },
+      data: { [column]: remainingPoints,updatedAt: new Date(), },
     });
     return { data: { message: 'points updated' } };
   }
@@ -838,7 +840,7 @@ export class SharedService {
     const { point, advancePoint, subscriptionId } = await this.getPointForRequest(column, accountId, PointColumn.advancePendingRequests);
     await this.prisma.subscription.update({
       where: { id: subscriptionId },
-      data: { [column]: point + creditAmmount, },
+      data: { [column]: point + creditAmmount, updatedAt: new Date(), },
     });
     return { data: { message: 'points updated' } };
   }

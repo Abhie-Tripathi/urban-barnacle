@@ -788,6 +788,7 @@ export class ExportWorkerClass extends WorkerHost {
                         },
                         data: {
                             advancePendingRequests: creditAmountIfFalied * 10,
+                            updatedAt: new Date(),
                         }
                     });
                 } catch (error) {
