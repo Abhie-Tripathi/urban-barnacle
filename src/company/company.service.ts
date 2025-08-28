@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { EventDataDto } from 'src/events/dto';
 import { transformEventData } from 'src/events/global.service';
+import { LimitDto } from 'src/global_dto';
+import { IntentDataService } from 'src/intent/intent.data.service';
 import { ProspectSchemaDto } from 'src/shared/shared.dto';
 import { SharedService } from 'src/shared/shared.service';
 import { decrypt, encrypt } from 'src/utils';
@@ -9,13 +11,73 @@ import { defaultEventTypes, TCachedUser } from 'src/utils/types';
 
 @Injectable()
 export class CompanyService {
-  constructor(private readonly sharedService: SharedService) {}
-  async getCompanyProspectData(query: ProspectSchemaDto, viewAs: string) {
-    return await this.sharedService.getCompanyAndUserDataForProspect(
+  constructor(private readonly sharedService: SharedService,
+    private readonly intentDataService: IntentDataService,
+  ) { }
+  async getCompanyProspectData(query: ProspectSchemaDto, viewAs: string, userData: TCachedUser) {
+    const result: { data: { totalCount: number, companyData: any } } = await this.sharedService.getCompanyAndUserDataForProspect(
       query,
       viewAs,
       'company',
+    ) as any;
+    let userInterests = await this.sharedService.getGroupedEventInterests(
+      userData,
+      Array.isArray(result.data.companyData) ?
+        result.data.companyData.map((company) => company.id) : [result.data.companyData.id],
+      // query.trackerId,
     );
+    if (Array.isArray(result.data.companyData)) {
+      result.data.companyData = result.data.companyData.map((company) => {
+        return {
+          ...company,
+          interests: Object.keys(userInterests).length > 0
+            ? userInterests[company.id] : undefined
+        }
+      });
+    } else {
+      result.data.companyData = {
+        ...result.data.companyData, interests: Object.keys(userInterests).length > 0
+          ? userInterests[result.data.companyData.id ?? ''] : undefined
+      }
+    }
+    return result;
+  }
+  async getSavedCompanies(query: LimitDto, userData: TCachedUser,) {
+    const [savedCompanies, count] = await Promise.all([
+      this.intentDataService.getUserEventInterest({
+        interest: ['BOOKMARK'],
+        sourceModule: { in: ['RESEARCH_COMPANY'] },
+        accountId: userData.accountId,
+        limit: query.limit,
+        offset: query.offset,
+      }),
+      this.intentDataService.getUserEventInterestCountForBookmark({
+        interest: ['BOOKMARK'],
+        sourceModule: { in: ['RESEARCH_COMPANY'] },
+        accountId: userData.accountId,
+        limit: query.limit,
+        offset: query.offset,
+      }),
+    ]);
+
+    const cache: object = {};
+    const savedCompaniesIds = savedCompanies.map((item) => {
+      cache[item.eventId] = { [item.interest.toLowerCase()]: { interestId: item.id } };
+      return item.eventId;
+    });
+
+    if (savedCompaniesIds.length === 0) {
+      return { data: { totalCount: count.length, savedUsers: [] } };
+    }
+    const result: { data: { totalCount: number, companyData: any } } =
+      (await this.getCompanyProspectData({ ...query, companyId: savedCompaniesIds.join(','), offset: 0 }, 'list', userData)) as any;
+    return {
+      data: {
+        totalCount: count.length, companyData: result.data.companyData?.map(val => {
+          return { ...val, interests: cache[val['id']] }
+        })
+      }
+    };
   }
   async getCompnayEvents(companyId: string, query, userData: TCachedUser) {
     if (query.limit > 20) {

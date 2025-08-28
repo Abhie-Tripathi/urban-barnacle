@@ -17,6 +17,8 @@ import { decrypt } from 'src/utils';
 import { validate as isUUID } from 'uuid';
 import { CompanyEventDto } from 'src/company/dto';
 import { RedisService } from 'src/redis/redis.service';
+import { LimitDto } from 'src/global_dto';
+import { IntentDataService } from 'src/intent/intent.data.service';
 @Injectable()
 export class UserService {
   constructor(
@@ -26,6 +28,7 @@ export class UserService {
     private readonly sharedService: SharedService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly redisService: RedisService,
+    private readonly intentDataService: IntentDataService,
   ) { }
 
   async signOut(token: string) {
@@ -62,12 +65,74 @@ export class UserService {
       user: signInUser,
     };
   }
-  async getUserProspectData(query: ProspectSchemaDto) {
-    return await this.sharedService.getCompanyAndUserDataForProspect(
+  async getUserProspectData(query: ProspectSchemaDto, userData: TCachedUser) {
+    const result: { data: { totalCount: number, userData: any } } = await this.sharedService.getCompanyAndUserDataForProspect(
       query,
       'list',
       'user',
+    ) as any;
+    let userInterests = await this.sharedService.getGroupedEventInterests(
+      userData,
+      Array.isArray(result.data.userData) ? result.data.userData.map((user) => user.user_id) :
+        [result.data.userData.user_id],
+      // query.trackerId,
     );
+    if (Array.isArray(result.data.userData)) {
+      result.data.userData = result.data.userData.map((user) => {
+        return {
+          ...user,
+          interests: Object.keys(userInterests).length > 0
+            ? userInterests[user.user_id] : undefined
+        }
+      });
+    } else {
+      result.data.userData = {
+        ...result.data.userData, interests: Object.keys(userInterests).length > 0
+          ? userInterests[result.data.userData.user_id ?? ''] : undefined
+      }
+    }
+    return result
+
+  }
+  async getSavedUsers(query: LimitDto, userData: TCachedUser,) {
+    const [savedUsers, count] = await Promise.all([
+      this.intentDataService.getUserEventInterest({
+        interest: ['BOOKMARK'],
+        sourceModule: { in: ['RESEARCH_USER'] },
+        accountId: userData.accountId,
+        limit: query.limit,
+        offset: query.offset,
+      }),
+      this.intentDataService.getUserEventInterestCountForBookmark({
+        interest: ['BOOKMARK'],
+        sourceModule: { in: ['RESEARCH_USER'] },
+        accountId: userData.accountId,
+        limit: query.limit,
+        offset: query.offset,
+      }),
+    ]);
+    console.log(savedUsers);
+
+    const cache: object = {};
+    const savedUsersIds = savedUsers.map((item) => {
+      cache[item.eventId] = { [item.interest.toLowerCase()]: { interestId: item.id } };
+      return item.eventId;
+    });
+
+    if (savedUsersIds.length === 0) {
+      return { data: { totalCount: count.length, savedUsers: [] } };
+    }
+    const result: { data: { totalCount: number, userData: any } } =
+      (await this.getUserProspectData({ ...query, userId: savedUsersIds.join(','), offset: 0 }, userData)) as any;
+    console.log(result.data.userData);
+
+    return {
+      data: {
+        totalCount: count.length, userData: result.data.userData?.map(val => {
+          return { ...val, interests: cache[val['user_id']] }
+        })
+      }
+    };
   }
   async getPocsUnmasked(pocId: string, query: PocUnmaskDto, user: TCachedUser) {
     pocId = decrypt(pocId).replace(process.env.TEN_TIMES_ID_ENCRYPT_KEY!, '');
