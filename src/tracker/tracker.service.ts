@@ -770,7 +770,7 @@ export class TrackerService {
         false,
         user,
       );
-      return { events, isAdvanceFilterUsed };
+      return { ...events, isAdvanceFilterUsed };
     } catch (error) {
       if (
         error instanceof HttpException &&
@@ -1632,7 +1632,7 @@ export class TrackerService {
 
         // console.dir(events, { depth: null });
         if (params.view === View.calendar || params.view === View.map) {
-          return { events, isAdvanceFilterUsed };
+          return { ...events, isAdvanceFilterUsed };
         }
         let dataForResponse: object[] = [];
         dataFromDB.map((val) => {
@@ -1662,7 +1662,7 @@ export class TrackerService {
         eventParams['searchByEntity'] = searchByEntity;
       }
       const events = await this.eventService.getSimilarEvents(eventParams);
-      return { events, isAdvanceFilterUsed };
+      return { ...events, isAdvanceFilterUsed };
     } catch (error) {
       if (
         error instanceof HttpException &&
