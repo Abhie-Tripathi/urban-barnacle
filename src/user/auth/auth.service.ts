@@ -104,8 +104,10 @@ export class AuthService {
     } else {
       if (!company) {
         const accountDefault = {};
+        let flagForBlackListDomain = false;
         if (blackListDomain.includes(domain)) {
           accountDefault['domain'] = domain;
+          flagForBlackListDomain = true;
         }
         const createSubscription =
           await this.accountDataService.createSubscription({
@@ -121,7 +123,7 @@ export class AuthService {
               : this.configService.get('BACKEND').toLowerCase() === 'gtm'
                 ? InterestDefaultConfigurations.interests
                 : InterestDefaultConfigurations.leads,
-        });
+        }, flagForBlackListDomain ? data.email : null);
         flag = true;
         const updateSubscription =
           await this.accountDataService.updateSubscription(
@@ -514,8 +516,10 @@ export class AuthService {
         : null;
       if (!company) {
         const accountDefault = {};
+        let flagForBlackListDomain = false;
         if (blackListDomain.includes(domain)) {
           accountDefault['domain'] = domain;
+          flagForBlackListDomain = true;
         }
         const createSubscription =
           await this.accountDataService.createSubscription({
@@ -531,7 +535,7 @@ export class AuthService {
               : this.configService.get('BACKEND').toLowerCase() === 'gtm'
                 ? InterestDefaultConfigurations.interests
                 : InterestDefaultConfigurations.leads,
-        });
+        }, flagForBlackListDomain ? data.email : null);
         flag = true;
         const updateSubscription =
           await this.accountDataService.updateSubscription(
@@ -815,8 +819,10 @@ export class AuthService {
     } else {
       if (!company) {
         const accountDefault = {};
+        let flagForBlackListDomain = false;
         if (blackListDomain.includes(domain)) {
           accountDefault['domain'] = domain;
+          flagForBlackListDomain = true;
         }
         const createSubscription =
           await this.accountDataService.createSubscription({
@@ -832,7 +838,7 @@ export class AuthService {
               : this.configService.get('BACKEND').toLowerCase() === 'gtm'
                 ? InterestDefaultConfigurations.interests
                 : InterestDefaultConfigurations.leads,
-        });
+        }, flagForBlackListDomain ? data.email : null);
         flag = true;
         const updateSubscription =
           await this.accountDataService.updateSubscription(
