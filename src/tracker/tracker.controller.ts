@@ -304,6 +304,8 @@ export class TrackerController {
       } else {
         advanceDataFromResponse = false;
       }
+      console.log("events.isAdvanceFilterUsed", events);
+
       delete events['isAdvanceFilterUsed'];
       if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
         // console.log("aibuuuuuuuuuuuuuuuuuuusj\n", point, advancePoint);
