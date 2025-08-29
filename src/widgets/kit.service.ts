@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto';
 import { CreateWidgetKitDto, defaultKitOptions, UpdateWidgetKitDto } from './dto';
 import { File } from '@nest-lab/fastify-multer';
 import * as fs from 'fs';
-import * as getImageColors from 'get-image-colors';
+import getImageColors from 'get-image-colors';
 import puppeteer from 'puppeteer';
 import { WidgetDataService } from './widget.data.service';
 import { SelectedUserDetails, TCachedUser } from 'src/utils/types';
