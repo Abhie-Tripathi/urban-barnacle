@@ -592,7 +592,7 @@ export class AuthService {
                 : undefined,
           },
         });
-        this.authDataService.createjobForUserTrackerImport(user);
+        this.authDataService.createjobForUserTrackerImport(user, true, { eventId: body.eventId });
         if (
           data.location &&
           (data.location?.cityId || data.location?.countryId)

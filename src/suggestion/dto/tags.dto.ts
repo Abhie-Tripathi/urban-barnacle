@@ -1,6 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { SuggestionSchema } from '.';
+import { SuggestionSchema } from 'src/utils';
 
 export const TagSchema = SuggestionSchema.extend({
   slugs: z

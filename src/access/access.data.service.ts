@@ -48,6 +48,7 @@ export class AccessDataService {
       },
       include: {
         accessReceiver: (show && show.includes('user')) || false,
+        accessProvider: true
       },
       take: limit,
       skip: offset,

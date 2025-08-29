@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { SuggestionSchema } from '.';
+import { SuggestionSchema } from 'src/utils';
 import { createZodDto } from 'nestjs-zod';
 
 const EventTypeGroup = {

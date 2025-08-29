@@ -43,6 +43,8 @@ import { CommunicationService } from './communication/communication.service';
 import { ContactWorkerClass } from './communication/bull-service/bull-contact.service';
 import { ExportWorkerClass } from './communication/bull-service/bull-export.service';
 import { RedisModule } from './redis/redis.module';
+import { AuthGuard } from './user/auth/guard';
+import { APP_GUARD } from '@nestjs/core';
 import { SubscriptionEmailWorkerClass } from './communication/bull-service/bull-subscription.service';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { DecryptQueryInterceptor } from './decrypt-query.interceptor';
@@ -128,9 +130,15 @@ import { DecryptQueryInterceptor } from './decrypt-query.interceptor';
     ErrorWorkerClass,
     ContactWorkerClass,
     ExportWorkerClass,
-    SubscriptionEmailWorkerClass
+    SubscriptionEmailWorkerClass,
+    AuthGuard,
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
+    },
     // CommunicationService,
   ],
+  exports: [AuthGuard]
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

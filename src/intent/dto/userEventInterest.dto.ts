@@ -13,16 +13,25 @@ const CreateUserEventInterestHttpSchema = z.object({
 export class CreateUserEventInterestHttpDto extends createZodDto(
   CreateUserEventInterestHttpSchema,
 ) { }
+const CreateUserProspectInterestHttpSchema = z.object({
+  eventId: z.string(),
+  sourceModule: z.nativeEnum(InterestSourceModule),
+  sourceId: z.string().optional(),
+  interest: z.nativeEnum(Interest),
+});
 
+export class CreateUserProspectInterestHttpDto extends createZodDto(
+  CreateUserProspectInterestHttpSchema,
+) { }
 const CreateUserEventInterestSchema = CreateUserEventInterestHttpSchema.extend({
-  eventId: z.string().uuid().optional(),
+  eventId: z.string().optional(),
   accountId: z.string().uuid(),
   interestedUserId: z.string().uuid(),
   recommendedBy: z.string().uuid().optional(),
   sourceModule: z.nativeEnum(InterestSourceModule),
   interest: z.nativeEnum(Interest),
   enquiryId: z.string().uuid().optional(),
-  sourceId: z.string().uuid().optional(),
+  sourceId: z.string().optional(),
 });
 
 export class CreateUserEventInterestDto extends createZodDto(

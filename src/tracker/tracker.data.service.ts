@@ -66,7 +66,7 @@ export class TrackerDataService {
     offset: number,
   ) {
     type TrackerWithAccessDate = Tracker & { accesscreatedAt: Date };
-
+    const schema: string = process.env.NODE_ENV === 'development' ? 'temp_migration' : 'public';
     const trackers: TrackerWithAccessDate[] = await this.prisma.$queryRaw`
       SELECT
         T.*,
@@ -86,10 +86,10 @@ export class TrackerDataService {
           'imageUrl', U2."imageUrl"
         ) as "modifiedByUser"
       FROM
-        "Tracker" T
-        JOIN "User" U ON T."createdBy" = U.ID
-        LEFT JOIN "User" U2 ON T."lastModifiedBy" = U2.ID
-        JOIN "Access" A ON T.ID = A."sourceEntityId"::UUID
+        ${Prisma.raw(`${schema}.`)}"Tracker" T
+        JOIN  ${Prisma.raw(`${schema}.`)}"User" U ON T."createdBy" = U.ID
+        LEFT JOIN  ${Prisma.raw(`${schema}.`)}"User" U2 ON T."lastModifiedBy" = U2.ID
+        JOIN  ${Prisma.raw(`${schema}.`)}"Access" A ON T.ID = A."sourceEntityId"::UUID
         AND A."sourceEntity" = 'TRACKER'
         AND A."accessReceiverId" = ${Prisma.sql`${user.id}::UUID`}
         AND A."accountId" = ${Prisma.sql`${user.accountId}::UUID`}
@@ -114,14 +114,15 @@ export class TrackerDataService {
     where: Prisma.Sql[],
     groupBy: string | null = null,
   ) {
+    const schema: string = process.env.NODE_ENV === 'development' ? 'temp_migration' : 'public';
     const trackerCount:
       | { count: number }[]
       | { count: number; type: TrackerType }[] = await this.prisma.$queryRaw`
       SELECT
         count(*) ${groupBy ? Prisma.sql`, "type"` : Prisma.sql``}
       FROM
-        "Tracker" T
-        INNER JOIN "Access" A ON T.ID = A."sourceEntityId"::UUID
+         ${Prisma.raw(`${schema}.`)}"Tracker" T
+        INNER JOIN  ${Prisma.raw(`${schema}.`)}"Access" A ON T.ID = A."sourceEntityId"::UUID
         AND A."sourceEntity" = 'TRACKER'
         AND A."accessReceiverId" = ${Prisma.sql`${user.id}::UUID`}
         AND A."accountId" = ${Prisma.sql`${user.accountId}::UUID`}
@@ -251,7 +252,7 @@ export class TrackerDataService {
     } else {
       url += '?' + queryParams.toString();
     }
-    const response = await fetch(url,req);
+    const response = await fetch(url, req);
     const data = await response.json();
     // console.dir(data, { depth: null });
     if (data['error']) {
@@ -286,6 +287,7 @@ export class TrackerDataService {
     limit: number,
     offset: number,
   ) {
+    const schema: string = process.env.NODE_ENV === 'development' ? 'temp_migration' : 'public';
     return await Promise.all([this.prisma.$queryRaw<
       {
         sourceId: string;
@@ -297,7 +299,7 @@ export class TrackerDataService {
     >(
       Prisma.raw(`
   SELECT "sourceId", count, tag, score,"eventId"
-FROM "SimilarEventsToTracker"
+FROM ${schema}."SimilarEventsToTracker"
 where
     "trackerId" = '${trackerId}'
     and tag in ('${tag.join("','")}')
@@ -311,7 +313,7 @@ where
     >(
       Prisma.raw(`
   SELECT count(*)
-FROM "SimilarEventsToTracker"
+FROM ${schema}."SimilarEventsToTracker"
 where
     "trackerId" = '${trackerId}'
     and "createdAt"::DATE = now()::DATE;`),

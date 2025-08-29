@@ -16,6 +16,7 @@ import { PointColumn } from 'src/shared/types';
 import { GetUser } from './decorator';
 import { membershipLimit, TCachedUser } from 'src/utils/types';
 import { CompanyEventDto } from 'src/company/dto';
+import { LimitDto } from 'src/global_dto';
 
 @Controller('users')
 export class UserController {
@@ -67,7 +68,7 @@ export class UserController {
       if (query.limit && query.limit > point) {
         query.limit = point;
       }
-      const result = await this.userService.getUserProspectData(query);
+      const result = await this.userService.getUserProspectData(query, userData);
       totalpointsToDeduct = Array.isArray(result.data.userData) ? result.data.userData.length : 1;
       await this.sharedService.deductPointForRequest(
         PointColumn.pendingCompanySearchRequests,
@@ -86,6 +87,17 @@ export class UserController {
       return { error: error };
     }
   }
+  @UseGuards(AuthGuard)
+  @Get('saved-users')
+  async getSavedUsers(@Query() query: LimitDto, @GetUser() userData: TCachedUser,) {
+    try {
+      const result = await this.userService.getSavedUsers(query, userData);
+      return result;
+    } catch (error) {
+      return { error: error };
+    }
+  }
+
   @UseGuards(AuthGuard)
   @Get(':userId')
   async getUserData(

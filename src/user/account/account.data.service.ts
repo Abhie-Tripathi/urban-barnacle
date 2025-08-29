@@ -49,6 +49,7 @@ export class AccountDataService {
       },
       data: {
         ...data,
+        updatedAt: new Date(),
       },
     });
     return update;
@@ -215,7 +216,8 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
         id: currentSubscriptionId
       },
       data: {
-        deleted: true
+        deleted: true,
+        updatedAt: new Date(),
       }
     })]);
     const accountData = await this.prisma.account.update({
@@ -501,7 +503,8 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
           id: currentSubscriptionData.id
         },
         data: {
-          planRenewalDate: null
+          planRenewalDate: null,
+          updatedAt: new Date(),
         }
       }),
       this.cancelSubscriptionAtPeriodEnd(currentStripeId)
@@ -512,7 +515,8 @@ WHERE ("planMetaData"->'paymentData'->>'id') = '${data.subscriptionId || -1}' an
       },
       data: {
         planMetaData: { ...(currentSubscriptionData.planMetaData as object), cancelData: stripeCancelResponse },
-        planRenewalDate: null
+        planRenewalDate: null,
+        updatedAt: new Date(),
       }
     });
     this.cancelMailForSubscripotion({
