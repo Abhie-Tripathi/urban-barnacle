@@ -504,7 +504,7 @@ export class AuthService {
             domain: domain,
           }),
       ]);
-      let user = users && users.length > 0 ? users[0] : null;
+      let user = users && Array.isArray(users) && users.length > 0 ? users[0] : null;
       let account = company
         ? {
           id: company.accountId,
@@ -569,7 +569,7 @@ export class AuthService {
             await fetchDatafromMicroService('categoryFetch', {
               id_10x: data.confirmCategory.map((val) => val.id).join(','),
             });
-          if (dataTofetch.data.length > 0)
+          if (dataTofetch && dataTofetch.data && dataTofetch.data.length > 0)
             category = dataTofetch.data.map((val) => val.id).join(',');
         }
         user = await this.userDataService.createUser({
@@ -578,7 +578,7 @@ export class AuthService {
               ? data.name.split(' ')[0]
               : data.name || '',
           ...(source.source !== '10times' &&
-            data.name &&
+            data.name && data.name.length > 1 &&
             data.name.split(' ').length > 1
             ? { lastname: data.name.substring(data.name.indexOf(' ') + 1) }
             : {}),
@@ -606,16 +606,16 @@ export class AuthService {
           data.location &&
           (data.location?.cityId || data.location?.countryId)
         ) {
-          const locationIdsRaw: string = data.location.cityId
+          const locationIdsRaw: string | null = data.location.cityId
             ? `city-${data.location.cityId}`
-            : `country-${data.location.countryId}`;
-          if (locationIdsRaw.length > 3) {
+            : data.location.countryId ? `country-${data.location.countryId}` : null;
+          if (locationIdsRaw && locationIdsRaw.length > 3) {
             const dataTofetch: {
               data: {
                 formattedLocations: {
                   id: string;
                   name: string;
-                  displayName: string;
+                  displayName: string | null;
                 }[];
               };
             } = await fetchDatafromMicroService('locationSuggestionApi', {
@@ -626,7 +626,7 @@ export class AuthService {
                 {
                   locationType: 'LOCATION_ID',
                   locationName:
-                    dataTofetch.data.formattedLocations[0].displayName,
+                    dataTofetch.data.formattedLocations[0]?.displayName || null,
                   locationId: dataTofetch.data.formattedLocations[0].id,
                 },
               ] as any,
@@ -684,7 +684,7 @@ export class AuthService {
           limit: 1,
           offset: 0,
         });
-        const account = accounts && accounts.length > 0 ? accounts[0] : null;
+        const account = accounts && Array.isArray(accounts) && accounts.length > 0 ? accounts[0] : null;
         if (account) {
           await this.accountService.updateAccountConfiguration(
             {
@@ -783,7 +783,7 @@ export class AuthService {
           domain: domain,
         }),
     ]);
-    let user = users && users.length > 0 ? users[0] : null;
+    let user = users && Array.isArray(users) && users.length > 0 ? users[0] : null;
     let account = company
       ? {
         id: company.accountId,
