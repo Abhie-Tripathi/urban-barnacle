@@ -181,7 +181,7 @@ export class TrackerController {
         query.showValues,
       );
       totalpointsToDeduct = Array.isArray(events.events) ? events.events.length : 1;
-      console.log("askdfioaisfoiafoa", events);
+      // console.log("askdfioaisfoiafoa", events);
 
       if ('isAdvanceFilterUsed' in events) {
         advanceDataFromResponse = events.isAdvanceFilterUsed ?? false;
