@@ -30,17 +30,23 @@ export class KitService {
       const page = await browser.newPage();
       await page.goto(url, { waitUntil: 'networkidle2' });
 
-      const fontFamilies: string[] = await page.evaluate(() => {
-        const allStyles: any[] = [];
-        const nodes = document.body.getElementsByTagName('*');
-        for (let i = 0; i < nodes.length; i++) {
-          const style = window.getComputedStyle(nodes[i]).fontFamily;
-          if (style && allStyles.indexOf(style) === -1) {
-            allStyles.push(style);
+      let fontFamilies: string[] = []
+
+      try {
+        fontFamilies = await page.evaluate(() => {
+          const allStyles: any[] = [];
+          const nodes = document.body.getElementsByTagName('*');
+          for (let i = 0; i < nodes.length; i++) {
+            const style = window.getComputedStyle(nodes[i]).fontFamily;
+            if (style && allStyles.indexOf(style) === -1) {
+              allStyles.push(style);
+            }
           }
-        }
-        return allStyles;
-      });
+          return allStyles;
+        });
+      } catch (error) {
+        console.error('Error evaluating font families:', error);
+      }
 
       console.log('Font Families:', fontFamilies);
       await browser.close();
