@@ -65,7 +65,7 @@ export class KitService {
   async fetchLogoURL(domain) {
     console.log('domain', domain);
 
-    const clearbitURL = `https://img.logo.dev/${domain}?token=pk_fNO6abUPT72mIx0CoSeW1w`;
+    const clearbitURL = `https://img.logo.dev/${domain}?token=pk_TIi7BsTiQ46Axif_5pBzCQ`;
     return clearbitURL;
   }
   //  to download the logo
@@ -107,8 +107,14 @@ export class KitService {
   async extractColors(imagePath) {
     console.log('imagePath', imagePath);
 
-    const colors = await getImageColors(imagePath);
-    return colors.map((color) => color.hex());
+    let colors: any[] = [];
+    try {
+      colors = await getImageColors(imagePath);
+      colors = colors.map((color) => color.hex());
+    } catch (error) {
+      console.error('Error extracting colors:', error);
+    }
+    return colors;
   }
 
   // Main
