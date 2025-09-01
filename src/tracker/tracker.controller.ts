@@ -202,9 +202,7 @@ export class TrackerController {
         flag = true;
       }
       return {
-        data: (events["events"] && typeof events["events"] === "object" && !Array.isArray(events["events"]))
-          ? events["events"]
-          : events
+        data: events
       };
 
     } catch (error) {
