@@ -3,6 +3,7 @@ import { TrackerDataService } from './tracker.data.service';
 import {
   blackListDomain,
   defaultEventTypes,
+  eventAdvanceFields,
   LastActive,
   membershipLimit,
   membershipReverseMap,
@@ -736,6 +737,7 @@ export class TrackerService {
     isExport: boolean | undefined = undefined
   ) {
     try {
+      let isAdvanceFilterUsed: boolean = false;
       const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
         'ADMIN',
         'SUPER_ADMIN',
@@ -744,7 +746,7 @@ export class TrackerService {
       console.log(tracker);
       const filterShowValues = (tracker.filterValues as any)['showValues'] ? (tracker.filterValues as any)['showValues'].split(',') : [];
 
-      if (Array.isArray(filterShowValues) && filterShowValues.length > 1) {
+      if (Array.isArray(filterShowValues) && filterShowValues.length > 0) {
         const isSubset = showValues.split(',').every(val => filterShowValues.includes(val));
 
         if (!isSubset) {
@@ -752,6 +754,13 @@ export class TrackerService {
             'Invalid showValues',
             HttpStatus.BAD_REQUEST,
           );
+        } else {
+          for (const val of filterShowValues) {
+            if (eventAdvanceFields[val] === 'advance') {
+              isAdvanceFilterUsed = true;
+              break;
+            }
+          }
         }
       }
 
@@ -829,9 +838,9 @@ export class TrackerService {
       if (searchByEntity) {
         eventParams['searchByEntity'] = searchByEntity;
       }
-      let isAdvanceFilterUsed: boolean = false;
       const tokens = await this.sharedService.getTokenDetails(user, eventParams, false);
-      isAdvanceFilterUsed = tokens.isAdvanceFilterUsed;
+      if (!isAdvanceFilterUsed)
+        isAdvanceFilterUsed = tokens.isAdvanceFilterUsed;
       const events = await this.eventService.getAllEvents(
         eventParams,
         false,
@@ -876,7 +885,7 @@ export class TrackerService {
       ]);
       const filterShowValues = (tracker.filterValues as any)['showValues'] ? (tracker.filterValues as any)['showValues'].split(',') : [];
 
-      if (Array.isArray(filterShowValues) && filterShowValues.length > 1) {
+      if (Array.isArray(filterShowValues) && filterShowValues.length > 0) {
         const isSubset = showValues.split(',').every(val => filterShowValues.includes(val));
 
         if (!isSubset) {
@@ -1606,11 +1615,30 @@ export class TrackerService {
     try {
       // console.log(params);
 
+      let isAdvanceFilterUsed: boolean = false;
       const [tracker, result] = await this.hasTrackerAccess(user, trackerId, [
         'ADMIN',
         'SUPER_ADMIN',
         'USER',
       ]);
+      const filterShowValues = (tracker.filterValues as any)['showValues'] ? (tracker.filterValues as any)['showValues'].split(',') : [];
+      if (Array.isArray(filterShowValues) && filterShowValues.length > 0) {
+        const isSubset = showValues.split(',').every(val => filterShowValues.includes(val));
+
+        if (!isSubset) {
+          throw new HttpException(
+            'Invalid showValues',
+            HttpStatus.BAD_REQUEST,
+          );
+        } else {
+          for (const val of filterShowValues) {
+            if (eventAdvanceFields[val] === 'advance') {
+              isAdvanceFilterUsed = true;
+              break;
+            }
+          }
+        }
+      }
       console.log(tracker);
       const newParams = getNonEmptyParams(params);
       const convertedParams = await this.sharedService.convertSlugParamsToIds(
@@ -1618,6 +1646,7 @@ export class TrackerService {
         true,
         false,
       );
+
       const { startDate, endDate } = this.getValidDateRange(
         tracker.filterValues as unknown as GetTrackerEventsDto,
         newParams as GetTrackerEventsDto,
@@ -1660,9 +1689,9 @@ export class TrackerService {
         trackerId: trackerId,
         showValues: showValues,
       };
-      let isAdvanceFilterUsed: boolean = false;
       const tokens = await this.sharedService.getTokenDetails(user, eventParams, false);
-      isAdvanceFilterUsed = tokens.isAdvanceFilterUsed;
+      if (!isAdvanceFilterUsed)
+        isAdvanceFilterUsed = tokens.isAdvanceFilterUsed;
       const [dataFromDB, countFromDB] =
         await this.trackerDataService.getSimilarTrackerEvent(
           trackerId,
