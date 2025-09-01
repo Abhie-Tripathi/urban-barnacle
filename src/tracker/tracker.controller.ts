@@ -181,13 +181,13 @@ export class TrackerController {
         query.showValues,
       );
       totalpointsToDeduct = Array.isArray(events.events) ? events.events.length : 1;
-      // console.log("askdfioaisfoiafoa", events);
 
       if ('isAdvanceFilterUsed' in events) {
         advanceDataFromResponse = events.isAdvanceFilterUsed ?? false;
       } else {
         advanceDataFromResponse = false;
       }
+      console.log("askdfioaisfoiafoa", events, { advanceDataFromResponse, isAdvanceFilterUsed });
       delete events['isAdvanceFilterUsed'];
       if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
         // console.log("aibuuuuuuuuuuuuuuuuuuusj\n", point, advancePoint);
