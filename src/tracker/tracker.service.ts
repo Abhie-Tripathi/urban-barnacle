@@ -97,7 +97,9 @@ export class TrackerService {
       'eventTypes',
       'eventIds',
       'show',
-      'showValues'
+      'showValues',
+      'countries',
+      'filterValuesStatus',
     ];
     Object.keys(filterValue).forEach((val) => {
       console.log(val)
@@ -394,7 +396,9 @@ export class TrackerService {
                 }
                 delete groupedEventsCount!['new_ids'];
               }
-              groupedEventsCount = deleteKeyDeep(groupedEventsCount, 'similarEventCache')
+              groupedEventsCount = deleteKeyDeep(groupedEventsCount, 'similarEventCache');
+              groupedEventsCount = deleteKeyDeep(groupedEventsCount, 'total_event_ids');
+              groupedEventsCount = deleteKeyDeep(groupedEventsCount, 'new_event_ids');
               if (trackerSimilarEventPauload.length > 0) {
                 await this.trackerDataService.bulkInsertToSimilarTrackerEvent(
                   trackerSimilarEventPauload,

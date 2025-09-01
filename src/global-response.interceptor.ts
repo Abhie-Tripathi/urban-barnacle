@@ -36,7 +36,7 @@ export class GlobalResponseInterceptor implements NestInterceptor {
       catchError((err) => {
         console.log('errorerrorerrorerror00000', err);
         let errorMsg: string = err.message;
-        let errorType: string = 'HTTPError';
+        let errorType: string = 'Due to higher usage, we are experiencing issue. Please try again after sometime.';
 
         if (err instanceof ZodValidationException) {
           errorType = 'ZodValidationException';
@@ -82,7 +82,7 @@ export class GlobalResponseInterceptor implements NestInterceptor {
       tap((data) => {
         if (data && data.error) {
           let errorMsg: string = JSON.stringify(data.error);
-          let errorType: string = 'HTTPError';
+          let errorType: string = 'Due to higher usage, we are experiencing issue. Please try again after sometime.';
           let errorResponse: any;
 
           const error = data.error;
