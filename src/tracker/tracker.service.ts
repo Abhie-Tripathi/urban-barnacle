@@ -97,7 +97,9 @@ export class TrackerService {
       'eventTypes',
       'eventIds',
       'show',
-      'showValues'
+      'showValues',
+      'countries',
+      'filterValuesStatus',
     ];
     Object.keys(filterValue).forEach((val) => {
       console.log(val)
