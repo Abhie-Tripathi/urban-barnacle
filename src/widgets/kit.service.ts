@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto';
 import { CreateWidgetKitDto, defaultKitOptions, UpdateWidgetKitDto } from './dto';
 import { File } from '@nest-lab/fastify-multer';
 import * as fs from 'fs';
-import * as getImageColors from 'get-image-colors';
+import getImageColors from 'get-image-colors';
 import puppeteer from 'puppeteer';
 import { WidgetDataService } from './widget.data.service';
 import { SelectedUserDetails, TCachedUser } from 'src/utils/types';
@@ -30,17 +30,23 @@ export class KitService {
       const page = await browser.newPage();
       await page.goto(url, { waitUntil: 'networkidle2' });
 
-      const fontFamilies: string[] = await page.evaluate(() => {
-        const allStyles: any[] = [];
-        const nodes = document.body.getElementsByTagName('*');
-        for (let i = 0; i < nodes.length; i++) {
-          const style = window.getComputedStyle(nodes[i]).fontFamily;
-          if (style && allStyles.indexOf(style) === -1) {
-            allStyles.push(style);
+      let fontFamilies: string[] = []
+
+      try {
+        fontFamilies = await page.evaluate(() => {
+          const allStyles: any[] = [];
+          const nodes = document.body.getElementsByTagName('*');
+          for (let i = 0; i < nodes.length; i++) {
+            const style = window.getComputedStyle(nodes[i]).fontFamily;
+            if (style && allStyles.indexOf(style) === -1) {
+              allStyles.push(style);
+            }
           }
-        }
-        return allStyles;
-      });
+          return allStyles;
+        });
+      } catch (error) {
+        console.error('Error evaluating font families:', error);
+      }
 
       console.log('Font Families:', fontFamilies);
       await browser.close();
@@ -59,7 +65,7 @@ export class KitService {
   async fetchLogoURL(domain) {
     console.log('domain', domain);
 
-    const clearbitURL = `https://img.logo.dev/${domain}?token=pk_fNO6abUPT72mIx0CoSeW1w`;
+    const clearbitURL = `https://img.logo.dev/${domain}?token=pk_TIi7BsTiQ46Axif_5pBzCQ`;
     return clearbitURL;
   }
   //  to download the logo
@@ -101,8 +107,14 @@ export class KitService {
   async extractColors(imagePath) {
     console.log('imagePath', imagePath);
 
-    const colors = await getImageColors(imagePath);
-    return colors.map((color) => color.hex());
+    let colors: any[] = [];
+    try {
+      colors = await getImageColors(imagePath);
+      colors = colors.map((color) => color.hex());
+    } catch (error) {
+      console.error('Error extracting colors:', error);
+    }
+    return colors;
   }
 
   // Main

@@ -54,13 +54,28 @@ export class AccountDataService {
     });
     return update;
   }
-  async createAccount(data: CreateAccountDto) {
+  async createAccount(data: CreateAccountDto, email: string | null = null) {
     const { interestConfig, ...rest } = data;
-    let defaultConfig = accountConfig;
-    if (interestConfig) {
-      defaultConfig = { ...defaultConfig, interest: interestConfig };
+    const defaultConfig = interestConfig
+      ? { ...accountConfig, interest: interestConfig }
+      : accountConfig;
+
+    if (email) {
+      const user = await this.prisma.user.findFirst({
+        where: { email },
+        select: { primaryAccountId: true },
+      });
+
+      if (user?.primaryAccountId) {
+        const account = await this.prisma.account.findFirst({
+          where: { id: user.primaryAccountId },
+        });
+        if (account) return account;
+      }
     }
-    const account = await this.prisma.account.create({
+
+    // If email not provided or no existing account, create new account
+    return this.prisma.account.create({
       data: {
         ...rest,
         accountConfiguration: {
@@ -70,8 +85,8 @@ export class AccountDataService {
         },
       },
     });
-    return account;
   }
+
 
   async getAccounts(data: GetAccountDto) {
     const params = {};
