@@ -395,6 +395,7 @@ export class TrackerService {
                 delete groupedEventsCount!['new_ids'];
               }
               groupedEventsCount = deleteKeyDeep(groupedEventsCount, 'similarEventCache')
+              groupedEventsCount = deleteKeyDeep(groupedEventsCount, 'total_event_ids')
               if (trackerSimilarEventPauload.length > 0) {
                 await this.trackerDataService.bulkInsertToSimilarTrackerEvent(
                   trackerSimilarEventPauload,
