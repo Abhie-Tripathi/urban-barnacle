@@ -152,6 +152,7 @@ export class TrackerController {
     let totalpointsToDeduct: number = 0;
     let point: number = 0;
     let advancePoint: number = 0;
+    let isAdvanceFilterUsed: boolean = false;
     try {
       for (const val of query.showValues.split(',')) {
         if (eventAdvanceFields[val] === 'advance') {
@@ -164,12 +165,13 @@ export class TrackerController {
         point = tokens.point;
         advancePoint = tokens.advancePoint;
         query = tokens.query;
+        isAdvanceFilterUsed = tokens.isAdvanceFilterUsed;
       }
-      if (advanceDataFromResponse && advancePoint <= 0) {
+      if ((advanceDataFromResponse || isAdvanceFilterUsed) && advancePoint <= 0) {
         throw new HttpException(
           'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
           HttpStatus.TOO_MANY_REQUESTS,
-          { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) < (advancePoint * 0.5)}}` }
+          { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) > 0}}` }
         );
       }
       const events = await this.trackerService.getTrackerEvents(
@@ -179,23 +181,34 @@ export class TrackerController {
         query.showValues,
       );
       totalpointsToDeduct = Array.isArray(events.events) ? events.events.length : 1;
+
+      if ('isAdvanceFilterUsed' in events) {
+        advanceDataFromResponse = events.isAdvanceFilterUsed ?? false;
+      } else {
+        advanceDataFromResponse = false;
+      }
+      console.log("askdfioaisfoiafoa", events, { advanceDataFromResponse, isAdvanceFilterUsed });
+      delete events['isAdvanceFilterUsed'];
       if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
         // console.log("aibuuuuuuuuuuuuuuuuuuusj\n", point, advancePoint);
 
         await this.sharedService.deductPointForRequest(
-          advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
+          (advanceDataFromResponse || isAdvanceFilterUsed) ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
           user.accountId,
-          advanceDataFromResponse ? advancePoint - totalpointsToDeduct : point - totalpointsToDeduct,
+          (advanceDataFromResponse || isAdvanceFilterUsed) ? advancePoint - totalpointsToDeduct : point - totalpointsToDeduct,
           // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
           // (advanceDataFromResponse ? advancePoint - 1 : 0),
         );
         flag = true;
       }
-      return { data: events };
+      return {
+        data: events
+      };
+
     } catch (error) {
       if (flag)
         this.sharedService.creditPointForRequest(
-          advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
+          (advanceDataFromResponse || isAdvanceFilterUsed) ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
           user.accountId,
           totalpointsToDeduct
           // (advanceDataFromResponse ? : null),
@@ -253,6 +266,7 @@ export class TrackerController {
     let totalpointsToDeduct: number = 0;
     let point: number = 0;
     let advancePoint: number = 0;
+    let isAdvanceFilterUsed: boolean = false;
     try {
       for (const val of query.showValues.split(',')) {
         if (eventAdvanceFields[val] === 'advance') {
@@ -260,20 +274,22 @@ export class TrackerController {
           break;
         }
       }
-      if (advanceDataFromResponse && advancePoint <= 0) {
-        throw new HttpException(
-          'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
-          HttpStatus.TOO_MANY_REQUESTS,
-          { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) < (advancePoint * 0.5)}}` }
-        );
-      }
 
       if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
         const tokens = await this.sharedService.getTokenDetails(user, query, !advanceDataFromResponse);
         point = tokens.point;
         advancePoint = tokens.advancePoint;
         query = tokens.query;
+        isAdvanceFilterUsed = tokens.isAdvanceFilterUsed;
       }
+      if ((advanceDataFromResponse || isAdvanceFilterUsed) && advancePoint <= 0) {
+        throw new HttpException(
+          'You’ve exhausted your Advanced Search tokens. You can upgrade to a higher plan.',
+          HttpStatus.TOO_MANY_REQUESTS,
+          { cause: `{"advanceToken":${advancePoint > 0},"basicToken":${Math.abs(point) > 0}}` }
+        );
+      }
+
       const events = await this.trackerService.getTrackerSimilarEvents(
         user,
         id,
@@ -281,23 +297,35 @@ export class TrackerController {
         query.showValues,
       );
       totalpointsToDeduct = Array.isArray(events.events) ? events.events.length : 1;
+      if ('isAdvanceFilterUsed' in events) {
+        advanceDataFromResponse = events.isAdvanceFilterUsed ?? false;
+      } else {
+        advanceDataFromResponse = false;
+      }
+      console.log("events.isAdvanceFilterUsed", events);
+
+      delete events['isAdvanceFilterUsed'];
       if (!['calendar', 'suggestion', 'map'].includes(query.view)) {
         // console.log("aibuuuuuuuuuuuuuuuuuuusj\n", point, advancePoint);
 
         await this.sharedService.deductPointForRequest(
-          advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
+          (advanceDataFromResponse || isAdvanceFilterUsed) ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
           user.accountId,
-          advanceDataFromResponse ? advancePoint - totalpointsToDeduct : point - totalpointsToDeduct,
+          (advanceDataFromResponse || isAdvanceFilterUsed) ? advancePoint - totalpointsToDeduct : point - totalpointsToDeduct,
           // (advanceDataFromResponse ? PointColumn.advancePendingRequests : null),
           // (advanceDataFromResponse ? advancePoint - 1 : 0),
         );
         flag = true;
       }
-      return { data: events };
+      return {
+        data: (events["events"] && typeof events["events"] === "object" && !Array.isArray(events["events"]))
+          ? events["events"]
+          : events
+      };
     } catch (error) {
       if (flag)
         this.sharedService.creditPointForRequest(
-          advanceDataFromResponse ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
+          (advanceDataFromResponse || isAdvanceFilterUsed) ? PointColumn.advancePendingRequests : PointColumn.pendingRequests,
           user.accountId,
           totalpointsToDeduct
           // (advanceDataFromResponse ? : null),
