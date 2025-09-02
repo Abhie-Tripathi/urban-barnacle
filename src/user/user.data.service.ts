@@ -240,4 +240,20 @@ export class UserDataService {
     }
     return user;
   }
+
+  async userExistsOnOtherPlatform(email: string): Promise<boolean> {
+    const url = (process.env.OTHER_BACKEND_URL || '') + `auth/${process.env.USER_EXIST_TOKEN}/userExists`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
+    const { data, error } = await response.json();
+    if (!data || error) {
+      return false;
+    }
+    return true;
+  }
 }

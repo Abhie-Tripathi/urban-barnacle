@@ -15,6 +15,7 @@ import { Prisma } from '@prisma/client';
 import { GetUser } from '../decorator';
 import { TCachedUser } from 'src/utils/types';
 import { AuthGuard } from './guard';
+import { decrypt } from 'src/utils';
 
 @Controller('auth')
 export class AuthController {
@@ -129,6 +130,28 @@ export class AuthController {
       const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
       reply.cookie(key, data.user.token);
       return { data: { user: { ...data.user.userData, isNewUser: data.isNewUser, industryExist: data.industryExist } } };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+  @Post('user-exists')
+  async userExists(@Body() body: { email: string }) {
+    try {
+      const data = await this.authService.userExists(decrypt(body.email));
+      return { data };
+    } catch (error) {
+      return { error: error };
+    }
+  }
+  @Post(':token/user-exists')
+  async userExistsInternally(@Param('token') token: string, @Body() body: SignInDto) {
+
+    try {
+      if (process.env.USER_EXIST_TOKEN !== token) {
+        throw new HttpException('token not fount/matched', HttpStatus.FORBIDDEN);
+      }
+      const data = await this.authService.userExistsInternally((body.email));
+      return { data };
     } catch (error) {
       return { error: error };
     }

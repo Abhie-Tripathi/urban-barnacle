@@ -981,6 +981,37 @@ export class AuthService {
       }),
     };
   }
+  async userExistsInternally(email: string) {
+    const userArray = await this.userDataService.getUsers({
+      email: [email],
+      limit: 1,
+      offset: 0
+    });
+    if (userArray && userArray.length === 0) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+    return userArray[0];
+  }
+  async userExists(rawDecryptedEmail: string) {
+    const [date, email, domain] = rawDecryptedEmail.split('#');
+    console.log(date, email, domain);
+    const inputDate = new Date(date).setHours(0, 0, 0, 0); // ignore time
+    const currentDate = new Date().setHours(0, 0, 0, 0);
+
+    if (domain !== process.env.BACKEND || inputDate !== currentDate) {
+      throw new HttpException('wrong encryption', HttpStatus.BAD_REQUEST);
+    }
+    // const email: string = rawDecryptedEmail.split('#')[1];
+    const [internalUser, externalUser] = await Promise.all([
+      this.userExistsInternally(email),
+      this.userDataService.userExistsOnOtherPlatform(email)
+    ]);
+
+    return {
+      internalUser: Object.keys(internalUser).length > 0,
+      externalUser
+    }
+  }
   // async userBasicInfo(email: string) {
   //   try {
   //     const [checkUserExist, companyDataExist] = await Promise.all([
