@@ -37,6 +37,7 @@ import { AccountService } from '../account/account.service';
 import { KitService } from 'src/widgets/kit.service';
 import { fetchDatafromMicroService } from 'src/shared/microservice.api';
 import { SavedLocationService } from 'src/saved-location/saved-location.service';
+import { log } from 'console';
 
 @Injectable()
 export class AuthService {
@@ -57,6 +58,9 @@ export class AuthService {
   ) { }
 
   async signUp(data: SignUpDto) {
+    if (data.find) {
+      return await this.userExists(data.email);
+    }
     const domain = data.email.split('@')[1];
     let flag: boolean = false;
     // let nonBusinessFlag: Boolean = false;
@@ -422,6 +426,9 @@ export class AuthService {
         HttpStatus.FAILED_DEPENDENCY,
       );
     }
+    if (body.find) {
+      return { user: { userData: await this.userExists(data['email']), token: null } };
+    }
     const users = await this.userDataService.getUsers({
       email: [data['email'] as string],
       limit: 1,
@@ -768,6 +775,9 @@ export class AuthService {
     }
   }
   async tokenBasedSignUp(data: SignUpTempDto) {
+    if (data.find) {
+      return { user: { userData: await this.userExists(data['email']), token: null } };
+    }
     const { locationId, profileUrl, ...rest } = data;
     const domain = data.email.split('@')[1];
     // let nonBusinessFlag: Boolean = false;
@@ -988,28 +998,51 @@ export class AuthService {
       offset: 0
     });
     if (userArray && userArray.length === 0) {
-      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      return { id: '', email: '', latestTimeOfLogin: null };
     }
-    return userArray[0];
+    const latestTimeOfLogin = await this.userDataService.getLatestTimeOfLogin(userArray[0].id);
+    return { ...userArray[0], latestTimeOfLogin: latestTimeOfLogin?.createdAt || null };
   }
   async userExists(rawDecryptedEmail: string) {
-    const [date, email, domain] = rawDecryptedEmail.split('#');
-    console.log(date, email, domain);
-    const inputDate = new Date(date).setHours(0, 0, 0, 0); // ignore time
-    const currentDate = new Date().setHours(0, 0, 0, 0);
+    const email = rawDecryptedEmail;
+    // const [date, email, domain] = rawDecryptedEmail.split('#');
+    // console.log(date, email, domain);
+    // const inputDate = new Date(date).setHours(0, 0, 0, 0); // ignore time
+    // const currentDate = new Date().setHours(0, 0, 0, 0);
 
-    if (domain !== process.env.BACKEND || inputDate !== currentDate) {
-      throw new HttpException('wrong encryption', HttpStatus.BAD_REQUEST);
-    }
+    // if (domain !== process.env.BACKEND || inputDate !== currentDate) {
+    //   throw new HttpException('wrong encryption', HttpStatus.BAD_REQUEST);
+    // }
     // const email: string = rawDecryptedEmail.split('#')[1];
     const [internalUser, externalUser] = await Promise.all([
       this.userExistsInternally(email),
       this.userDataService.userExistsOnOtherPlatform(email)
     ]);
-
+    const loginTimeOnthisPlatform = internalUser.latestTimeOfLogin;
+    const loginTimeOnOtherPlatform = externalUser.latestTimeOfLogin;
+    let loginFlagForInternalUser = false;
+    let loginFlagForExternalUser = false;
+    if (loginTimeOnthisPlatform && loginTimeOnOtherPlatform) {
+      if (loginTimeOnthisPlatform > loginTimeOnOtherPlatform) {
+        loginFlagForInternalUser = true;
+      }
+      else {
+        loginFlagForExternalUser = true;
+      }
+    }
+    if (loginTimeOnthisPlatform && !loginTimeOnOtherPlatform) {
+      loginFlagForInternalUser = true;
+    }
+    if (!loginTimeOnthisPlatform && loginTimeOnOtherPlatform) {
+      loginFlagForExternalUser = true;
+    }
     return {
-      internalUser: Object.keys(internalUser).length > 0,
-      externalUser
+      internalUser: internalUser.email.length > 0,
+      externalUser: externalUser.email.length > 0,
+      ...(internalUser.email.length > 0 &&
+        externalUser.email.length > 0 ? (loginFlagForInternalUser ? {
+          loginFlagForInternalUser
+        } : { loginFlagForExternalUser }) : {})
     }
   }
   // async userBasicInfo(email: string) {

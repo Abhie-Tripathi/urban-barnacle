@@ -30,6 +30,7 @@ export const SignUpSchema = z.strictObject({
     .optional(),
   category: z.string().optional(),
   email: z.string().email().transform(val => val.toLowerCase()),
+  find: z.boolean().optional(),
 });
 
 export class SignUpDto extends createZodDto(SignUpSchema) { }
@@ -62,6 +63,7 @@ export const SignUpTempSchema = z.strictObject({
   profileUrl: z.string().optional(),
   locationId: z.string().optional(),
   phoneNumber: z.string().optional(),
+  find: z.boolean().optional(),
 });
 
 export class SignUpTempDto extends createZodDto(SignUpTempSchema) { }
@@ -90,6 +92,7 @@ const authenticatSchema = z.object({
   userId: z.number().optional(),
   accessToken: z.string().optional(),
   eventId: z.string().optional(),
+  find: z.boolean().optional(),
 }).refine(
   (data) =>
     (data.accessToken && !data.token && !data.userId) ||

@@ -241,8 +241,8 @@ export class UserDataService {
     return user;
   }
 
-  async userExistsOnOtherPlatform(email: string): Promise<boolean> {
-    const url = (process.env.OTHER_BACKEND_URL || '') + `auth/${process.env.USER_EXIST_TOKEN}/userExists`;
+  async userExistsOnOtherPlatform(email: string): Promise<{ id: string, email: string, latestTimeOfLogin: Date | null }> {
+    const url = (process.env.OTHER_BACKEND_URL || '') + `auth/${process.env.USER_EXIST_TOKEN}/user-exists`;
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -251,9 +251,24 @@ export class UserDataService {
       body: JSON.stringify({ email }),
     });
     const { data, error } = await response.json();
+    // console.log("ksdjfjisadbfisdifb", data, error);
     if (!data || error) {
-      return false;
+      return { id: '', email: '', latestTimeOfLogin: null }
     }
-    return true;
+    return data;
+  }
+  async getLatestTimeOfLogin(userId: string) {
+    return this.prisma.apiLogs.findFirst({
+      where: {
+        userId: userId
+      },
+      select: {
+        createdAt: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: 1
+    })
   }
 }

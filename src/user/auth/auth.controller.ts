@@ -66,8 +66,12 @@ export class AuthController {
         throw new HttpException('token not fount/matched', HttpStatus.FORBIDDEN);
       }
       const data = await this.authService.tokenBasedSignUp(body);
+
       const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
-      reply.cookie(key, data.user.token);
+      if (data.user.token) {
+        reply.cookie(key, data.user.token);
+      }
+
       return { data: { user: data.user.userData } };
     } catch (error) {
       if (
@@ -128,21 +132,24 @@ export class AuthController {
     try {
       const data = await this.authService.authenticateUserFromToken(source, body);
       const key = (this.cookiePrefix ? `${this.cookiePrefix}-` : '') + 'token';
-      reply.cookie(key, data.user.token);
+      if (data.user.token) {
+        reply.cookie(key, data.user.token);
+      }
+
       return { data: { user: { ...data.user.userData, isNewUser: data.isNewUser, industryExist: data.industryExist } } };
     } catch (error) {
       return { error: error };
     }
   }
-  @Post('user-exists')
-  async userExists(@Body() body: { email: string }) {
-    try {
-      const data = await this.authService.userExists(decrypt(body.email));
-      return { data };
-    } catch (error) {
-      return { error: error };
-    }
-  }
+  // @Post('user-exists')
+  // async userExists(@Body() body: { email: string }) {
+  //   try {
+  //     const data = await this.authService.userExists(decrypt(body.email));
+  //     return { data };
+  //   } catch (error) {
+  //     return { error: error };
+  //   }
+  // }
   @Post(':token/user-exists')
   async userExistsInternally(@Param('token') token: string, @Body() body: SignInDto) {
 
